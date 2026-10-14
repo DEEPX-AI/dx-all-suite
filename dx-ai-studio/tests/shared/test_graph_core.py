@@ -65,13 +65,31 @@ def test_view_transforms():
 const v = C.fitTransform([{id: 'a', x: 0, y: 0}, {id: 'b', x: 340, y: 0}], 1000, 600, 40);
 const s = C.worldToScreen(v, 250, 28);
 ok(Math.abs(s.x - 500) < 1 && Math.abs(s.y - 300) < 1, 'the middle of the graph lands in the middle ' + JSON.stringify(s));
-eq(v.zoom, 1.5, 'fit never zooms past 150 %');
+eq(v.zoom, 1.25, 'fit never zooms past 125 %: a small graph stays the size the cards are drawn for');
 const v2 = C.zoomAt({zoom: 1, offsetX: 0, offsetY: 0}, 2, 100, 50);
 const w2 = C.screenToWorld(v2, 100, 50); eq([w2.x, w2.y], [100, 50], 'zoom keeps the point under the cursor');
 eq(C.zoomAt({zoom: 3, offsetX: 0, offsetY: 0}, 2, 0, 0).zoom, 3, 'zoom is clamped');
 eq(C.fitTransform([], 800, 600), {zoom: 1, offsetX: 0, offsetY: 0});
 """)
 
+
+def test_fit_leaves_room_for_overlays_per_side():
+    """The canvas passes the toolbar and minimap as insets; the graph is fitted and centred in what is left."""
+    _run(r"""
+eq(C.FIT_MAX_ZOOM, 1.25);
+eq(C.fitTransform([{id: 'a', x: 0, y: 0}], 1000, 600, 24).zoom, 1.25, 'one node stops at 125 %');
+const ins = {top: 60, right: 24, bottom: 140, left: 24};
+const v = C.fitTransform([{id: 'a', x: 0, y: 0}, {id: 'b', x: 600, y: 0}], 700, 600, ins);
+eq(Math.round(v.zoom * 1000), Math.round((700 - 48) / 760 * 1000), 'a wide graph uses the width less the side insets');
+const tl = C.worldToScreen(v, 0, 0), br = C.worldToScreen(v, 760, 56);
+ok(tl.x >= 24 - 0.5 && br.x <= 700 - 24 + 0.5, 'inside the side insets ' + JSON.stringify([tl, br]));
+ok(tl.y >= 60 - 0.5 && br.y <= 600 - 140 + 0.5, 'below the toolbar and above the minimap');
+ok(Math.abs((tl.y + br.y) / 2 - (60 + 460) / 2) < 1, 'centred in the free band');
+const tall = C.fitTransform([{id: 'a', x: 0, y: 0}, {id: 'b', x: 0, y: 400}], 700, 600, ins);
+eq(Math.round(tall.zoom * 1000), Math.round((600 - 200) / 456 * 1000), 'a tall graph uses the height less top and bottom');
+eq(C.fitTransform([{id: 'a', x: 0, y: 0}], 100, 100, {top: 80, right: 0, bottom: 80, left: 0}).zoom, C.MIN_ZOOM,
+   'no room left: the smallest zoom, not a negative one');
+""")
 
 def test_selection_order_and_ids():
     _run(r"""

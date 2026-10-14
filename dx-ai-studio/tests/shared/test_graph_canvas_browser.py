@@ -382,3 +382,49 @@ def test_align_and_distribute_from_the_menu_and_the_keyboard(page):
     assert sorted(n["x"] for n in page.evaluate("cv.getGraph().nodes")) == [40, 340, 640]
     for key in ("Align left", "Align center", "Align top", "Align middle", "Distribute horizontally", "Distribute vertically"):
         assert page.evaluate("k => DXGraphCanvas.STRINGS.includes(k)", key), key
+
+
+FLAT = """() => cv.setGraph({nodes: [
+    {id: 'cam', label: 'cam', category: 'source', noInput: true, x: 0, y: 0},
+    {id: 'od', label: 'od', category: 'model', x: 280, y: 0},
+    {id: 'attr', label: 'attr', category: 'model', x: 560, y: 0}],
+  edges: [{from: 'cam', to: 'od'}, {from: 'od', to: 'attr'}]})"""
+
+CLEAR = """() => {
+  const host = document.getElementById('host').getBoundingClientRect();
+  const boxes = ['.dxg-toolbar', '.dxg-minimap'].map(s => document.querySelector(s).getBoundingClientRect());
+  const hit = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+  return cv.getGraph().nodes.map(n => {
+    const r = cv.nodeRect(n.id), box = {left: r.left, top: r.top, right: r.left + r.width, bottom: r.top + r.height};
+    return {id: n.id, inside: box.left >= host.left && box.right <= host.right && box.top >= host.top && box.bottom <= host.bottom,
+            clear: !boxes.some(b => hit(box, b))};
+  });
+}"""
+
+
+def test_fit_fills_the_canvas_around_the_toolbar_and_minimap(page):
+    """A flat three-node graph in a 900 x 500 canvas: the side margins are small and the band between the toolbar and
+    the minimap is used, so the cards are drawn larger than with a uniform 60 px margin ((900 - 120) / 720 = 108 %)."""
+    page.evaluate(FLAT)
+    zoom = page.evaluate("cv.view().zoom")
+    assert 1.15 <= zoom <= 1.25, zoom
+    assert all(n["inside"] and n["clear"] for n in page.evaluate(CLEAR)), page.evaluate(CLEAR)
+
+
+def test_a_small_graph_is_not_blown_up(page):
+    page.evaluate("() => cv.setGraph({nodes: [{id: 'cam', label: 'cam', category: 'source', x: 0, y: 0}], edges: []})")
+    assert page.evaluate("cv.view().zoom") == 1.25
+
+
+def test_a_fitted_view_follows_the_canvas_size_until_the_user_moves_it(page):
+    page.evaluate(FLAT)
+    page.evaluate("document.getElementById('host').style.width = '640px'")
+    page.wait_for_timeout(150)
+    narrow = page.evaluate("cv.view().zoom")
+    assert narrow < 0.95, narrow
+    assert all(n["inside"] and n["clear"] for n in page.evaluate(CLEAR)), page.evaluate(CLEAR)
+    page.evaluate("cv.zoomBy(1.2)")
+    moved = page.evaluate("cv.view()")
+    page.evaluate("document.getElementById('host').style.width = '900px'")
+    page.wait_for_timeout(150)
+    assert page.evaluate("cv.view()") == moved, "a view the user zoomed or panned is kept"

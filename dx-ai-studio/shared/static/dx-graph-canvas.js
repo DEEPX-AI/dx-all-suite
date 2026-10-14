@@ -125,6 +125,7 @@
     var hist = C.createHistory(C.HISTORY_MAX);
     var mode = null, drag = null, pending = null, marquee = null, panStart = null, connectable = null;
     var raf = 0, destroyed = false, theme = null, dpr = 1, cssW = 1, cssH = 1, menu = null, longPress = 0;
+    var fitted = false;   // the view is a fit the user has not moved since: it is fitted again when the canvas resizes
 
     host.classList.add('dxg-host');
     var canvas = el('canvas', 'dxg-canvas');
@@ -216,7 +217,7 @@
       sel = { nodes: [], edge: null };
       focusId = null;
       hist.reset(snapshot());
-      if (!opts || opts.fit !== false) fitView(); else paint();
+      if (!opts || opts.fit !== false) fitView(); else { fitted = false; paint(); }
       emitSelect();
     }
 
@@ -401,8 +402,30 @@
       if (b.y > cssH - pad) view.offsetY -= b.y - (cssH - pad);
     }
 
-    function fitView() { view = C.fitTransform(g.nodes, cssW, cssH, 60); paint(); }
-    function zoomBy(f) { view = C.zoomAt(view, f, cssW / 2, cssH / 2); paint(); }
+    /* Fit inside the canvas less the overlays: below the toolbar, and either above or left of the minimap, whichever
+       leaves the graph larger (a wide graph goes above it, a tall one beside it). */
+    function fitInsets() {
+      var side = 24, gap = 12, top = side, out = [];
+      if (toolbar.offsetParent) top = Math.max(side, toolbar.offsetTop + toolbar.offsetHeight + gap);
+      var base = { top: top, right: side, bottom: side, left: side };
+      if (!mini.offsetParent || !mini.offsetWidth) return [base];
+      out.push({ top: top, right: side, bottom: Math.max(side, cssH - mini.offsetTop + gap), left: side });
+      out.push({ top: top, right: Math.max(side, cssW - mini.offsetLeft + gap), bottom: side, left: side });
+      return out;
+    }
+
+    function fitNow() {
+      var best = null;
+      fitInsets().forEach(function (ins) {
+        var v = C.fitTransform(g.nodes, cssW, cssH, ins);
+        if (!best || v.zoom > best.zoom + 1e-6) best = v;
+      });
+      view = best;
+      fitted = true;
+    }
+
+    function fitView() { fitNow(); paint(); }
+    function zoomBy(f) { fitted = false; view = C.zoomAt(view, f, cssW / 2, cssH / 2); paint(); }
     function autoLayout() { if (!g.nodes.length) return; g = C.autoLayout(g); commit('layout'); fitView(); }
 
     function nodeRect(id) {
@@ -421,6 +444,7 @@
       dpr = window.devicePixelRatio || 1;
       canvas.width = Math.round(cssW * dpr);
       canvas.height = Math.round(cssH * dpr);
+      if (fitted && g.nodes.length) fitNow();
       paintNow();
     }
 
@@ -778,6 +802,7 @@
 
     function onMove(e) {
       if (mode === 'pan') {
+        fitted = false;
         view.offsetX = panStart.ox + e.clientX - panStart.x;
         view.offsetY = panStart.oy + e.clientY - panStart.y;
         paint();
@@ -850,6 +875,7 @@
     function onWheel(e) {
       e.preventDefault();
       var p = local(e);
+      fitted = false;
       view = C.zoomAt(view, e.deltaY > 0 ? 1 / 1.1 : 1.1, p.x, p.y);
       paint();
     }
@@ -917,7 +943,7 @@
       if (!d) return;
       e.preventDefault();
       if (sel.nodes.length) moveSelection(d[0], d[1]);
-      else { view.offsetX -= d[0] * 40; view.offsetY -= d[1] * 40; paint(); }
+      else { fitted = false; view.offsetX -= d[0] * 40; view.offsetY -= d[1] * 40; paint(); }
     }
 
     /* ── context menu ─────────────────────────────────────────── */
@@ -1049,6 +1075,7 @@
       if (!p) return;
       var r = mini.getBoundingClientRect(), mm = mini._map;
       var wx = (p.clientX - r.left) / mm.s + mm.ox, wy = (p.clientY - r.top) / mm.s + mm.oy;
+      fitted = false;
       view.offsetX = cssW / 2 - wx * view.zoom;
       view.offsetY = cssH / 2 - wy * view.zoom;
       paint();
@@ -1108,6 +1135,7 @@
       fitView: fitView, zoomBy: zoomBy, autoLayout: autoLayout, nodeRect: nodeRect,
       view: function () { return C.clone(view); },
       setView: function (v) {
+        fitted = false;
         view = { zoom: C.clamp(Number(v && v.zoom) || 1, C.MIN_ZOOM, C.MAX_ZOOM), offsetX: Number(v && v.offsetX) || 0, offsetY: Number(v && v.offsetY) || 0 };
         paint();
       },

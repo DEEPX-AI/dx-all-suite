@@ -249,3 +249,23 @@ def test_the_page_follows_a_language_change(ui):
     page.wait_for_function("() => document.querySelector(\"[data-group='examples'] .gc-group-title\").textContent === '예제'")
     assert page.inner_text("#gc-status") == "실행 준비 완료"
     assert page.get_attribute(".dxg-canvas", "aria-label").startswith("그래프 캔버스")
+
+
+def test_an_example_opens_fitted_to_the_canvas_clear_of_its_overlays(ui):
+    """The fit leaves small side margins and keeps the cards off the canvas toolbar and the minimap."""
+    page, _ = ui
+    _open_example(page)
+    page.wait_for_timeout(200)
+    zoom = page.evaluate("GraphComposer.canvas().view().zoom")
+    assert 0.9 <= zoom <= 1.25, zoom
+    placed = page.evaluate("""() => {
+      const cv = GraphComposer.canvas(), host = document.getElementById('gc-canvas-host').getBoundingClientRect();
+      const boxes = ['#gc-canvas-host .dxg-toolbar', '#gc-canvas-host .dxg-minimap']
+        .map(s => document.querySelector(s).getBoundingClientRect());
+      const hit = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+      return cv.getGraph().nodes.map(n => {
+        const r = cv.nodeRect(n.id), box = {left: r.left, top: r.top, right: r.left + r.width, bottom: r.top + r.height};
+        return box.left >= host.left && box.right <= host.right && !boxes.some(b => hit(box, b));
+      });
+    }""")
+    assert placed == [True, True, True], placed

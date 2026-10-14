@@ -7,7 +7,7 @@
   'use strict';
 
   var NODE_W = 160, NODE_H = 56, PORT_R = 6, PORT_HIT = 12, GRID = 20, HISTORY_MAX = 50;
-  var MIN_ZOOM = 0.3, MAX_ZOOM = 3;
+  var MIN_ZOOM = 0.3, MAX_ZOOM = 3, FIT_MAX_ZOOM = 1.25;
   var ID_RE = /^[A-Za-z][A-Za-z0-9_-]{0,31}$/;
 
   function snap(v) { return Math.round(v / GRID) * GRID; }
@@ -119,16 +119,20 @@
     return b;
   }
 
-  /* The view {zoom, offsetX, offsetY} that shows every node inside a w x h viewport with `pad` px around it. */
+  /* The view {zoom, offsetX, offsetY} that shows every node inside a w x h viewport, centred in what is left after
+     `pad`: px on every side, or {top, right, bottom, left} so overlays (a toolbar, a minimap) stay clear. Fitting never
+     zooms past FIT_MAX_ZOOM, so a graph of one or two nodes keeps the size the cards are drawn for. */
   function fitTransform(nodes, w, h, pad) {
     var p = pad == null ? 40 : pad, b = bounds(nodes);
+    var ins = typeof p === 'number' ? { top: p, right: p, bottom: p, left: p } : p;
     if (!b || w <= 0 || h <= 0) return { zoom: 1, offsetX: 0, offsetY: 0 };
     var bw = b.maxX - b.minX, bh = b.maxY - b.minY;
-    var zoom = clamp(Math.min((w - 2 * p) / bw, (h - 2 * p) / bh), MIN_ZOOM, 1.5);
+    var aw = Math.max(1, w - ins.left - ins.right), ah = Math.max(1, h - ins.top - ins.bottom);
+    var zoom = clamp(Math.min(aw / bw, ah / bh), MIN_ZOOM, FIT_MAX_ZOOM);
     return {
       zoom: zoom,
-      offsetX: (w - bw * zoom) / 2 - b.minX * zoom,
-      offsetY: (h - bh * zoom) / 2 - b.minY * zoom
+      offsetX: ins.left + (aw - bw * zoom) / 2 - b.minX * zoom,
+      offsetY: ins.top + (ah - bh * zoom) / 2 - b.minY * zoom
     };
   }
 
@@ -319,7 +323,7 @@
 
   root.DXGraphCore = {
     NODE_W: NODE_W, NODE_H: NODE_H, PORT_R: PORT_R, PORT_HIT: PORT_HIT, GRID: GRID, HISTORY_MAX: HISTORY_MAX,
-    MIN_ZOOM: MIN_ZOOM, MAX_ZOOM: MAX_ZOOM, ID_RE: ID_RE,
+    MIN_ZOOM: MIN_ZOOM, MAX_ZOOM: MAX_ZOOM, FIT_MAX_ZOOM: FIT_MAX_ZOOM, ID_RE: ID_RE,
     snap: snap, clamp: clamp, clone: clone, edgeId: edgeId, nodeMap: nodeMap, outPort: outPort, inPort: inPort,
     hitNode: hitNode, hitPort: hitPort, controlOffset: controlOffset, bezierPoint: bezierPoint,
     distToBezierSq: distToBezierSq, hitEdge: hitEdge, edgeMidpoint: edgeMidpoint, wouldCycle: wouldCycle,
