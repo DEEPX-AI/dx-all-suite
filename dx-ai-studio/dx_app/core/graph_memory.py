@@ -1,6 +1,9 @@
 """NPU memory of a graph: what each model's engine holds (parse_model), what the device has (DX-RT DeviceStatus, else
 dxrt-cli), and how the node "engine" options change the sum.
 
+The Studio's own venv has no dx_engine, so when shared.hardware has no real DeviceStatus reading the free memory is
+read by a short subprocess in the DX-RT runtime venv (venv-dx-runtime); the device size comes from `dxrt-cli -s`.
+
 parse_model prints the per-model figure ("Model Memory Usage: Total"), and most of it is the buffer pool ("Buffers",
 "Buffer Pool Size : x6"). An engine created with N buffers instead of the pool's P holds
 (Total - Buffers) + Buffers * N / P. Nodes with "engine": {"share": true} on the same model use one engine.
@@ -9,6 +12,7 @@ Figures are cached by the .dxnn's content hash. Contract: tests/dx_app/test_grap
 from __future__ import annotations
 
 import hashlib
+import json
 import re
 import shutil
 import subprocess
@@ -113,6 +117,79 @@ def model_memory(path):
     return info
 
 
+# Run in the DX-RT runtime venv: every device's DeviceStatus memory figures, as one JSON line.
+DEVICE_PROBE = (
+    "import json\n"
+    "from dx_engine.device_status import DeviceStatus\n"
+    "rows = []\n"
+    "for i in range(DeviceStatus.get_device_count()):\n"
+    "    s = DeviceStatus.get_current_status(i)\n"
+    "    rows.append({'id': i, 'valid': bool(s.is_valid()), 'used': int(s.get_memory_used()),\n"
+    "                 'free': int(s.get_memory_free())})\n"
+    "print(json.dumps(rows))\n"
+)
+
+
+def runtime_python():
+    """The DX-RT runtime venv's interpreter (the venv-dx-runtime roots Studio probes everywhere), or None."""
+    from shared.runtime import runtime_venv_roots
+    for root in runtime_venv_roots():
+        for name in ("python3", "python"):
+            p = Path(root) / "bin" / name
+            if p.is_file():
+                return str(p)
+    return None
+
+
+def _run_device_probe(python: str) -> str:
+    r = subprocess.run([python, "-c", DEVICE_PROBE], capture_output=True, text=True, timeout=10,
+                       env=graph_cli.env(), cwd="/")
+    if r.returncode != 0:
+        raise RuntimeError((r.stderr or r.stdout).strip()[-300:])
+    return r.stdout
+
+
+_probe_runner = _run_device_probe
+
+
+def parse_device_probe(text: str):
+    """{used_bytes, free_bytes} of the valid device with the least free memory (DX-RT loads a graph's engines on
+    every device it uses, so that one is the budget); None when no device reports valid figures."""
+    lines = [ln for ln in (text or "").splitlines() if ln.strip()]
+    rows = json.loads(lines[-1]) if lines else []
+    best = None
+    for r in rows if isinstance(rows, list) else []:
+        if not isinstance(r, dict) or not r.get("valid"):
+            continue
+        used, free = r.get("used"), r.get("free")
+        if not isinstance(used, int) or not isinstance(free, int) or used < 0 or free < 0:
+            continue
+        if best is None or free < best["free_bytes"]:
+            best = {"used_bytes": used, "free_bytes": free}
+    return best
+
+
+def runtime_device_status():
+    py = runtime_python()
+    if not py:
+        return None
+    try:
+        return parse_device_probe(_probe_runner(py))
+    except (subprocess.SubprocessError, OSError, RuntimeError, ValueError):
+        return None
+
+
+def _dxrt_cli_total():
+    exe = dxrt_cli_binary()
+    if not exe:
+        return None
+    try:
+        r = subprocess.run([exe, "-s"], capture_output=True, text=True, timeout=15, env=graph_cli.env())
+    except (subprocess.SubprocessError, OSError):
+        return None
+    return parse_dxrt_status(r.stdout)
+
+
 def device_memory() -> dict:
     """{total_bytes, used_bytes, free_bytes, source}; cached for 5 s."""
     now = time.time()
@@ -131,15 +208,14 @@ def device_memory() -> dict:
     except Exception:
         pass
     if value["source"] == "unknown":
-        exe = dxrt_cli_binary()
-        if exe:
-            try:
-                r = subprocess.run([exe, "-s"], capture_output=True, text=True, timeout=15, env=graph_cli.env())
-                total = parse_dxrt_status(r.stdout)
-            except (subprocess.SubprocessError, OSError):
-                total = None
-            if total:
-                value = {"total_bytes": total, "used_bytes": None, "free_bytes": total, "source": "dxrt_cli"}
+        status = runtime_device_status()
+        total = _dxrt_cli_total()
+        if status:
+            value = {"total_bytes": total or status["used_bytes"] + status["free_bytes"],
+                     "used_bytes": status["used_bytes"], "free_bytes": status["free_bytes"],
+                     "source": "device_status"}
+        elif total:
+            value = {"total_bytes": total, "used_bytes": None, "free_bytes": total, "source": "dxrt_cli"}
     with _lock:
         _device_cache.update(at=now, value=dict(value))
     return value
