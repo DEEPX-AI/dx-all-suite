@@ -318,3 +318,26 @@ def test_parse_model_runs_in_parallel_for_many_models(monkeypatch):
     t0 = time.time()
     r = graph_memory.estimate(g)
     assert time.time() - t0 < 0.9 and r["total_bytes"] == 4 * YOLO26N["total_bytes"]
+
+
+# Phase 1 follow-up: a graph posted by hand may carry any JSON in "model" and "buffers".
+@pytest.mark.parametrize("model", [["yolo26-n_640x640"], {"name": "yolo26-n_640x640"}, 7, True, None, ""])
+def test_a_model_that_is_not_a_name_is_skipped(monkeypatch, model):
+    g = {"nodes": [{"id": "cam", "type": "source", "uri": "x.jpg"}, {"id": "od", "model": "yolo26-n_640x640"},
+                   {"id": "odd", "model": model}, {"id": 5, "model": "yolo26-n_640x640"}], "edges": []}
+    r = _estimate(monkeypatch, g, free=4000 * graph_memory.MB)
+    assert list(r["nodes"]) == ["od"] and r["total_bytes"] == YOLO26N["total_bytes"]
+    assert r["unknown_models"] == []
+
+
+@pytest.mark.parametrize("buffers", [float("inf"), float("-inf"), float("nan"), "2x", [2], {"n": 2}])
+def test_buffers_that_are_not_a_count_mean_the_runtime_default(monkeypatch, buffers):
+    g = _g(od_engine={"buffers": buffers})
+    r = _estimate(monkeypatch, g, free=4000 * graph_memory.MB)
+    assert r["nodes"]["od"]["buffers"] == 6 and r["nodes"]["od"]["bytes"] == YOLO26N["total_bytes"]
+
+
+def test_infinity_as_dx_app_s_json_parser_reads_it_does_not_raise(monkeypatch):
+    g = json.loads('{"nodes": [{"id": "od", "model": "yolo26-n_640x640", "engine": {"buffers": Infinity}}],'
+                   ' "edges": []}')
+    assert _estimate(monkeypatch, g, free=4000 * graph_memory.MB)["nodes"]["od"]["buffers"] == 6

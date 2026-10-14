@@ -251,7 +251,7 @@ def _buffers_of(node: dict):
     eng = node.get("engine") if isinstance(node.get("engine"), dict) else {}
     try:
         n = int(eng["buffers"]) if eng.get("buffers") is not None else None
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):      # OverflowError: JSON Infinity
         return None
     return n if n is not None and n > 0 else None
 
@@ -345,7 +345,9 @@ def resolve_files(nodes: list, graph: dict) -> dict:
 
 
 def estimate(graph: dict) -> dict:
-    nodes = [n for n in (graph or {}).get("nodes") or [] if isinstance(n, dict) and n.get("model") and n.get("id")]
+    # Model nodes only: a "model" that is not a string (a list, an object) is not a model name and is left to --check.
+    nodes = [n for n in (graph or {}).get("nodes") or []
+             if isinstance(n, dict) and isinstance(n.get("model"), str) and n["model"] and isinstance(n.get("id"), str)]
     mdir = graph_cli.models_dir()
     files = resolve_files(nodes, graph)
     names = list(dict.fromkeys(n["model"] for n in nodes))
