@@ -92,6 +92,7 @@ def test_a_linked_project_folder_is_refused_and_its_target_kept(tmp_path):
     elsewhere = tmp_path / "elsewhere"
     elsewhere.mkdir()
     (elsewhere / "project.json").write_text('{"schema": 1, "graph": {"nodes": []}, "meta": {"name": "x"}}')
+    graph_projects.projects_dir().mkdir(parents=True)
     (graph_projects.projects_dir() / "linked").symlink_to(elsewhere, target_is_directory=True)
     assert graph_projects.list_projects() == []
     for call in (lambda: graph_projects.load("linked"), lambda: graph_projects.versions("linked"),
@@ -109,3 +110,13 @@ def test_a_linked_project_file_is_not_read(tmp_path):
     f.unlink()
     f.symlink_to(secret)
     assert graph_projects.load("p")[1] == 422
+
+
+def test_reading_creates_no_folder(workspace):
+    """Opening the page lists projects; only a save may create outputs/dx_app/graph/projects."""
+    assert graph_projects.list_projects() == []
+    assert graph_projects.load("p")[1] == 404 and graph_projects.versions("p")[1] == 404
+    assert graph_projects.delete("p")[1] == 404
+    assert not (workspace / "graph").exists()
+    graph_projects.save(_project())
+    assert (workspace / "graph" / "projects" / "person-attributes" / "project.json").is_file()

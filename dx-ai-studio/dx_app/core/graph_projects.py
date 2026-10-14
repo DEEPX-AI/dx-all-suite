@@ -25,9 +25,8 @@ _lock = threading.Lock()
 
 
 def projects_dir() -> Path:
-    d = Path(config.OUTPUTS_DIR) / "graph" / "projects"
-    d.mkdir(parents=True, exist_ok=True)
-    return d
+    """The projects folder; only save() creates it, so opening the page leaves the workspace untouched."""
+    return Path(config.OUTPUTS_DIR) / "graph" / "projects"
 
 
 def slug(name: str) -> str:
@@ -109,6 +108,8 @@ def save(project, pid=None):
 
 def list_projects() -> list:
     out = []
+    if not projects_dir().is_dir():
+        return out
     for d in projects_dir().iterdir():
         if d.is_symlink() or not (d.is_dir() and _ID.fullmatch(d.name) and (d / "project.json").is_file()):
             continue
