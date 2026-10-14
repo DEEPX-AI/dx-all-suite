@@ -49,6 +49,18 @@ def test_the_graph_composer_icons_are_there():
     assert '<g class="f"' in symbols["graph"], "the graph glyph has the faint fill like the other glyphs"
 
 
+LOGIC_OPS = ("filter", "zone", "line", "count", "dwell", "condition", "gallery", "user")
+
+
+def test_every_logic_block_has_its_glyph():
+    """The Graph Composer's logic blocks: palette items and canvas nodes draw logic-<op> (graph-doc.js decorate)."""
+    symbols = _symbols()
+    for op in LOGIC_OPS:
+        sym = symbols.get(f"logic-{op}")
+        assert sym, op
+        assert 'viewBox="0 0 24 24"' in sym and '<g class="l"' in sym and '<g class="f"' in sym, op
+
+
 def test_every_name_the_studio_uses_is_there():
     missing = [n for n in EXISTING + NEW if n not in _symbols()]
     assert not missing, missing

@@ -206,6 +206,20 @@ S['graph'] = ([C(6, 7, 2.6), C(6, 17, 2.6), C(18, 12, 2.6)], [C(6, 7, 2.6), C(6,
 S['undo'] = ([], [P('M9 6.5 4.5 11 9 15.5'), P('M4.5 11H14a5 5 0 0 1 0 10h-2.5')])
 S['redo'] = ([], [P('M15 6.5l4.5 4.5-4.5 4.5'), P('M19.5 11H10a5 5 0 0 0 0 10h2.5')])
 S['fit'] = ([], [P('M4 9V5.5A1.5 1.5 0 0 1 5.5 4H9M15 4h3.5A1.5 1.5 0 0 1 20 5.5V9M20 15v3.5a1.5 1.5 0 0 1-1.5 1.5H15M9 20H5.5A1.5 1.5 0 0 1 4 18.5V15')])
+# ── Graph Composer logic blocks (one per --list-ops op of the spec, section 6) ──
+FUNNEL = 'M4 5h16l-6 7.5V19l-4-2v-4.5z'
+S['logic-filter'] = ([P(FUNNEL)], [P(FUNNEL)])
+ZONE = 'M5 7.5 13 4l6.5 6-3 9.5L5 17.5z'
+S['logic-zone'] = ([P(ZONE)], [P(ZONE)])
+S['logic-line'] = ([C(12, 12, 2.4)], [P('M4 18.5 20 5.5'), C(12, 12, 2.4), P('M14.5 15.2l3 3.6M17.5 18.8l.4-3.4M17.5 18.8l-3.4-.2')])
+S['logic-count'] = ([R(4, 4, 16, 16, 3)], [R(4, 4, 16, 16, 3), P('M9.5 7.5 8.5 16.5M15.5 7.5l-1 9M7 10.5h10.5M6.5 13.5H17')])
+GLASS = 'M7.5 4h9v2.8L12 12 7.5 6.8z'
+S['logic-dwell'] = ([P(GLASS)], [P('M6 4h12M6 20h12'), P('M7.5 4v2.8L12 12l4.5-5.2V4M7.5 20v-2.8L12 12l4.5 5.2V20')])
+DIAMOND = 'M12 3l9 9-9 9-9-9z'
+S['logic-condition'] = ([P(DIAMOND)], [P(DIAMOND), P('M12 8v5.2M12 16.2v.3')])
+S['logic-gallery'] = ([R(13.5, 13.5, 6.5, 6.5, 1.5)], [R(4, 4, 6.5, 6.5, 1.5), R(13.5, 4, 6.5, 6.5, 1.5), R(4, 13.5, 6.5, 6.5, 1.5), R(13.5, 13.5, 6.5, 6.5, 1.5)])
+BRACES = 'M9 4.5H8A2 2 0 0 0 6 6.5v3.2L4 12l2 2.3v3.2a2 2 0 0 0 2 2h1M15 4.5h1a2 2 0 0 1 2 2v3.2l2 2.3-2 2.3v3.2a2 2 0 0 1-2 2h-1'
+S['logic-user'] = ([R(9.5, 9.5, 5, 5, 1)], [P(BRACES), R(9.5, 9.5, 5, 5, 1)])
 
 out = ['<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" style="position:absolute" aria-hidden="true">',
        '<!-- DX AI Studio icon set. 24 grid, two layers: a faint fill (g.f) + a 2px line (g.l).',
