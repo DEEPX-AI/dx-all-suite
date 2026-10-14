@@ -41,6 +41,8 @@ _JOB_TTL = 600.0
 _STOP_GRACE = 5.0
 _MAX_RUN_SECONDS = float(os.environ.get("DX_GRAPH_RUN_MAX_SECONDS") or 600)
 _MAX_LOG_BYTES = 8 * 1024 * 1024
+_POLL_READ_BYTES = 256 * 1024       # of the log per poll, from where the last poll stopped
+_RESULT_LOG_BYTES = 4 * 1024 * 1024  # the log's tail a finished run is read from (errors, last progress, events)
 _SOURCE_ID = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
 _KEEP_RUN_DIRS = 20
 _MAX_UPLOAD_B64 = 20 * 1024 * 1024
@@ -98,8 +100,9 @@ def _item(i: dict) -> dict:
     return {k: i[k] for k in ("class_name", "class_id", "score", "confidence", "track_id", "box") if k in i}
 
 
-def summarize_report(path: Path, max_items: int = 20) -> dict:
-    """Per-node results of a --report file: shape, how many frames and items, the last frame's items, average ms."""
+def summarize_report(path: Path, max_items: int = 20, sources=()) -> dict:
+    """Per-node results of a --report file: shape, how many frames and items, the last frame's items, average ms.
+    dx_app lists the source nodes too (an image digest); the ids in `sources` are left out of "nodes"."""
     out = {"frames": 0, "error_frames": 0, "nodes": {}, "node_ms": {}}
     try:
         if not path.is_file() or path.stat().st_size > 256 * 1024 * 1024:
@@ -119,6 +122,8 @@ def summarize_report(path: Path, max_items: int = 20) -> dict:
         if fr.get("error"):
             out["error_frames"] += 1
         for nid, res in (fr.get("nodes") or {}).items():
+            if nid in sources:
+                continue
             payload = (res or {}).get("payload") or {}
             items = payload.get("items") or []
             s = node(nid)
@@ -348,7 +353,8 @@ def video_fps(path: Path):
     try:
         out = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries",
                               "stream=avg_frame_rate", "-of", "csv=p=0", str(path)],
-                             capture_output=True, text=True, timeout=15).stdout.strip().split(",")[0]
+                             stdin=subprocess.DEVNULL, capture_output=True, text=True,
+                             timeout=15).stdout.strip().split(",")[0]
         num, _, den = out.partition("/")
         fps = float(num) / float(den or 1)
         return round(fps, 3) if fps > 0 else None
@@ -356,18 +362,20 @@ def video_fps(path: Path):
         return None
 
 
-def events_of(d: Path, log_text: str) -> dict:
-    """A finished run's events: the --events file when dx_app wrote one, else the [EVENT] lines of its log."""
+def events_of(d: Path, log_text: str, log_cut: bool = False) -> dict:
+    """A finished run's events: the --events file when dx_app wrote one, else the [EVENT] lines of its log. When
+    `log_text` is only the log's tail (`log_cut`), those are the tail's events: their total and counts are
+    "events_partial"."""
     f = d / "events.jsonl"
     if f.is_file():
         listing = graph_events.read_jsonl(f)
-        url = "/outputs/" + f.relative_to(Path(config.OUTPUTS_DIR)).as_posix()
+        url, partial = "/outputs/" + f.relative_to(Path(config.OUTPUTS_DIR)).as_posix(), False
     else:
         printed = graph_events.EventLog(keep=graph_events.LIST_MAX)
         printed.feed(log_text)
-        listing, url = printed.listing(), None
+        listing, url, partial = printed.listing(), None, bool(log_cut)
     return {"events": listing["events"], "event_total": listing["total"], "event_counts": listing["counts"],
-            "events_truncated": listing["truncated"], "events_url": url}
+            "events_truncated": listing["truncated"], "events_url": url, "events_partial": partial}
 
 
 def _last_progress(text: str) -> dict:
@@ -427,11 +435,17 @@ def _wait(job: dict) -> None:
     npu_jobs.release(job["id"])
     job["log"].close()
     d = job["dir"]
-    log = _read_tail(log_path, min(_MAX_LOG_BYTES, 4 * 1024 * 1024))
+    log = _read_tail(log_path, _RESULT_LOG_BYTES)
+    try:
+        log_cut = log_path.stat().st_size > _RESULT_LOG_BYTES
+    except OSError:
+        log_cut = False
     errors, _notes = parse_errors(log, job["graph"])
     if job["stop_reason"] in ("timeout", "log"):
         errors.insert(0, _limit_error(job["stop_reason"]))
-    report = summarize_report(d / "report.json")
+    sources = {n.get("id") for n in job["graph"].get("nodes") or []
+               if isinstance(n, dict) and n.get("type") == "source"}
+    report = summarize_report(d / "report.json", sources=sources)
     last = _last_progress(log)
     outputs = _outputs(d, job["video"])
     result = {"ok": code == 0 and not errors, "exit_code": code, "outputs": outputs,
@@ -439,7 +453,7 @@ def _wait(job: dict) -> None:
               "fps": last.get("fps"), "avg_fps": last.get("avg_fps"),
               "node_ms": report["node_ms"] or last.get("node_ms") or {}, "nodes": report["nodes"],
               "errors": errors, "log_tail": log[-4000:], "elapsed": round(time.time() - job["start"], 1),
-              **events_of(d, log)}
+              **events_of(d, log, log_cut)}
     with _lock:
         job["result"] = result
         job["touched"] = time.time()
@@ -455,17 +469,22 @@ def poll(job_id: str, events_after=0) -> dict:
         _reap(time.time())
         job = _jobs.get(job_id)
         if job is None:
-            return {"error": "unknown_job"}
+            return {"error": "unknown_job", "error_key": "unknown_job"}
         job["touched"] = time.time()
         cursor = job["cursor"]
     try:
         with open(job["dir"] / "run.log", "rb") as f:
             f.seek(cursor)
-            buf = f.read()
+            buf = f.read(_POLL_READ_BYTES)          # a bounded slice; the next poll goes on from the cursor
     except OSError:
         buf = b""
     nl = buf.rfind(b"\n")
-    if nl != -1:
+    if nl == -1 and len(buf) >= _POLL_READ_BYTES:
+        # one line longer than a slice: skip what was read of it (the rest begins the next slice)
+        with _lock:
+            if job["cursor"] == cursor:
+                job["cursor"] = cursor + len(buf)
+    elif nl != -1:
         latest, chunk = None, buf[: nl + 1].decode("utf-8", "replace")
         for line in chunk.splitlines():
             latest = parse_progress_line(line) or latest
@@ -488,7 +507,7 @@ def result(job_id: str) -> dict:
     with _lock:
         job = _jobs.get(job_id)
         if job is None:
-            return {"error": "unknown_job"}
+            return {"error": "unknown_job", "error_key": "unknown_job"}
         job["touched"] = time.time()
         if job["result"] is None:
             return {"running": True}

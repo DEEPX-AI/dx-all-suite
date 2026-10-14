@@ -112,7 +112,8 @@ def test_a_run_reports_progress_then_results(studio, monkeypatch):
     assert r["ok"] is True and r["exit_code"] == 0 and r["frames"] == 2
     assert r["node_ms"] == {"attr": 28.88, "od": 39.71}
     assert r["outputs"][0]["url"].startswith("/outputs/graph/runs/") and r["outputs"][0]["kind"] == "image"
-    assert graph_run.result(body["job_id"]) == {"error": "unknown_job"}, "a result is handed out once"
+    assert graph_run.result(body["job_id"]) == {"error": "unknown_job", "error_key": "unknown_job"}, \
+        "a result is handed out once"
     args = graph_fakes.calls(studio)[-1]
     assert "--input cam=" in args and "sample_people.jpg" in args and "--model-dir" in args
     run_graph = json.loads((config.OUTPUTS_DIR / "graph" / "runs" / body["job_id"] / "graph.json").read_text())
@@ -328,7 +329,7 @@ def test_poll_drops_runs_nobody_asked_about(studio, monkeypatch):
     body, _ = graph_run.start(GRAPH)
     job = graph_run._jobs[body["job_id"]]
     job["touched"] -= graph_run._JOB_TTL + 1
-    assert graph_run.poll("someone-else") == {"error": "unknown_job"}
+    assert graph_run.poll("someone-else") == {"error": "unknown_job", "error_key": "unknown_job"}
     assert body["job_id"] not in graph_run._jobs
     job["proc"].wait(5)
 
@@ -417,7 +418,85 @@ def test_a_build_without_events_files_still_lists_the_printed_events(studio, mon
     _wait(body["job_id"])
     r = graph_run.result(body["job_id"])
     assert "--events" not in graph_fakes.calls(studio)[-1]
-    assert r["event_total"] == 3 and r["events_url"] is None
+    assert r["event_total"] == 3 and r["events_url"] is None and r["events_partial"] is False
+
+
+def test_printed_events_from_a_log_cut_to_its_tail_are_partial(studio, monkeypatch):
+    graph_fakes.install(studio, monkeypatch, EVENTS_RUNNER.replace('cat "$FIX/help_p2.txt"', 'cat "$FIX/help.txt"'))
+    monkeypatch.setattr(graph_run, "_RESULT_LOG_BYTES", 200)
+    body, _ = graph_run.start(GRAPH)
+    _wait(body["job_id"])
+    r = graph_run.result(body["job_id"])
+    assert r["events_url"] is None and r["events_partial"] is True, "the counts are of the log's tail only"
+    graph_fakes.install(studio, monkeypatch, EVENTS_RUNNER)
+    body, _ = graph_run.start(GRAPH)
+    _wait(body["job_id"])
+    assert graph_run.result(body["job_id"])["events_partial"] is False, "the --events file has them all"
+
+
+def test_the_report_s_source_nodes_are_not_results(tmp_path):
+    """dx_app's report lists the source node too (its image digest); the run panel shows model and logic nodes."""
+    rep = json.loads((graph_fakes.FIX / "report.json").read_text())
+    for fr in rep["frames"]:
+        fr["nodes"]["cam"] = {"payload": {"shape": "image", "digest": "9f2c", "items": []}}
+    (tmp_path / "report.json").write_text(json.dumps(rep))
+    s = graph_run.summarize_report(tmp_path / "report.json", sources={"cam"})
+    assert "cam" not in s["nodes"] and set(s["nodes"]) == {"od", "attr"}
+    assert "cam" in graph_run.summarize_report(tmp_path / "report.json")["nodes"]
+
+
+def test_a_finished_run_leaves_its_source_out_of_the_nodes(studio, monkeypatch):
+    rep = json.loads((graph_fakes.FIX / "report.json").read_text())
+    for fr in rep["frames"]:
+        fr["nodes"]["cam"] = {"payload": {"shape": "image", "digest": "9f2c"}}
+    (studio / "report_src.json").write_text(json.dumps(rep))
+    graph_fakes.install(studio, monkeypatch, RUNNER.replace('cp "$FIX/report.json"', f'cp "{studio}/report_src.json"'))
+    body, _ = graph_run.start(GRAPH)
+    _wait(body["job_id"])
+    assert set(graph_run.result(body["job_id"])["nodes"]) == {"od", "attr"}
+
+
+LONG_LOG_RUNNER = r"""
+case "$1" in --help|--check) exit 0 ;; esac
+head -c 5000 /dev/zero | tr '\0' 'x'; echo
+for i in $(seq 1 300); do echo "[PROGRESS] frames=$i fps=10.0 avg_fps=10.0 node_ms=od:1.0"; done
+trap 'exit 0' TERM
+sleep 30 & wait
+"""
+
+
+def test_a_poll_reads_a_bounded_slice_of_the_log(studio, monkeypatch):
+    graph_fakes.install(studio, monkeypatch, LONG_LOG_RUNNER)
+    monkeypatch.setattr(graph_run, "_POLL_READ_BYTES", 1024)
+    body, _ = graph_run.start(GRAPH)
+    jid = body["job_id"]
+    job = graph_run._jobs[jid]
+    log = config.OUTPUTS_DIR / "graph" / "runs" / jid / "run.log"
+    end = time.time() + 10
+    while (not log.exists() or log.stat().st_size < 15000) and time.time() < end:
+        time.sleep(0.05)
+    steps, frames = [], 0
+    for _ in range(200):
+        before = job["cursor"]
+        frames = graph_run.poll(jid)["frames"]
+        steps.append(job["cursor"] - before)
+        if frames == 300:
+            break
+    assert frames == 300, "the polls catch up, a 5000-byte line longer than one slice included"
+    assert max(steps) <= 1024 and len(steps) > 10
+    graph_run.stop(jid)
+
+
+def test_ffprobe_reads_no_terminal_input(tmp_path, monkeypatch):
+    import subprocess
+    seen = {}
+
+    def run(cmd, **kw):
+        seen.update(kw)
+        return subprocess.CompletedProcess(cmd, 0, stdout="25/1\n", stderr="")
+    monkeypatch.setattr(graph_run.shutil, "which", lambda name: "/usr/bin/" + name)
+    monkeypatch.setattr(graph_run.subprocess, "run", run)
+    assert graph_run.video_fps(tmp_path / "v.mp4") == 25.0 and seen["stdin"] == subprocess.DEVNULL
 
 
 def test_a_video_output_carries_its_frame_rate(tmp_path):
