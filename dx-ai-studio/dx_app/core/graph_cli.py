@@ -1,0 +1,119 @@
+"""dx_app's multi-model graph CLI as Studio calls it: where the binaries are, the environment they run in, and what this
+build supports (JSON output with --json, the node "engine" key).
+
+The binaries are multi_model_graph_sync / multi_model_graph_async (dx_app src/cpp_example/multi_model_graph). Studio
+does not link them: every call is a subprocess with a timeout, started in the dx_app root so a relative "uri" resolves
+the way the CLI documents. Contract: tests/dx_app/test_graph_cli.py
+"""
+from __future__ import annotations
+
+import json
+import os
+import subprocess
+import threading
+import uuid
+from pathlib import Path
+
+from dx_app.core import config
+from shared import dxrt
+from shared.paths import var_dir
+from shared.runtime import ld_library_path
+
+NAMES = {"sync": "multi_model_graph_sync", "async": "multi_model_graph_async"}
+# A model every dx_app registry has (eight of the thirteen shipped sample graphs use it); the "engine" probe needs one.
+PROBE_MODEL = "yolov8-n_640x640"
+
+_caps_lock = threading.Lock()
+_caps_cache: dict = {}
+
+
+class GraphCliMissing(RuntimeError):
+    """The graph binary is neither built (dx_app ./build.sh) nor shipped in bin/."""
+
+
+def _search_dirs() -> list[Path]:
+    root = Path(config.DX_APP_ROOT)
+    return [Path(config.BUILD_DIR), root / "bin", root / "build_x86_64" / "src" / "cpp_example",
+            root / "build_aarch64" / "src" / "cpp_example"]
+
+
+def binary(variant: str = "sync") -> Path | None:
+    name = NAMES[variant]
+    for d in _search_dirs():
+        p = d / name
+        if p.is_file() and os.access(p, os.X_OK):
+            return p
+    return None
+
+
+def models_dir() -> Path:
+    return Path(config.MODELS_DIR)
+
+
+def env() -> dict:
+    """Environment of every graph CLI call: DX-RT libraries, Qt off screen, the runner's [PROGRESS] lines on."""
+    return dxrt.run_env({**os.environ, "QT_QPA_PLATFORM": "offscreen",
+                         "LD_LIBRARY_PATH": ld_library_path(), "DXAPP_PROGRESS": "1"})
+
+
+def run(args: list[str], variant: str = "sync", timeout: float = 30.0) -> subprocess.CompletedProcess:
+    b = binary(variant)
+    if b is None:
+        raise GraphCliMissing(f"{NAMES[variant]} not found: build dx_app (./build.sh)")
+    return subprocess.run([str(b), *args], capture_output=True, text=True, cwd=str(config.DX_APP_ROOT),
+                          env=env(), timeout=timeout)
+
+
+def mtime(p: Path) -> float:
+    try:
+        return p.stat().st_mtime
+    except OSError:
+        return 0.0
+
+
+def scratch_file(prefix: str) -> Path:
+    """A fresh path for a temporary graph file (var/dx_app/graph_check)."""
+    return var_dir("dx_app", "graph_check") / f"{prefix}_{uuid.uuid4().hex}.json"
+
+
+def _probe_engine_key() -> bool:
+    probe = {"version": 1, "name": "studio-probe",
+             "nodes": [{"id": "cam", "type": "source", "uri": "sample/img/sample_people.jpg"},
+                       {"id": "m", "model": PROBE_MODEL, "engine": {"buffers": 2, "share": True}}],
+             "edges": [{"from": "cam", "to": "m"}]}
+    path = scratch_file("probe")
+    path.write_text(json.dumps(probe), encoding="utf-8")
+    try:
+        r = run(["--check", str(path), "--model-dir", str(models_dir())], timeout=10)
+    except (subprocess.SubprocessError, OSError):
+        return False
+    finally:
+        path.unlink(missing_ok=True)
+    out = r.stdout + r.stderr
+    return 'unknown key "engine"' not in out and "GRAPH_SCHEMA" not in out
+
+
+def capabilities() -> dict:
+    """{"json": --list-models / --check print JSON with --json, "engine_key": nodes accept "engine",
+    "report_timing": --report-timing adds per-node ms to --report}.
+
+    Probed once per binary build (keyed by the binary's path and mtime)."""
+    b = binary("sync")
+    if b is None:
+        return {"json": False, "engine_key": False, "report_timing": False}
+    key = (str(b), mtime(b))
+    with _caps_lock:
+        if key in _caps_cache:
+            return dict(_caps_cache[key])
+    caps = {"json": False, "engine_key": False, "report_timing": False}
+    try:
+        r = run(["--help"], timeout=10)
+        caps["json"] = "--json" in (r.stdout + r.stderr)
+        caps["report_timing"] = "--report-timing" in (r.stdout + r.stderr)
+    except (subprocess.SubprocessError, OSError):
+        pass
+    caps["engine_key"] = _probe_engine_key()
+    with _caps_lock:
+        _caps_cache.clear()
+        _caps_cache[key] = dict(caps)
+    return caps
