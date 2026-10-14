@@ -376,6 +376,11 @@ class Handler(DXBaseHandler):
                 if rp.stat().st_size>5*1024*1024:return self.send_json({"error":"File too large (exceeds 5 MB)"},400)
                 try:return self.send_json({"content":rp.read_text(errors="replace")})
                 except Exception as ex:return self.send_json({"error":str(ex)})
+            if path.startswith("/api/graph/"):
+                from dx_app.core import graph_routes
+                body, code = graph_routes.handle("GET", path, self.read_query_param, None, self.headers,
+                                                 _server_host_for_origin(self))
+                return self.send_json(body, code)
             if path=="/api/lab/session":
                 origin = self.headers.get("Origin")
                 referer = self.headers.get("Referer")
@@ -461,6 +466,14 @@ class Handler(DXBaseHandler):
             try:data=self.read_json_body()
             except RequestBodyError:raise
             except Exception:return self.send_json({"error":"Invalid JSON"},400)
+
+            if path.startswith("/api/graph/"):
+                if path == "/api/graph/run":
+                    debug_log.log_action("dx_app", "graph_run",
+                                         {"variant": data.get("variant", "sync") if isinstance(data, dict) else None})
+                from dx_app.core import graph_routes
+                body, code = graph_routes.handle("POST", path, None, data, self.headers, _server_host_for_origin(self))
+                return self.send_json(body, code)
 
             # Lab mutating routes use X-Lab-Token only (no X-Dev-Token alias)
             _LAB_ROUTES = {"/api/dev/auth", "/api/dev/add_model", "/api/dev/delete_model",
