@@ -67,7 +67,7 @@
   </div>
   <!-- ── Splash Intro Overlay ── -->
   <div class="splash-overlay" id="splashOverlay" onclick="skipSplash(true)">
-    <!-- A quiet intro: only the wordmark and the eight modules. -->
+    <!-- A quiet intro: only the wordmark and the nine modules. -->
     <div class="mark" id="splashMark">
       <span class="mark-face" aria-hidden="true"></span>
       <span class="mark-sweep" aria-hidden="true"><span class="mark-shine"></span></span>
@@ -277,8 +277,8 @@
         </dl>
       </aside>
 
-      <!-- Order: row 1 app · stream · zoo · compiler · SDK Library
-                            row 2 benchmark · planner · dx_monitor · agent · About DEEPX -->
+      <!-- Order: row 1 app · stream · zoo · compiler · edge · SDK Library
+                            row 2 benchmark · planner · dx_monitor · agent · About DEEPX (last column) -->
       <div class="studio-grid" id="studioGrid">
             <div class="orbital-card" data-app="app" tabindex="0" role="button">
               <span class="orbital-status" id="orbStatusApp"></span>
@@ -316,6 +316,16 @@
               <span class="mod-text">
                 <span class="orbital-name">Compiler</span>
                 <span class="card-desc" data-i18n="ONNX model compiler GUI">ONNX model compiler GUI</span>
+              </span>
+              <span class="card-state" data-role="state"></span>
+              <span class="mod-chev" aria-hidden="true">›</span>
+            </div>
+            <div class="orbital-card" data-app="edge" tabindex="0" role="button">
+              <span class="orbital-status" id="orbStatusEdge"></span>
+              <span class="mod-tile" data-mod="edge" aria-hidden="true"><svg class="mod-glyph"><use href="/static/shared/dx-icons.svg#cloud"></use></svg></span>
+              <span class="mod-text">
+                <span class="orbital-name">Edge</span>
+                <span class="card-desc" data-i18n="AWS cloud compile &amp; edge deployment">AWS cloud compile &amp; edge deployment</span>
               </span>
               <span class="card-state" data-role="state"></span>
               <span class="mod-chev" aria-hidden="true">›</span>
@@ -424,7 +434,7 @@
       <div class="platform-info-right">
         <h2>DX AI Studio</h2>
         <p class="platform-tagline" data-i18n="All-in-One Edge AI Development Platform">All-in-One Edge AI Development Platform</p>
-        <p class="platform-desc" data-i18n="DX AI Studio is an all-in-one desktop platform for Edge AI development with DEEPX NPU. 8 specialized modules work together in a unified environment.">DX AI Studio is an all-in-one desktop platform for Edge AI development with DEEPX NPU. 8 specialized modules work together in a unified environment.</p>
+        <p class="platform-desc" data-i18n="DX AI Studio is an all-in-one desktop platform for Edge AI development with DEEPX NPU. 9 specialized modules work together in a unified environment.">DX AI Studio is an all-in-one desktop platform for Edge AI development with DEEPX NPU. 9 specialized modules work together in a unified environment.</p>
         <div class="platform-modules">
           <div class="pm-item" data-help-id="pm-dx-app" tabindex="0" role="button"><span class="pm-icon"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#app"></use></svg></span><span class="pm-name">DX App</span><span class="pm-desc" data-i18n-html="&lt;strong&gt;NPU Real-time Inference Engine&lt;/strong&gt;&lt;br&gt;• Run 490+ pre-compiled AI models instantly&lt;br&gt;• Auto-generate C++/Python inference code templates&lt;br&gt;• FPS, latency, memory real-time dashboard"><strong>NPU Real-time Inference Engine</strong><br>• Run 490+ pre-compiled AI models instantly<br>• Auto-generate C++/Python inference code templates<br>• FPS, latency, memory real-time dashboard</span></div>
           <div class="pm-item" data-help-id="pm-dx-stream"><span class="pm-icon"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#stream"></use></svg></span><span class="pm-name">DX Stream</span><span class="pm-desc" data-i18n-html="&lt;strong&gt;Vision AI Streaming Pipeline&lt;/strong&gt;&lt;br&gt;• 13 custom GStreamer-based plugins&lt;br&gt;• Real-time RTSP/USB/IP camera connection&lt;br&gt;• Multi-channel simultaneous AI processing"><strong>Vision AI Streaming Pipeline</strong><br>• 13 custom GStreamer-based plugins<br>• Real-time RTSP/USB/IP camera connection<br>• Multi-channel simultaneous AI processing</span></div>
@@ -434,6 +444,7 @@
           <div class="pm-item" data-help-id="pm-benchmark"><span class="pm-icon"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#bench"></use></svg></span><span class="pm-name">Benchmark</span><span class="pm-desc" data-i18n-html="&lt;strong&gt;HW Performance Cross Benchmark&lt;/strong&gt;&lt;br&gt;• 6 boards × YOLO series automated testing&lt;br&gt;• FPS, latency, power consumption precision measurement&lt;br&gt;• Markdown auto-report &amp; chart generation"><strong>HW Performance Cross Benchmark</strong><br>• 6 boards × YOLO series automated testing<br>• FPS, latency, power consumption precision measurement<br>• Markdown auto-report & chart generation</span></div>
           <div class="pm-item" data-help-id="pm-monitor"><span class="pm-icon"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#monitor"></use></svg></span><span class="pm-name">Monitor</span><span class="pm-desc" data-i18n-html="&lt;strong&gt;NPU Hardware Real-time Monitoring&lt;/strong&gt;&lt;br&gt;• NPU temperature, voltage, clock real-time charts&lt;br&gt;• CPU/memory/disk system gauges&lt;br&gt;• 5min~1hr history trend analysis"><strong>NPU Hardware Real-time Monitoring</strong><br>• NPU temperature, voltage, clock real-time charts<br>• CPU/memory/disk system gauges<br>• 5min~1hr history trend analysis</span></div>
           <div class="pm-item" data-help-id="pm-agent-dev"><span class="pm-icon"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#agent"></use></svg></span><span class="pm-name">Agent Dev</span><span class="pm-desc" data-i18n-html="&lt;strong&gt;Natural-Language NPU App Builder&lt;/strong&gt;&lt;br&gt;• One-line commands auto-generate pipelines &amp; apps&lt;br&gt;• Interactive console · real-time build logs&lt;br&gt;• Offline showcase gallery"><strong>Natural-Language NPU App Builder</strong><br>• One-line commands auto-generate pipelines & apps<br>• Interactive console · real-time build logs<br>• Offline showcase gallery</span></div>
+          <div class="pm-item" data-help-id="pm-dx-edge"><span class="pm-icon"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#cloud"></use></svg></span><span class="pm-name">DX Edge</span><span class="pm-desc" data-i18n-html="&lt;strong&gt;AWS Cloud Compile · Edge Deployment&lt;/strong&gt;&lt;br&gt;• ONNX → DXNN on a DEEPX Compiler stack&lt;br&gt;• Live progress, download or save to Studio models&lt;br&gt;• AWS Marketplace: Compiler and Greengrass Solutions"><strong>AWS Cloud Compile · Edge Deployment</strong><br>• ONNX → DXNN on a DEEPX Compiler stack<br>• Live progress, download or save to Studio models<br>• AWS Marketplace: Compiler and Greengrass Solutions</span></div>
           <div class="pm-item" data-help-id="pm-sdk-library"><span class="pm-icon"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#library"></use></svg></span><span class="pm-name">SDK Library</span><span class="pm-desc" data-i18n-html="&lt;strong&gt;DXNN SDK Tech Library&lt;/strong&gt;&lt;br&gt;• 190 official SDK documents and brochures&lt;br&gt;• 6 shelves: Runtime, Compiler, Model Zoo, All Suite, Studio manual, Brochures&lt;br&gt;• Real-time search &amp; book-style viewer"><strong>DXNN SDK Tech Library</strong><br>• 190 official SDK documents and brochures<br>• 6 shelves: Runtime, Compiler, Model Zoo, All Suite, Studio manual, Brochures<br>• Real-time search & book-style viewer</span></div>
           <div class="pm-item" data-help-id="pm-about-deepx"><span class="pm-icon"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#book"></use></svg></span><span class="pm-name">About DEEPX</span><span class="pm-desc" data-i18n-html="&lt;strong&gt;DEEPX Interactive Encyclopedia&lt;/strong&gt;&lt;br&gt;• DX-M1/DX-M2 chip die hotspot exploration&lt;br&gt;• Click to explore tech, product, vision stories&lt;br&gt;• High-res chip die photos &amp; technical descriptions"><strong>DEEPX Interactive Encyclopedia</strong><br>• DX-M1/DX-M2 chip die hotspot exploration<br>• Click to explore tech, product, vision stories<br>• High-res chip die photos & technical descriptions</span></div>
         </div>
@@ -585,7 +596,7 @@
     // ── Portal home ──
     'Browse all': { ko:'전체 보기', ja:'すべて見る', es:'Ver todo', 'zh-CN':'查看全部', 'zh-TW':'檢視全部' },
     'tasks': { ko:'개 태스크', ja:'件のタスク', es:'tareas', 'zh-CN':'类任务', 'zh-TW':'類任務' },
-    '8 modules · runs locally': { ko:'모듈 8개 · 로컬 실행', ja:'8モジュール · ローカル実行', es:'8 módulos · se ejecuta localmente', 'zh-CN':'8 个模块 · 本地运行', 'zh-TW':'8 個模組 · 本機執行' },
+    '9 modules · runs locally': { ko:'모듈 9개 · 로컬 실행', ja:'9モジュール · ローカル実行', es:'9 módulos · se ejecuta localmente', 'zh-CN':'9 个模块 · 本地运行', 'zh-TW':'9 個模組 · 本機執行' },
     'Start DX Model Zoo to browse the catalogue': { ko:'카탈로그를 보려면 DX Model Zoo를 시작하세요', ja:'カタログを見るには DX Model Zoo を起動してください', es:'Inicie DX Model Zoo para ver el catálogo', 'zh-CN':'启动 DX Model Zoo 以浏览目录', 'zh-TW':'啟動 DX Model Zoo 以瀏覽目錄' },
     'ready': { ko:'준비됨', ja:'準備完了', es:'listo', 'zh-CN':'就绪', 'zh-TW':'就緒' },
     'not running': { ko:'실행 중 아님', ja:'未起動', es:'no iniciado', 'zh-CN':'未运行', 'zh-TW':'未執行' },
@@ -807,12 +818,12 @@
     'zh-TW': '6 塊板 × YOLO 系列交叉測試',
     es: '6 placas × pruebas cruzadas de la serie YOLO',
   },
-  '8 Modules · All-in-One Edge AI Platform': {
-    ko: '8개 모듈 · 올인원 Edge AI 플랫폼',
-    ja: '8 モジュール · オールインワン Edge AI プラットフォーム',
-    'zh-CN': '8 个模块 · 一体化 Edge AI 平台',
-    'zh-TW': '8 個模組 · 全方位 Edge AI 平台',
-    es: '8 módulos · Plataforma Edge AI todo en uno',
+  '9 Modules · All-in-One Edge AI Platform': {
+    ko: '9개 모듈 · 올인원 Edge AI 플랫폼',
+    ja: '9 モジュール · オールインワン Edge AI プラットフォーム',
+    'zh-CN': '9 个模块 · 一体化 Edge AI 平台',
+    'zh-TW': '9 個模組 · 全方位 Edge AI 平台',
+    es: '9 módulos · Plataforma Edge AI todo en uno',
   },
   '<em class="hl">5W</em>, edge-optimized; SDK, compiler and tools bridge models to hardware.': {
     ko: '<em class="hl">5W</em> 초저전력 · 엣지 최적화. SDK · 컴파일러 · 툴로 모델을 하드웨어로.',
@@ -876,6 +887,13 @@
     'zh-CN': '<strong>NPU 实时推理引擎</strong><br>• 即时运行490+预编译AI模型<br>• 自动生成C++/Python推理代码模板<br>• FPS、延迟、内存实时仪表盘',
     'zh-TW': '<strong>NPU 即時推論引擎</strong><br>• 即時執行490+預編譯AI模型<br>• 自動產生C++/Python推論程式碼範本<br>• FPS、延遲、記憶體即時儀表板',
     es: '<strong>Motor de inferencia NPU en tiempo real</strong><br>• Ejecutar más de 490 modelos de IA precompilados al instante<br>• Generar automáticamente plantillas de código de inferencia C++/Python<br>• Panel en tiempo real de FPS, latencia y memoria',
+  },
+  '<strong>AWS Cloud Compile · Edge Deployment</strong><br>• ONNX → DXNN on a DEEPX Compiler stack<br>• Live progress, download or save to Studio models<br>• AWS Marketplace: Compiler and Greengrass Solutions': {
+    ko: '<strong>AWS 클라우드 컴파일 · 엣지 배포</strong><br>• DEEPX Compiler 스택에서 ONNX → DXNN 컴파일<br>• 실시간 진행 상황, 다운로드 또는 Studio 모델 폴더에 저장<br>• AWS Marketplace: Compiler · Greengrass Solution',
+    ja: '<strong>AWS クラウドコンパイル · エッジデプロイ</strong><br>• DEEPX Compiler スタックで ONNX → DXNN をコンパイル<br>• 進行状況をリアルタイム表示、ダウンロードまたは Studio のモデルに保存<br>• AWS Marketplace: Compiler · Greengrass Solution',
+    'zh-CN': '<strong>AWS 云端编译 · 边缘部署</strong><br>• 在 DEEPX Compiler Stack 上将 ONNX 编译为 DXNN<br>• 实时进度，可下载或保存到 Studio 模型目录<br>• AWS Marketplace：Compiler 与 Greengrass Solution',
+    'zh-TW': '<strong>AWS 雲端編譯 · 邊緣部署</strong><br>• 在 DEEPX Compiler Stack 上將 ONNX 編譯為 DXNN<br>• 即時進度，可下載或儲存到 Studio 模型目錄<br>• AWS Marketplace：Compiler 與 Greengrass Solution',
+    es: '<strong>Compilación en AWS · Despliegue edge</strong><br>• ONNX → DXNN en una pila de DEEPX Compiler<br>• Progreso en vivo, descarga o guardado en los modelos de Studio<br>• AWS Marketplace: Compiler y Greengrass Solutions',
   },
   '<strong>Natural-Language NPU App Builder</strong><br>• One-line commands auto-generate pipelines & apps<br>• Interactive console · real-time build logs<br>• Offline showcase gallery': {
     ko: '<strong>자연어 NPU 앱 빌더</strong><br>• 명령 한 줄로 파이프라인·앱 자동 생성<br>• 대화형 콘솔 · 실시간 빌드 로그<br>• 오프라인 쇼케이스 갤러리',
@@ -954,6 +972,13 @@
     'zh-TW': '自動駕駛',
     es: 'Conducción autónoma',
   },
+  'AWS cloud compile & edge deployment': {
+    ko: 'AWS 클라우드 컴파일 · 엣지 배포',
+    ja: 'AWS クラウドコンパイル · エッジデプロイ',
+    'zh-CN': 'AWS 云端编译与边缘部署',
+    'zh-TW': 'AWS 雲端編譯與邊緣部署',
+    es: 'Compilación en AWS y despliegue edge',
+  },
   'Build NPU apps with natural-language commands': {
     ko: '자연어 명령으로 NPU 앱 빌드',
     ja: '自然言語コマンドで NPU アプリをビルド',
@@ -989,12 +1014,12 @@
     'zh-TW': 'DEEPX 連接 Physical AI 生態系統',
     es: 'DEEPX conecta el ecosistema de la IA física',
   },
-  'DX AI Studio is an all-in-one desktop platform for Edge AI development with DEEPX NPU. 8 specialized modules work together in a unified environment.': {
-    ko: 'DX AI Studio는 DEEPX NPU를 활용한 Edge AI 개발을 위한 올인원 데스크톱 플랫폼입니다. 8개의 전문 모듈이 하나의 통합 환경에서 동작합니다.',
-    ja: 'DX AI Studioは、DEEPX NPUを活用したEdge AI開発のためのオールインワンデスクトッププラットフォームです。8つの専門モジュールが統合環境で動作します。',
-    'zh-CN': 'DX AI Studio 是一个利用 DEEPX NPU 的 Edge AI 开发一站式桌面平台。8个专业模块在统一环境中协同工作。',
-    'zh-TW': 'DX AI Studio 是一個利用 DEEPX NPU 的 Edge AI 開發一站式桌面平台。8個專業模組在統一環境中協同運作。',
-    es: 'DX AI Studio es una plataforma de escritorio todo en uno para el desarrollo de Edge AI con DEEPX NPU. 8 módulos especializados trabajan juntos en un entorno unificado.',
+  'DX AI Studio is an all-in-one desktop platform for Edge AI development with DEEPX NPU. 9 specialized modules work together in a unified environment.': {
+    ko: 'DX AI Studio는 DEEPX NPU를 활용한 Edge AI 개발을 위한 올인원 데스크톱 플랫폼입니다. 9개의 전문 모듈이 하나의 통합 환경에서 동작합니다.',
+    ja: 'DX AI Studioは、DEEPX NPUを活用したEdge AI開発のためのオールインワンデスクトッププラットフォームです。9つの専門モジュールが統合環境で動作します。',
+    'zh-CN': 'DX AI Studio 是一个利用 DEEPX NPU 的 Edge AI 开发一站式桌面平台。9个专业模块在统一环境中协同工作。',
+    'zh-TW': 'DX AI Studio 是一個利用 DEEPX NPU 的 Edge AI 開發一站式桌面平台。9個專業模組在統一環境中協同運作。',
+    es: 'DX AI Studio es una plataforma de escritorio todo en uno para el desarrollo de Edge AI con DEEPX NPU. 9 módulos especializados trabajan juntos en un entorno unificado.',
   },
   'DX-M1 / DX-H1 Quattro comparison': {
     ko: 'DX-M1 / DX-H1 Quattro 비교',

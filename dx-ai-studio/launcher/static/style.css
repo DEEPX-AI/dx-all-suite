@@ -1677,6 +1677,7 @@ body {
 .mod-tile[data-mod="benchmark"]  { --mod-tint: #af52de; }
 .mod-tile[data-mod="dx_monitor"] { --mod-tint: #ff375f; }
 .mod-tile[data-mod="agent"]      { --mod-tint: #8e8e93; }
+.mod-tile[data-mod="edge"]       { --mod-tint: #ffcc00; }
 
 .mod-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 .orbital-name { font-size: var(--ap-t-lead); font-weight: 400; color: var(--ap-ink); letter-spacing: -.022em; }

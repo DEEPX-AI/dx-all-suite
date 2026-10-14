@@ -18,6 +18,7 @@ window.DXLauncher.APP_PATHS = {
   benchmark: '/benchmark/',
   dx_monitor: '/dx_monitor/',
   agent: '/agent/',
+  edge: '/edge/',
 };
 
 

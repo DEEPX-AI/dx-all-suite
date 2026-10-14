@@ -874,6 +874,7 @@
     benchmark: 'Benchmark',
     dx_monitor: 'Monitor',
     agent: 'Agent Dev',
+    edge: 'Edge',
     'sdk-library': 'SDK Library',
     about: 'About',
   };
@@ -886,6 +887,7 @@
     { app: 'benchmark', label: NAV_TAB_LABELS.benchmark, action: function() { launch('benchmark'); }, activeClass: 'active' },
     { app: 'dx_monitor', label: NAV_TAB_LABELS.dx_monitor, action: function() { launch('dx_monitor'); }, activeClass: 'active' },
     { app: 'agent', label: NAV_TAB_LABELS.agent, action: function() { launch('agent'); }, activeClass: 'active' },
+    { app: 'edge', label: NAV_TAB_LABELS.edge, action: function() { launch('edge'); }, activeClass: 'active' },
     { app: 'sdk-library', label: NAV_TAB_LABELS['sdk-library'], action: showSdkLibrary, activeClass: 'active' },
     { app: 'about', label: NAV_TAB_LABELS.about, action: showAboutView, activeClass: 'active' },
   ];
@@ -899,6 +901,7 @@
     benchmark: { en: 'Benchmark', ko: 'Benchmark', ja: 'ベンチマーク', 'zh-CN': 'Benchmark', 'zh-TW': 'Benchmark', es: 'Benchmark' },
     dx_monitor: { en: 'Monitor', ko: 'Monitor', ja: 'モニター', 'zh-CN': '监控', 'zh-TW': '監控', es: 'Monitor' },
     agent: { en: 'Agent Dev', ko: 'Agent Dev', ja: 'Agent Dev', 'zh-CN': 'Agent Dev', 'zh-TW': 'Agent Dev', es: 'Agent Dev' },
+    edge: { en: 'Edge', ko: 'Edge', ja: 'Edge', 'zh-CN': 'Edge', 'zh-TW': 'Edge', es: 'Edge' },
     'sdk-library': { en: 'SDK Library', ko: 'SDK 라이브러리', ja: 'SDK ライブラリ', 'zh-CN': 'SDK 库', 'zh-TW': 'SDK 庫', es: 'Biblioteca SDK' },
     about: { en: 'About DEEPX', ko: 'DEEPX 소개', ja: 'DEEPXについて', 'zh-CN': '关于 DEEPX', 'zh-TW': '關於 DEEPX', es: 'Acerca de DEEPX' },
   };
@@ -911,6 +914,7 @@
     benchmark: { en: 'DX Benchmark', ko: 'DX Benchmark', ja: 'DX Benchmark', 'zh-CN': 'DX Benchmark', 'zh-TW': 'DX Benchmark', es: 'DX Benchmark' },
     dx_monitor: { en: 'DX Monitor', ko: 'DX Monitor', ja: 'DX Monitor', 'zh-CN': 'DX Monitor', 'zh-TW': 'DX Monitor', es: 'DX Monitor' },
     agent: { en: 'DX Agent Dev', ko: 'DX Agent Dev', ja: 'DX Agent Dev', 'zh-CN': 'DX Agent Dev', 'zh-TW': 'DX Agent Dev', es: 'DX Agent Dev' },
+    edge: { en: 'DX Edge', ko: 'DX Edge', ja: 'DX Edge', 'zh-CN': 'DX Edge', 'zh-TW': 'DX Edge', es: 'DX Edge' },
     'sdk-library': MODULE_LABEL_MATRIX['sdk-library'],
     about: MODULE_LABEL_MATRIX.about,
   };
@@ -923,6 +927,7 @@
     'pm-benchmark': 'benchmark',
     'pm-monitor': 'dx_monitor',
     'pm-agent-dev': 'agent',
+    'pm-dx-edge': 'edge',
     'pm-sdk-library': 'sdk-library',
     'pm-about-deepx': 'about',
   };
@@ -960,6 +965,7 @@
     statusLabelBenchmark: 'Benchmark',
     statusLabelMonitor: 'Monitor',
     statusLabelAgent: 'Agent',
+    statusLabelEdge: 'Edge',
   };
   var STATUS_DOT_CONFIG = [
     { labelId: 'statusLabelApp', label: STATUS_DOT_LABELS.statusLabelApp },
@@ -970,6 +976,7 @@
     { labelId: 'statusLabelBenchmark', label: STATUS_DOT_LABELS.statusLabelBenchmark },
     { labelId: 'statusLabelMonitor', label: STATUS_DOT_LABELS.statusLabelMonitor },
     { labelId: 'statusLabelAgent', label: STATUS_DOT_LABELS.statusLabelAgent },
+    { labelId: 'statusLabelEdge', label: STATUS_DOT_LABELS.statusLabelEdge },
   ];
   var NAV_ACTIVE_CLASSES = ['active', 'active-stream', 'active-zoo'];
 
@@ -1149,7 +1156,8 @@
     planner: 'planner',
     benchmark: 'benchmark',
     dx_monitor: 'monitor',
-    agent: 'agent'
+    agent: 'agent',
+    edge: 'edge'
   };
 
   function _resolveLauncherPort(data) {
@@ -1236,6 +1244,7 @@
       _setOrbStatus('orbStatusBenchmark', data.benchmark ? data.benchmark.alive : false);
       _setOrbStatus('orbStatusMonitor', data.monitor ? data.monitor.alive : false);
       _setOrbStatus('orbStatusAgent', data.agent ? data.agent.alive : false);
+      _setOrbStatus('orbStatusEdge', data.edge ? data.edge.alive : false);
       updateHubLauncherPort(data);
       updateModulePortLabels(data);
       return data;
@@ -1248,6 +1257,7 @@
       _setOrbStatus('orbStatusBenchmark', false);
       _setOrbStatus('orbStatusMonitor', false);
       _setOrbStatus('orbStatusAgent', false);
+      _setOrbStatus('orbStatusEdge', false);
       updateHubLauncherPort({});
       updateModulePortLabels({});
       return {};
@@ -1295,7 +1305,7 @@
       app: 'DX App', stream: 'DX Stream',
       zoo: 'DX Model Zoo', compiler: 'DX Compiler', planner: 'DX EdgeGuide',
       benchmark: 'DX Benchmark', dx_monitor: 'DX Monitor',
-      agent: 'DX Agent Dev'
+      agent: 'DX Agent Dev', edge: 'DX Edge'
     };
     return names[appKey] || appKey;
   }

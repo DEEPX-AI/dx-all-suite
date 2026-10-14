@@ -22,13 +22,14 @@ def test_browser_matrix_covers_all_modules():
         "dx_benchmark",
         "dx_monitor",
         "dx_agent_dev",
+        "dx_edge",
         "shared",
     }
 
 
 def test_browser_matrix_has_seven_module_release_shape():
-    assert len(COPY_AUDIT_STATES) == 13
-    assert len(COPY_AUDIT_STATES) * len(LANGUAGES) == 78
+    assert len(COPY_AUDIT_STATES) == 14
+    assert len(COPY_AUDIT_STATES) * len(LANGUAGES) == 84
     assert all(state.module != "dx_sandbox" for state in COPY_AUDIT_STATES)
 
 

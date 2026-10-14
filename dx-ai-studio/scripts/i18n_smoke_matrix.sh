@@ -21,6 +21,7 @@ echo "== Module runtime refresh contracts =="
   tests/dx_benchmark/test_runtime_lang_refresh.py \
   tests/dx_planner/test_runtime_lang_refresh.py \
   tests/dx_agent_dev/test_runtime_lang_refresh.py \
+  tests/dx_edge/test_ui.py \
   tests/launcher/test_runtime_lang_refresh_contracts.py \
   tests/shared/test_lang_refresh_contracts.py \
   tests/shared/test_chat_runtime_lang_refresh.py \
@@ -33,4 +34,4 @@ bash scripts/i18n_browser_audit.sh
 
 echo ""
 echo "Manual checklist: tools/i18n_audit/browser_matrix.py::COPY_AUDIT_STATES"
-echo "  13 states × 6 locales = 78 UI spot-checks"
+echo "  14 states × 6 locales = 84 UI spot-checks"

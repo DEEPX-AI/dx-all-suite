@@ -64,6 +64,7 @@ PLANNER_PORT  = _port("DX_PLANNER_PORT", 8096)
 BENCHMARK_PORT = _port("DX_BENCHMARK_PORT", 8097)
 MONITOR_PORT  = _port("DX_MONITOR_PORT", 8098)
 AGENT_PORT    = _port("DX_AGENT_PORT", 8099)
+EDGE_PORT     = _port("DX_EDGE_PORT", 8100)
 _LAUNCHER_PROXY_PORTS = {
     "dx_app": APP_PORT,
     "dx_stream": STREAM_PORT,
@@ -73,6 +74,7 @@ _LAUNCHER_PROXY_PORTS = {
     "dx_benchmark": BENCHMARK_PORT,
     "dx_monitor": MONITOR_PORT,
     "dx_agent_dev": AGENT_PORT,
+    "dx_edge": EDGE_PORT,
 }
 
 # Short JS keys → canonical dx_* keys (dx_monitor is the same in both)
@@ -84,6 +86,7 @@ MODULE_KEY_ALIASES = {
     "planner": "dx_planner",
     "benchmark": "dx_benchmark",
     "agent": "dx_agent_dev",
+    "edge": "dx_edge",
 }
 
 _MODULE_PROXY_PATHS = {
@@ -95,6 +98,7 @@ _MODULE_PROXY_PATHS = {
     "dx_benchmark": "/benchmark/",
     "dx_monitor": "/dx_monitor/",
     "dx_agent_dev": "/agent/",
+    "dx_edge": "/edge/",
 }
 
 
@@ -117,6 +121,7 @@ _DISPLAY_NAME_TO_CANONICAL = {
     "DX Benchmark": "dx_benchmark",
     "DX Monitor": "dx_monitor",
     "DX Agent Dev": "dx_agent_dev",
+    "DX Edge": "dx_edge",
 }
 
 _CANONICAL_TO_DISPLAY_NAME = {v: k for k, v in _DISPLAY_NAME_TO_CANONICAL.items()}
@@ -156,6 +161,7 @@ PLANNER_DIR  = STUDIO_DIR / "dx_planner"
 BENCHMARK_DIR  = STUDIO_DIR / "dx_benchmark"
 MONITOR_DIR   = STUDIO_DIR / "dx_monitor"
 AGENT_DIR     = STUDIO_DIR / "dx_agent_dev"
+EDGE_DIR      = STUDIO_DIR / "dx_edge"
 
 _procs = {}
 
@@ -655,6 +661,7 @@ def _build_health_status():
         "benchmark": st("dx_benchmark"),
         "monitor":   st("dx_monitor"),
         "agent":     st("dx_agent_dev"),
+        "edge":      st("dx_edge"),
     }
 
 
@@ -1347,6 +1354,7 @@ class LauncherHandler(DXBaseHandler):
         ("/benchmark", "dx_benchmark", True),
         ("/dx_monitor", "dx_monitor", False),
         ("/agent", "dx_agent_dev", False),
+        ("/edge", "dx_edge", False),
         ("/app", "dx_app", True),
     )
 
@@ -1876,7 +1884,7 @@ def _open_browser(url):
 def main():
     # Declared global up-front: these are reassigned below by the free-port resolver,
     # and Python requires the global declaration before any use within the function.
-    global APP_PORT, STREAM_PORT, ZOO_PORT, COMPILER_PORT, PLANNER_PORT, BENCHMARK_PORT, MONITOR_PORT, AGENT_PORT, _LAUNCHER_BOOT_ID, _STUDIO_READY
+    global APP_PORT, STREAM_PORT, ZOO_PORT, COMPILER_PORT, PLANNER_PORT, BENCHMARK_PORT, MONITOR_PORT, AGENT_PORT, EDGE_PORT, _LAUNCHER_BOOT_ID, _STUDIO_READY
     _STUDIO_READY = False
     port = LAUNCHER_PORT
     if "--port" in sys.argv:
@@ -1886,7 +1894,7 @@ def main():
 
     # Pre-sync the shared SDK chat knowledge ONCE, here in the launcher process. This is the
     # single writer: knowledge_sync.generate() writes atomically (temp file + os.replace), but
-    # we still want exactly one process regenerating it rather than all 8 module servers racing
+    # we still want exactly one process regenerating it rather than all 9 module servers racing
     # to lazily resync on first chat. Module servers just read the already-fresh file (see
     # shared/chat/engine.py's env-gated lazy fallback for the standalone-without-launcher case).
     #
@@ -1914,6 +1922,7 @@ def main():
         "DX Benchmark": BENCHMARK_PORT,
         "DX Monitor": MONITOR_PORT,
         "DX Agent Dev": AGENT_PORT,
+        "DX Edge": EDGE_PORT,
     }
 
     from .boot_animation import show_logo, show_boot_progress, show_system_check, show_completion_banner
@@ -2007,6 +2016,7 @@ def main():
         ("DX Benchmark", BENCHMARK_DIR, "dx_benchmark"),
         ("DX Monitor",   MONITOR_DIR,   "dx_monitor"),
         ("DX Agent Dev", AGENT_DIR,     "dx_agent_dev"),
+        ("DX Edge",      EDGE_DIR,      "dx_edge"),
     ]
     for _name, _dir, _sid in _SUBS:
         start_sub_server(_name, _dir, server_id=_sid)

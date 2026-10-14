@@ -86,6 +86,7 @@
     if (e.altKey && e.key === '6') { ns.launch('benchmark'); e.preventDefault(); }
     if (e.altKey && e.key === '7') { ns.launch('dx_monitor'); e.preventDefault(); }
     if (e.altKey && e.key === '8') { ns.launch('agent'); e.preventDefault(); }
+    if (e.altKey && e.key === '9') { ns.launch('edge'); e.preventDefault(); }
   });
 
   document.addEventListener('DOMContentLoaded', function() {

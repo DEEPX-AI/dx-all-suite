@@ -211,10 +211,12 @@
 .stage-deck .studio-grid {
   grid-area: grid;
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: var(--sp-4);
   align-items: start;
 }
+/* Nine modules + two books: About DEEPX closes row 2 in the last column, under SDK Library. */
+.stage-deck .studio-grid > .about-book-card:not(.sdk-card) { grid-column: -2; }
 .stage-widget { min-width: 0; display: flex; flex-direction: column; gap: var(--sp-2); }
 .stage-widget-title {
   margin: 0;
@@ -312,7 +314,7 @@
 .stage-widget-link:not(:empty)::after { content: " \203A"; }
 .stage-widget-link:hover { text-decoration: underline; }
 
-/* ── Cells: 8 icons + 2 books ─────────────────────────────────────────
+/* ── Cells: 9 icons + 2 books ─────────────────────────────────────────
    Each cell is a 4-row grid: [tooltip 0px] [icon] [name] [status]. The tooltip sits in a
    zero-height row and overflows upward — overlap without absolute positioning (nothing floats
    on this home). .mod-text uses display:contents so name and description get their own rows. */

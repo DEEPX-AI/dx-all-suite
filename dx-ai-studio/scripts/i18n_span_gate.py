@@ -24,6 +24,7 @@ SCAN_ROOTS = (
     "dx_app",
     "dx_benchmark",
     "dx_compiler",
+    "dx_edge",
     "dx_modelzoo",
     "dx_monitor",
     "dx_planner",
