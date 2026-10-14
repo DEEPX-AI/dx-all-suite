@@ -138,3 +138,20 @@ def test_a_25_megabyte_run_and_a_large_body_elsewhere_are_refused_with_the_limit
     with pytest.raises(RequestBodyError) as e:
         _read_body("/api/graph/validate", 5 * 1024 * 1024)
     assert e.value.status_code == 413 and "1 MB" in e.value.message
+
+
+def test_a_corrupt_or_unwritable_project_is_a_clear_error(tmp_path, monkeypatch):
+    from dx_app.core import graph_projects
+
+    monkeypatch.setattr(config, "OUTPUTS_DIR", tmp_path)
+    h = {"X-Lab-Token": _token(), **LOCAL}
+    graph_projects.save({"schema": 1, "graph": GRAPH, "meta": {"name": "p"}}, "p")
+    (graph_projects.projects_dir() / "p" / "project.json").write_text("{not json")
+    r = _route("GET", "/api/graph/project", headers=h, query={"id": "p"})
+    assert (r["code"], r["data"]["error_key"]) == (422, "project_corrupt")
+
+    def full(*_a, **_k):
+        raise OSError(28, "No space left on device")
+    monkeypatch.setattr(graph_projects, "save", full)
+    r = _route("POST", "/api/graph/project/save", {"project": {"schema": 1, "graph": GRAPH}}, h)
+    assert (r["code"], r["data"]["error_key"]) == (500, "project_io_error") and "No space" in r["data"]["error"]

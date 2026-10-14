@@ -40,6 +40,8 @@ def _project_call(fn, *args):
         return fn(*args)
     except ValueError as e:
         return {"error": str(e), "error_key": "invalid_project_id"}, 400
+    except OSError as e:
+        return {"error": f"the project could not be read or written: {e}", "error_key": "project_io_error"}, 500
 
 
 def handle(method: str, path: str, query, data, headers, server_host) -> tuple:

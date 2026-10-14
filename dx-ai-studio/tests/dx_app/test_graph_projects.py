@@ -74,3 +74,38 @@ def test_delete_and_missing_projects():
     assert graph_projects.load("p")[1] == 404
     assert graph_projects.delete("p")[1] == 404
     assert graph_projects.list_projects() == []
+
+
+# Review fixes: a damaged project says so; a project folder that is a link is never followed.
+@pytest.mark.parametrize("text", ["{not json", "[1, 2]", ""])
+def test_a_corrupt_project_file_is_reported_as_corrupt(text):
+    graph_projects.save(_project(), "p")
+    (graph_projects.projects_dir() / "p" / "project.json").write_text(text)
+    body, code = graph_projects.load("p")
+    assert (code, body["error_key"]) == (422, "project_corrupt")
+    (graph_projects.projects_dir() / "p" / "versions" / "1.json").write_text(text)
+    assert graph_projects.load("p", "1")[1] == 422
+    assert graph_projects.list_projects() == []
+
+
+def test_a_linked_project_folder_is_refused_and_its_target_kept(tmp_path):
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    (elsewhere / "project.json").write_text('{"schema": 1, "graph": {"nodes": []}, "meta": {"name": "x"}}')
+    (graph_projects.projects_dir() / "linked").symlink_to(elsewhere, target_is_directory=True)
+    assert graph_projects.list_projects() == []
+    for call in (lambda: graph_projects.load("linked"), lambda: graph_projects.versions("linked"),
+                 lambda: graph_projects.delete("linked"), lambda: graph_projects.save(_project(), "linked")):
+        with pytest.raises(ValueError):
+            call()
+    assert (elsewhere / "project.json").is_file()
+
+
+def test_a_linked_project_file_is_not_read(tmp_path):
+    graph_projects.save(_project(), "p")
+    secret = tmp_path / "secret.json"
+    secret.write_text('{"schema": 1, "graph": {"nodes": []}, "meta": {"name": "secret"}}')
+    f = graph_projects.projects_dir() / "p" / "project.json"
+    f.unlink()
+    f.symlink_to(secret)
+    assert graph_projects.load("p")[1] == 422

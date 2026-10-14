@@ -38,7 +38,24 @@ def slug(name: str) -> str:
 def _dir(pid) -> Path:
     if not isinstance(pid, str) or not _ID.fullmatch(pid):
         raise ValueError("invalid project id")
-    return projects_dir() / pid
+    d = projects_dir() / pid
+    if d.is_symlink():
+        raise ValueError("the project folder is a link; Studio does not follow it")
+    return d
+
+
+_CORRUPT = ({"error": "the project file is damaged and cannot be read", "error_key": "project_corrupt"}, 422)
+
+
+def _read(f: Path):
+    """A project or version file as a dict; None when it is a link, not JSON, or not an object."""
+    try:
+        if f.is_symlink():
+            return None
+        data = json.loads(f.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    return data if isinstance(data, dict) else None
 
 
 def validate_project(p) -> str | None:
@@ -93,12 +110,12 @@ def save(project, pid=None):
 def list_projects() -> list:
     out = []
     for d in projects_dir().iterdir():
-        if not (d.is_dir() and _ID.fullmatch(d.name) and (d / "project.json").is_file()):
+        if d.is_symlink() or not (d.is_dir() and _ID.fullmatch(d.name) and (d / "project.json").is_file()):
             continue
-        try:
-            meta = json.loads((d / "project.json").read_text(encoding="utf-8")).get("meta") or {}
-        except (OSError, ValueError):
+        project = _read(d / "project.json")
+        if project is None:
             continue
+        meta = project.get("meta") if isinstance(project.get("meta"), dict) else {}
         out.append({"id": d.name, "name": meta.get("name") or d.name, "version": meta.get("version"),
                     "saved_at": meta.get("saved_at"), "versions": len(_versions(d))})
     return sorted(out, key=lambda p: -(p["saved_at"] or 0))
@@ -112,10 +129,13 @@ def load(pid, version=None):
         f = d / "versions" / f"{int(version)}.json"
     else:
         f = d / "project.json"
-    if not f.is_file():
+    if not f.is_file() and not f.is_symlink():
         return {"error": "project not found", "error_key": "project_not_found"}, 404
-    project = json.loads(f.read_text(encoding="utf-8"))
-    return {"id": pid, "version": (project.get("meta") or {}).get("version"), "project": project}, 200
+    project = _read(f)
+    if project is None:
+        return _CORRUPT
+    meta = project.get("meta") if isinstance(project.get("meta"), dict) else {}
+    return {"id": pid, "version": meta.get("version"), "project": project}, 200
 
 
 def versions(pid):
@@ -124,10 +144,8 @@ def versions(pid):
         return {"error": "project not found", "error_key": "project_not_found"}, 404
     out = []
     for n in reversed(_versions(d)):
-        try:
-            meta = json.loads((d / "versions" / f"{n}.json").read_text(encoding="utf-8")).get("meta") or {}
-        except (OSError, ValueError):
-            meta = {}
+        meta = (_read(d / "versions" / f"{n}.json") or {}).get("meta")
+        meta = meta if isinstance(meta, dict) else {}
         out.append({"version": n, "saved_at": meta.get("saved_at")})
     return {"id": pid, "versions": out}, 200
 
