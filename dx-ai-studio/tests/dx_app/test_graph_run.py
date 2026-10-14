@@ -76,18 +76,21 @@ def test_progress_lines_carry_fps_and_per_node_time():
     assert p == {"frames": 2.0, "fps": 14.7, "avg_fps": 14.7, "node_ms": {"od": 10.2, "attr": 5.9}}
     assert graph_run.parse_progress_line("[DET] 3 objects") is None
     assert graph_run.parse_progress_line("[PROGRESS] frames=1 node_ms=my%20node:1.5")["node_ms"] == {"my node": 1.5}
+    assert graph_run.parse_progress_line("[PROGRESS] frames=1") == {"frames": 1.0, "node_ms": {}}, "the first line has no rate yet"
 
 
 def test_the_report_becomes_per_node_results():
     s = graph_run.summarize_report(graph_fakes.FIX / "report.json")
     assert (s["frames"], s["error_frames"]) == (2, 0)
-    assert s["node_ms"] == {"attr": 6.0, "od": 10.0}
+    assert s["node_ms"] == {"attr": 28.88, "od": 39.71}
     od, attr = s["nodes"]["od"], s["nodes"]["attr"]
-    assert (od["shape"], od["frames"], od["items_total"]) == ("boxes", 2, 3)
-    assert od["last_items"] == [{"class_name": "person", "class_id": 0, "score": 0.9, "track_id": 3,
-                                 "box": [414.0, 156.0, 118.0, 309.0]}]
-    assert (attr["shape"], attr["crops_total"]) == ("scores", 3)
-    assert attr["last_items"][0]["top"]["class_name"] == "upper_short_sleeve"
+    assert (od["shape"], od["frames"], od["items_total"]) == ("boxes", 2, 18)
+    first = od["last_items"][0]
+    assert (first["class_name"], first["class_id"], first["track_id"]) == ("person", 0, 2)
+    assert [round(v) for v in first["box"]] == [316, 246, 330, 731] and round(first["score"], 2) == 0.91
+    assert (attr["shape"], attr["crops_total"]) == ("scores", 16)
+    assert attr["last_items"][0]["src_box"] == [299.0, 209.0, 362.0, 803.0]
+    assert attr["last_items"][0]["top"]["class_name"] == "Long Lower"
 
 
 def test_a_run_reports_progress_then_results(studio, monkeypatch):
@@ -95,10 +98,10 @@ def test_a_run_reports_progress_then_results(studio, monkeypatch):
     body, code = graph_run.start(GRAPH)
     assert code == 200, body
     p = _wait(body["job_id"])
-    assert p["frames"] == 2 and p["node_ms"] == {"od": 10.2, "attr": 5.9}
+    assert p["frames"] == 2 and p["node_ms"] == {"od": 39.71, "attr": 28.88}
     r = graph_run.result(body["job_id"])
     assert r["ok"] is True and r["exit_code"] == 0 and r["frames"] == 2
-    assert r["node_ms"] == {"attr": 6.0, "od": 10.0}
+    assert r["node_ms"] == {"attr": 28.88, "od": 39.71}
     assert r["outputs"][0]["url"].startswith("/outputs/graph/runs/") and r["outputs"][0]["kind"] == "image"
     assert graph_run.result(body["job_id"]) == {"error": "unknown_job"}, "a result is handed out once"
     args = graph_fakes.calls(studio)[-1]

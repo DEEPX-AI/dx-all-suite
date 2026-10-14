@@ -2,7 +2,8 @@
 
 Studio does not re-implement the graph rules. It writes the graph to a temporary file, runs
 `multi_model_graph_sync --check <file> --model-dir <models> [--json]`, and maps what the CLI reports onto canvas ids:
-a node id, or an edge id "<from>-><to>". Until dx_app prints JSON the text format is parsed:
+a node id, or an edge id "<from>-><to>". A build with --json prints {ok, errors: [{code, where, what, how, node, edge}],
+models, notes}, which is read as is; older builds print text, which is parsed:
 
     ERROR [CODE] <where>: <what>
       -> <how>

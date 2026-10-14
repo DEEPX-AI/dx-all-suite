@@ -2,8 +2,9 @@
 
 Each fake is a bash script named like the real binary that prints recorded CLI output from fixtures/graph, captured
 on a DX-M1 host on 2026-10-14: the *.txt files from dx_app 020782cc (no --json yet), list_models.json and check_*.json
-from the dx_app Phase 1 work in progress (c822a118 plus its uncommitted --check --json). run_progress.log and the
-node_ms in report.json follow dx_app's progress.hpp format but were not captured (that needs an NPU run; Task 27).
+from the dx_app Phase 1 work in progress (c822a118 plus its uncommitted --check --json), re-checked against the
+landed build (c449d8a2). run_progress.log and report.json are a real 2-frame NPU run of cascade_od_attr.json on
+assets/videos/dance-group.mov with DXAPP_PROGRESS=1 and --report-timing (c449d8a2).
 Installing a fake points graph_cli at it and keeps temporary graph files in the test's tmp_path.
 """
 from __future__ import annotations

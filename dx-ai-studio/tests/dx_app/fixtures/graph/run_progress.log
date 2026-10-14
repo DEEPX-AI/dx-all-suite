@@ -1,3 +1,2 @@
-note: node "od": "yolov8n" is the old name of "yolov8-n_640x640"
-[PROGRESS] frames=1 fps=0.0 avg_fps=0.0 node_ms=od:9.8,attr:6.1
-[PROGRESS] frames=2 fps=14.7 avg_fps=14.7 node_ms=od:10.2,attr:5.9
+[PROGRESS] frames=1
+[PROGRESS] frames=2 fps=8.5 avg_fps=8.5 node_ms=od:39.71,attr:28.88

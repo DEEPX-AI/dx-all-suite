@@ -3,18 +3,811 @@
     {
       "error": "",
       "index": 0,
-      "node_ms": {"attr": 6.1, "od": 9.8},
+      "node_ms": {
+        "attr": 29.941,
+        "od": 45.312
+      },
       "nodes": {
-        "cam": {"origin": {"crop_size": [0, 0], "from_roi": false, "inv_align": [1.0, 0.0, 0.0, 0.0, 1.0, 0.0], "parent_index": -1, "parent_node": "", "roi_index": -1, "src_box": [0.0, 0.0, 0.0, 0.0], "track_id": -1}, "payload": {"image": {"channels": 3, "cols": 640, "rows": 427}, "shape": "frame"}},
-        "od": {"origin": {"crop_size": [0, 0], "from_roi": false, "inv_align": [1.0, 0.0, 0.0, 0.0, 1.0, 0.0], "parent_index": -1, "parent_node": "", "roi_index": -1, "src_box": [0.0, 0.0, 0.0, 0.0], "track_id": -1}, "payload": {"items": [
-          {"angle": 0.0, "box": [412.0, 155.0, 120.0, 310.0], "class_id": 0, "class_name": "person", "score": 0.91, "track_id": 3},
-          {"angle": 0.0, "box": [118.0, 140.0, 98.0, 280.0], "class_id": 0, "class_name": "person", "score": 0.87, "track_id": 4}
-        ], "shape": "boxes"}}
+        "cam": {
+          "origin": {
+            "crop_size": [
+              0,
+              0
+            ],
+            "from_roi": false,
+            "inv_align": [
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0
+            ],
+            "parent_index": -1,
+            "parent_node": "",
+            "roi_index": -1,
+            "src_box": [
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "track_id": -1
+          },
+          "payload": {
+            "image": {
+              "cols": 1920,
+              "digest": "ed109c224654f26b",
+              "nonzero": 6218561,
+              "rows": 1080,
+              "type": 16
+            },
+            "shape": "frame"
+          }
+        },
+        "od": {
+          "origin": {
+            "crop_size": [
+              0,
+              0
+            ],
+            "from_roi": false,
+            "inv_align": [
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0
+            ],
+            "parent_index": -1,
+            "parent_node": "",
+            "roi_index": -1,
+            "src_box": [
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "track_id": -1
+          },
+          "payload": {
+            "items": [
+              {
+                "angle": 0.0,
+                "box": [
+                  1584.2779541015625,
+                  192.19244384765625,
+                  276.0574951171875,
+                  726.10107421875
+                ],
+                "class_id": 0,
+                "class_name": "person",
+                "score": 0.9086989164352417,
+                "track_id": 0
+              },
+              {
+                "angle": 0.0,
+                "box": [
+                  37.699493408203125,
+                  239.68812561035156,
+                  211.62098693847656,
+                  697.2902221679688
+                ],
+                "class_id": 0,
+                "class_name": "person",
+                "score": 0.8738621473312378,
+                "track_id": 1
+              },
+              {
+                "angle": 0.0,
+                "box": [
+                  324.7387390136719,
+                  241.740234375,
+                  318.6885681152344,
+                  710.0474853515625
+                ],
+                "class_id": 0,
+                "class_name": "person",
+                "score": 0.8711463212966919,
+                "track_id": 2
+              },
+              {
+                "angle": 0.0,
+                "box": [
+                  733.7003784179688,
+                  199.9047088623047,
+                  313.82208251953125,
+                  719.7091674804688
+                ],
+                "class_id": 0,
+                "class_name": "person",
+                "score": 0.8594279885292053,
+                "track_id": 3
+              },
+              {
+                "angle": 0.0,
+                "box": [
+                  1080.7357177734375,
+                  240.86032104492188,
+                  339.7261962890625,
+                  703.34814453125
+                ],
+                "class_id": 0,
+                "class_name": "person",
+                "score": 0.8578872084617615,
+                "track_id": 4
+              },
+              {
+                "angle": 0.0,
+                "box": [
+                  1349.2760009765625,
+                  336.6830139160156,
+                  253.25830078125,
+                  544.070068359375
+                ],
+                "class_id": 0,
+                "class_name": "person",
+                "score": 0.8031737804412842,
+                "track_id": 5
+              },
+              {
+                "angle": 0.0,
+                "box": [
+                  596.4267578125,
+                  295.040771484375,
+                  180.0677490234375,
+                  615.826904296875
+                ],
+                "class_id": 0,
+                "class_name": "person",
+                "score": 0.7783125042915344,
+                "track_id": 6
+              },
+              {
+                "angle": 0.0,
+                "box": [
+                  1000.4132080078125,
+                  279.5980224609375,
+                  191.086669921875,
+                  604.4280395507813
+                ],
+                "class_id": 0,
+                "class_name": "person",
+                "score": 0.6509112119674683,
+                "track_id": 7
+              },
+              {
+                "angle": 0.0,
+                "box": [
+                  536.6607666015625,
+                  828.8388061523438,
+                  39.54473876953125,
+                  80.0159912109375
+                ],
+                "class_id": 39,
+                "class_name": "bottle",
+                "score": 0.38075894117355347,
+                "track_id": 8
+              },
+              {
+                "angle": 0.0,
+                "box": [
+                  1081.994384765625,
+                  218.44546508789063,
+                  99.15771484375,
+                  213.0472412109375
+                ],
+                "class_id": 34,
+                "class_name": "baseball bat",
+                "score": 0.37799978256225586,
+                "track_id": 9
+              }
+            ],
+            "shape": "boxes"
+          }
+        }
       },
       "roi_nodes": {
         "attr": [
-          {"origin": {"crop_size": [132, 341], "from_roi": true, "inv_align": [1.0, 0.0, 406.0, 0.0, 1.0, 139.5], "parent_index": 0, "parent_node": "od", "roi_index": 0, "src_box": [406.0, 139.5, 132.0, 341.0], "track_id": 3}, "payload": {"items": [{"class_id": 5, "class_name": "upper_short_sleeve", "score": 0.83}], "shape": "scores"}},
-          {"origin": {"crop_size": [108, 308], "from_roi": true, "inv_align": [1.0, 0.0, 113.1, 0.0, 1.0, 126.0], "parent_index": 1, "parent_node": "od", "roi_index": 1, "src_box": [113.1, 126.0, 107.8, 308.0], "track_id": 4}, "payload": {"items": [{"class_id": 9, "class_name": "lower_trousers", "score": 0.79}], "shape": "scores"}}
+          {
+            "origin": {
+              "crop_size": [
+                303,
+                798
+              ],
+              "from_roi": true,
+              "inv_align": [
+                1.0,
+                0.0,
+                1570.0,
+                0.0,
+                1.0,
+                155.0
+              ],
+              "parent_index": 0,
+              "parent_node": "od",
+              "roi_index": 0,
+              "src_box": [
+                1570.0,
+                155.0,
+                303.0,
+                798.0
+              ],
+              "track_id": 0
+            },
+            "payload": {
+              "items": [
+                {
+                  "class_id": 19,
+                  "class_name": "Long Lower",
+                  "confidence": 0.9999951124191284,
+                  "top_k": []
+                },
+                {
+                  "class_id": 0,
+                  "class_name": "Hat",
+                  "confidence": 0.9991177916526794,
+                  "top_k": []
+                },
+                {
+                  "class_id": 6,
+                  "class_name": "Formal Upper",
+                  "confidence": 0.9922218918800354,
+                  "top_k": []
+                },
+                {
+                  "class_id": 7,
+                  "class_name": "Jacket",
+                  "confidence": 0.9758200645446777,
+                  "top_k": []
+                },
+                {
+                  "class_id": 31,
+                  "class_name": "Employee",
+                  "confidence": 0.9686641097068787,
+                  "top_k": []
+                }
+              ],
+              "shape": "scores"
+            }
+          },
+          {
+            "origin": {
+              "crop_size": [
+                232,
+                767
+              ],
+              "from_roi": true,
+              "inv_align": [
+                1.0,
+                0.0,
+                27.0,
+                0.0,
+                1.0,
+                204.0
+              ],
+              "parent_index": 1,
+              "parent_node": "od",
+              "roi_index": 1,
+              "src_box": [
+                27.0,
+                204.0,
+                232.0,
+                767.0
+              ],
+              "track_id": 1
+            },
+            "payload": {
+              "items": [
+                {
+                  "class_id": 7,
+                  "class_name": "Jacket",
+                  "confidence": 0.9998447895050049,
+                  "top_k": []
+                },
+                {
+                  "class_id": 19,
+                  "class_name": "Long Lower",
+                  "confidence": 0.9982750415802002,
+                  "top_k": []
+                },
+                {
+                  "class_id": 6,
+                  "class_name": "Formal Upper",
+                  "confidence": 0.997432291507721,
+                  "top_k": []
+                },
+                {
+                  "class_id": 16,
+                  "class_name": "Formal Lower",
+                  "confidence": 0.9939444661140442,
+                  "top_k": []
+                },
+                {
+                  "class_id": 0,
+                  "class_name": "Hat",
+                  "confidence": 0.9794279932975769,
+                  "top_k": []
+                },
+                {
+                  "class_id": 31,
+                  "class_name": "Employee",
+                  "confidence": 0.9639838933944702,
+                  "top_k": []
+                },
+                {
+                  "class_id": 33,
+                  "class_name": "Carrying Other",
+                  "confidence": 0.7033202648162842,
+                  "top_k": []
+                }
+              ],
+              "shape": "scores"
+            }
+          },
+          {
+            "origin": {
+              "crop_size": [
+                350,
+                781
+              ],
+              "from_roi": true,
+              "inv_align": [
+                1.0,
+                0.0,
+                308.0,
+                0.0,
+                1.0,
+                206.0
+              ],
+              "parent_index": 2,
+              "parent_node": "od",
+              "roi_index": 2,
+              "src_box": [
+                308.0,
+                206.0,
+                350.0,
+                781.0
+              ],
+              "track_id": 2
+            },
+            "payload": {
+              "items": [
+                {
+                  "class_id": 19,
+                  "class_name": "Long Lower",
+                  "confidence": 0.9999996423721313,
+                  "top_k": []
+                },
+                {
+                  "class_id": 16,
+                  "class_name": "Formal Lower",
+                  "confidence": 0.9999665021896362,
+                  "top_k": []
+                },
+                {
+                  "class_id": 31,
+                  "class_name": "Employee",
+                  "confidence": 0.9999290704727173,
+                  "top_k": []
+                },
+                {
+                  "class_id": 6,
+                  "class_name": "Formal Upper",
+                  "confidence": 0.9995747208595276,
+                  "top_k": []
+                },
+                {
+                  "class_id": 20,
+                  "class_name": "Skirt",
+                  "confidence": 0.9983385801315308,
+                  "top_k": []
+                },
+                {
+                  "class_id": 7,
+                  "class_name": "Jacket",
+                  "confidence": 0.9983112812042236,
+                  "top_k": []
+                },
+                {
+                  "class_id": 0,
+                  "class_name": "Hat",
+                  "confidence": 0.823590099811554,
+                  "top_k": []
+                },
+                {
+                  "class_id": 1,
+                  "class_name": "Muffler",
+                  "confidence": 0.5993679165840149,
+                  "top_k": []
+                }
+              ],
+              "shape": "scores"
+            }
+          },
+          {
+            "origin": {
+              "crop_size": [
+                345,
+                791
+              ],
+              "from_roi": true,
+              "inv_align": [
+                1.0,
+                0.0,
+                718.0,
+                0.0,
+                1.0,
+                163.0
+              ],
+              "parent_index": 3,
+              "parent_node": "od",
+              "roi_index": 3,
+              "src_box": [
+                718.0,
+                163.0,
+                345.0,
+                791.0
+              ],
+              "track_id": 3
+            },
+            "payload": {
+              "items": [
+                {
+                  "class_id": 19,
+                  "class_name": "Long Lower",
+                  "confidence": 0.9999963045120239,
+                  "top_k": []
+                },
+                {
+                  "class_id": 31,
+                  "class_name": "Employee",
+                  "confidence": 0.999985933303833,
+                  "top_k": []
+                },
+                {
+                  "class_id": 6,
+                  "class_name": "Formal Upper",
+                  "confidence": 0.9999514818191528,
+                  "top_k": []
+                },
+                {
+                  "class_id": 7,
+                  "class_name": "Jacket",
+                  "confidence": 0.9999501705169678,
+                  "top_k": []
+                },
+                {
+                  "class_id": 0,
+                  "class_name": "Hat",
+                  "confidence": 0.9938160181045532,
+                  "top_k": []
+                },
+                {
+                  "class_id": 20,
+                  "class_name": "Skirt",
+                  "confidence": 0.9805434346199036,
+                  "top_k": []
+                },
+                {
+                  "class_id": 24,
+                  "class_name": "Age 31-45",
+                  "confidence": 0.5923718810081482,
+                  "top_k": []
+                }
+              ],
+              "shape": "scores"
+            }
+          },
+          {
+            "origin": {
+              "crop_size": [
+                373,
+                773
+              ],
+              "from_roi": true,
+              "inv_align": [
+                1.0,
+                0.0,
+                1063.0,
+                0.0,
+                1.0,
+                205.0
+              ],
+              "parent_index": 4,
+              "parent_node": "od",
+              "roi_index": 4,
+              "src_box": [
+                1063.0,
+                205.0,
+                373.0,
+                773.0
+              ],
+              "track_id": 4
+            },
+            "payload": {
+              "items": [
+                {
+                  "class_id": 19,
+                  "class_name": "Long Lower",
+                  "confidence": 0.9999997615814209,
+                  "top_k": []
+                },
+                {
+                  "class_id": 6,
+                  "class_name": "Formal Upper",
+                  "confidence": 0.9997496008872986,
+                  "top_k": []
+                },
+                {
+                  "class_id": 7,
+                  "class_name": "Jacket",
+                  "confidence": 0.9996945858001709,
+                  "top_k": []
+                },
+                {
+                  "class_id": 31,
+                  "class_name": "Employee",
+                  "confidence": 0.9963210821151733,
+                  "top_k": []
+                },
+                {
+                  "class_id": 15,
+                  "class_name": "Casual Lower",
+                  "confidence": 0.9873993396759033,
+                  "top_k": []
+                },
+                {
+                  "class_id": 4,
+                  "class_name": "Long Hair",
+                  "confidence": 0.8876436352729797,
+                  "top_k": []
+                },
+                {
+                  "class_id": 0,
+                  "class_name": "Hat",
+                  "confidence": 0.6922585368156433,
+                  "top_k": []
+                },
+                {
+                  "class_id": 24,
+                  "class_name": "Age 31-45",
+                  "confidence": 0.5250644683837891,
+                  "top_k": []
+                }
+              ],
+              "shape": "scores"
+            }
+          },
+          {
+            "origin": {
+              "crop_size": [
+                278,
+                598
+              ],
+              "from_roi": true,
+              "inv_align": [
+                1.0,
+                0.0,
+                1336.0,
+                0.0,
+                1.0,
+                309.0
+              ],
+              "parent_index": 5,
+              "parent_node": "od",
+              "roi_index": 5,
+              "src_box": [
+                1336.0,
+                309.0,
+                278.0,
+                598.0
+              ],
+              "track_id": 5
+            },
+            "payload": {
+              "items": [
+                {
+                  "class_id": 0,
+                  "class_name": "Hat",
+                  "confidence": 0.9997057318687439,
+                  "top_k": []
+                },
+                {
+                  "class_id": 31,
+                  "class_name": "Employee",
+                  "confidence": 0.9988096952438354,
+                  "top_k": []
+                },
+                {
+                  "class_id": 6,
+                  "class_name": "Formal Upper",
+                  "confidence": 0.9974496960639954,
+                  "top_k": []
+                },
+                {
+                  "class_id": 19,
+                  "class_name": "Long Lower",
+                  "confidence": 0.9954127669334412,
+                  "top_k": []
+                },
+                {
+                  "class_id": 7,
+                  "class_name": "Jacket",
+                  "confidence": 0.9821083545684814,
+                  "top_k": []
+                },
+                {
+                  "class_id": 20,
+                  "class_name": "Skirt",
+                  "confidence": 0.704261839389801,
+                  "top_k": []
+                },
+                {
+                  "class_id": 15,
+                  "class_name": "Casual Lower",
+                  "confidence": 0.5779123306274414,
+                  "top_k": []
+                },
+                {
+                  "class_id": 26,
+                  "class_name": "Age Over 60",
+                  "confidence": 0.528046727180481,
+                  "top_k": []
+                }
+              ],
+              "shape": "scores"
+            }
+          },
+          {
+            "origin": {
+              "crop_size": [
+                198,
+                677
+              ],
+              "from_roi": true,
+              "inv_align": [
+                1.0,
+                0.0,
+                587.0,
+                0.0,
+                1.0,
+                264.0
+              ],
+              "parent_index": 6,
+              "parent_node": "od",
+              "roi_index": 6,
+              "src_box": [
+                587.0,
+                264.0,
+                198.0,
+                677.0
+              ],
+              "track_id": 6
+            },
+            "payload": {
+              "items": [
+                {
+                  "class_id": 19,
+                  "class_name": "Long Lower",
+                  "confidence": 0.9999998807907104,
+                  "top_k": []
+                },
+                {
+                  "class_id": 6,
+                  "class_name": "Formal Upper",
+                  "confidence": 0.9999070167541504,
+                  "top_k": []
+                },
+                {
+                  "class_id": 7,
+                  "class_name": "Jacket",
+                  "confidence": 0.9998464584350586,
+                  "top_k": []
+                },
+                {
+                  "class_id": 31,
+                  "class_name": "Employee",
+                  "confidence": 0.9998227953910828,
+                  "top_k": []
+                },
+                {
+                  "class_id": 0,
+                  "class_name": "Hat",
+                  "confidence": 0.9811262488365173,
+                  "top_k": []
+                },
+                {
+                  "class_id": 33,
+                  "class_name": "Carrying Other",
+                  "confidence": 0.960212230682373,
+                  "top_k": []
+                },
+                {
+                  "class_id": 16,
+                  "class_name": "Formal Lower",
+                  "confidence": 0.5123265981674194,
+                  "top_k": []
+                }
+              ],
+              "shape": "scores"
+            }
+          },
+          {
+            "origin": {
+              "crop_size": [
+                210,
+                664
+              ],
+              "from_roi": true,
+              "inv_align": [
+                1.0,
+                0.0,
+                990.0,
+                0.0,
+                1.0,
+                249.0
+              ],
+              "parent_index": 7,
+              "parent_node": "od",
+              "roi_index": 7,
+              "src_box": [
+                990.0,
+                249.0,
+                210.0,
+                664.0
+              ],
+              "track_id": 7
+            },
+            "payload": {
+              "items": [
+                {
+                  "class_id": 19,
+                  "class_name": "Long Lower",
+                  "confidence": 0.9999815225601196,
+                  "top_k": []
+                },
+                {
+                  "class_id": 6,
+                  "class_name": "Formal Upper",
+                  "confidence": 0.9999363422393799,
+                  "top_k": []
+                },
+                {
+                  "class_id": 7,
+                  "class_name": "Jacket",
+                  "confidence": 0.9999241828918457,
+                  "top_k": []
+                },
+                {
+                  "class_id": 15,
+                  "class_name": "Casual Lower",
+                  "confidence": 0.9976813793182373,
+                  "top_k": []
+                },
+                {
+                  "class_id": 0,
+                  "class_name": "Hat",
+                  "confidence": 0.9589096903800964,
+                  "top_k": []
+                },
+                {
+                  "class_id": 12,
+                  "class_name": "T-shirt",
+                  "confidence": 0.7014064192771912,
+                  "top_k": []
+                },
+                {
+                  "class_id": 17,
+                  "class_name": "Jeans",
+                  "confidence": 0.6226887702941895,
+                  "top_k": []
+                }
+              ],
+              "shape": "scores"
+            }
+          }
         ]
       },
       "skipped_out_of_bounds": 0
@@ -22,15 +815,791 @@
     {
       "error": "",
       "index": 1,
-      "node_ms": {"attr": 5.9, "od": 10.2},
+      "node_ms": {
+        "attr": 27.814,
+        "od": 34.114
+      },
       "nodes": {
-        "od": {"origin": {"crop_size": [0, 0], "from_roi": false, "inv_align": [1.0, 0.0, 0.0, 0.0, 1.0, 0.0], "parent_index": -1, "parent_node": "", "roi_index": -1, "src_box": [0.0, 0.0, 0.0, 0.0], "track_id": -1}, "payload": {"items": [
-          {"angle": 0.0, "box": [414.0, 156.0, 118.0, 309.0], "class_id": 0, "class_name": "person", "score": 0.9, "track_id": 3}
-        ], "shape": "boxes"}}
+        "cam": {
+          "origin": {
+            "crop_size": [
+              0,
+              0
+            ],
+            "from_roi": false,
+            "inv_align": [
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0
+            ],
+            "parent_index": -1,
+            "parent_node": "",
+            "roi_index": -1,
+            "src_box": [
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "track_id": -1
+          },
+          "payload": {
+            "image": {
+              "cols": 1920,
+              "digest": "dab6536fed88ee4d",
+              "nonzero": 6218732,
+              "rows": 1080,
+              "type": 16
+            },
+            "shape": "frame"
+          }
+        },
+        "od": {
+          "origin": {
+            "crop_size": [
+              0,
+              0
+            ],
+            "from_roi": false,
+            "inv_align": [
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0
+            ],
+            "parent_index": -1,
+            "parent_node": "",
+            "roi_index": -1,
+            "src_box": [
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "track_id": -1
+          },
+          "payload": {
+            "items": [
+              {
+                "angle": 0.0,
+                "box": [
+                  315.8118896484375,
+                  245.80398559570313,
+                  329.82147216796875,
+                  730.8538818359375
+                ],
+                "class_id": 0,
+                "class_name": "person",
+                "score": 0.9083743691444397,
+                "track_id": 2
+              },
+              {
+                "angle": 0.0,
+                "box": [
+                  1584.4910888671875,
+                  198.03533935546875,
+                  277.6138916015625,
+                  733.3654174804688
+                ],
+                "class_id": 0,
+                "class_name": "person",
+                "score": 0.8992984294891357,
+                "track_id": 0
+              },
+              {
+                "angle": 0.0,
+                "box": [
+                  1104.0623779296875,
+                  216.43048095703125,
+                  307.52734375,
+                  725.3139038085938
+                ],
+                "class_id": 0,
+                "class_name": "person",
+                "score": 0.8880811929702759,
+                "track_id": 4
+              },
+              {
+                "angle": 0.0,
+                "box": [
+                  27.211669921875,
+                  245.9026336669922,
+                  220.05099487304688,
+                  688.0527954101563
+                ],
+                "class_id": 0,
+                "class_name": "person",
+                "score": 0.8638516664505005,
+                "track_id": 1
+              },
+              {
+                "angle": 0.0,
+                "box": [
+                  758.7437133789063,
+                  250.35379028320313,
+                  285.36309814453125,
+                  668.1324462890625
+                ],
+                "class_id": 0,
+                "class_name": "person",
+                "score": 0.8382830023765564,
+                "track_id": 3
+              },
+              {
+                "angle": 0.0,
+                "box": [
+                  1341.01318359375,
+                  345.16680908203125,
+                  258.8441162109375,
+                  531.8302001953125
+                ],
+                "class_id": 0,
+                "class_name": "person",
+                "score": 0.8127186894416809,
+                "track_id": 5
+              },
+              {
+                "angle": 0.0,
+                "box": [
+                  584.5197143554688,
+                  295.85302734375,
+                  182.794921875,
+                  596.9296875
+                ],
+                "class_id": 0,
+                "class_name": "person",
+                "score": 0.7924642562866211,
+                "track_id": 6
+              },
+              {
+                "angle": 0.0,
+                "box": [
+                  988.9216918945313,
+                  284.89654541015625,
+                  184.33111572265625,
+                  607.8726196289063
+                ],
+                "class_id": 0,
+                "class_name": "person",
+                "score": 0.7887459397315979,
+                "track_id": 7
+              }
+            ],
+            "shape": "boxes"
+          }
+        }
       },
       "roi_nodes": {
         "attr": [
-          {"origin": {"crop_size": [130, 340], "from_roi": true, "inv_align": [1.0, 0.0, 408.1, 0.0, 1.0, 140.6], "parent_index": 0, "parent_node": "od", "roi_index": 0, "src_box": [408.1, 140.6, 129.8, 339.9], "track_id": 3}, "payload": {"items": [{"class_id": 5, "class_name": "upper_short_sleeve", "score": 0.81}], "shape": "scores"}}
+          {
+            "origin": {
+              "crop_size": [
+                362,
+                803
+              ],
+              "from_roi": true,
+              "inv_align": [
+                1.0,
+                0.0,
+                299.0,
+                0.0,
+                1.0,
+                209.0
+              ],
+              "parent_index": 0,
+              "parent_node": "od",
+              "roi_index": 0,
+              "src_box": [
+                299.0,
+                209.0,
+                362.0,
+                803.0
+              ],
+              "track_id": 2
+            },
+            "payload": {
+              "items": [
+                {
+                  "class_id": 19,
+                  "class_name": "Long Lower",
+                  "confidence": 0.9999998807907104,
+                  "top_k": []
+                },
+                {
+                  "class_id": 6,
+                  "class_name": "Formal Upper",
+                  "confidence": 0.9993723034858704,
+                  "top_k": []
+                },
+                {
+                  "class_id": 31,
+                  "class_name": "Employee",
+                  "confidence": 0.99617600440979,
+                  "top_k": []
+                },
+                {
+                  "class_id": 16,
+                  "class_name": "Formal Lower",
+                  "confidence": 0.9858837723731995,
+                  "top_k": []
+                },
+                {
+                  "class_id": 7,
+                  "class_name": "Jacket",
+                  "confidence": 0.9666789770126343,
+                  "top_k": []
+                },
+                {
+                  "class_id": 0,
+                  "class_name": "Hat",
+                  "confidence": 0.9508634805679321,
+                  "top_k": []
+                },
+                {
+                  "class_id": 20,
+                  "class_name": "Skirt",
+                  "confidence": 0.8600755929946899,
+                  "top_k": []
+                }
+              ],
+              "shape": "scores"
+            }
+          },
+          {
+            "origin": {
+              "crop_size": [
+                305,
+                806
+              ],
+              "from_roi": true,
+              "inv_align": [
+                1.0,
+                0.0,
+                1570.0,
+                0.0,
+                1.0,
+                161.0
+              ],
+              "parent_index": 1,
+              "parent_node": "od",
+              "roi_index": 1,
+              "src_box": [
+                1570.0,
+                161.0,
+                305.0,
+                806.0
+              ],
+              "track_id": 0
+            },
+            "payload": {
+              "items": [
+                {
+                  "class_id": 19,
+                  "class_name": "Long Lower",
+                  "confidence": 0.9999980926513672,
+                  "top_k": []
+                },
+                {
+                  "class_id": 0,
+                  "class_name": "Hat",
+                  "confidence": 0.998387336730957,
+                  "top_k": []
+                },
+                {
+                  "class_id": 6,
+                  "class_name": "Formal Upper",
+                  "confidence": 0.9876222014427185,
+                  "top_k": []
+                },
+                {
+                  "class_id": 7,
+                  "class_name": "Jacket",
+                  "confidence": 0.9872649908065796,
+                  "top_k": []
+                },
+                {
+                  "class_id": 31,
+                  "class_name": "Employee",
+                  "confidence": 0.9819856882095337,
+                  "top_k": []
+                }
+              ],
+              "shape": "scores"
+            }
+          },
+          {
+            "origin": {
+              "crop_size": [
+                338,
+                797
+              ],
+              "from_roi": true,
+              "inv_align": [
+                1.0,
+                0.0,
+                1088.0,
+                0.0,
+                1.0,
+                180.0
+              ],
+              "parent_index": 2,
+              "parent_node": "od",
+              "roi_index": 2,
+              "src_box": [
+                1088.0,
+                180.0,
+                338.0,
+                797.0
+              ],
+              "track_id": 4
+            },
+            "payload": {
+              "items": [
+                {
+                  "class_id": 6,
+                  "class_name": "Formal Upper",
+                  "confidence": 0.9999920129776001,
+                  "top_k": []
+                },
+                {
+                  "class_id": 0,
+                  "class_name": "Hat",
+                  "confidence": 0.9999876022338867,
+                  "top_k": []
+                },
+                {
+                  "class_id": 19,
+                  "class_name": "Long Lower",
+                  "confidence": 0.9999874830245972,
+                  "top_k": []
+                },
+                {
+                  "class_id": 7,
+                  "class_name": "Jacket",
+                  "confidence": 0.9999176263809204,
+                  "top_k": []
+                },
+                {
+                  "class_id": 4,
+                  "class_name": "Long Hair",
+                  "confidence": 0.9982376098632813,
+                  "top_k": []
+                },
+                {
+                  "class_id": 31,
+                  "class_name": "Employee",
+                  "confidence": 0.9949794411659241,
+                  "top_k": []
+                },
+                {
+                  "class_id": 15,
+                  "class_name": "Casual Lower",
+                  "confidence": 0.9819965362548828,
+                  "top_k": []
+                }
+              ],
+              "shape": "scores"
+            }
+          },
+          {
+            "origin": {
+              "crop_size": [
+                242,
+                756
+              ],
+              "from_roi": true,
+              "inv_align": [
+                1.0,
+                0.0,
+                16.0,
+                0.0,
+                1.0,
+                211.0
+              ],
+              "parent_index": 3,
+              "parent_node": "od",
+              "roi_index": 3,
+              "src_box": [
+                16.0,
+                211.0,
+                242.0,
+                756.0
+              ],
+              "track_id": 1
+            },
+            "payload": {
+              "items": [
+                {
+                  "class_id": 6,
+                  "class_name": "Formal Upper",
+                  "confidence": 0.9996416568756104,
+                  "top_k": []
+                },
+                {
+                  "class_id": 7,
+                  "class_name": "Jacket",
+                  "confidence": 0.9996370077133179,
+                  "top_k": []
+                },
+                {
+                  "class_id": 19,
+                  "class_name": "Long Lower",
+                  "confidence": 0.9959927201271057,
+                  "top_k": []
+                },
+                {
+                  "class_id": 31,
+                  "class_name": "Employee",
+                  "confidence": 0.9958145022392273,
+                  "top_k": []
+                },
+                {
+                  "class_id": 0,
+                  "class_name": "Hat",
+                  "confidence": 0.9802360534667969,
+                  "top_k": []
+                },
+                {
+                  "class_id": 32,
+                  "class_name": "Backpack",
+                  "confidence": 0.915808916091919,
+                  "top_k": []
+                },
+                {
+                  "class_id": 16,
+                  "class_name": "Formal Lower",
+                  "confidence": 0.9115987420082092,
+                  "top_k": []
+                },
+                {
+                  "class_id": 24,
+                  "class_name": "Age 31-45",
+                  "confidence": 0.801042377948761,
+                  "top_k": []
+                },
+                {
+                  "class_id": 20,
+                  "class_name": "Skirt",
+                  "confidence": 0.7424216866493225,
+                  "top_k": []
+                },
+                {
+                  "class_id": 33,
+                  "class_name": "Carrying Other",
+                  "confidence": 0.6894885897636414,
+                  "top_k": []
+                }
+              ],
+              "shape": "scores"
+            }
+          },
+          {
+            "origin": {
+              "crop_size": [
+                313,
+                734
+              ],
+              "from_roi": true,
+              "inv_align": [
+                1.0,
+                0.0,
+                744.0,
+                0.0,
+                1.0,
+                216.0
+              ],
+              "parent_index": 4,
+              "parent_node": "od",
+              "roi_index": 4,
+              "src_box": [
+                744.0,
+                216.0,
+                313.0,
+                734.0
+              ],
+              "track_id": 3
+            },
+            "payload": {
+              "items": [
+                {
+                  "class_id": 19,
+                  "class_name": "Long Lower",
+                  "confidence": 0.9999983310699463,
+                  "top_k": []
+                },
+                {
+                  "class_id": 16,
+                  "class_name": "Formal Lower",
+                  "confidence": 0.9999582767486572,
+                  "top_k": []
+                },
+                {
+                  "class_id": 0,
+                  "class_name": "Hat",
+                  "confidence": 0.9999159574508667,
+                  "top_k": []
+                },
+                {
+                  "class_id": 31,
+                  "class_name": "Employee",
+                  "confidence": 0.999750554561615,
+                  "top_k": []
+                },
+                {
+                  "class_id": 7,
+                  "class_name": "Jacket",
+                  "confidence": 0.973087728023529,
+                  "top_k": []
+                },
+                {
+                  "class_id": 6,
+                  "class_name": "Formal Upper",
+                  "confidence": 0.9642373919487,
+                  "top_k": []
+                },
+                {
+                  "class_id": 20,
+                  "class_name": "Skirt",
+                  "confidence": 0.888129711151123,
+                  "top_k": []
+                },
+                {
+                  "class_id": 33,
+                  "class_name": "Carrying Other",
+                  "confidence": 0.8074036836624146,
+                  "top_k": []
+                }
+              ],
+              "shape": "scores"
+            }
+          },
+          {
+            "origin": {
+              "crop_size": [
+                284,
+                585
+              ],
+              "from_roi": true,
+              "inv_align": [
+                1.0,
+                0.0,
+                1328.0,
+                0.0,
+                1.0,
+                318.0
+              ],
+              "parent_index": 5,
+              "parent_node": "od",
+              "roi_index": 5,
+              "src_box": [
+                1328.0,
+                318.0,
+                284.0,
+                585.0
+              ],
+              "track_id": 5
+            },
+            "payload": {
+              "items": [
+                {
+                  "class_id": 0,
+                  "class_name": "Hat",
+                  "confidence": 0.9993022680282593,
+                  "top_k": []
+                },
+                {
+                  "class_id": 19,
+                  "class_name": "Long Lower",
+                  "confidence": 0.9988974332809448,
+                  "top_k": []
+                },
+                {
+                  "class_id": 6,
+                  "class_name": "Formal Upper",
+                  "confidence": 0.9977840781211853,
+                  "top_k": []
+                },
+                {
+                  "class_id": 31,
+                  "class_name": "Employee",
+                  "confidence": 0.9938392043113708,
+                  "top_k": []
+                },
+                {
+                  "class_id": 7,
+                  "class_name": "Jacket",
+                  "confidence": 0.9895463585853577,
+                  "top_k": []
+                },
+                {
+                  "class_id": 20,
+                  "class_name": "Skirt",
+                  "confidence": 0.989516019821167,
+                  "top_k": []
+                },
+                {
+                  "class_id": 15,
+                  "class_name": "Casual Lower",
+                  "confidence": 0.9892492294311523,
+                  "top_k": []
+                }
+              ],
+              "shape": "scores"
+            }
+          },
+          {
+            "origin": {
+              "crop_size": [
+                201,
+                656
+              ],
+              "from_roi": true,
+              "inv_align": [
+                1.0,
+                0.0,
+                575.0,
+                0.0,
+                1.0,
+                266.0
+              ],
+              "parent_index": 6,
+              "parent_node": "od",
+              "roi_index": 6,
+              "src_box": [
+                575.0,
+                266.0,
+                201.0,
+                656.0
+              ],
+              "track_id": 6
+            },
+            "payload": {
+              "items": [
+                {
+                  "class_id": 19,
+                  "class_name": "Long Lower",
+                  "confidence": 1.0,
+                  "top_k": []
+                },
+                {
+                  "class_id": 7,
+                  "class_name": "Jacket",
+                  "confidence": 0.9999947547912598,
+                  "top_k": []
+                },
+                {
+                  "class_id": 6,
+                  "class_name": "Formal Upper",
+                  "confidence": 0.999993085861206,
+                  "top_k": []
+                },
+                {
+                  "class_id": 31,
+                  "class_name": "Employee",
+                  "confidence": 0.9983493089675903,
+                  "top_k": []
+                },
+                {
+                  "class_id": 0,
+                  "class_name": "Hat",
+                  "confidence": 0.9969514608383179,
+                  "top_k": []
+                }
+              ],
+              "shape": "scores"
+            }
+          },
+          {
+            "origin": {
+              "crop_size": [
+                202,
+                668
+              ],
+              "from_roi": true,
+              "inv_align": [
+                1.0,
+                0.0,
+                979.0,
+                0.0,
+                1.0,
+                254.0
+              ],
+              "parent_index": 7,
+              "parent_node": "od",
+              "roi_index": 7,
+              "src_box": [
+                979.0,
+                254.0,
+                202.0,
+                668.0
+              ],
+              "track_id": 7
+            },
+            "payload": {
+              "items": [
+                {
+                  "class_id": 19,
+                  "class_name": "Long Lower",
+                  "confidence": 0.999994158744812,
+                  "top_k": []
+                },
+                {
+                  "class_id": 6,
+                  "class_name": "Formal Upper",
+                  "confidence": 0.999929666519165,
+                  "top_k": []
+                },
+                {
+                  "class_id": 7,
+                  "class_name": "Jacket",
+                  "confidence": 0.9992581009864807,
+                  "top_k": []
+                },
+                {
+                  "class_id": 1,
+                  "class_name": "Muffler",
+                  "confidence": 0.9634117484092712,
+                  "top_k": []
+                },
+                {
+                  "class_id": 15,
+                  "class_name": "Casual Lower",
+                  "confidence": 0.9502034783363342,
+                  "top_k": []
+                },
+                {
+                  "class_id": 20,
+                  "class_name": "Skirt",
+                  "confidence": 0.9274618625640869,
+                  "top_k": []
+                },
+                {
+                  "class_id": 31,
+                  "class_name": "Employee",
+                  "confidence": 0.8424220681190491,
+                  "top_k": []
+                },
+                {
+                  "class_id": 16,
+                  "class_name": "Formal Lower",
+                  "confidence": 0.6952216625213623,
+                  "top_k": []
+                },
+                {
+                  "class_id": 33,
+                  "class_name": "Carrying Other",
+                  "confidence": 0.6793648600578308,
+                  "top_k": []
+                }
+              ],
+              "shape": "scores"
+            }
+          }
         ]
       },
       "skipped_out_of_bounds": 0
