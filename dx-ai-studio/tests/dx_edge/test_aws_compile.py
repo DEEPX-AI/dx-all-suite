@@ -18,6 +18,8 @@ from botocore.stub import ANY, Stubber
 
 from dx_edge.core import aws_compile as ac
 
+ORIGINAL_CLIENT = ac._client
+
 REGION = "ap-northeast-2"
 STACK = "dx-compiler-stack"
 BUCKET = "dx-models-bucket-123"
@@ -135,6 +137,21 @@ def test_profile_must_be_a_configured_profile(aws):
     with pytest.raises(ac.AwsError) as exc:
         ac.list_stacks("nope", REGION)
     assert exc.value.status == 400
+
+
+@pytest.mark.parametrize("env_profile", ["", "gone"])
+def test_a_bad_aws_profile_env_var_is_a_client_error_not_a_crash(aws, monkeypatch, env_profile):
+    # boto3 raises ProfileNotFound while building the Session itself when AWS_PROFILE is
+    # empty or names a missing profile — that happens before any API call, on a real shell.
+    monkeypatch.setattr(ac, "_client", ORIGINAL_CLIENT)
+    monkeypatch.setenv("AWS_PROFILE", env_profile)
+    st = ac.status()
+    assert st["boto3"] is True
+    assert "AWS_PROFILE" in st["error"]
+    with pytest.raises(ac.AwsError) as exc:
+        ac.list_stacks("", REGION)
+    assert exc.value.status == 400
+    assert "AWS_PROFILE" in exc.value.message
 
 
 @pytest.mark.parametrize("region", ["", "ap-northeast-2; rm", "../x", "AP-NORTHEAST-2"])

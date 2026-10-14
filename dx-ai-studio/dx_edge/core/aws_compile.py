@@ -53,13 +53,24 @@ def _boto3():
     return boto3
 
 
+def _session(profile: str = "", region: str | None = None):
+    """A boto3 Session; a bad AWS_PROFILE env var fails here, before any API call."""
+    from botocore.exceptions import ProfileNotFound
+    try:
+        return _boto3().session.Session(profile_name=profile or None, region_name=region)
+    except ProfileNotFound:
+        if profile:
+            raise AwsError(400, "Unknown AWS profile") from None
+        raise AwsError(400, f"AWS_PROFILE={os.environ.get('AWS_PROFILE', '')!r} is not a configured "
+                            "profile — unset it or fix ~/.aws/config") from None
+
+
 def _client(service: str, profile: str, region: str):
-    session = _boto3().session.Session(profile_name=profile or None, region_name=region)
-    return session.client(service)
+    return _session(profile, region).client(service)
 
 
 def _profiles() -> list[str]:
-    return list(_boto3().session.Session().available_profiles)
+    return list(_session().available_profiles)
 
 
 def _check(profile: str, region: str, stack: str | None = None) -> None:
@@ -111,9 +122,12 @@ def _safe_stem(filename: str) -> str:
 def status() -> dict:
     try:
         profiles = _profiles()
-    except AwsError:
-        return {"boto3": False, "profiles": [], "default_region": DEFAULT_REGION,
-                "install_hint": INSTALL_HINT}
+    except AwsError as exc:
+        if exc.status == 503:
+            return {"boto3": False, "profiles": [], "default_region": DEFAULT_REGION,
+                    "install_hint": INSTALL_HINT}
+        return {"boto3": True, "profiles": [], "default_region": DEFAULT_REGION,
+                "error": exc.message}
     return {"boto3": True, "profiles": profiles, "default_region": DEFAULT_REGION}
 
 

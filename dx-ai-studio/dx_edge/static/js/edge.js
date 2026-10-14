@@ -56,6 +56,7 @@
         missing.textContent = T('boto3 is not installed. Install it to compile in the cloud:') + ' ' + st.install_hint;
         return;
       }
+      if (st.error) { setMsg(st.error, true); return; }
       return loadStacks();
     }).catch(function (e) { setMsg(e.message, true); });
   }
