@@ -155,3 +155,13 @@ def test_an_async_only_build_validates(tmp_path, monkeypatch):
     graph_fakes.install(tmp_path, monkeypatch, graph_fakes.TEXT_CLI, variants=("async",))
     r = graph_validate.validate(_graph("cam", "od"))
     assert r["available"] is True and r["ok"] is True
+
+
+def test_a_json_row_dx_rt_cannot_load_is_unusable_as_unloadable():
+    """The --check --json docstring lists every state the rows may carry, "unloadable" included."""
+    doc = {"ok": False, "errors": [], "notes": [],
+           "models": [{"node": "od", "model": "yolo26-n_640x640", "file": "yolo26-n_640x640.dxnn",
+                       "container": "v9 (needs DX-RT >= 3.5.0)", "state": "unloadable", "engine": None}]}
+    r = graph_validate.parse_check_json(__import__("json").dumps(doc), {"nodes": []})
+    assert r["unusable"] == {"od": "unloadable"} and r["missing"] == []
+    assert "unloadable" in graph_validate.parse_check_json.__doc__

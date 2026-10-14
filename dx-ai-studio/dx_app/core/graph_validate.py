@@ -119,7 +119,8 @@ def parse_check_text(stdout: str, stderr: str, check_path: str, graph: dict) -> 
 
 def parse_check_json(stdout: str, graph: dict, check_path: str = "") -> dict:
     """`--check --json`: {"ok", "graph", "errors": [{code, where, what, how, node, edge: {from, to} | null}],
-    "models": [{node, model, file, container, state: present|missing|invalid|unknown, engine}], "notes"}.
+    "models": [{node, model, file, container, state: present|missing|invalid|unloadable|unknown, engine}], "notes"}.
+    "unloadable" is a file this DX-RT cannot load (a v9 container before DX-RT 3.5.0); it counts as unusable.
     An edge may also come as "a->b"; a missing node/edge is recovered from `where`. Model rows written as
     {present, file: <version>, missing} are read too."""
     data = json.loads(stdout)
