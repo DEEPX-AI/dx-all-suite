@@ -3761,6 +3761,652 @@ window._DX_I18N_DICT = {
     'zh-CN': '下载状态不再响应。请检查 Model Zoo，然后刷新组件面板。', 'zh-TW': '下載狀態不再回應。請檢查 Model Zoo，然後重新整理元件面板。',
     es: 'El estado de la descarga dejó de responder. Revise Model Zoo y actualice la paleta.',
   },
+  /* ── Graph Composer, Phase 2: logic blocks, zone editor, events, Live ── */
+  'A logic block takes results, not frames': {
+    ko: 'Logic 블록은 프레임이 아니라 결과를 받습니다', ja: 'ロジックブロックはフレームではなく結果を受け取ります',
+    'zh-CN': '逻辑块接收的是结果，而不是帧', 'zh-TW': '邏輯區塊接收的是結果，而不是影格',
+    es: 'Un bloque lógico recibe resultados, no fotogramas',
+  },
+  'This logic block does not take this kind of result': {
+    ko: '이 Logic 블록은 이런 종류의 결과를 받지 않습니다', ja: 'このロジックブロックはこの種類の結果を受け取りません',
+    'zh-CN': '该逻辑块不接受这种结果', 'zh-TW': '該邏輯區塊不接受這種結果',
+    es: 'Este bloque lógico no recibe este tipo de resultado',
+  },
+  'This logic block takes no more inputs': {
+    ko: '이 Logic 블록은 입력을 더 받지 않습니다', ja: 'このロジックブロックはこれ以上入力を受け取りません',
+    'zh-CN': '该逻辑块不再接受更多输入', 'zh-TW': '該邏輯區塊不再接受更多輸入',
+    es: 'Este bloque lógico no admite más entradas',
+  },
+  'Only a block that hands on boxes can feed a model, as crops': {
+    ko: '박스를 넘기는 블록만 모델에 crop으로 연결할 수 있습니다', ja: 'ボックスを渡すブロックだけがモデルにクロップとして渡せます',
+    'zh-CN': '只有输出框的块才能以裁剪的形式传给模型', 'zh-TW': '只有輸出框的區塊才能以裁切的形式傳給模型',
+    es: 'Solo un bloque que entrega cajas puede alimentar un modelo, como recortes',
+  },
+  'Logic': {
+    ko: 'Logic', ja: 'ロジック',
+    'zh-CN': '逻辑', 'zh-TW': '邏輯',
+    es: 'Lógica',
+  },
+  'Events: {n}': {
+    ko: '이벤트: {n}', ja: 'イベント: {n}',
+    'zh-CN': '事件：{n}', 'zh-TW': '事件：{n}',
+    es: 'Eventos: {n}',
+  },
+  'Templates': {
+    ko: 'Template', ja: 'テンプレート',
+    'zh-CN': '模板', 'zh-TW': '範本',
+    es: 'Plantillas',
+  },
+  'Open the template {name}': {
+    ko: '{name} Template 열기', ja: 'テンプレート {name} を開く',
+    'zh-CN': '打开模板 {name}', 'zh-TW': '開啟範本 {name}',
+    es: 'Abrir la plantilla {name}',
+  },
+  'any result': {
+    ko: '모든 결과', ja: '任意の結果',
+    'zh-CN': '任意结果', 'zh-TW': '任意結果',
+    es: 'cualquier resultado',
+  },
+  'This dx_app build has no logic blocks yet.': {
+    ko: '이 dx_app 빌드에는 아직 Logic 블록이 없습니다.', ja: 'この dx_app ビルドにはまだロジックブロックがありません。',
+    'zh-CN': '此 dx_app 构建尚无逻辑块。', 'zh-TW': '此 dx_app 建置尚無邏輯區塊。',
+    es: 'Esta compilación de dx_app aún no tiene bloques lógicos.',
+  },
+  'Filter': {
+    ko: '필터', ja: 'フィルター',
+    'zh-CN': '过滤', 'zh-TW': '過濾',
+    es: 'Filtro',
+  },
+  'Zone': {
+    ko: '구역', ja: 'ゾーン',
+    'zh-CN': '区域', 'zh-TW': '區域',
+    es: 'Zona',
+  },
+  'Line crossing': {
+    ko: '선 통과', ja: 'ライン通過',
+    'zh-CN': '越线', 'zh-TW': '越線',
+    es: 'Cruce de línea',
+  },
+  'Dwell': {
+    ko: '체류 시간', ja: '滞留時間',
+    'zh-CN': '停留时间', 'zh-TW': '停留時間',
+    es: 'Permanencia',
+  },
+  'Condition → Event': {
+    ko: '조건 → 이벤트', ja: '条件 → イベント',
+    'zh-CN': '条件 → 事件', 'zh-TW': '條件 → 事件',
+    es: 'Condición → Evento',
+  },
+  'Gallery match': {
+    ko: 'Gallery 대조', ja: 'ギャラリー照合',
+    'zh-CN': '图库比对', 'zh-TW': '圖庫比對',
+    es: 'Coincidencia con galería',
+  },
+  'User logic': {
+    ko: '사용자 Logic', ja: 'ユーザーロジック',
+    'zh-CN': '用户逻辑', 'zh-TW': '使用者邏輯',
+    es: 'Lógica de usuario',
+  },
+  'Logic block': {
+    ko: 'Logic 블록', ja: 'ロジックブロック',
+    'zh-CN': '逻辑块', 'zh-TW': '邏輯區塊',
+    es: 'Bloque lógico',
+  },
+  'Results to a logic block': {
+    ko: 'Logic 블록으로 결과 전달', ja: 'ロジックブロックへ結果を渡す',
+    'zh-CN': '把结果传给逻辑块', 'zh-TW': '把結果傳給邏輯區塊',
+    es: 'Resultados a un bloque lógico',
+  },
+  'Takes {inputs} · hands on {output}': {
+    ko: '입력 {inputs} · 출력 {output}', ja: '入力 {inputs} · 出力 {output}',
+    'zh-CN': '输入 {inputs} · 输出 {output}', 'zh-TW': '輸入 {inputs} · 輸出 {output}',
+    es: 'Recibe {inputs} · entrega {output}',
+  },
+  'Fires: {events}': {
+    ko: '발생 이벤트: {events}', ja: '発生するイベント: {events}',
+    'zh-CN': '触发事件：{events}', 'zh-TW': '觸發事件：{events}',
+    es: 'Dispara: {events}',
+  },
+  'Track objects on {nodes}': {
+    ko: '{nodes}에서 객체 추적 켜기', ja: '{nodes} でオブジェクト追跡をオンにする',
+    'zh-CN': '在 {nodes} 上开启目标跟踪', 'zh-TW': '在 {nodes} 上開啟目標追蹤',
+    es: 'Seguir objetos en {nodes}',
+  },
+  'Studio runs this block as a pass-through. An exported project gets a function stub named {name} where you write the logic.': {
+    ko: 'Studio에서는 이 블록이 입력을 그대로 넘깁니다. 내보낸 프로젝트에는 처리 코드를 직접 작성할 {name} 함수 stub이 생깁니다.', ja: 'Studio ではこのブロックは入力をそのまま渡します。エクスポートしたプロジェクトには、ロジックを書く関数スタブ {name} が入ります。',
+    'zh-CN': 'Studio 中该块原样传递输入。导出的项目会包含名为 {name} 的函数桩，供你编写逻辑。', 'zh-TW': 'Studio 中該區塊原樣傳遞輸入。匯出的專案會包含名為 {name} 的函式樁，供你撰寫邏輯。',
+    es: 'Studio deja pasar los datos por este bloque. Un proyecto exportado incluye un esbozo de función llamado {name} donde escribir la lógica.',
+  },
+  'This dx_app build does not list this block; its params are edited as text.': {
+    ko: '이 dx_app 빌드는 이 블록을 알려 주지 않아 파라미터를 텍스트로 편집합니다.', ja: 'この dx_app ビルドはこのブロックを一覧にないため、パラメーターはテキストで編集します。',
+    'zh-CN': '此 dx_app 构建未列出该块，其参数以文本形式编辑。', 'zh-TW': '此 dx_app 建置未列出該區塊，其參數以文字形式編輯。',
+    es: 'Esta compilación de dx_app no lista este bloque; sus parámetros se editan como texto.',
+  },
+  'Default ({value})': {
+    ko: '기본값 ({value})', ja: '既定値 ({value})',
+    'zh-CN': '默认 ({value})', 'zh-TW': '預設 ({value})',
+    es: 'Predeterminado ({value})',
+  },
+  'Default': {
+    ko: '기본값', ja: '既定値',
+    'zh-CN': '默认', 'zh-TW': '預設',
+    es: 'Predeterminado',
+  },
+  '{min} to {max}': {
+    ko: '{min} ~ {max}', ja: '{min} ～ {max}',
+    'zh-CN': '{min} 到 {max}', 'zh-TW': '{min} 到 {max}',
+    es: 'de {min} a {max}',
+  },
+  'at least {min}': {
+    ko: '{min} 이상', ja: '{min} 以上',
+    'zh-CN': '至少 {min}', 'zh-TW': '至少 {min}',
+    es: 'al menos {min}',
+  },
+  'Comma separated. Empty: all.': {
+    ko: '쉼표로 구분합니다. 비우면 전체입니다.', ja: 'カンマ区切り。空欄ならすべて。',
+    'zh-CN': '以逗号分隔。留空表示全部。', 'zh-TW': '以逗號分隔。留空表示全部。',
+    es: 'Separados por comas. Vacío: todos.',
+  },
+  'Edit {param} on the frame': {
+    ko: '프레임 위에서 {param} 편집', ja: 'フレーム上で {param} を編集',
+    'zh-CN': '在帧上编辑 {param}', 'zh-TW': '在影格上編輯 {param}',
+    es: 'Editar {param} sobre el fotograma',
+  },
+  'Edit on the frame…': {
+    ko: '프레임 위에서 편집…', ja: 'フレーム上で編集…',
+    'zh-CN': '在帧上编辑…', 'zh-TW': '在影格上編輯…',
+    es: 'Editar sobre el fotograma…',
+  },
+  'Events: {events}': {
+    ko: '이벤트: {events}', ja: 'イベント: {events}',
+    'zh-CN': '事件：{events}', 'zh-TW': '事件：{events}',
+    es: 'Eventos: {events}',
+  },
+  'Zone tools': {
+    ko: '구역 도구', ja: 'ゾーンツール',
+    'zh-CN': '区域工具', 'zh-TW': '區域工具',
+    es: 'Herramientas de zona',
+  },
+  'Points': {
+    ko: '점', ja: '点',
+    'zh-CN': '点', 'zh-TW': '點',
+    es: 'Puntos',
+  },
+  'Point {n} {axis}': {
+    ko: '점 {n} {axis}', ja: '点 {n} の {axis}',
+    'zh-CN': '点 {n} 的 {axis}', 'zh-TW': '點 {n} 的 {axis}',
+    es: 'Punto {n} {axis}',
+  },
+  'Point {n} of {total}: x {x}, y {y}': {
+    ko: '점 {n} / {total}: x {x}, y {y}', ja: '点 {n} / {total}: x {x}、y {y}',
+    'zh-CN': '第 {n} 个点（共 {total} 个）：x {x}，y {y}', 'zh-TW': '第 {n} 個點（共 {total} 個）：x {x}，y {y}',
+    es: 'Punto {n} de {total}: x {x}, y {y}',
+  },
+  'Add zone': {
+    ko: '구역 추가', ja: 'ゾーンを追加',
+    'zh-CN': '添加区域', 'zh-TW': '新增區域',
+    es: 'Añadir zona',
+  },
+  'Flip direction': {
+    ko: '방향 뒤집기', ja: '向きを反転',
+    'zh-CN': '翻转方向', 'zh-TW': '翻轉方向',
+    es: 'Invertir dirección',
+  },
+  'Delete point': {
+    ko: '점 삭제', ja: '点を削除',
+    'zh-CN': '删除点', 'zh-TW': '刪除點',
+    es: 'Eliminar punto',
+  },
+  'Direction flipped': {
+    ko: '방향을 뒤집었습니다', ja: '向きを反転しました',
+    'zh-CN': '已翻转方向', 'zh-TW': '已翻轉方向',
+    es: 'Dirección invertida',
+  },
+  'Drawing cancelled': {
+    ko: '그리기를 취소했습니다', ja: '描画を取り消しました',
+    'zh-CN': '已取消绘制', 'zh-TW': '已取消繪製',
+    es: 'Dibujo cancelado',
+  },
+  'Click to add points; Enter, a double click or a click on the first point finishes; Escape cancels.': {
+    ko: '클릭해서 점을 추가합니다. Enter, 더블 클릭 또는 첫 점을 클릭하면 끝나고, Escape로 취소합니다.', ja: 'クリックで点を追加します。Enter、ダブルクリック、または最初の点のクリックで完了し、Escape で取り消します。',
+    'zh-CN': '单击添加点；按 Enter、双击或单击第一个点结束；按 Escape 取消。', 'zh-TW': '按一下新增點；按 Enter、按兩下或按第一個點結束；按 Escape 取消。',
+    es: 'Haga clic para añadir puntos; Intro, un doble clic o un clic en el primer punto termina; Escape cancela.',
+  },
+  'A zone crosses itself; dx_app may read its inside differently.': {
+    ko: '구역의 변이 서로 교차합니다. dx_app이 안쪽을 다르게 판단할 수 있습니다.', ja: 'ゾーンの辺が交差しています。dx_app が内側を違うように判断する場合があります。',
+    'zh-CN': '区域的边相互交叉；dx_app 判断的内部可能与预期不同。', 'zh-TW': '區域的邊相互交叉；dx_app 判斷的內部可能與預期不同。',
+    es: 'Una zona se cruza consigo misma; dx_app puede interpretar su interior de otra forma.',
+  },
+  'Done': {
+    ko: '완료', ja: '完了',
+    'zh-CN': '完成', 'zh-TW': '完成',
+    es: 'Hecho',
+  },
+  'Events': {
+    ko: '이벤트', ja: 'イベント',
+    'zh-CN': '事件', 'zh-TW': '事件',
+    es: 'Eventos',
+  },
+  'Event': {
+    ko: '이벤트', ja: 'イベント',
+    'zh-CN': '事件', 'zh-TW': '事件',
+    es: 'Evento',
+  },
+  'Track id': {
+    ko: 'track ID', ja: 'トラック ID',
+    'zh-CN': '跟踪 ID', 'zh-TW': '追蹤 ID',
+    es: 'ID de seguimiento',
+  },
+  'From (s)': {
+    ko: '시작 (초)', ja: '開始 (秒)',
+    'zh-CN': '起始（秒）', 'zh-TW': '起始（秒）',
+    es: 'Desde (s)',
+  },
+  'To (s)': {
+    ko: '끝 (초)', ja: '終了 (秒)',
+    'zh-CN': '结束（秒）', 'zh-TW': '結束（秒）',
+    es: 'Hasta (s)',
+  },
+  'Time (s)': {
+    ko: '시간 (초)', ja: '時間 (秒)',
+    'zh-CN': '时间（秒）', 'zh-TW': '時間（秒）',
+    es: 'Tiempo (s)',
+  },
+  'Frame': {
+    ko: '프레임', ja: 'フレーム',
+    'zh-CN': '帧', 'zh-TW': '影格',
+    es: 'Fotograma',
+  },
+  'Show': {
+    ko: '보기', ja: '表示',
+    'zh-CN': '显示', 'zh-TW': '顯示',
+    es: 'Mostrar',
+  },
+  '{shown} of {total} events': {
+    ko: '이벤트 {total}개 중 {shown}개', ja: 'イベント {total} 件中 {shown} 件',
+    'zh-CN': '共 {total} 个事件，显示 {shown} 个', 'zh-TW': '共 {total} 個事件，顯示 {shown} 個',
+    es: '{shown} de {total} eventos',
+  },
+  'the list shows the latest; the file has all of them': {
+    ko: '목록에는 최근 것만 보이고, 파일에는 전부 있습니다', ja: '一覧には最新のものだけ表示され、ファイルにはすべて含まれます',
+    'zh-CN': '列表只显示最新的，文件中包含全部', 'zh-TW': '清單只顯示最新的，檔案中包含全部',
+    es: 'la lista muestra los más recientes; el archivo los tiene todos',
+  },
+  'Show event {n} in the video': {
+    ko: '비디오에서 이벤트 {n} 보기', ja: '動画でイベント {n} を表示',
+    'zh-CN': '在视频中显示事件 {n}', 'zh-TW': '在影片中顯示事件 {n}',
+    es: 'Mostrar el evento {n} en el vídeo',
+  },
+  'Select node {node}': {
+    ko: '{node} 노드 선택', ja: 'ノード {node} を選択',
+    'zh-CN': '选择节点 {node}', 'zh-TW': '選擇節點 {node}',
+    es: 'Seleccionar el nodo {node}',
+  },
+  'No events yet.': {
+    ko: '아직 이벤트가 없습니다.', ja: 'まだイベントはありません。',
+    'zh-CN': '尚无事件。', 'zh-TW': '尚無事件。',
+    es: 'Aún no hay eventos.',
+  },
+  'No event matches the filters.': {
+    ko: '필터에 맞는 이벤트가 없습니다.', ja: 'フィルターに一致するイベントはありません。',
+    'zh-CN': '没有符合筛选条件的事件。', 'zh-TW': '沒有符合篩選條件的事件。',
+    es: 'Ningún evento coincide con los filtros.',
+  },
+  'Download events (JSONL)': {
+    ko: '이벤트 다운로드 (JSONL)', ja: 'イベントをダウンロード (JSONL)',
+    'zh-CN': '下载事件（JSONL）', 'zh-TW': '下載事件（JSONL）',
+    es: 'Descargar eventos (JSONL)',
+  },
+  'Run the graph': {
+    ko: '그래프 실행', ja: 'グラフを実行',
+    'zh-CN': '运行图', 'zh-TW': '執行圖',
+    es: 'Ejecutar el grafo',
+  },
+  'Live': {
+    ko: 'Live', ja: 'ライブ',
+    'zh-CN': '实时', 'zh-TW': '即時',
+    es: 'En vivo',
+  },
+  'Start Live': {
+    ko: 'Live 시작', ja: 'ライブを開始',
+    'zh-CN': '开始实时运行', 'zh-TW': '開始即時執行',
+    es: 'Iniciar en vivo',
+  },
+  'Starting Live…': {
+    ko: 'Live를 시작하는 중…', ja: 'ライブを開始しています…',
+    'zh-CN': '正在开始实时运行…', 'zh-TW': '正在開始即時執行…',
+    es: 'Iniciando en vivo…',
+  },
+  'Stopping…': {
+    ko: '멈추는 중…', ja: '停止しています…',
+    'zh-CN': '正在停止…', 'zh-TW': '正在停止…',
+    es: 'Deteniendo…',
+  },
+  'Live stopped.': {
+    ko: 'Live를 멈췄습니다.', ja: 'ライブを停止しました。',
+    'zh-CN': '实时运行已停止。', 'zh-TW': '即時執行已停止。',
+    es: 'En vivo detenido.',
+  },
+  'Live stopped: the page stopped asking for it.': {
+    ko: 'Live를 멈췄습니다: 페이지가 더 이상 상태를 묻지 않았습니다.', ja: 'ライブを停止しました: ページから状態の問い合わせがなくなりました。',
+    'zh-CN': '实时运行已停止：页面不再查询其状态。', 'zh-TW': '即時執行已停止：頁面不再查詢其狀態。',
+    es: 'En vivo detenido: la página dejó de consultarlo.',
+  },
+  'Live ended (exit code {code}).': {
+    ko: 'Live가 끝났습니다 (exit code {code}).', ja: 'ライブが終了しました (終了コード {code})。',
+    'zh-CN': '实时运行已结束（退出码 {code}）。', 'zh-TW': '即時執行已結束（結束代碼 {code}）。',
+    es: 'En vivo terminó (código de salida {code}).',
+  },
+  'Live failed to start.': {
+    ko: 'Live를 시작하지 못했습니다.', ja: 'ライブを開始できませんでした。',
+    'zh-CN': '实时运行未能启动。', 'zh-TW': '即時執行未能啟動。',
+    es: 'No se pudo iniciar en vivo.',
+  },
+  'Live view of the graph': {
+    ko: '그래프의 Live 화면', ja: 'グラフのライブ表示',
+    'zh-CN': '图的实时画面', 'zh-TW': '圖的即時畫面',
+    es: 'Vista en vivo del grafo',
+  },
+  'Live input for {source}': {
+    ko: '{source}의 Live 입력', ja: '{source} のライブ入力',
+    'zh-CN': '{source} 的实时输入', 'zh-TW': '{source} 的即時輸入',
+    es: 'Entrada en vivo para {source}',
+  },
+  'Camera {n}': {
+    ko: '카메라 {n}', ja: 'カメラ {n}',
+    'zh-CN': '摄像头 {n}', 'zh-TW': '攝影機 {n}',
+    es: 'Cámara {n}',
+  },
+  'RTSP stream…': {
+    ko: 'RTSP 스트림…', ja: 'RTSP ストリーム…',
+    'zh-CN': 'RTSP 流…', 'zh-TW': 'RTSP 串流…',
+    es: 'Stream RTSP…',
+  },
+  'RTSP address for {source}': {
+    ko: '{source}의 RTSP 주소', ja: '{source} の RTSP アドレス',
+    'zh-CN': '{source} 的 RTSP 地址', 'zh-TW': '{source} 的 RTSP 位址',
+    es: 'Dirección RTSP para {source}',
+  },
+  '{video} (looping)': {
+    ko: '{video} (반복 재생)', ja: '{video} (ループ再生)',
+    'zh-CN': '{video}（循环播放）', 'zh-TW': '{video}（循環播放）',
+    es: '{video} (en bucle)',
+  },
+  'A video loops until you stop. One Live runs at a time; leaving this page stops it.': {
+    ko: '비디오는 멈출 때까지 반복 재생됩니다. Live는 한 번에 하나만 실행되고, 이 페이지를 떠나면 멈춥니다.', ja: '動画は停止するまでループ再生されます。ライブは一度に 1 つだけで、このページを離れると停止します。',
+    'zh-CN': '视频会循环播放直到你停止。一次只能运行一个实时任务；离开此页面会将其停止。', 'zh-TW': '影片會循環播放直到你停止。一次只能執行一個即時工作；離開此頁面會將其停止。',
+    es: 'Un vídeo se repite hasta que lo detenga. Solo se ejecuta un en vivo a la vez; salir de esta página lo detiene.',
+  },
+  'Live needs these on this computer: {what}': {
+    ko: 'Live에 필요한 항목이 이 컴퓨터에 없습니다: {what}', ja: 'ライブにはこのコンピューターに次が必要です: {what}',
+    'zh-CN': '实时运行需要在此电脑上安装：{what}', 'zh-TW': '即時執行需要在此電腦上安裝：{what}',
+    es: 'En vivo necesita esto en este equipo: {what}',
+  },
+  'This dx_app build cannot loop a video yet. Use a camera or an RTSP stream.': {
+    ko: '이 dx_app 빌드는 아직 비디오를 반복 재생할 수 없습니다. 카메라나 RTSP 스트림을 쓰세요.', ja: 'この dx_app ビルドはまだ動画をループ再生できません。カメラか RTSP ストリームを使ってください。',
+    'zh-CN': '此 dx_app 构建尚不能循环播放视频。请使用摄像头或 RTSP 流。', 'zh-TW': '此 dx_app 建置尚不能循環播放影片。請使用攝影機或 RTSP 串流。',
+    es: 'Esta compilación de dx_app aún no puede repetir un vídeo. Use una cámara o un stream RTSP.',
+  },
+  'A graph Live is already running.': {
+    ko: '그래프 Live가 이미 실행 중입니다.', ja: 'グラフのライブはすでに実行中です。',
+    'zh-CN': '已有图的实时运行在进行。', 'zh-TW': '已有圖的即時執行在進行。',
+    es: 'Ya hay un grafo en vivo en ejecución.',
+  },
+  'A graph run is running. Wait for it or stop it first.': {
+    ko: '그래프 실행이 진행 중입니다. 끝날 때까지 기다리거나 먼저 멈추세요.', ja: 'グラフの実行中です。終わるのを待つか、先に停止してください。',
+    'zh-CN': '图正在运行。请等待其结束或先停止它。', 'zh-TW': '圖正在執行。請等待其結束或先停止它。',
+    es: 'Hay una ejecución del grafo en curso. Espere o deténgala primero.',
+  },
+  'The Run page has a Live run. Stop it there first.': {
+    ko: 'Run 페이지에서 Live 실행이 진행 중입니다. 먼저 그곳에서 멈추세요.', ja: 'Run ページでライブ実行中です。先にそちらで停止してください。',
+    'zh-CN': 'Run 页面有实时运行在进行。请先在那里停止。', 'zh-TW': 'Run 頁面有即時執行在進行。請先在那裡停止。',
+    es: 'La página Run tiene una ejecución en vivo. Deténgala allí primero.',
+  },
+  'This input cannot stream: {why}': {
+    ko: '이 입력은 Live로 읽을 수 없습니다: {why}', ja: 'この入力はストリーミングできません: {why}',
+    'zh-CN': '此输入无法串流：{why}', 'zh-TW': '此輸入無法串流：{why}',
+    es: 'Esta entrada no puede transmitirse: {why}',
+  },
+  'The graph is running Live. Stop Live first.': {
+    ko: '그래프가 Live로 실행 중입니다. 먼저 Live를 멈추세요.', ja: 'グラフはライブで実行中です。先にライブを停止してください。',
+    'zh-CN': '图正在实时运行。请先停止实时运行。', 'zh-TW': '圖正在即時執行。請先停止即時執行。',
+    es: 'El grafo se está ejecutando en vivo. Detenga primero el en vivo.',
+  },
+  'graph_live_busy': {
+    ko: 'Graph Composer에서 Live가 실행 중입니다. 먼저 멈추세요', ja: 'Graph Composer でライブ実行中です。先に停止してください',
+    'zh-CN': 'Graph Composer 正在实时运行，请先停止', 'zh-TW': 'Graph Composer 正在即時執行，請先停止',
+    es: 'El Graph Composer tiene un en vivo en ejecución; deténgalo primero',
+  },
+  'Last values: {values}': {
+    ko: '마지막 값: {values}', ja: '最後の値: {values}',
+    'zh-CN': '最近的值：{values}', 'zh-TW': '最近的值：{values}',
+    es: 'Últimos valores: {values}',
+  },
+  'more than {min}': {
+    ko: '{min} 초과', ja: '{min} より大きい',
+    'zh-CN': '大于 {min}', 'zh-TW': '大於 {min}',
+    es: 'más de {min}',
+  },
+  'at most {max}': {
+    ko: '{max} 이하', ja: '{max} 以下',
+    'zh-CN': '最多 {max}', 'zh-TW': '最多 {max}',
+    es: 'como máximo {max}',
+  },
+  '{n} points': {
+    ko: '점 {n}개', ja: '点 {n} 個',
+    'zh-CN': '{n} 个点', 'zh-TW': '{n} 個點',
+    es: '{n} puntos',
+  },
+  'Not drawn yet': {
+    ko: '아직 그리지 않았습니다', ja: 'まだ描かれていません',
+    'zh-CN': '尚未绘制', 'zh-TW': '尚未繪製',
+    es: 'Aún sin dibujar',
+  },
+  'per crop': {
+    ko: 'crop마다', ja: 'クロップごと',
+    'zh-CN': '每个裁剪', 'zh-TW': '每個裁切',
+    es: 'por recorte',
+  },
+  'what it takes': {
+    ko: '받은 것과 같은 종류', ja: '受け取ったものと同じ種類',
+    'zh-CN': '与输入相同的类型', 'zh-TW': '與輸入相同的類型',
+    es: 'lo mismo que recibe',
+  },
+  'This block needs track ids; the detector feeding it does not track.': {
+    ko: '이 블록에는 track ID가 필요한데, 입력을 주는 detector가 추적하지 않습니다.', ja: 'このブロックにはトラック ID が必要ですが、入力元の検出器が追跡していません。',
+    'zh-CN': '该块需要跟踪 ID，但为它提供输入的检测器没有开启跟踪。', 'zh-TW': '該區塊需要追蹤 ID，但為它提供輸入的偵測器沒有開啟追蹤。',
+    es: 'Este bloque necesita ID de seguimiento; el detector que lo alimenta no hace seguimiento.',
+  },
+  'Redraw zone': {
+    ko: '구역 다시 그리기', ja: 'ゾーンを描き直す',
+    'zh-CN': '重新绘制区域', 'zh-TW': '重新繪製區域',
+    es: 'Volver a dibujar la zona',
+  },
+  'Zone {node} added': {
+    ko: '구역 {node}를 추가했습니다', ja: 'ゾーン {node} を追加しました',
+    'zh-CN': '已添加区域 {node}', 'zh-TW': '已新增區域 {node}',
+    es: 'Zona {node} añadida',
+  },
+  'Zone drawing. [ and ] pick a point, arrow keys move it, Insert adds a point, Delete removes it, PageUp and PageDown pick another shape, N adds a zone, F flips a line, Ctrl+Z undoes.': {
+    ko: '구역 그리기. [ 와 ]로 점을 고르고, 화살표 키로 옮기며, Insert로 점을 추가하고 Delete로 지웁니다. PageUp/PageDown으로 다른 도형을 고르고, N은 구역 추가, F는 선 방향 뒤집기, Ctrl+Z는 되돌리기입니다.', ja: 'ゾーン描画。[ と ] で点を選び、矢印キーで移動、Insert で点を追加、Delete で削除します。PageUp/PageDown で別の図形を選び、N でゾーン追加、F でラインを反転、Ctrl+Z で元に戻します。',
+    'zh-CN': '区域绘制。用 [ 和 ] 选点，方向键移动，Insert 添加点，Delete 删除点，PageUp/PageDown 选择其他图形，N 添加区域，F 翻转线，Ctrl+Z 撤销。', 'zh-TW': '區域繪製。用 [ 和 ] 選點，方向鍵移動，Insert 新增點，Delete 刪除點，PageUp/PageDown 選擇其他圖形，N 新增區域，F 翻轉線，Ctrl+Z 復原。',
+    es: 'Dibujo de zonas. [ y ] eligen un punto, las flechas lo mueven, Insert añade un punto, Supr lo elimina, RePág y AvPág eligen otra forma, N añade una zona, F invierte una línea, Ctrl+Z deshace.',
+  },
+  'Shapes on this frame': {
+    ko: '이 프레임의 도형', ja: 'このフレームの図形',
+    'zh-CN': '此帧上的图形', 'zh-TW': '此影格上的圖形',
+    es: 'Formas en este fotograma',
+  },
+  'Draw on the frame': {
+    ko: '프레임 위에 그리기', ja: 'フレーム上に描く',
+    'zh-CN': '在帧上绘制', 'zh-TW': '在影格上繪製',
+    es: 'Dibujar sobre el fotograma',
+  },
+  'A camera or RTSP source has no still frame here; shapes are drawn on an empty 16:9 frame.': {
+    ko: '카메라나 RTSP 소스는 여기서 정지 프레임을 보여 줄 수 없어, 빈 16:9 프레임 위에 도형을 그립니다.', ja: 'カメラや RTSP のソースはここで静止フレームを表示できないため、空の 16:9 フレームに図形を描きます。',
+    'zh-CN': '摄像头或 RTSP 源在此无法显示静止帧，图形将画在空白的 16:9 帧上。', 'zh-TW': '攝影機或 RTSP 來源在此無法顯示靜止影格，圖形將畫在空白的 16:9 影格上。',
+    es: 'Una cámara o una fuente RTSP no tiene aquí un fotograma fijo; las formas se dibujan sobre un fotograma vacío de 16:9.',
+  },
+  'The input frame could not be read; shapes are drawn on an empty 16:9 frame.': {
+    ko: '입력 프레임을 읽지 못해 빈 16:9 프레임 위에 도형을 그립니다.', ja: '入力フレームを読み込めなかったため、空の 16:9 フレームに図形を描きます。',
+    'zh-CN': '无法读取输入帧，图形将画在空白的 16:9 帧上。', 'zh-TW': '無法讀取輸入影格，圖形將畫在空白的 16:9 影格上。',
+    es: 'No se pudo leer el fotograma de entrada; las formas se dibujan sobre un fotograma vacío de 16:9.',
+  },
+  /* ── Graph Composer: building a gallery for the gallery op from an image folder (POST /api/graph/gallery/build) ── */
+  'Build gallery': {
+    ko: 'Gallery 만들기', ja: 'ギャラリーを作成',
+    'zh-CN': '构建图库', 'zh-TW': '建立圖庫',
+    es: 'Crear galería',
+  },
+  'Build a gallery from an image folder': {
+    ko: '이미지 폴더로 Gallery 만들기', ja: '画像フォルダーからギャラリーを作成',
+    'zh-CN': '从图片文件夹构建图库', 'zh-TW': '從圖片資料夾建立圖庫',
+    es: 'Crear una galería a partir de una carpeta de imágenes',
+  },
+  'Image folder': {
+    ko: '이미지 폴더', ja: '画像フォルダー',
+    'zh-CN': '图片文件夹', 'zh-TW': '圖片資料夾',
+    es: 'Carpeta de imágenes',
+  },
+  'A folder under the dx_app, sample or outputs folders. One subfolder per person names its images after the subfolder; images directly in the folder are named after their files.': {
+    ko: 'dx_app, sample, outputs 폴더 아래의 폴더입니다. 사람마다 하위 폴더를 하나씩 두면 그 이미지는 하위 폴더 이름을 갖고, 폴더에 바로 있는 이미지는 파일 이름을 갖습니다.', ja: 'dx_app・sample・outputs フォルダーの下のフォルダーです。人ごとにサブフォルダーを 1 つ置くと、その画像にはサブフォルダー名が付き、フォルダー直下の画像にはファイル名が付きます。',
+    'zh-CN': 'dx_app、sample 或 outputs 文件夹下的文件夹。每人一个子文件夹时，其中的图片以子文件夹命名；直接放在该文件夹中的图片以文件名命名。', 'zh-TW': 'dx_app、sample 或 outputs 資料夾下的資料夾。每人一個子資料夾時，其中的圖片以子資料夾命名；直接放在該資料夾中的圖片以檔名命名。',
+    es: 'Una carpeta dentro de las carpetas dx_app, sample u outputs. Con una subcarpeta por persona, sus imágenes llevan el nombre de la subcarpeta; las imágenes que están directamente en la carpeta llevan el nombre de su archivo.',
+  },
+  'Embedding model': {
+    ko: 'Embedding 모델', ja: '埋め込みモデル',
+    'zh-CN': '嵌入模型', 'zh-TW': '嵌入模型',
+    es: 'Modelo de embeddings',
+  },
+  'Gallery name (optional)': {
+    ko: 'Gallery 이름 (선택)', ja: 'ギャラリー名 (任意)',
+    'zh-CN': '图库名称（可选）', 'zh-TW': '圖庫名稱（選填）',
+    es: 'Nombre de la galería (opcional)',
+  },
+  'Building the gallery…': {
+    ko: 'Gallery를 만드는 중…', ja: 'ギャラリーを作成中…',
+    'zh-CN': '正在构建图库…', 'zh-TW': '正在建立圖庫…',
+    es: 'Creando la galería…',
+  },
+  'Gallery built: {people} people, {images} images': {
+    ko: 'Gallery를 만들었습니다: {people}명, 이미지 {images}장', ja: 'ギャラリーを作成しました: {people} 人、画像 {images} 枚',
+    'zh-CN': '图库已构建：{people} 人，{images} 张图片', 'zh-TW': '圖庫已建立：{people} 人，{images} 張圖片',
+    es: 'Galería creada: {people} personas, {images} imágenes',
+  },
+  'The gallery build failed.': {
+    ko: 'Gallery를 만들지 못했습니다.', ja: 'ギャラリーを作成できませんでした。',
+    'zh-CN': '图库构建失败。', 'zh-TW': '圖庫建立失敗。',
+    es: 'No se pudo crear la galería.',
+  },
+  // error keys of the NPU job registry (npu_jobs.py) and the gallery builder (graph_gallery.py); the server message follows
+  'gallery_busy': {
+    ko: 'Gallery를 이미 만들고 있습니다', ja: 'ギャラリーをすでに作成中です',
+    'zh-CN': '正在构建图库', 'zh-TW': '正在建立圖庫',
+    es: 'Ya se está creando una galería',
+  },
+  'graph_run_busy': {
+    ko: '그래프 실행이 진행 중입니다. 끝날 때까지 기다리세요', ja: 'グラフの実行中です。終わるまでお待ちください',
+    'zh-CN': '图正在运行，请等待其结束', 'zh-TW': '圖正在執行，請等待其結束',
+    es: 'Hay una ejecución del grafo en curso; espere a que termine',
+  },
+  'live_busy': {
+    ko: 'Run 페이지에서 Live 실행이 진행 중입니다. 먼저 그곳에서 멈추세요', ja: 'Run ページでライブ実行中です。先にそちらで停止してください',
+    'zh-CN': 'Run 页面有实时运行在进行，请先在那里停止', 'zh-TW': 'Run 頁面有即時執行在進行，請先在那裡停止',
+    es: 'La página Run tiene una ejecución en vivo; deténgala allí primero',
+  },
+  'invalid_folder': {
+    ko: '폴더가 없거나 dx_app, sample, outputs 폴더 밖에 있습니다', ja: 'フォルダーが存在しないか、dx_app・sample・outputs フォルダーの外にあります',
+    'zh-CN': '文件夹不存在，或不在 dx_app、sample、outputs 文件夹内', 'zh-TW': '資料夾不存在，或不在 dx_app、sample、outputs 資料夾內',
+    es: 'La carpeta no existe o está fuera de las carpetas dx_app, sample y outputs',
+  },
+  'invalid_model': {
+    ko: '모델 이름이 올바르지 않습니다', ja: 'モデル名が正しくありません',
+    'zh-CN': '模型名称无效', 'zh-TW': '模型名稱無效',
+    es: 'El nombre del modelo no es válido',
+  },
+  'invalid_name': {
+    ko: 'Gallery 이름은 영문자, 숫자, _, ., - 로 64자 이내여야 합니다', ja: 'ギャラリー名は英数字と _ . - で 64 文字以内にしてください',
+    'zh-CN': '图库名称只能使用字母、数字、_、.、-，最多 64 个字符', 'zh-TW': '圖庫名稱只能使用字母、數字、_、.、-，最多 64 個字元',
+    es: 'El nombre de la galería admite letras, dígitos, _, . y -, hasta 64 caracteres',
+  },
+  'gallery_no_images': {
+    ko: '폴더에 이미지가 없습니다', ja: 'フォルダーに画像がありません',
+    'zh-CN': '文件夹中没有图片', 'zh-TW': '資料夾中沒有圖片',
+    es: 'La carpeta no contiene imágenes',
+  },
+  'gallery_too_many_images': {
+    ko: '폴더의 이미지가 너무 많습니다', ja: 'フォルダーの画像が多すぎます',
+    'zh-CN': '文件夹中的图片太多', 'zh-TW': '資料夾中的圖片太多',
+    es: 'La carpeta tiene demasiadas imágenes',
+  },
+  'model_missing': {
+    ko: '모델이 설치되어 있지 않습니다. 먼저 Model Zoo에서 다운로드하세요', ja: 'モデルがインストールされていません。先に Model Zoo でダウンロードしてください',
+    'zh-CN': '模型未安装，请先在 Model Zoo 中下载', 'zh-TW': '模型未安裝，請先在 Model Zoo 中下載',
+    es: 'El modelo no está instalado; descárguelo primero en Model Zoo',
+  },
+  'gallery_script_missing': {
+    ko: '이 dx_app에는 Gallery 생성 script가 없습니다', ja: 'この dx_app にはギャラリー作成スクリプトがありません',
+    'zh-CN': '此 dx_app 中没有图库构建脚本', 'zh-TW': '此 dx_app 中沒有圖庫建立指令碼',
+    es: 'Este dx_app no incluye el script para crear galerías',
+  },
+  'runtime_python_missing': {
+    ko: 'DX-RT runtime Python (venv-dx-runtime)을 찾지 못했습니다', ja: 'DX-RT ランタイムの Python (venv-dx-runtime) が見つかりません',
+    'zh-CN': '未找到 DX-RT 运行时 Python (venv-dx-runtime)', 'zh-TW': '找不到 DX-RT 執行環境的 Python (venv-dx-runtime)',
+    es: 'No se encontró el Python del runtime de DX-RT (venv-dx-runtime)',
+  },
+  'gallery_build_failed': {
+    ko: 'Gallery를 만들지 못했습니다', ja: 'ギャラリーを作成できませんでした',
+    'zh-CN': '图库构建失败', 'zh-TW': '圖庫建立失敗',
+    es: 'No se pudo crear la galería',
+  },
+  'gallery_timeout': {
+    ko: 'Gallery 생성이 시간 제한을 넘어 중단되었습니다', ja: 'ギャラリーの作成が制限時間を超えたため停止しました',
+    'zh-CN': '图库构建超时，已停止', 'zh-TW': '圖庫建立逾時，已停止',
+    es: 'La creación de la galería superó el tiempo límite y se detuvo',
+  },
+  // error keys of the graph run, frame and Live routes (graph_run.py, graph_frame.py, graph_live.py, graph_ops.py)
+  'no_source': {
+    ko: '그래프에 소스가 없습니다', ja: 'グラフにソースがありません',
+    'zh-CN': '图中没有输入源', 'zh-TW': '圖中沒有輸入來源',
+    es: 'El grafo no tiene ninguna fuente',
+  },
+  'invalid_source_id': {
+    ko: '소스 id는 영문자, 숫자, _, ., - 로 64자 이내여야 합니다', ja: 'ソース ID は英数字と _ . - で 64 文字以内にしてください',
+    'zh-CN': '输入源 id 只能使用字母、数字、_、.、-，最多 64 个字符', 'zh-TW': '輸入來源 id 只能使用字母、數字、_、.、-，最多 64 個字元',
+    es: 'El id de una fuente admite letras, dígitos, _, . y -, hasta 64 caracteres',
+  },
+  'invalid_live_input': {
+    ko: '이 입력은 Live로 실행할 수 없습니다', ja: 'この入力はライブで実行できません',
+    'zh-CN': '此输入无法实时运行', 'zh-TW': '此輸入無法即時執行',
+    es: 'Esta entrada no se puede ejecutar en vivo',
+  },
+  'loop_unsupported': {
+    ko: '이 dx_app 빌드는 비디오를 반복 재생할 수 없습니다. 카메라나 RTSP 스트림을 쓰세요', ja: 'この dx_app ビルドは動画をループ再生できません。カメラか RTSP ストリームを使ってください',
+    'zh-CN': '此 dx_app 版本无法循环播放视频，请使用摄像头或 RTSP 流', 'zh-TW': '此 dx_app 版本無法循環播放影片，請使用攝影機或 RTSP 串流',
+    es: 'Esta compilación de dx_app no puede repetir un vídeo; use una cámara o un stream RTSP',
+  },
+  'graph_live_failed': {
+    ko: '그래프 Live를 시작하지 못했습니다', ja: 'グラフのライブを開始できませんでした',
+    'zh-CN': '无法启动图的实时运行', 'zh-TW': '無法啟動圖的即時執行',
+    es: 'No se pudo iniciar el grafo en vivo',
+  },
+  'frame_unreadable': {
+    ko: '입력 프레임을 읽지 못했습니다', ja: '入力フレームを読み込めませんでした',
+    'zh-CN': '无法读取输入帧', 'zh-TW': '無法讀取輸入影格',
+    es: 'No se pudo leer el fotograma de entrada',
+  },
+  'list_ops_unsupported': {
+    en: 'This dx_app build does not list its logic blocks (no --list-ops).',
+    ko: '이 dx_app 빌드는 Logic 블록 목록을 제공하지 않습니다 (--list-ops 없음).', ja: 'この dx_app ビルドはロジックブロックの一覧を出せません (--list-ops なし)。',
+    'zh-CN': '此 dx_app 版本无法列出逻辑块（没有 --list-ops）。', 'zh-TW': '此 dx_app 版本無法列出邏輯區塊（沒有 --list-ops）。',
+    es: 'Esta compilación de dx_app no lista sus bloques lógicos (sin --list-ops).',
+  },
+  'unknown_job': {
+    en: 'This run is no longer known to the server; it ended or the server restarted.',
+    ko: '서버가 이 실행을 더 이상 알지 못합니다. 끝났거나 서버가 다시 시작되었습니다.', ja: 'サーバーはこの実行をもう把握していません。終了したか、サーバーが再起動しました。',
+    'zh-CN': '服务器已不再记录此次运行：它已结束，或服务器已重启。', 'zh-TW': '伺服器已不再記錄此次執行：它已結束，或伺服器已重新啟動。',
+    es: 'El servidor ya no conoce esta ejecución; terminó o el servidor se reinició.',
+  },
 };
 
 /* ─── CSS Selectors for DOM translation ─── */

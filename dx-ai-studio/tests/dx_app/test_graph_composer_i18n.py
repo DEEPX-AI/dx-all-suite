@@ -72,3 +72,47 @@ def test_korean_keeps_composer_and_inspector_in_english():
     found = [(p.name, w) for p, text in sources.items() for w in _HANGUL_SPELLINGS if w in text]
     assert not found, found
     assert "ko: '그래프 Composer'" in dict_entry("Graph Composer"), "graph keeps its established Korean loanword; Composer stays English"
+
+
+# Phase 2: every string of the composer's scripts in six languages, and Korean keeps English technical terms there
+# instead of spelling them in Hangul (the older Run page entries such as '라이브 디스플레이' are not the composer's).
+GRAPH_SCRIPTS = sorted((ROOT / "dx_app/static/js").glob("graph-*.js"))
+_P2_HANGUL_SPELLINGS = _HANGUL_SPELLINGS + ("라이브", "로직", "갤러리", "템플릿", "스트리밍", "트래킹", "폴리곤")
+
+
+def _graph_keys(strings) -> list[str]:
+    import re
+    keys = set(strings["canvas"] + strings["doc"])
+    for p in GRAPH_SCRIPTS:
+        src = p.read_text(encoding="utf-8")
+        keys |= {k.replace("\\'", "'") for k in re.findall(r"\bT\('((?:[^'\\]|\\.)*)'\)", src)}
+        if p.name == "graph-palette.js" and "var LOGIC_LABELS" in src:
+            block = src[src.index("var LOGIC_LABELS"):src.index("};", src.index("var LOGIC_LABELS"))]
+            keys |= set(re.findall(r": '([^']+)'", block))
+    return sorted(keys)
+
+
+def _ko(entry: str) -> str:
+    import re
+    m = re.search(r"\bko:\s*'((?:[^'\\]|\\.)*)'", entry)
+    return m.group(1) if m else ""
+
+
+def test_every_composer_string_covers_every_language(strings):
+    incomplete = {}
+    for key in _graph_keys(strings):
+        entry = dict_entry(key)
+        lacking = [lang for lang in TARGET_LANGS if f"{lang}:" not in entry and f"'{lang}':" not in entry]
+        if lacking:
+            incomplete[key] = lacking
+    assert not incomplete, incomplete
+
+
+def test_korean_composer_strings_keep_english_technical_terms(strings):
+    import re
+    found = {k: w for k in _graph_keys(strings) for w in _P2_HANGUL_SPELLINGS if w in _ko(dict_entry(k))}
+    assert not found, found
+    tut = (ROOT / "dx_app/static/js/tutorial.js").read_text(encoding="utf-8")
+    section = tut[tut.index("{ id:'graph'"):tut.index("{ id:'lab'")]
+    ko = re.findall(r"\bko:\s*'((?:[^'\\]|\\.)*)'", section)
+    assert ko and not [(s, w) for s in ko for w in _P2_HANGUL_SPELLINGS if w in s]
