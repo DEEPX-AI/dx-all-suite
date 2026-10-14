@@ -22,7 +22,9 @@ def test_python_readme(app):
     assert "Q-Pro is 7.57 points below Raw on AP(Easy)." in md
     assert "[C++ version of this example](../../../../cpp_example/face_detection/yolov5_face/yolov5-m-face_640x640/)" in md
     assert "[model.html](model.html)" in md and "open it in a browser" in md   # GitHub shows its source
-    assert "on DX-M1, DX Model Zoo reference measurement (publish table, 2026-10-13)." in md
+    # A dx_app example carries no benchmark numbers: FPS and board measurements belong to Studio's Benchmark
+    assert "## Accuracy" in md and "## Performance" not in md
+    assert "FPS" not in md and "reference measurement" not in md
     assert "devops.dpx.ai" not in md
     assert "GPL-3.0 (GNU GPL v3) · © deepcam-cn. Check the upstream license" in md    # no "— —" without a source
     assert "\n\n\n" not in md                                                         # no boards: one blank line
@@ -46,28 +48,27 @@ def test_empty_files_and_downloads(app):
     assert "No public downloads." in md and "| Artifact | Compiler | Files |" not in md
 
 
-def test_no_date_and_a_board_month_in_the_footer(app):
+def test_no_date_and_board_rows_stay_out(app):
     card = _card(app)
     card["asof"] = None
     card["boards"] = {"rows": [{"board": "DX-M1 · Raspberry Pi 5", "throughput_fps": 179.6, "single_fps": 46.4,
                                 "latency_ms": 21.5}], "measured": "July 2026"}
     md = render_markdown(card, "python")
-    assert "Generated from the DX Model Zoo publish table. Board measurements: DX AI Studio Benchmark, July 2026." in md
+    assert "Generated from the DX Model Zoo publish table." in md
+    assert "Measured on host boards" not in md and "Board measurements" not in md and "179.6" not in md
+    assert "DX AI Studio Benchmark" not in md
     assert "as of" not in md and "None" not in md
-    card["boards"]["measured"] = None
-    md = render_markdown(card, "python")
-    assert "DX AI Studio Benchmark, DX-RT without ORT." in md and "None" not in md and "Board measurements" not in md
 
 
-def test_unpublished_note_in_performance(app):
+def test_unpublished_note_in_accuracy(app):
     card = _card(app)
     card["published"] = False
     md = render_markdown(card, "python")
-    perf = md[md.index("## Performance"):md.index("## Model")]
-    assert "Numbers from the DX AI Studio catalog; this model is not in the DX Model Zoo publish table." in perf
-    assert "(publish table," not in perf                     # catalog numbers carry no publish-table date
+    acc = md[md.index("## Accuracy"):md.index("## Model")]
+    assert "Numbers from the DX AI Studio catalog; this model is not in the DX Model Zoo publish table." in acc
+    assert "(publish table," not in acc                      # catalog numbers carry no publish-table date
     md = render_markdown(_card(app), "python")
-    assert "Numbers from the DX AI Studio catalog" not in md[md.index("## Performance"):md.index("## Model")]
+    assert "Numbers from the DX AI Studio catalog" not in md[md.index("## Accuracy"):md.index("## Model")]
 
 
 def test_no_cpp_dir_no_cpp_link(app):
@@ -85,11 +86,12 @@ def test_cpp_readme_points_at_the_python_dir(app):
     assert md.index("./bin/yolov5-m-face_640x640_sync") < md.index("python src/python_example")
 
 
-def test_missing_fps_shows_the_measure_command(app):
+def test_no_throughput_text_with_or_without_fps(app):
     card = _card(app)
-    card["fps"] = None
-    assert "Throughput for this model is not published yet." in render_markdown(card, "python")
-    assert "--loop 100 --no-display" in render_markdown(card, "python")
+    for fps in (None, 123.4):
+        card["fps"] = fps
+        md = render_markdown(card, "python")
+        assert "Throughput" not in md and "--loop 100 --no-display" not in md and "FPS" not in md
 
 
 def test_index_links_every_card(app):
@@ -98,6 +100,7 @@ def test_index_links_every_card(app):
     assert "[Python](src/python_example/face_detection/yolov5_face/yolov5-m-face_640x640/README.md)" in md
     assert "[C++](src/cpp_example/face_detection/yolov5_face/yolov5-m-face_640x640/README.md)" in md
     assert "[Q-Lite DXNN](https://sdk.deepx.ai/modelzoo/q-lite-dxnn/2_5_0/yolov5-m-face_640x640.dxnn)" in md
+    assert "FPS" not in md                                   # no benchmark column in the dx_app index
 
 
 def test_index_download_falls_back_to_the_manifest_or_a_dash(app):

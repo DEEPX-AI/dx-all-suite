@@ -118,9 +118,11 @@ def _wbr(name):
 
 
 def render_html(card, *, labels=None, lang="en", image_src=None, readme_href="README.md", other_href=None,
-                marker=False):
+                marker=False, performance=True):
     """marker: the exporter's "do not edit" comment (model_card_md.HEADER) right after the doctype; Studio's Save as
-    HTML leaves it out, its file is not regenerated."""
+    HTML leaves it out, its file is not regenerated.
+    performance: FPS, FPS/W and board measurements. Studio's Save as HTML shows them; the dx_app example card leaves
+    them out (Studio Benchmark data, not a property of the example) and keeps accuracy."""
     L = labels or {}
     cmds = commands(card)
     acc = card["accuracy"]
@@ -155,6 +157,12 @@ def render_html(card, *, labels=None, lang="en", image_src=None, readme_href="RE
         (fmt_fps(card["fps"]) if card["fps"] is not None else None, "FPS · DX-M1"),
         (fmt_num(card["fps_per_watt"], 1) if card["fps_per_watt"] is not None else None, "FPS/W · DX-M1"),
         (f"{fmt_num(card['params'])} M" if card["params"] is not None else None, t(L, "Parameters")),
+    ] if performance else [
+        (fmt_num(first_value) if first_value is not None else None,
+         t(L, "{metric} · {tier}", metric=acc["metrics"][0], tier=first["label"] if first else "Q-Lite")),
+        (fmt_input(card["input"]) or None, t(L, "Input")),
+        (f"{fmt_num(card['params'])} M" if card["params"] is not None else None, t(L, "Parameters")),
+        (f"{fmt_num(card['ops'])} GOPs" if card["ops"] is not None else None, t(L, "Operations")),
     ]
     kpi_html = "".join(f'<div class="kpi{"" if v else " na"}"><b>{_e(v) if v else "—"}</b><span>{_e(k)}</span></div>'
                        for v, k in kpis)
@@ -187,7 +195,7 @@ def render_html(card, *, labels=None, lang="en", image_src=None, readme_href="RE
     if not card["published"]:
         throughput = f"<p class=note style=\"margin:0 0 12px\">{_e(t(L, CATALOG_NUMBERS))}</p>" + throughput
     boards = ""
-    if card["boards"]["rows"]:
+    if performance and card["boards"]["rows"]:
         rows = "".join(f"<tr><td class=k>{_e(r['board'])}</td><td class=n>{_e(fmt_num(r['throughput_fps'], 1))}</td>"
                        f"<td class=n>{_e(fmt_num(r['single_fps'], 1))}</td><td class=n>{_e(fmt_num(r['latency_ms'], 1))}</td></tr>"
                        for r in card["boards"]["rows"])
@@ -224,11 +232,18 @@ def render_html(card, *, labels=None, lang="en", image_src=None, readme_href="RE
     files = f"<ul class=files>{files}</ul>" if files else "<p class=empty>—</p>"
     license_text = (f"<p class=sub style=\"margin:0 0 8px\">{_e(card['license_text'])}</p>"
                     if card["license_text"] and card["license_text"] != card["license"] else "")
-    footer = "\n".join(_e(x) for x in (generated_note(card, L), boards_footer(card, L)) if x)
+    footer = "\n".join(_e(x) for x in (generated_note(card, L), boards_footer(card, L) if performance else None) if x)
     source = (f'<a href="{_e(card["source"])}">{_e(card["source"].replace("https://github.com/", ""))}</a>'
               if card["source"] else "—")
     owner = f" · © {_e(card['copyright'])}" if card["copyright"] else ""
 
+    if performance:
+        perf_section = (f"<section class=panel><h2>{_e(t(L, 'Performance'))}</h2>{throughput}"
+                        f"<h3>{_e(t(L, 'Accuracy'))}</h3>{accuracy}{boards}</section>")
+    else:
+        catalog = (f"<p class=note style=\"margin:0 0 12px\">{_e(t(L, CATALOG_NUMBERS))}</p>"
+                   if not card["published"] else "")
+        perf_section = f"<section class=panel><h2>{_e(t(L, 'Accuracy'))}</h2>{catalog}{accuracy}</section>"
     return f"""<!doctype html>
 {HEADER if marker else ""}<html lang="{_e(lang)}">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -244,7 +259,7 @@ def render_html(card, *, labels=None, lang="en", image_src=None, readme_href="RE
 <section class=panel><h2>{_e(t(L, 'Quick start'))}</h2>
 <p class=sub>{_e(t(L, 'Run from the dx_app root after ./install.sh and ./build.sh.'))}</p>
 {_cmd(cmds['get'], t(L, 'Get the model'), L)}{_cmd(cmds['python'], 'Python', L)}{_cmd(cmds['cpp'], 'C++', L)}</section>
-<section class=panel><h2>{_e(t(L, 'Performance'))}</h2>{throughput}<h3>{_e(t(L, 'Accuracy'))}</h3>{accuracy}{boards}</section>
+{perf_section}
 <section class=panel><h2>{_e(t(L, 'Files in this example'))}</h2>{files}</section>
 </main><aside class=aside>
 <section class=panel><h2>{_e(t(L, 'Model'))}</h2><dl class=facts>{fact_html}</dl></section>

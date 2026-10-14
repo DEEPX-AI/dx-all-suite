@@ -84,6 +84,19 @@ def test_footer_date_board_month_and_unpublished_note(app):
     assert "DX AI Studio Benchmark, DX-RT without ORT." in page and "None" not in page
 
 
+def test_the_dx_app_page_has_no_benchmark_numbers(app):
+    """dx_app's model.html leaves FPS and board measurements to Studio's Benchmark; Save as HTML keeps them."""
+    card = _card(app)
+    card["boards"] = {"rows": [{"board": "DX-M1 · Raspberry Pi 5", "throughput_fps": 179.6, "single_fps": 46.4,
+                                "latency_ms": 21.5}], "measured": "July 2026"}
+    page = render_html(card, image_src="result.webp", performance=False)
+    assert "FPS" not in page and "Throughput" not in page and "179.6" not in page
+    assert "Measured on host boards" not in page and "Board measurements" not in page
+    assert "<h2>Accuracy</h2>" in page and "<h2>Performance</h2>" not in page
+    studio = render_html(card, image_src="result.webp")
+    assert "FPS · DX-M1" in studio and "Measured on host boards" in studio and "<h2>Performance</h2>" in studio
+
+
 def test_webp_fits_the_budget(tmp_path):
     src = tmp_path / "x.jpg"
     Image.radial_gradient("L").resize((1600, 1200)).convert("RGB").save(src, quality=95)

@@ -40,6 +40,10 @@ def test_outputs_and_report(tmp_path):
     assert report["metric_count_mismatch"] == [] and report["no_python_dir"] == []
     page = outputs[f"{py}/model.html"].decode()
     assert 'href="../../../../cpp_example/face_detection/yolov5_face/yolov5-m-face_640x640/README.md"' in page
+    # dx_app examples carry no benchmark numbers (FPS, FPS/W, board measurements)
+    assert "fps" not in index["models"][0] and "fps_per_watt" not in index["models"][0]
+    assert "FPS" not in page and "FPS" not in outputs["MODELS.md"].decode()
+    assert "FPS" not in outputs[f"{py}/README.md"].decode() and "FPS" not in outputs[f"{cpp}/README.md"].decode()
 
 
 def test_missing_dirs_are_reported_not_created(tmp_path):
