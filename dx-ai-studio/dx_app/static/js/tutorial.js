@@ -610,7 +610,7 @@
     },
 
     { id:'graph', icon:'graph',
-      title:{ ko: 'Graph Composer', en: 'Graph Composer', ja: 'グラフコンポーザー', 'zh-CN': '图编排器', 'zh-TW': '圖編排器', es: 'Compositor de grafos' },
+      title:{ ko: '그래프 Composer', en: 'Graph Composer', ja: 'グラフコンポーザー', 'zh-CN': '图编排器', 'zh-TW': '圖編排器', es: 'Compositor de grafos' },
       description:{ ko: '여러 모델을 한 파이프라인으로 연결하고 NPU에서 실행', en: 'Connect several models into one pipeline and run it on the NPU', ja: '複数のモデルを一つのパイプラインにつなぎ NPU で実行', 'zh-CN': '将多个模型连成一条流水线并在 NPU 上运行', 'zh-TW': '將多個模型連成一條管線並在 NPU 上執行', es: 'Conecte varios modelos en una canalización y ejecútela en la NPU' },
       beforeStart:function(){ goPage('graph'); if (window.GraphComposer && GraphComposer.ensureExample) GraphComposer.ensureExample('cascade_od_attr'); },
       steps:[

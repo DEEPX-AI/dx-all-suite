@@ -71,4 +71,4 @@ def test_korean_keeps_composer_and_inspector_in_english():
                                                           ROOT / "dx_app/static/js/tutorial.js")}
     found = [(p.name, w) for p, text in sources.items() for w in _HANGUL_SPELLINGS if w in text]
     assert not found, found
-    assert "ko: 'Graph Composer'" in dict_entry("Graph Composer")
+    assert "ko: '그래프 Composer'" in dict_entry("Graph Composer"), "graph keeps its established Korean loanword; Composer stays English"

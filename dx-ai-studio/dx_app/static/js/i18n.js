@@ -2927,7 +2927,7 @@ window._DX_I18N_DICT = {
   },
   /* ==== Graph Composer (graph-*.js, shared/static/dx-graph-canvas.js, templates #page-graph) ==== */
   'Graph Composer': {
-    ko: 'Graph Composer', ja: 'グラフコンポーザー',
+    ko: '그래프 Composer', ja: 'グラフコンポーザー',
     'zh-CN': '图编排器', 'zh-TW': '圖編排器',
     es: 'Compositor de grafos',
   },
