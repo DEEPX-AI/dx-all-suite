@@ -1,16 +1,22 @@
-/* DX App — Graph Composer palette: example graphs, a source, the models dx_app can put in a graph (by task, with
-   their install state and a Download button) and the CPU ops. Items drag onto the canvas; the + button (or Enter on
+/* DX App — Graph Composer palette: scenario templates (examples with logic blocks, with a result thumbnail), example
+   graphs, a source, the models dx_app can put in a graph (by task, with their install state and a Download button),
+   the logic blocks dx_app lists (--list-ops) and the CPU ops. Items drag onto the canvas; the + button (or Enter on
    it) adds one in the middle of the view. A model download is followed until it ends, the status stops answering
    STATUS_FAILURES times in a row, or the page is left (it is picked up again when the page opens).
-   Contract: tests/dx_app/test_graph_composer_browser.py */
+   Contract: tests/dx_app/test_graph_composer_browser.py, tests/dx_app/test_graph_logic_browser.py */
 window.GraphPalette = (function () {
   'use strict';
-  var expanded = { examples: true, sources: true, cpu: true };   // task groups start closed: 497 models
+  var expanded = { templates: true, examples: true, sources: true, logic: true, cpu: true };   // task groups start closed: 497 models
   var query = '';
   var downloading = null;          // {name, btn} while a download runs
   var lastRoot = null, lastCtx = null;
   var STATUS_EVERY_MS = 1500, STATUS_FAILURES = 5;
   var statusTimer = 0, failures = 0, resumeOnOpen = false;
+  /* Labels of the logic blocks of the spec (section 6); a block dx_app adds later shows its op name. */
+  var LOGIC_LABELS = { filter: 'Filter', zone: 'Zone', line: 'Line crossing', count: 'Count', dwell: 'Dwell',
+    condition: 'Condition → Event', gallery: 'Gallery match', user: 'User logic' };
+
+  function opLabel(op) { return LOGIC_LABELS[op] ? T(LOGIC_LABELS[op]) : op; }
 
   function stateLabel(m) {
     if (m.state === 'installed') return T('Installed');
@@ -80,6 +86,28 @@ window.GraphPalette = (function () {
       el.querySelector('.gc-add').disabled = true;
     }
     return el;
+  }
+
+  function templateItem(c, ex) {
+    var open = c.h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: T('Open'),
+      'aria-label': c.fmt(T('Open the template {name}'), { name: ex.name }) });
+    open.addEventListener('click', function () { c.loadExample(ex.id); });
+    var thumb = ex.thumb ? c.h('img', { class: 'gc-thumb', src: ex.thumb, alt: c.fmt(T('Result of {name}'), { name: ex.name }), loading: 'lazy' })
+      : c.icon('graph');
+    return c.h('div', { class: 'gc-item gc-template', role: 'listitem', dataset: { cat: 'example', id: ex.id } }, [
+      thumb,
+      c.h('span', { class: 'gc-item-text' }, [c.h('span', { class: 'gc-item-name', text: ex.name, title: ex.name }),
+                                              c.h('span', { class: 'gc-item-sub', text: (ex.ops || []).map(opLabel).join(' · ') })]),
+      open
+    ]);
+  }
+
+  function logicItem(c, op) {
+    var shapes = [];
+    (op.inputs.accepts || []).forEach(function (a) { if (shapes.indexOf(a.shape) === -1) shapes.push(a.shape); });
+    var takes = shapes.length > 4 ? T('any result') : shapes.join(' / ');
+    return item(c, { kind: 'logic', op: op.op }, opLabel(op.op), c.fmt(T('takes {inputs}'), { inputs: takes }),
+      { filter: 1, zone: 1, line: 1, count: 1, dwell: 1, condition: 1, gallery: 1, user: 1 }[op.op] ? 'logic-' + op.op : 'puzzle', 'logic');
   }
 
   function exampleItem(c, ex) {
@@ -169,7 +197,10 @@ window.GraphPalette = (function () {
     if (cat.available === false) {
       root.appendChild(c.h('p', { class: 'gc-empty', text: T('The graph runner is not built. Build dx_app (./build.sh) to use the Graph Composer.') }));
     }
-    root.appendChild(group(c, 'examples', T('Examples'), (cat.examples || []).filter(matches(['name', 'id']))
+    var exs = (cat.examples || []).filter(matches(['name', 'id']));
+    var templates = exs.filter(function (ex) { return ex.logic; });
+    if (templates.length) root.appendChild(group(c, 'templates', T('Templates'), templates.map(function (ex) { return templateItem(c, ex); })));
+    root.appendChild(group(c, 'examples', T('Examples'), exs.filter(function (ex) { return !ex.logic; })
       .map(function (ex) { return exampleItem(c, ex); })));
     root.appendChild(group(c, 'sources', T('Sources'), [item(c, { kind: 'source' }, T('Image or video'), T('Source'), 'camera', 'source')]));
     var byTask = {};
@@ -178,6 +209,16 @@ window.GraphPalette = (function () {
       var label = typeof catText === 'function' ? catText(task) : task.replace(/_/g, ' ');
       root.appendChild(group(c, 'task:' + task, label, byTask[task].map(function (m) { return modelItem(c, m); })));
     });
+    var ops = (cat.logic_ops || []).filter(function (op) {
+      return !query || op.op.indexOf(query) !== -1 || opLabel(op.op).toLowerCase().indexOf(query) !== -1;
+    });
+    if (ops.length) root.appendChild(group(c, 'logic', T('Logic'), ops.map(function (op) { return logicItem(c, op); })));
+    else if (cat.available !== false && cat.logic_error === 'list_ops_unsupported' && !query) {
+      var none = group(c, 'logic', T('Logic'), []);
+      none.classList.remove('is-empty');
+      none.querySelector('.gc-group-body').appendChild(c.h('p', { class: 'gc-help', text: T('This dx_app build has no logic blocks yet.') }));
+      root.appendChild(none);
+    }
     root.appendChild(group(c, 'cpu', T('CPU ops'), (cat.cpu_ops || []).filter(matches(['op'])).map(function (op) {
       return item(c, { kind: 'cpu', op: op.op, params: op.params }, op.op, c.fmt(T('takes {inputs}'), { inputs: op.inputs.join(' + ') }), 'cpu', 'cpu');
     })));

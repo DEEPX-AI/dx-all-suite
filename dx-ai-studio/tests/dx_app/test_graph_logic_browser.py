@@ -1,0 +1,220 @@
+"""Graph Composer Phase 2 in a browser: logic blocks, the zone and line editor, events and Live.
+
+/api/graph/* is answered in the page from the recorded dx_app Phase 2 fixtures (list_ops.json, examples/*.json,
+events.jsonl), so neither an NPU nor a graph binary is needed; the server modules have their own tests
+(test_graph_ops.py, test_graph_events.py, test_graph_frame.py, test_graph_live.py).
+"""
+from __future__ import annotations
+
+import base64
+import io
+import json
+import shutil
+import subprocess
+from pathlib import Path
+
+import pytest
+
+pytest.importorskip("playwright.sync_api")
+
+from tests.server_helpers import start_module_server  # noqa: E402
+
+FIX = Path(__file__).resolve().parent / "fixtures" / "graph"
+from dx_app.core.graph_ops import parse_list_ops  # noqa: E402
+
+OPS = parse_list_ops((FIX / "list_ops.json").read_text(encoding="utf-8"))
+EXAMPLES = []
+for _p in sorted((FIX / "examples").glob("*.json")):
+    _g = json.loads(_p.read_text(encoding="utf-8"))
+    _ops = sorted({n["op"] for n in _g["nodes"] if n.get("type") == "logic"})
+    EXAMPLES.append({"id": _p.stem, "name": _g["name"], "graph": _g,
+                     "models": sorted({n["model"] for n in _g["nodes"] if n.get("model")}),
+                     "nodes": len(_g["nodes"]), "edges": len(_g["edges"]), "logic": True, "ops": _ops,
+                     "thumb": "/static/shared/favicons/dx_app.svg" if _p.stem == "zone_intrusion" else None})
+CATALOG = json.loads((FIX / "catalog.json").read_text(encoding="utf-8"))
+CATALOG.update(logic_ops=OPS, logic_error=None, examples=CATALOG["examples"] + EXAMPLES,
+               limits={"uploads_total_b64": 20 * 1024 * 1024})
+CATALOG["capabilities"].update(list_ops=True, events=True, loop=True)
+EVENTS = [dict(json.loads(line), seq=i + 1) for i, line in
+          enumerate(l for l in (FIX / "events.jsonl").read_text().splitlines() if l.strip())][:3]
+for _e in EVENTS:
+    _e.setdefault("track_id", None)
+
+
+def _png(w=320, h=180):
+    from PIL import Image
+    buf = io.BytesIO()
+    Image.new("RGB", (w, h), (40, 60, 80)).save(buf, format="PNG")
+    return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
+
+
+class FakeApi:
+    """In-page answers for /api/graph/*: catalog, --check, memory, frame, a run with events, Live."""
+
+    def __init__(self, video_url=None):
+        self.posted, self.live_polls, self.live_running, self.video_url = [], 0, False, video_url
+        self.limit = CATALOG["limits"]["uploads_total_b64"]
+
+    def handle(self, route):
+        req = route.request
+        url = req.url.split("?")[0]
+        body = json.loads(req.post_data) if req.post_data else {}
+        self.posted.append((url.rsplit("/api/graph/", 1)[1], body))
+        if url.endswith("/api/graph/catalog"):
+            out = dict(CATALOG, limits={"uploads_total_b64": self.limit})
+        elif url.endswith("/api/graph/validate"):
+            out = {"ok": True, "errors": [], "models": [], "missing": [], "unusable": {}, "notes": [],
+                   "available": True, "engine_ignored": False}
+        elif url.endswith("/api/graph/memory"):
+            out = {"nodes": {}, "engines": [], "total_bytes": 0, "device": {}, "over_budget": False,
+                   "unknown_models": [], "suggestions": []}
+        elif url.endswith("/api/graph/frame"):
+            out = {"image": _png(), "width": 1920, "height": 1080, "uri": "x"}
+        elif url.endswith("/api/graph/run"):
+            out = {"job_id": "job1", "status": "started"}
+        elif url.endswith("/api/graph/run/poll"):
+            out = {"running": False, "frames": 2, "fps": 8.1, "avg_fps": 8.1, "node_ms": {"od": 39.7}, "elapsed": 1.0,
+                   "has_result": True, "events": EVENTS, "event_total": 3,
+                   "event_counts": {"zone": {"enter": 2}, "alarm": {"intrusion": 1}}}
+        elif url.endswith("/api/graph/run/result"):
+            outputs = [{"url": self.video_url, "kind": "video", "name": "result.webm", "fps": 10.0}] if self.video_url else []
+            out = {"ok": True, "exit_code": 0, "frames": 2, "error_frames": 0, "fps": 8.1, "avg_fps": 8.1, "elapsed": 1.0,
+                   "node_ms": {"od": 39.7}, "errors": [], "log_tail": "", "outputs": outputs, "nodes": {},
+                   "events": EVENTS, "event_total": 3, "event_counts": {"zone": {"enter": 2}, "alarm": {"intrusion": 1}},
+                   "events_truncated": False, "events_url": "/outputs/graph/runs/job1/events.jsonl"}
+        elif url.endswith("/api/graph/live/start"):
+            self.live_running = True
+            out = {"job_id": "L1", "status": "started", "frame_url": "/api/graph/live/frame?id=L1"}
+        elif url.endswith("/api/graph/live/poll"):
+            self.live_polls += 1
+            after = int(req.url.split("events_after=")[1]) if "events_after=" in req.url else 0
+            out = {"running": self.live_running, "frames": 10 * self.live_polls, "fps": 25.0, "avg_fps": 24.5,
+                   "node_ms": {"od": 12.5, "zone": 0.2}, "elapsed": float(self.live_polls),
+                   "events": [e for e in EVENTS if e["seq"] > after], "event_total": 3,
+                   "event_counts": {"zone": {"enter": 2}, "alarm": {"intrusion": 1}}}
+            if not self.live_running:
+                out.update(exit_code=0, errors=[], stopped_by="user", events_url="/outputs/graph/live/L1/events.jsonl")
+        elif url.endswith("/api/graph/live/stop"):
+            self.live_running = False
+            out = {"status": "stopping"}
+        elif url.endswith("/api/graph/projects"):
+            out = {"projects": []}
+        else:
+            out = {"error": "not found"}
+        route.fulfill(status=200, content_type="application/json", body=json.dumps(out))
+
+
+@pytest.fixture(scope="module")
+def server(tmp_path_factory):
+    srv, port = start_module_server("dx_app")
+    from dx_app.core import config
+    mp = pytest.MonkeyPatch()
+    mp.setattr(config, "OUTPUTS_DIR", tmp_path_factory.mktemp("outputs"))
+    yield port
+    mp.undo()
+    srv.shutdown()
+
+
+@pytest.fixture(scope="module")
+def browser():
+    from playwright.sync_api import sync_playwright
+    pw = sync_playwright().start()
+    br = pw.chromium.launch(headless=True)
+    yield br
+    br.close()
+    pw.stop()
+
+
+@pytest.fixture(scope="module")
+def webm(tmp_path_factory):
+    if not shutil.which("ffmpeg"):
+        return None
+    out = tmp_path_factory.mktemp("video") / "result.webm"
+    r = subprocess.run(["ffmpeg", "-v", "error", "-f", "lavfi", "-i", "testsrc=size=160x90:rate=10:duration=3",
+                        "-c:v", "libvpx", str(out)], capture_output=True, timeout=60)
+    return out.read_bytes() if r.returncode == 0 else None
+
+
+def _page(browser, server, fake, webm=None):
+    ctx = browser.new_context(viewport={"width": 1440, "height": 1000})
+    ctx.add_init_script("try { localStorage.setItem('dx-tutorial-mode', 'off'); localStorage.setItem('dx-lang', 'en');"
+                        " localStorage.removeItem('dx-graph-draft'); window.confirm = () => true; } catch (e) {}")
+    ctx.route("**/api/graph/**", fake.handle)
+    # Registered last, so it wins over the catch-all above: the Live view is one still frame.
+    ctx.route("**/api/graph/live/frame*", lambda r: r.fulfill(status=200, content_type="image/png",
+                                                              body=base64.b64decode(_png().split(",", 1)[1])))
+    if webm:
+        ctx.route("**/fake/result.webm", lambda r: r.fulfill(status=200, content_type="video/webm", body=webm))
+    page = ctx.new_page()
+    errors = []
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    page.goto(f"http://127.0.0.1:{server}/", wait_until="domcontentloaded")
+    page.wait_for_function("() => typeof nav === 'function' && window.GraphComposer")
+    page.evaluate("nav('graph')")
+    page.wait_for_selector("[data-group='logic'] .gc-item", timeout=20000)
+    return ctx, page, errors
+
+
+@pytest.fixture
+def ui(browser, server):
+    fake = FakeApi()
+    ctx, page, errors = _page(browser, server, fake)
+    yield page, fake
+    assert not errors, errors
+    ctx.close()
+
+
+def _fit(page):
+    """Where the frame sits in the zone editor's drawing, in page pixels (x, y: the drawing's corner; ox, oy, w, h:
+    the letterboxed frame), once the dialog's opening animation has ended: a scaled dialog reports a smaller
+    rectangle."""
+    js = """() => { const s = GraphZoneEditor.state(), r = document.querySelector('.gc-zone-canvas').getBoundingClientRect();
+      return Object.assign(GraphZoneGeom.fit(s.frame.width, s.frame.height, r.width, r.height), {x: r.left, y: r.top}); }"""
+    last = page.evaluate(js)
+    for _ in range(40):
+        page.wait_for_timeout(100)
+        now = page.evaluate(js)
+        if all(abs(now[k] - last[k]) < 0.5 for k in ("x", "y", "w", "h")):
+            return now
+        last = now
+    return last
+
+
+def _open(page, example_id):
+    page.click(f".gc-template[data-id='{example_id}'] button")
+    page.wait_for_function("() => GraphComposer.state().check && GraphComposer.state().check.ok", timeout=10000)
+
+
+def _engine(page):
+    return page.evaluate("GraphComposer.ctx().engine()")
+
+
+def _node(page, nid):
+    return [n for n in _engine(page)["nodes"] if n["id"] == nid][0]
+
+
+def test_the_palette_offers_templates_with_thumbnails_and_the_logic_blocks(ui):
+    page, _ = ui
+    names = page.eval_on_selector_all("[data-group='logic'] .gc-item-name", "els => els.map(e => e.textContent)")
+    assert names == ["Filter", "Zone", "Line crossing", "Count", "Dwell", "Condition → Event", "Gallery match", "User logic"]
+    assert page.get_attribute(".gc-template[data-id='zone_intrusion'] img.gc-thumb", "alt") == "Result of zone-intrusion"
+    assert page.locator(".gc-template").count() == 6
+    groups = page.eval_on_selector_all("#gc-palette-list .gc-group:not(.is-empty)", "els => els.map(e => e.dataset.group)")
+    assert groups[:3] == ["templates", "examples", "sources"] and groups[-2:] == ["logic", "cpu"]
+
+
+def test_a_logic_block_joins_the_graph_with_its_defaults_and_connection_rules(ui):
+    page, _ = ui
+    _open(page, "line_counting")
+    page.evaluate("GraphComposer.canvas().select({nodes: []})")
+    page.click("[data-group='logic'] .gc-item:has-text('Zone') .gc-add")
+    zone = _node(page, "zone")
+    assert zone == {"id": "zone", "type": "logic", "op": "zone",
+                    "params": {"polygon": [0.25, 0.25, 0.75, 0.25, 0.75, 0.75, 0.25, 0.75]}}
+    r = page.evaluate("GraphComposer.canvas().connect('cam', 'zone')")
+    assert r["ok"] is False and r["reason"] == "A logic block takes results, not frames"
+    assert page.evaluate("GraphComposer.canvas().connect('person', 'zone').kind") == "result"
+    assert {"from": "person", "to": "zone", "carry": "result"} in _engine(page)["edges"]
+    assert page.evaluate("GraphComposer.canvas().connect('od', 'zone').reason") == "This logic block takes no more inputs"
+    assert page.evaluate("GraphComposer.canvas().connect('line', 'zone').ok") is False, "records are not boxes"
+

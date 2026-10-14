@@ -69,6 +69,7 @@ BROWSER_SUITE_PATHS = {
     "tests/dx_app/test_lab_flows_browser.py",
     "tests/shared/test_graph_canvas_browser.py",
     "tests/dx_app/test_graph_composer_browser.py",
+    "tests/dx_app/test_graph_logic_browser.py",
     "tests/dx_app/test_rtsp_address_browser.py",
     "tests/dx_benchmark/test_phone_layout_browser.py",
     "tests/dx_compiler/test_compiler_audit_browser.py",
