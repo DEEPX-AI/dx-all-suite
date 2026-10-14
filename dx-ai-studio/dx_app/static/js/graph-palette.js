@@ -1,0 +1,156 @@
+/* DX App — Graph Composer palette: example graphs, a source, the models dx_app can put in a graph (by task, with
+   their install state and a Download button) and the CPU ops. Items drag onto the canvas; the + button (or Enter on
+   it) adds one in the middle of the view. Contract: tests/dx_app/test_graph_composer_browser.py */
+window.GraphPalette = (function () {
+  'use strict';
+  var expanded = { examples: true, sources: true, cpu: true };   // task groups start closed: 497 models
+  var query = '';
+  var downloading = null;
+  var lastRoot = null, lastCtx = null;
+
+  function stateLabel(m) {
+    if (m.state === 'installed') return T('Installed');
+    if (m.state === 'missing') return T('Not installed');
+    if (m.state === 'invalid') return T('Broken file');
+    if (m.state === 'needs_runtime') return T('Needs a newer DX-RT');
+    return T('Not graph-ready');
+  }
+
+  function stateBadge(m) {
+    return { installed: 'b-ok', missing: 'b-warn', invalid: 'b-red', needs_runtime: 'b-warn', not_ready: 'b-no' }[m.state] || 'b-no';
+  }
+
+  function matches(keys) {
+    return function (o) {
+      return !query || keys.some(function (k) { return String(o[k] || '').toLowerCase().indexOf(query) !== -1; });
+    };
+  }
+
+  function group(c, key, title, items, count) {
+    var isOpen = query ? true : !!expanded[key];
+    var body = c.h('div', { class: 'gc-group-body', role: 'list' }, items);
+    body.hidden = !isOpen;
+    var head = c.h('button', { type: 'button', class: 'gc-group-head', 'aria-expanded': String(isOpen) },
+      [c.icon('chevd'), c.h('span', { class: 'gc-group-title', text: title }),
+       c.h('span', { class: 'gc-count', text: String(count == null ? items.length : count) })]);
+    head.addEventListener('click', function () {
+      expanded[key] = !(head.getAttribute('aria-expanded') === 'true');
+      head.setAttribute('aria-expanded', String(expanded[key]));
+      body.hidden = !expanded[key];
+    });
+    return c.h('div', { class: 'gc-group' + (items.length ? '' : ' is-empty'), dataset: { group: key } }, [head, body]);
+  }
+
+  function item(c, payload, name, sub, iconName, cat, extra) {
+    var add = c.h('button', { type: 'button', class: 'btn btn-ghost btn-sm gc-add', title: T('Add to the graph'),
+      'aria-label': c.fmt(T('Add {name} to the graph'), { name: name }) }, [c.icon('plus')]);
+    add.addEventListener('click', function () { c.addFromPalette(payload); });
+    var el = c.h('div', { class: 'gc-item', role: 'listitem', draggable: 'true', dataset: { cat: cat } }, [
+      c.icon(iconName),
+      c.h('span', { class: 'gc-item-text' }, [c.h('span', { class: 'gc-item-name', text: name }),
+                                              c.h('span', { class: 'gc-item-sub', text: sub })]),
+      extra || null,
+      add
+    ]);
+    el.addEventListener('dragstart', function (e) {
+      e.dataTransfer.setData(DXGraphCanvas.DND_TYPE, JSON.stringify(payload));
+      e.dataTransfer.effectAllowed = 'copy';
+    });
+    return el;
+  }
+
+  function modelItem(c, m) {
+    var extra = c.h('span', { class: 'gc-item-extra' }, [
+      c.h('span', { class: 'badge ' + stateBadge(m), text: stateLabel(m),
+        title: m.reason || (m.needs_dxrt ? c.fmt(T('Needs DX-RT {version} or later'), { version: m.needs_dxrt }) : '') })]);
+    if ((m.state === 'missing' || m.state === 'invalid') && m.download) {
+      var dl = c.h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: T('Download') });
+      dl.addEventListener('click', function (e) { e.stopPropagation(); download(c, m, dl); });
+      extra.appendChild(dl);
+    }
+    var takes = m.consumes === 'either' ? T('frame or crop') : T('full frame');
+    var el = item(c, { kind: 'model', model: m.name }, m.name, m.produces + ' · ' + takes, 'task-' + m.task, 'model', extra);
+    if (m.state === 'not_ready') {
+      el.classList.add('is-disabled');
+      el.draggable = false;
+      el.querySelector('.gc-add').disabled = true;
+    }
+    return el;
+  }
+
+  function exampleItem(c, ex) {
+    var open = c.h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: T('Open'),
+      'aria-label': c.fmt(T('Open the example {name}'), { name: ex.name }) });
+    open.addEventListener('click', function () { c.loadExample(ex.id); });
+    return c.h('div', { class: 'gc-item gc-example', role: 'listitem', dataset: { cat: 'example' } }, [
+      c.icon('graph'),
+      c.h('span', { class: 'gc-item-text' }, [c.h('span', { class: 'gc-item-name', text: ex.name }),
+                                              c.h('span', { class: 'gc-item-sub', text: ex.models.join(' + ') })]),
+      open
+    ]);
+  }
+
+  async function download(c, m, btn) {
+    if (downloading) { c.notify(T('A model download is already in progress.'), 'warn'); return; }
+    downloading = m.name;
+    btn.disabled = true;
+    btn.textContent = T('Starting…');
+    var r = await postJ('/api/modelzoo/download', { items: [{ name: m.download.name, chip: 'qlite',
+      dxnn_url: m.download.dxnn_url, json_url: m.download.json_url }], source: 'public' });
+    if (!r || !r.ok) {
+      downloading = null;
+      btn.disabled = false;
+      btn.textContent = T('Download');
+      c.notify((r && r.error) || T('Download failed to start'), 'err');
+      return;
+    }
+    var timer = setInterval(async function () {
+      var s = await api('/api/modelzoo/status');
+      if (!s || !s.finished) {
+        if (s && s.total) btn.textContent = T('Downloading') + ' ' + Math.round(s.done * 100 / s.total) + '%';
+        return;
+      }
+      clearInterval(timer);
+      downloading = null;
+      var ok = !(s.results || []).some(function (x) { return x && x.ok === false; });
+      c.notify(ok ? T('Download complete') : T('Download finished with errors'), ok ? 'ok' : 'warn');
+      c.reloadCatalog(true);
+    }, 1500);
+  }
+
+  function render(root, c) {
+    if (!root) return;
+    lastRoot = root;
+    lastCtx = c;
+    var cat = c.state.catalog || { models: [], examples: [], cpu_ops: [] };
+    var search = document.getElementById('gc-search');
+    if (search && !search.dataset.bound) {
+      search.dataset.bound = '1';
+      search.addEventListener('input', function () { query = search.value.trim().toLowerCase(); render(lastRoot, lastCtx); });
+    }
+    root.textContent = '';
+    if (cat.available === false) {
+      root.appendChild(c.h('p', { class: 'gc-empty', text: T('The graph runner is not built. Build dx_app (./build.sh) to use the Graph Composer.') }));
+    }
+    root.appendChild(group(c, 'examples', T('Examples'), (cat.examples || []).filter(matches(['name', 'id']))
+      .map(function (ex) { return exampleItem(c, ex); })));
+    root.appendChild(group(c, 'sources', T('Sources'), [item(c, { kind: 'source' }, T('Image or video'), T('Source'), 'camera', 'source')]));
+    var byTask = {};
+    (cat.models || []).filter(matches(['name', 'task'])).forEach(function (m) { (byTask[m.task] = byTask[m.task] || []).push(m); });
+    Object.keys(byTask).sort().forEach(function (task) {
+      var label = typeof catText === 'function' ? catText(task) : task.replace(/_/g, ' ');
+      root.appendChild(group(c, 'task:' + task, label, byTask[task].map(function (m) { return modelItem(c, m); })));
+    });
+    root.appendChild(group(c, 'cpu', T('CPU ops'), (cat.cpu_ops || []).filter(matches(['op'])).map(function (op) {
+      return item(c, { kind: 'cpu', op: op.op, params: op.params }, op.op, c.fmt(T('takes {inputs}'), { inputs: op.inputs.join(' + ') }), 'cpu', 'cpu');
+    })));
+  }
+
+  if (typeof registerLangRefresher === 'function') {
+    registerLangRefresher(function () {
+      if (lastRoot && lastCtx && document.querySelector('#page-graph.active')) render(lastRoot, lastCtx);
+    });
+  }
+
+  return { render: render };
+})();
