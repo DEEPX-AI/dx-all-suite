@@ -4364,6 +4364,37 @@ window._DX_I18N_DICT = {
     'zh-CN': '图库构建超时，已停止', 'zh-TW': '圖庫建立逾時，已停止',
     es: 'La creación de la galería superó el tiempo límite y se detuvo',
   },
+  'gallery_stopped': {
+    ko: 'Gallery 생성을 중단했습니다', ja: 'ギャラリーの作成を停止しました',
+    'zh-CN': '图库构建已停止', 'zh-TW': '圖庫建立已停止',
+    es: 'Se detuvo la creación de la galería',
+  },
+  'gallery_folder_too_large': {
+    ko: '폴더에 파일과 폴더가 너무 많습니다. Gallery 이미지가 있는 폴더를 고르세요', ja: 'フォルダー内のファイルとフォルダーが多すぎます。ギャラリーの画像があるフォルダーを選んでください',
+    'zh-CN': '文件夹中的文件和文件夹太多，请选择存放图库图片的文件夹', 'zh-TW': '資料夾中的檔案和資料夾太多，請選擇存放圖庫圖片的資料夾',
+    es: 'La carpeta contiene demasiados archivos y carpetas; elija la carpeta con las imágenes de la galería',
+  },
+  // error keys of the NPU job registry (npu_jobs.py), the graph frame (graph_frame.py) and the Live streams (server.py)
+  'npu_hold_lost': {
+    ko: '준비하는 동안 다른 작업이 NPU를 사용하기 시작했습니다. 다시 시작하세요', ja: '準備中に別のジョブが NPU を使い始めました。もう一度開始してください',
+    'zh-CN': '准备期间另一个任务占用了 NPU，请重新开始', 'zh-TW': '準備期間另一個工作佔用了 NPU，請重新開始',
+    es: 'Otro trabajo tomó la NPU mientras este se preparaba; vuelva a iniciarlo',
+  },
+  'frame_too_large': {
+    ko: '파일이 너무 커서 프레임을 표시할 수 없습니다', ja: 'ファイルが大きすぎるためフレームを表示できません',
+    'zh-CN': '文件太大，无法显示帧', 'zh-TW': '檔案太大，無法顯示影格',
+    es: 'El archivo es demasiado grande para mostrar el fotograma',
+  },
+  'too_many_viewers': {
+    ko: '이 stream을 보는 탭이 너무 많습니다. 다른 탭을 닫으세요', ja: 'このストリームを表示しているタブが多すぎます。ほかのタブを閉じてください',
+    'zh-CN': '查看此视频流的标签页过多，请关闭其他标签页', 'zh-TW': '檢視此串流的分頁過多，請關閉其他分頁',
+    es: 'Demasiadas pestañas muestran esta transmisión; cierre otra',
+  },
+  'invalid_slot': {
+    ko: '잘못된 Live 슬롯입니다', ja: '無効なライブスロットです',
+    'zh-CN': '无效的实时运行插槽', 'zh-TW': '無效的即時執行插槽',
+    es: 'Ranura de en vivo no válida',
+  },
   // error keys of the graph run, frame and Live routes (graph_run.py, graph_frame.py, graph_live.py, graph_ops.py)
   'no_source': {
     ko: '그래프에 소스가 없습니다', ja: 'グラフにソースがありません',

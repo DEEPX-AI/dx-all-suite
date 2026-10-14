@@ -76,6 +76,8 @@
 .gc-run-inputs{display:flex;flex-wrap:wrap;gap:var(--sp-3)}
 .gc-run-inputs .input{max-width:360px}
 .gc-run-actions{display:flex;gap:var(--sp-2)}
+.gc-gallery-actions{display:flex;flex-wrap:wrap;gap:var(--sp-2);margin:var(--sp-2) 0}
+.gc-gallery-status .spin{width:12px;height:12px;vertical-align:middle}
 .gc-run-progress{margin-top:var(--sp-3);font-size:var(--fs-sm)}
 .gc-ms{max-width:720px;margin:var(--sp-2) 0 0;padding:0;list-style:none}
 .gc-ms li{display:grid;grid-template-columns:120px minmax(0,1fr) 80px;align-items:center;gap:var(--sp-2);font-size:var(--fs-xs)}

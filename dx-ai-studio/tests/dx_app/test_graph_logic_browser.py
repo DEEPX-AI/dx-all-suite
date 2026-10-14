@@ -218,3 +218,120 @@ def test_a_logic_block_joins_the_graph_with_its_defaults_and_connection_rules(ui
     assert page.evaluate("GraphComposer.canvas().connect('od', 'zone').reason") == "This logic block takes no more inputs"
     assert page.evaluate("GraphComposer.canvas().connect('line', 'zone').ok") is False, "records are not boxes"
 
+
+def test_the_inspector_builds_the_form_from_list_ops_and_offers_tracking(ui):
+    page, _ = ui
+    _open(page, "line_counting")
+    page.evaluate("""() => { const cv = GraphComposer.canvas(); const g = cv.getGraph();
+      const od = g.nodes.find(n => n.id === 'od'); const d = JSON.parse(JSON.stringify(od.data)); delete d.track;
+      cv.updateNode('od', {data: d}); cv.select({nodes: ['line']}); }""")
+    body = page.inner_text("#gc-inspector-body")
+    assert "counts tracked boxes crossing a line" in body, "the op's summary from --list-ops"
+    assert "Takes boxes, obboxes, instances · hands on records" in body and "Fires: cross" in body
+    assert "This block needs track ids" in body
+    page.click("#gc-inspector-body button:has-text('Track objects on od')")
+    assert _node(page, "od")["track"] == {"algo": "iou", "iou": 0.3, "max_age": 30}
+    page.select_option("#gc-inspector-body .gc-fg:has(label:text-is('direction')) select", "in")
+    assert _node(page, "line")["params"]["direction"] == "in"
+    page.evaluate("GraphComposer.canvas().undo()")
+    assert _node(page, "line")["params"]["direction"] == "both", "one undo step per edit"
+    page.evaluate("GraphComposer.canvas().select({nodes: ['person']})")
+    classes = page.locator("#gc-inspector-body .gc-fg:has(label:text-is('classes')) input")
+    classes.fill("person, rider")
+    classes.dispatch_event("change")
+    assert _node(page, "person")["params"]["classes"] == ["person", "rider"]
+
+
+def test_a_condition_suggests_the_values_its_input_writes(ui):
+    page, _ = ui
+    _open(page, "line_counting")
+    page.evaluate("GraphComposer.canvas().select({nodes: []})")
+    page.click("[data-group='logic'] .gc-item:has-text('Condition') .gc-add")
+    page.evaluate("GraphComposer.canvas().connect('line', 'condition')")
+    page.evaluate("GraphComposer.canvas().select({nodes: ['condition']})")
+    opts = page.eval_on_selector_all("#gc-inspector-body datalist option", "els => els.map(e => e.value)")
+    assert opts == ["count", "in", "out", "total"]
+    assert page.get_attribute("#gc-inspector-body .gc-fg:has(label:text-is('value')) input", "placeholder") == "count"
+    assert "Fires: condition" in page.inner_text("#gc-inspector-body"), "the event takes the node id by default"
+
+
+class FakeGallery:
+    """/api/graph/gallery/{build,poll,stop}: a build that runs for `polls` polls, then ends as `result`; `hold` keeps it
+    running until it is stopped (then it ends as gallery_stopped, as graph_gallery.stop does)."""
+
+    def __init__(self, result=None, polls=1, hold=False):
+        self.posted, self.polled, self.stopped = [], 0, False
+        self.result, self.polls, self.hold = result, polls, hold
+
+    def handle(self, route):
+        req = route.request
+        url = req.url.split("?")[0]
+        if url.endswith("/build"):
+            self.posted.append(json.loads(req.post_data))
+            out = {"job_id": "G1", "status": "started", "images": 12}
+        elif url.endswith("/stop"):
+            self.stopped = json.loads(req.post_data)
+            out = {"status": "stopping"}
+        else:
+            self.polled += 1
+            if self.stopped:
+                out = {"job_id": "G1", "state": "failed", "elapsed": 2.0, "error_key": "gallery_stopped",
+                       "error": "the gallery build was stopped", "log_tail": ""}
+            elif self.hold or self.polled <= self.polls:
+                out = {"job_id": "G1", "state": "running", "elapsed": float(self.polled), "images": 12}
+            else:
+                out = dict(self.result, job_id="G1", elapsed=3.0)
+        route.fulfill(status=200, content_type="application/json", body=json.dumps(out))
+
+
+GALLERY_DONE = {"state": "done", "path": "outputs/dx_app/graph/galleries/staff.bin",
+                "gallery": "/srv/studio/outputs/dx_app/graph/galleries/staff.bin",
+                "url": "/outputs/graph/galleries/staff.bin", "name": "staff", "model": "repvgg-a0-reid_256x128",
+                "images": 12, "people": 3, "names": ["ann", "bob", "cy"], "dim": 512, "log_tail": ""}
+_GB = "#gc-inspector-body .gc-gallery-build"
+
+
+def _gallery_page(page, fake):
+    page.context.route("**/api/graph/gallery/**", fake.handle)
+    _open(page, "gallery_known_person")
+    page.evaluate("GraphComposer.canvas().select({nodes: ['known']})")
+
+
+def test_a_gallery_block_builds_its_gallery_from_an_image_folder(ui):
+    page, _ = ui
+    fake = FakeGallery(result=GALLERY_DONE)
+    _gallery_page(page, fake)
+    model = page.locator(f"{_GB} .gc-fg:has(label:text-is('Embedding model')) input")
+    assert model.input_value() == "repvgg-a0-reid_256x128", "the model feeding the block"
+    page.fill(f"{_GB} .gc-fg:has(label:text-is('Image folder')) input", "sample/people")
+    page.fill(f"{_GB} .gc-fg:has(label:text-is('Gallery name (optional)')) input", "staff")
+    page.click(f"{_GB} button:has-text('Build gallery')")
+    page.wait_for_selector(f"{_GB} .gc-gallery-status:has-text('Gallery built: 3 people, 12 images')", timeout=10000)
+    assert fake.posted == [{"folder": "sample/people", "model": "repvgg-a0-reid_256x128", "name": "staff"}]
+    assert _node(page, "known")["params"]["gallery"] == GALLERY_DONE["gallery"]
+    assert page.evaluate("GraphComposer.state().dirty") is True
+    page.evaluate("GraphComposer.canvas().undo()")
+    assert _node(page, "known")["params"]["gallery"] == "sample/gallery/reid_repvgg-a0-reid_256x128.bin", "one undo step"
+
+
+def test_a_gallery_build_shows_its_time_can_be_stopped_and_says_why_it_ended(ui):
+    page, _ = ui
+    fake = FakeGallery(hold=True)
+    _gallery_page(page, fake)
+    page.fill(f"{_GB} .gc-fg:has(label:text-is('Image folder')) input", "sample/people")
+    page.click(f"{_GB} button:has-text('Build gallery')")
+    page.wait_for_selector(f"{_GB} .gc-gallery-status:has-text('Building the gallery…') .spin", timeout=10000)
+    page.wait_for_selector(f"{_GB} .gc-gallery-status:has-text(' s')", timeout=10000)
+    assert page.is_disabled(f"{_GB} button:has-text('Build gallery')")
+    assert fake.posted == [{"folder": "sample/people", "model": "repvgg-a0-reid_256x128"}], "no name: none sent"
+    page.click(f"{_GB} button:has-text('Stop')")
+    page.wait_for_selector(f"{_GB} .gc-gallery-status.gc-error:has-text('the gallery build was stopped')", timeout=10000)
+    assert fake.stopped == {"id": "G1"}
+    assert page.locator(f"{_GB} button:has-text('Stop')").count() == 0
+    assert not page.is_disabled(f"{_GB} button:has-text('Build gallery')")
+    assert _node(page, "known")["params"]["gallery"] == "sample/gallery/reid_repvgg-a0-reid_256x128.bin"
+    # In Korean the error key is translated and the server's English message follows it.
+    page.evaluate("DXI18n.setLang('ko')")
+    page.evaluate("GraphComposer.canvas().select({nodes: ['known']})")
+    status = page.inner_text(f"{_GB} .gc-gallery-status")
+    assert status.startswith("Gallery") and "the gallery build was stopped" in status, status

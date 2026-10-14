@@ -1,5 +1,7 @@
 /* DX App — Graph Composer inspector: the settings of the selected node or edge, its --check errors, its NPU memory
    and its last run result. A change commits to the canvas on `change` (one undo step per edit).
+   A logic block's form is built from its --list-ops schema (type, range, default per param); zones and lines open
+   the zone editor (graph-zone-editor.js) on a frame of the block's input.
    Contract: tests/dx_app/test_graph_composer_browser.py */
 window.GraphInspector = (function () {
   'use strict';
@@ -155,9 +157,19 @@ window.GraphInspector = (function () {
 
   function resultSection(c, id) {
     var run = c.state.run, r = run && run.nodes && run.nodes[id];
-    if (!r) return null;
-    var lines = [c.h('p', { class: 'gc-help', text: c.fmt(T('{shape} · {frames} frames · {items} results · {crops} crops'),
-      { shape: r.shape || '-', frames: r.frames, items: r.items_total, crops: r.crops_total }) })];
+    var ev = run && run.event_counts && run.event_counts[id];
+    if (!r && !ev) return null;
+    var lines = [];
+    if (r) lines.push(c.h('p', { class: 'gc-help', text: c.fmt(T('{shape} · {frames} frames · {items} results · {crops} crops'),
+      { shape: r.shape || '-', frames: r.frames, items: r.items_total, crops: r.crops_total }) }));
+    ((r && r.last_records) || []).slice(0, 4).forEach(function (rec) {
+      var nums = rec.numbers || {};
+      lines.push(c.h('p', { class: 'gc-help', text: c.fmt(T('Last values: {values}'), {
+        values: Object.keys(nums).map(function (k) { return k + ' ' + nums[k]; }).join(', ') }) }));
+    });
+    if (ev) lines.push(c.h('p', { class: 'gc-help', text: c.fmt(T('Events: {events}'), {
+      events: Object.keys(ev).map(function (k) { return k + ' ' + ev[k]; }).join(', ') }) }));
+    if (!r) return section(c, T('Last run'), lines);
     if (run.node_ms && run.node_ms[id] != null) lines.push(c.h('p', { class: 'gc-help', text: c.fmt(T('{ms} ms per frame'), { ms: run.node_ms[id].toFixed(1) }) }));
     if ((r.last_items || []).length) lines.push(c.h('pre', { class: 'gc-result', text: JSON.stringify(r.last_items, null, 1) }));
     return section(c, T('Last run'), lines);
@@ -215,11 +227,242 @@ window.GraphInspector = (function () {
     return out;
   }
 
+  /* ── logic blocks: the form comes from the op's --list-ops params ── */
+  function setParam(c, id, name, value) {
+    setData(c, id, function (d) {
+      d.params = d.params || {};
+      if (value == null || value === '') delete d.params[name];
+      else d.params[name] = value;
+    });
+  }
+
+  /* "count" and the numbers the blocks feeding a condition write: what its "value" can name. */
+  function valueSuggestions(c, n) {
+    var out = ['count'], g = c.canvas().getGraph();
+    g.edges.forEach(function (e) {
+      if (e.to !== n.id) return;
+      var from = c.nodeOf(e.from), spec = from && from.kind === 'logic' && (c.state.ops || {})[(from.data || {}).op];
+      ((spec && spec.numbers) || []).forEach(function (k) { if (out.indexOf(k) === -1) out.push(k); });
+    });
+    return out;
+  }
+
+  function rangeText(c, p) {
+    if (p.min != null && p.max != null) return c.fmt(T('{min} to {max}'), { min: p.min, max: p.max });
+    if (p.min != null) return c.fmt(p.min_exclusive ? T('more than {min}') : T('at least {min}'), { min: p.min });
+    if (p.max != null) return c.fmt(T('at most {max}'), { max: p.max });
+    return '';
+  }
+
+  function paramField(c, n, p) {
+    var params = (n.data && n.data.params) || {}, v = params[p.name], label = p.name + (p.required ? ' *' : '');
+    if (p.type === 'polygon' || p.type === 'line') return drawnField(c, n, p, v);
+    if (p.type === 'choice') {
+      var opts = (p.required ? [] : [{ value: '', label: p.default !== undefined && p.default !== ''
+        ? c.fmt(T('Default ({value})'), { value: p.default }) : T('Default') }])
+        .concat((p.choices || []).map(function (x) { return { value: x, label: x }; }));
+      return field(c, label, selectInput(c, opts, v == null ? '' : v, function (x) { setParam(c, n.id, p.name, x || null); }), p.help);
+    }
+    if (p.type === 'number') {
+      var attrs = { step: 'any' };
+      if (p.min != null) attrs.min = String(p.min);
+      if (p.max != null) attrs.max = String(p.max);
+      if (p.default !== undefined) attrs.placeholder = String(p.default);
+      return field(c, label, numberInput(c, v, function (x) {
+        if (x != null && p.min != null && x < p.min) x = p.min;
+        if (x != null && p.max != null && x > p.max) x = p.max;
+        setParam(c, n.id, p.name, x);
+      }, attrs), [rangeText(c, p), p.help].filter(Boolean).join(' · '));
+    }
+    if (p.type === 'text_list') {
+      return field(c, label, textInput(c, Array.isArray(v) ? v.join(', ') : '', function (raw) {
+        var items = list(raw);
+        setParam(c, n.id, p.name, items.length ? items : null);
+      }), p.help || T('Comma separated. Empty: all.'));
+    }
+    var attrs2 = p.default !== undefined && p.default !== '' ? { placeholder: String(p.default) } : {};
+    if (n.data.op === 'condition' && p.name === 'value') {
+      attrs2.list = 'gc-value-suggest-' + n.id;
+    }
+    var input = textInput(c, v == null ? '' : v, function (raw) { setParam(c, n.id, p.name, raw || null); }, attrs2);
+    var wrap = field(c, label, input, p.help);
+    if (attrs2.list) {
+      wrap.appendChild(c.h('datalist', { id: attrs2.list }, valueSuggestions(c, n).map(function (k) { return c.h('option', { value: k }); })));
+    }
+    return wrap;
+  }
+
+  function drawnField(c, n, p, v) {
+    var cv = c.h('canvas', { class: 'gc-zone-preview', 'aria-hidden': 'true' });
+    var s = window.GraphZoneGeom ? GraphZoneGeom.shapeFrom(v) : null;
+    var dir = ((n.data && n.data.params) || {}).direction;
+    var edit = c.h('button', { type: 'button', class: 'btn btn-neutral btn-sm gc-zone-edit',
+      'aria-label': c.fmt(T('Edit {param} on the frame'), { param: p.name }) }, [c.icon('image'), c.h('span', { text: ' ' + T('Edit on the frame…') })]);
+    edit.addEventListener('click', function () {
+      GraphZoneEditor.open({ nodeId: n.id, param: p, frameUri: c.sourceFor(n.id), ctx: c });
+    });
+    setTimeout(function () { if (window.GraphZoneEditor && cv.isConnected) GraphZoneEditor.preview(cv, p, v, dir); }, 0);
+    return c.h('div', { class: 'fg gc-fg gc-drawn' }, [c.h('span', { class: 'gc-drawn-label', text: p.name + (p.required ? ' *' : '') }),
+      cv, c.h('p', { class: 'gc-help', text: s ? c.fmt(T('{n} points'), { n: s.points.length }) : T('Not drawn yet') }), edit]);
+  }
+
+  function acceptsText(spec) {
+    var seen = [];
+    (spec.inputs.accepts || []).forEach(function (a) {
+      var t = a.shape + (a.per_crop ? ' ' + T('per crop') : '');
+      if (seen.indexOf(t) === -1) seen.push(t);
+    });
+    return seen.join(', ');
+  }
+
+  /* ── a gallery block: build its gallery .bin from an image folder (POST /api/graph/gallery/build, polled) ──
+     One build at a time (the server holds the NPU for it). The form keeps what was typed across re-renders; a finished
+     build sets the block's gallery param to the file it wrote (one undo step). */
+  var GALLERY_POLL_MS = 1000, GALLERY_POLL_FAILURES = 3;
+  var gallery = null;               // {nodeId, jobId, state: running|done|failed, elapsed, result, response, failures}
+  var galleryForm = {};             // nodeId -> {folder, model, name}
+
+  function errText(r) {
+    return (typeof translatedError === 'function' ? translatedError(r) : (r && r.error)) || T('The gallery build failed.');
+  }
+
+  /* The model of the block feeding the gallery block: the embedding its vectors come from. */
+  function feedingModel(c, n) {
+    var model = '';
+    c.canvas().getGraph().edges.forEach(function (e) {
+      var from = e.to === n.id && c.nodeOf(e.from);
+      if (!model && from && from.kind === 'model') model = (from.data && from.data.model) || '';
+    });
+    return model;
+  }
+
+  function galleryStatus(c) {
+    if (!gallery) return null;
+    if (gallery.state === 'running') {
+      return c.h('p', { class: 'gc-help gc-gallery-status', role: 'status' }, [c.h('span', { class: 'spin', 'aria-hidden': 'true' }),
+        c.h('span', { text: ' ' + T('Building the gallery…') + (gallery.elapsed != null ? ' ' + c.fmt(T('{s} s'), { s: gallery.elapsed }) : '') })]);
+    }
+    if (gallery.state === 'done') {
+      return c.h('p', { class: 'gc-help gc-gallery-status', role: 'status', text: c.fmt(T('Gallery built: {people} people, {images} images'),
+        { people: gallery.result.people, images: gallery.result.images }) });
+    }
+    return c.h('p', { class: 'gc-error gc-gallery-status', role: 'alert', text: errText(gallery.response) });
+  }
+
+  function rerender() {
+    if (lastRoot && lastCtx) render(lastRoot, lastCtx, lastSel);
+  }
+
+  function pollGallery(c, job) {
+    setTimeout(function () {
+      if (gallery !== job) return;
+      c.api.galleryPoll(job.jobId).then(function (r) {
+        if (gallery !== job) return;
+        if (r && r.state === 'running') {
+          job.failures = 0;
+          job.elapsed = r.elapsed;
+        } else if (r && r.state === 'done') {
+          job.state = 'done';
+          job.result = r;
+          var n = c.nodeOf(job.nodeId);
+          if (n && n.kind === 'logic' && (n.data || {}).op === 'gallery') { setParam(c, job.nodeId, 'gallery', r.gallery); return; }
+        } else if (r && (r.state === 'failed' || r.error_key === 'unknown_job' || ++job.failures >= GALLERY_POLL_FAILURES)) {
+          job.state = 'failed';
+          job.response = r;
+        }
+        rerender();
+        if (job.state === 'running') pollGallery(c, job);
+      });
+    }, GALLERY_POLL_MS);
+  }
+
+  function gallerySection(c, n) {
+    var form = galleryForm[n.id] = galleryForm[n.id] || { folder: '', model: feedingModel(c, n), name: '' };
+    function input(key, attrs) {
+      var el = c.h('input', Object.assign({ type: 'text', class: 'input', value: form[key] }, attrs || {}));
+      el.addEventListener('input', function () { form[key] = el.value; });
+      return el;
+    }
+    var mine = gallery && gallery.nodeId === n.id, running = !!(gallery && gallery.state === 'running');
+    var build = c.h('button', { type: 'button', class: 'btn btn-neutral btn-sm', text: T('Build gallery') });
+    build.disabled = running;
+    build.addEventListener('click', function () {
+      var body = { folder: form.folder.trim(), model: form.model.trim() };
+      if (form.name.trim()) body.name = form.name.trim();
+      var job = gallery = { nodeId: n.id, jobId: null, state: 'running', elapsed: null, failures: 0 };
+      rerender();
+      c.api.galleryBuild(body).then(function (r) {
+        if (gallery !== job) return;
+        if (!r || r.error || !r.job_id) { job.state = 'failed'; job.response = r; rerender(); return; }
+        job.jobId = r.job_id;
+        pollGallery(c, job);
+      });
+    });
+    var row = [build];
+    if (mine && running) {
+      var stop = c.h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: T('Stop') });
+      stop.disabled = !gallery.jobId;
+      stop.addEventListener('click', function () { if (gallery && gallery.jobId) c.api.galleryStop(gallery.jobId); stop.disabled = true; });
+      row.push(stop);
+    }
+    var kids = [
+      field(c, T('Image folder'), input('folder'),
+        T('A folder under the dx_app, sample or outputs folders. One subfolder per person names its images after the subfolder; images directly in the folder are named after their files.')),
+      field(c, T('Embedding model'), input('model')),
+      field(c, T('Gallery name (optional)'), input('name')),
+      c.h('div', { class: 'gc-gallery-actions' }, row)
+    ];
+    if (mine) kids.push(galleryStatus(c));
+    var sec = section(c, T('Build a gallery from an image folder'), kids);
+    sec.classList.add('gc-gallery-build');
+    return sec;
+  }
+
+  function logicForm(c, n) {
+    var d = n.data || {}, spec = (c.state.ops || {})[d.op], out = [];
+    if (!spec) {
+      out.push(c.h('p', { class: 'gc-help', text: T('This dx_app build does not list this block; its params are edited as text.') }));
+      out.push(paramsEditor(c, n));
+      return out;
+    }
+    if (spec.summary) out.push(c.h('p', { class: 'gc-help', text: spec.summary }));
+    out.push(c.h('p', { class: 'gc-help', text: c.fmt(T('Takes {inputs} · hands on {output}'), {
+      inputs: acceptsText(spec), output: spec.output === 'same' ? (c.D.outputOf(n, c.state.models, c.state.ops, c.canvas().getGraph()) || T('what it takes'))
+        : 'records' }) }));
+    if (spec.events && spec.events.length) {
+      out.push(c.h('p', { class: 'gc-help', text: c.fmt(T('Fires: {events}'), {
+        events: spec.events.map(function (e) { return e === '<event>' ? ((d.params || {}).event || n.id) : e; }).join(', ') }) }));
+    }
+    var untracked = c.D.untrackedFeeds(c.canvas().getGraph(), n.id, c.state.ops);
+    if (untracked.length) {
+      var fix = c.h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: c.fmt(T('Track objects on {nodes}'), { nodes: untracked.join(', ') }) });
+      fix.addEventListener('click', function () {
+        untracked.forEach(function (id, i) {
+          var m = c.nodeOf(id);
+          if (!m) return;
+          var data = c.D.clone(m.data || {});
+          data.track = { algo: 'iou', iou: 0.3, max_age: 30 };
+          c.canvas().updateNode(id, { data: data }, { commit: i === untracked.length - 1 });
+        });
+      });
+      out.push(c.h('div', { class: 'gc-warn', role: 'note' }, [c.h('p', { text: T('This block needs track ids; the detector feeding it does not track.') }), fix]));
+    }
+    if (d.op === 'user') {
+      out.push(c.h('p', { class: 'gc-help gc-user-logic', text: c.fmt(T('Studio runs this block as a pass-through. An exported project gets a function stub named {name} where you write the logic.'),
+        { name: (d.params && d.params.name) || 'my_logic' }) }));
+    }
+    var fields = spec.params.map(function (p) { return paramField(c, n, p); });
+    if (fields.length) out.push(section(c, T('Settings'), fields));
+    if (d.op === 'gallery') out.push(gallerySection(c, n));
+    return out;
+  }
+
   function nodeView(c, n) {
-    var kinds = { source: T('Source'), cpu: T('CPU op'), model: T('Model') };
+    var kinds = { source: T('Source'), cpu: T('CPU op'), model: T('Model'), logic: T('Logic block') };
     var kids = [c.h('div', { class: 'gc-insp-head' }, [c.icon(n.icon || 'circle'),
       c.h('strong', { text: n.id }), c.h('span', { class: 'gc-help', text: kinds[n.kind] || '' })]), renameField(c, n)];
-    kids = kids.concat(n.kind === 'source' ? sourceForm(c, n) : n.kind === 'cpu' ? cpuForm(c, n) : modelForm(c, n));
+    kids = kids.concat(n.kind === 'source' ? sourceForm(c, n) : n.kind === 'cpu' ? cpuForm(c, n)
+      : n.kind === 'logic' ? logicForm(c, n) : modelForm(c, n));
     kids.push(connectField(c, n));
     kids.push(errorsFor(c, function (e) { return e.node === n.id; }));
     kids.push(resultSection(c, n.id));
@@ -232,9 +475,10 @@ window.GraphInspector = (function () {
   function edgeView(c, e) {
     var g = c.canvas().getGraph(), map = {};
     g.nodes.forEach(function (n) { map[n.id] = n; });
-    var kinds = c.D.edgeKinds(map[e.from], map[e.to], c.state.models);
+    var kinds = c.D.edgeKinds(map[e.from], map[e.to], c.state.models, c.state.ops);
     if (kinds.indexOf(e.kind) === -1) kinds.unshift(e.kind);
-    var names = { frame: T('Whole frame'), roi: T('One run per box (ROI crop)'), result: T('Results to a CPU op') };
+    var names = { frame: T('Whole frame'), roi: T('One run per box (ROI crop)'),
+      result: (map[e.to] || {}).kind === 'logic' ? T('Results to a logic block') : T('Results to a CPU op') };
     var kids = [c.h('div', { class: 'gc-insp-head' }, [c.icon('graph'), c.h('strong', { text: e.from + ' → ' + e.to })]),
       field(c, T('Connection'), selectInput(c, kinds.map(function (k) { return { value: k, label: names[k] || k }; }), e.kind,
         function (k) { setEdge(c, e.id, k); }))];

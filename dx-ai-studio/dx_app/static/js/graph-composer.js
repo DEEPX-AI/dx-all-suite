@@ -86,6 +86,9 @@ window.GraphComposer = (function () {
     liveStop: function (id) { return call('POST', '/api/graph/live/stop', { id: id }); },
     result: function (id) { return call('GET', '/api/graph/run/result?id=' + encodeURIComponent(id)); },
     stop: function (id) { return call('POST', '/api/graph/run/stop', { id: id }); },
+    galleryBuild: function (body) { return call('POST', '/api/graph/gallery/build', body); },
+    galleryPoll: function (id) { return call('GET', '/api/graph/gallery/poll?id=' + encodeURIComponent(id)); },
+    galleryStop: function (id) { return call('POST', '/api/graph/gallery/stop', { id: id }); },
     projects: function () { return call('GET', '/api/graph/projects'); },
     project: function (id, v) {
       return call('GET', '/api/graph/project?id=' + encodeURIComponent(id) + (v ? '&version=' + encodeURIComponent(v) : ''));
