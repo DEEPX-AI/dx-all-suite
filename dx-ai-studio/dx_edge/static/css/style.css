@@ -18,11 +18,13 @@
 .edge-market{margin-bottom:var(--sp-5)}
 .edge-kicker{margin:0 0 var(--sp-2);font-size:var(--fs-xs);font-weight:var(--fw-bold);text-transform:uppercase;letter-spacing:.6px;color:var(--text-muted)}
 .edge-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(320px,100%),1fr));gap:var(--sp-3)}
-.edge-card{display:flex;flex-direction:column;gap:var(--sp-2);min-width:0}
-.edge-card-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--sp-2)}
+/* Solution card: text column, with the AWS Qualified Software badge in its own column top right */
+.edge-card{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:var(--sp-5);align-items:start;min-width:0}
+.edge-card-body{display:flex;flex-direction:column;gap:var(--sp-2);min-width:0;height:100%}
+.edge-card-head{display:flex;flex-wrap:wrap;align-items:center;gap:var(--sp-2)}
 .edge-card h3{display:flex;align-items:center;gap:var(--sp-2);margin:0;font-size:var(--fs-md)}
 .edge-card p{font-size:var(--fs-sm)}
-.edge-card .edge-actions{margin-top:auto}
+.edge-card .edge-actions{margin-top:auto;padding-top:var(--sp-1)}
 /* Steps: shared dot + title + state pill, each step's content in a card */
 .edge-steps .dx-step-row{cursor:default}
 .edge-steps .dx-step-title{display:flex;align-items:center;gap:var(--sp-2)}
@@ -143,12 +145,13 @@
 .edge-job-actions{display:flex;flex-wrap:wrap;gap:var(--sp-1);justify-content:flex-end}
 .edge-table tr.is-current td{background:var(--accent-dim)}
 /* AWS Partner / AWS Qualified Software badges: black art on light themes, white art on dark */
-.edge-market-head{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-3)}
-.edge-market-head .edge-kicker{margin:0}
+/* Top row: live status chips, then the AWS Partner badge at the far right */
+.edge-top{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-4);margin-bottom:var(--sp-5)}
+.edge-top .edge-status{flex:1;min-width:0;margin-bottom:0}
 .edge-badge-art{display:inline-flex;flex:none}
 .edge-badge-art img{display:block;width:100%;height:auto}
 .edge-badge-art--lg{width:calc(var(--sp-7) + var(--sp-4))}
-.edge-badge-art--md{width:var(--sp-7)}
+.edge-badge-art--md{width:calc(var(--sp-7) + var(--sp-2))}
 .edge-badge-art .edge-badge-art--light{display:none}
 :root[data-theme="light"] .edge-badge-art .edge-badge-art--light{display:block}
 :root[data-theme="light"] .edge-badge-art .edge-badge-art--dark{display:none}

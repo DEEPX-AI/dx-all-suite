@@ -179,9 +179,10 @@ def test_both_tabs_list_the_stacks_compile_jobs():
 def test_aws_partner_and_qualified_software_badges_for_both_themes():
     """DEEPX is an AWS Partner; both solutions are AWS Qualified Software. Black art on light, white on dark."""
     html = (APP / "templates/index.html").read_text(encoding="utf-8")
-    head = html[html.index('id="edgeMarketplace"'):html.index('class="edge-grid"')]
+    # The Partner badge belongs to the page (top right, beside the status chips), not to a card.
+    top = html[html.index('class="edge-top"'):html.index('id="edgeMarketplace"')]
     for theme in ("light", "dark"):
-        assert f"/static/badges/aws-partner-{theme}.png" in head
+        assert f"/static/badges/aws-partner-{theme}.png" in top
         assert html.count(f"/static/badges/aws-qualified-software-{theme}.png") == 2  # one per solution card
         for name in ("aws-partner", "aws-qualified-software"):
             assert (APP / "static/badges" / f"{name}-{theme}.png").is_file()
@@ -189,3 +190,11 @@ def test_aws_partner_and_qualified_software_badges_for_both_themes():
     assert ".edge-badge-art--light" in css and 'data-theme="dark"' in css
     # The launcher serves /static/img/ itself, so a module image there 404s behind it.
     assert "/static/img/" not in html
+
+
+def test_solution_cards_keep_the_qualified_badge_in_its_own_column():
+    html = (APP / "templates/index.html").read_text(encoding="utf-8")
+    for card in html.split('<article class="card edge-card">')[1:]:
+        card = card[:card.index("</article>")]
+        assert '<div class="edge-card-body">' in card
+        assert card.rstrip().endswith("</span>") and "aws-qualified-software" in card.split("</div>")[-1]
