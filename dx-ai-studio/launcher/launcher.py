@@ -98,7 +98,7 @@ _MODULE_PROXY_PATHS = {
     "dx_benchmark": "/benchmark/",
     "dx_monitor": "/dx_monitor/",
     "dx_agent_dev": "/agent/",
-    "dx_edge": "/edge/",
+    "dx_edge": "/cloud/",
 }
 
 
@@ -1354,7 +1354,7 @@ class LauncherHandler(DXBaseHandler):
         ("/benchmark", "dx_benchmark", True),
         ("/dx_monitor", "dx_monitor", False),
         ("/agent", "dx_agent_dev", False),
-        ("/edge", "dx_edge", False),
+        ("/cloud", "dx_edge", False),
         ("/app", "dx_app", True),
     )
 

@@ -19,7 +19,7 @@ Browser ──▶ Launcher :8890 ──(reverse proxy)──▶ dx_app       :80
                                                 dx_benchmark :8097  /benchmark/
                                                 dx_monitor   :8098  /dx_monitor/
                                                 dx_agent_dev :8099  /agent/
-                                                dx_edge      :8100  /edge/
+                                                dx_edge      :8100  /cloud/
 
 shared/dx_server.py  ← base HTTP handler + server wrapper for ALL servers
 shared/chat/         ← ChatEngine (per-module AI assistant)
@@ -67,7 +67,7 @@ Top-level browser navigations (deep links, F5) are detected via `Sec-Fetch-Dest`
 | DX Benchmark | `dx_benchmark/` | 8097 | `/benchmark/` | `DX_BENCHMARK_PORT` |
 | DX Monitor | `dx_monitor/` | 8098 | `/dx_monitor/` | `DX_MONITOR_PORT` |
 | DX Agent Dev | `dx_agent_dev/` | 8099 | `/agent/` | `DX_AGENT_PORT` |
-| DX Cloud | `dx_edge/` | 8100 | `/edge/` | `DX_EDGE_PORT` |
+| DX Cloud | `dx_edge/` | 8100 | `/cloud/` | `DX_EDGE_PORT` |
 
 The `DX_*_PORT` variables are read only by `launcher/launcher.py` (as proxy-map
 defaults). The module `server.py` files do **not** read them — a standalone module

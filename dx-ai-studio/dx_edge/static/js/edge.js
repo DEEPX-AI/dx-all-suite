@@ -9,7 +9,7 @@
   var pollTimer = null;
 
   function api(path, opts) {
-    // Relative, so it works standalone (/) and behind the launcher proxy (/edge/).
+    // Relative, so it works standalone (/) and behind the launcher proxy (/cloud/).
     return fetch(path, opts).then(function (r) {
       return r.json().then(function (body) {
         if (!r.ok) throw new Error(body.error || r.statusText);

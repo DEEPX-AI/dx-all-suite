@@ -10,6 +10,7 @@ import json
 import sys
 import threading
 import uuid
+from pathlib import Path
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
@@ -173,3 +174,18 @@ def test_save_uses_the_studio_models_dir(base, monkeypatch, tmp_path):
     assert code == 200, resp
     assert seen["dir"] == tmp_path
     assert json.loads(resp)["path"] == str(tmp_path / "m.dxnn")
+
+
+def test_launcher_serves_dx_cloud_under_cloud_path():
+    """The module is shown as DX Cloud, so every place that routes to it says /cloud/."""
+    from shared.auth_policy import map_launcher_proxy
+    from shared.shell import MODULES
+
+    assert map_launcher_proxy("/cloud/api/aws/status") == ("dx_edge", "/api/aws/status")
+    assert map_launcher_proxy("/edge/") is None
+    assert next(m for m in MODULES if m.name == "DX Cloud").path == "/cloud/"
+    root = Path(__file__).resolve().parents[2]
+    launcher = (root / "launcher/launcher.py").read_text(encoding="utf-8")
+    assert '"dx_edge": "/cloud/"' in launcher
+    assert '("/cloud", "dx_edge", False)' in launcher
+    assert "edge: '/cloud/'" in (root / "launcher/static/launcher-state.js").read_text(encoding="utf-8")

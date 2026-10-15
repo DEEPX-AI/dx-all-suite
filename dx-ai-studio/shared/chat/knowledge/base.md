@@ -41,7 +41,7 @@ Studio 는 `./launcher.sh` 가 출력하는 주소 한 곳에서 연다 (기본 
 | **DX Benchmark** | `/benchmark/` | YOLO26 하드웨어 벤치마크 결과 뷰어 (읽기 전용, 실행은 CLI) |
 | **DX Monitor** | `/dx_monitor/` | NPU/시스템 실시간 하드웨어 모니터링 대시보드 |
 | **DX Agent Dev** | `/agent/` | 자연어 명령으로 NPU 앱을 빌드하는 대화형 에이전트 콘솔 |
-| **DX Cloud** | `/edge/` | AWS 클라우드 컴파일 (DEEPX Compiler 스택에 ONNX+JSON 업로드 → .dxnn) 과 AWS Marketplace(Compiler · Greengrass Solution) 안내 |
+| **DX Cloud** | `/cloud/` | AWS 클라우드 컴파일 (DEEPX Compiler 스택에 ONNX+JSON 업로드 → .dxnn) 과 AWS Marketplace(Compiler · Greengrass Solution) 안내 |
 | **NPU Monitor** (rail 버튼) | 모든 화면의 왼쪽 rail 아래 온도계 | NPU 온도 · 클럭 · 전력을 어느 화면에서나 바로 본다 (펼치면 코어별 그래프) |
 
 ### 에코시스템 파트너
