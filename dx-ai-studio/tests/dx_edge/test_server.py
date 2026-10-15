@@ -85,6 +85,28 @@ def test_status_endpoint(base, monkeypatch):
     assert json.loads(body)["default_region"] == "ap-northeast-2"
 
 
+def test_identity_endpoint(base, monkeypatch):
+    seen = {}
+
+    def fake(profile, region):
+        seen.update(profile=profile, region=region)
+        return {"account": "111122223333", "arn": "arn:aws:iam::111122223333:user/dev"}
+
+    monkeypatch.setattr(ac, "identity", fake)
+    code, _, body = _get(base + "/api/aws/identity?profile=dev&region=us-west-2")
+    assert code == 200 and json.loads(body)["account"] == "111122223333"
+    assert seen == {"profile": "dev", "region": "us-west-2"}
+
+
+def test_identity_errors_are_json(base, monkeypatch):
+    def fake(profile, region):
+        raise ac.AwsError(401, "AWS credentials not found")
+
+    monkeypatch.setattr(ac, "identity", fake)
+    code, _, body = _get(base + "/api/aws/identity?region=ap-northeast-2")
+    assert code == 401 and "credentials" in json.loads(body)["error"]
+
+
 def test_missing_boto3_is_a_json_error_with_a_hint(base, monkeypatch):
     monkeypatch.setitem(sys.modules, "boto3", None)
     code, _, body = _get(base + "/api/aws/stacks?region=ap-northeast-2")

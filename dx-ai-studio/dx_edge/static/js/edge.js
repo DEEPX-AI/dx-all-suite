@@ -1,4 +1,5 @@
-/* DX Cloud — AWS Compiler / AWS Greengrass tabs: stack setup, Cloud Compile, and Greengrass devices.
+/* DX Cloud — step 1 (AWS connection) and AWS Compiler / AWS Greengrass tabs: subscription, stacks,
+   Cloud Compile, and Greengrass devices. The status chips and step states follow the loaded data.
    Both tabs share the same markup with a -<kind> id suffix, so every panel function takes the kind.
    Talks to dx_edge/server.py; AWS calls happen server-side only. */
 (function () {
@@ -19,6 +20,8 @@
   var lastDevices = null;
   var deleteKind = null;
   var script = null;
+  var current = 'compiler';
+  var ident = null; // null while checking, then {account, arn} or {error}
 
   function api(path, opts) {
     // Relative, so it works standalone (/) and behind the launcher proxy (/cloud/).
@@ -94,6 +97,8 @@
       tab.tabIndex = on ? 0 : -1;
       $k('edgePanel', k).hidden = !on;
     });
+    current = kind;
+    updateSteps();
     if (focus) $k('edgeTab', kind).focus();
     try { localStorage.setItem(TAB_KEY, kind); } catch (e) { /* storage blocked: the tab is just not remembered */ }
   }
@@ -112,10 +117,16 @@
   // ── Account, subscription and stacks ───────────────────────────────────
 
   function loadStatus() {
+    ident = null;
+    showMsg($('edgeIdentity'), T('Checking…'));
+    updateSteps();
     return api('api/aws/status').then(function (st) {
       var sel = $('edgeProfile');
+      var chosen = sel.value;
       sel.replaceChildren(option('', T('Default credentials')));
       st.profiles.forEach(function (p) { sel.appendChild(option(p, p)); });
+      if (st.profiles.indexOf(chosen) >= 0) sel.value = chosen;
+      if (!st.profiles.length || st.error || !st.boto3) $('edgeGuide').open = true;
       if (!$('edgeRegion').value) $('edgeRegion').value = st.default_region;
       var missing = $('edgeBoto3Missing');
       missing.hidden = st.boto3;
@@ -126,27 +137,101 @@
       });
       $('edgeDevReload').disabled = !st.boto3;
       $('edgeRegGen').disabled = !st.boto3;
+      $('edgeCheck').disabled = !st.boto3;
       if (!st.boto3) {
         missing.textContent = T('boto3 is not installed. Install it to compile in the cloud:') + ' ' + st.install_hint;
-        return;
+        return noIdentity('');
       }
-      if (st.error) { missing.hidden = false; missing.textContent = st.error; return; }
+      if (st.error) { missing.hidden = false; missing.textContent = st.error; return noIdentity(st.error); }
       return loadSetup();
     }).catch(function (e) {
       $('edgeBoto3Missing').hidden = false;
       $('edgeBoto3Missing').textContent = e.message;
+      noIdentity(e.message);
+    });
+  }
+
+  function noIdentity(message) {
+    ident = { error: message };
+    showMsg($('edgeIdentity'), message, !!message);
+    $('edgeGuide').open = true;
+    updateSteps();
+  }
+
+  // sts get-caller-identity: proves the credentials work and names the account.
+  function checkIdentity() {
+    ident = null;
+    showMsg($('edgeIdentity'), T('Checking…'));
+    updateSteps();
+    return api('api/aws/identity?' + qs(account())).then(function (res) {
+      ident = res;
+      showMsg($('edgeIdentity'), T('Connected as') + ' ' + res.arn);
+      updateSteps();
+    }).catch(function (e) {
+      noIdentity(e.message);
     });
   }
 
   function loadSetup() {
+    checkIdentity();
     loadSubscription();
     return loadStacks();
+  }
+
+  // ── Status chips and step states ───────────────────────────────────────
+
+  var STEP_TEXT = { done: 'Done', todo: 'Action needed', blocked: 'Waiting', running: 'In progress' };
+
+  function setStep(id, st) {
+    var badge = $(id);
+    badge.className = 'dx-step-state is-' + st;
+    badge.textContent = T(STEP_TEXT[st]);
+    badge.closest('.dx-step').dataset.state = st;
+  }
+
+  function setChip(id, value, st) {
+    $(id + 'Val').textContent = value;
+    if (st) $(id).dataset.state = st;
+    else delete $(id).dataset.state;
+  }
+
+  function readyStacks(kind) {
+    return (lastStacks || []).filter(function (s) { return s.kind === kind && s.ready; });
+  }
+
+  function updateSteps() {
+    var f = account();
+    var connected = !!(ident && ident.account);
+    setChip('edgeChipProfile', f.profile || T('Default credentials'));
+    setChip('edgeChipRegion', f.region || '—');
+    setChip('edgeChipAccount', connected ? ident.account : ident ? T('Not connected') : '…',
+      connected ? 'ok' : ident ? 'bad' : 'busy');
+    setStep('edgeStep1State', connected ? 'done' : ident ? 'todo' : 'running');
+    KINDS.forEach(function (k) {
+      var sub = (lastSubs || []).filter(function (r) { return r.id === k; })[0];
+      var ready = readyStacks(k);
+      var busy = (lastStacks || []).some(function (s) { return s.kind === k && /_IN_PROGRESS$/.test(s.status); });
+      var job = state[k].lastStatus;
+      var s2 = !connected || !sub ? 'blocked' : sub.subscribed ? 'done' : 'todo';
+      setStep('edgeStep2State-' + k, s2);
+      setStep('edgeStep3State-' + k, ready.length ? 'done' : busy ? 'running' : s2 === 'done' ? 'todo' : 'blocked');
+      setStep('edgeStep4State-' + k, job && job.state === 'succeeded' ? 'done'
+        : job && job.state !== 'failed' ? 'running' : ready.length ? 'todo' : 'blocked');
+      if (k !== current) return;
+      setChip('edgeChipSubs', sub ? T(sub.subscribed ? 'Subscribed' : 'Not subscribed') : '—',
+        sub ? (sub.subscribed ? 'ok' : 'bad') : null);
+      setChip('edgeChipStacks', lastStacks ? String(ready.length) : '—',
+        lastStacks ? (ready.length ? 'ok' : 'bad') : null);
+    });
+    var devices = lastDevices && lastDevices.devices.length;
+    setStep('edgeStep5State-greengrass', devices ? 'done' : readyStacks('greengrass').length ? 'todo' : 'blocked');
   }
 
   function loadSubscription() {
     return api('api/aws/subscription?' + qs(account())).then(function (res) {
       lastSubs = res.templates;
       KINDS.forEach(renderSubs);
+      updateSteps();
     }).catch(function (e) {
       KINDS.forEach(function (k) {
         $k('edgeSubs', k).replaceChildren();
@@ -159,6 +244,7 @@
     return api('api/aws/stacks?' + qs(account())).then(function (res) {
       lastStacks = res.stacks;
       KINDS.forEach(renderStacks);
+      updateSteps();
       loadDevices();
     }).catch(function (e) {
       KINDS.forEach(function (k) {
@@ -337,6 +423,7 @@
     if (l.execution || l.state_machine) links.appendChild(link(l.execution || l.state_machine, T('Step Functions')));
     if (l.logs) links.appendChild(link(l.logs, T('CloudWatch logs')));
     if (l.s3) links.appendChild(link(l.s3, T('S3 folder')));
+    updateSteps();
   }
 
   function poll(kind) {
@@ -405,6 +492,7 @@
     var f = account();
     var stack = devStack();
     lastDevices = null;
+    updateSteps();
     $('edgeDevStack').textContent = stack || '—';
     $('edgeDevGroup').textContent = '—';
     $('edgeDevDeploy').textContent = '—';
@@ -423,6 +511,7 @@
 
   function renderDevices(res) {
     lastDevices = res;
+    updateSteps();
     $('edgeDevGroup').textContent = res.thing_group;
     var dep = $('edgeDevDeploy');
     dep.textContent = res.deployment ? res.deployment.status : '—';
@@ -500,19 +589,57 @@
     });
   }
 
-  function copyScript() {
+  // Clipboard where allowed; otherwise select the text so Ctrl+C copies it.
+  function copyText(node, text, done) {
     var fallback = function () {
       var range = document.createRange();
-      range.selectNodeContents($('edgeScript'));
+      range.selectNodeContents(node);
       var sel = window.getSelection();
       sel.removeAllRanges();
       sel.addRange(range);
-      showMsg($('edgeRegMsg'), T('Selected — press Ctrl+C to copy.'));
+      done(T('Selected — press Ctrl+C to copy.'));
     };
     if (!navigator.clipboard || !window.isSecureContext) return fallback();
-    navigator.clipboard.writeText(script.script).then(function () {
-      showMsg($('edgeRegMsg'), T('Copied.'));
-    }, fallback);
+    navigator.clipboard.writeText(text).then(function () { done(T('Copied.')); }, fallback);
+  }
+
+  function copyScript() {
+    copyText($('edgeScript'), script.script, function (msg) { showMsg($('edgeRegMsg'), msg); });
+  }
+
+  // Setup guide commands: the button briefly says what happened instead of "Copy".
+  function copyCommand(btn) {
+    var code = btn.previousElementSibling;
+    var label = btn.querySelector('span');
+    copyText(code, code.textContent, function (msg) {
+      label.textContent = msg;
+      setTimeout(function () { label.textContent = T('Copy'); }, 2000);
+    });
+  }
+
+  // ── File drop zones (the file input covers the zone, so click, keyboard and drop are native) ──
+
+  function formatSize(bytes) {
+    if (bytes >= 1048576) return (bytes / 1048576).toFixed(1) + ' MB';
+    return Math.max(1, Math.round(bytes / 1024)) + ' KB';
+  }
+
+  function wireDrop(kind, part, ext) {
+    var input = $k('edge' + part, kind);
+    var zone = $k('edge' + part + 'Drop', kind);
+    var label = $k('edge' + part + 'File', kind);
+    var over = function (on) { zone.classList.toggle('is-over', on); };
+    input.addEventListener('dragenter', function () { over(true); });
+    input.addEventListener('dragleave', function () { over(false); });
+    input.addEventListener('drop', function () { over(false); });
+    input.addEventListener('change', function () {
+      var file = input.files[0];
+      var ok = !!file && file.name.toLowerCase().endsWith(ext);
+      if (file && !ok) input.value = '';
+      label.textContent = file ? file.name + (ok ? ' · ' + formatSize(file.size) : '') : '';
+      if (file) zone.dataset.state = ok ? 'ready' : 'bad';
+      else delete zone.dataset.state;
+    });
   }
 
   function downloadScript() {
@@ -535,6 +662,12 @@
     $k('edgeDeployForm', k).addEventListener('submit', function (ev) { deploy(k, ev); });
     $k('edgeSave', k).addEventListener('click', function () { save(k); });
     $k('edgeStackName', k).value = newStackName(k);
+    wireDrop(k, 'Onnx', '.onnx');
+    wireDrop(k, 'Json', '.json');
+  });
+  $('edgeCheck').addEventListener('click', loadStatus);
+  document.querySelectorAll('.edge-copy').forEach(function (btn) {
+    btn.addEventListener('click', function () { copyCommand(btn); });
   });
   $k('edgeStack', 'greengrass').addEventListener('change', loadDevices);
   $('edgeProfile').addEventListener('change', loadSetup);
@@ -559,6 +692,7 @@
       if (lastStacks) renderStacks(k);
     });
     if (lastDevices) renderDevices(lastDevices);
+    updateSteps();
   });
 
   var saved = null;

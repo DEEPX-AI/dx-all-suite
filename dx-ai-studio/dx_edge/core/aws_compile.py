@@ -131,6 +131,14 @@ def status() -> dict:
     return {"boto3": True, "profiles": profiles, "default_region": DEFAULT_REGION}
 
 
+def identity(profile: str, region: str) -> dict:
+    """Who the credentials belong to (sts get-caller-identity) — the page's Check connection."""
+    _boto3()
+    _check(profile, region)
+    me = _call(_client("sts", profile, region).get_caller_identity)
+    return {"account": me["Account"], "arn": me["Arn"]}
+
+
 def _outputs(profile: str, region: str, stack: str) -> dict:
     cf = _client("cloudformation", profile, region)
     stacks = _call(cf.describe_stacks, StackName=stack)["Stacks"]

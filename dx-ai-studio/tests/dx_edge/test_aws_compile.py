@@ -65,7 +65,7 @@ def aws(monkeypatch, tmp_path):
             aws_access_key_id=FAKE_KEY_ID,
             aws_secret_access_key=FAKE_SECRET,
         )
-        for svc in ("cloudformation", "s3", "stepfunctions")
+        for svc in ("cloudformation", "s3", "stepfunctions", "sts")
     }
     stubs = {svc: Stubber(c) for svc, c in clients.items()}
     calls = []
@@ -110,6 +110,37 @@ def test_missing_boto3_is_a_clear_error_with_an_install_hint(monkeypatch):
         ac.list_stacks("", REGION)
     assert exc.value.status == 503
     assert "boto3" in exc.value.message
+
+
+# ── identity (Check connection) ─────────────────────────────────────────────
+
+def test_identity_returns_account_and_arn_without_the_user_id(aws):
+    stubs, calls = aws
+    stubs["sts"].add_response("get_caller_identity", {
+        "UserId": "AIDAFAKEUSERID000000", "Account": "111122223333",
+        "Arn": "arn:aws:iam::111122223333:user/dev"}, {})
+    assert ac.identity("dev", REGION) == {"account": "111122223333", "arn": "arn:aws:iam::111122223333:user/dev"}
+    assert calls == [("sts", "dev", REGION)]
+
+
+def test_identity_without_credentials_is_401(aws, monkeypatch):
+    from botocore.exceptions import NoCredentialsError
+
+    class NoCreds:
+        def get_caller_identity(self):
+            raise NoCredentialsError()
+
+    monkeypatch.setattr(ac, "_client", lambda *a: NoCreds())
+    with pytest.raises(ac.AwsError) as exc:
+        ac.identity("", REGION)
+    assert exc.value.status == 401
+    assert "aws configure" in exc.value.message
+
+
+def test_identity_unknown_profile_is_400(aws):
+    with pytest.raises(ac.AwsError) as exc:
+        ac.identity("nope", REGION)
+    assert exc.value.status == 400
 
 
 # ── stack discovery ─────────────────────────────────────────────────────────

@@ -19,6 +19,57 @@ have already deployed — no local `dxcom` needed. Open it from the hub tile or 
 The full walkthrough — stack parameters, ZTP checks, cost and cleanup — is in the
 [DX-Edge guides](https://github.com/DEEPX-AI/dx-all-suite/blob/main/dx-edge/README.md).
 
+## AWS CLI setup
+
+DX Cloud reads the AWS CLI configuration (`~/.aws`) of the Linux machine that runs the
+studio; it never asks for access keys. The same guide is in step ① of the page, with a
+copy button on every command.
+
+**1. Install AWS CLI v2.** One script for Linux `x86_64` and `aarch64` — it picks the
+package for this machine (install `unzip` and `curl` first if they are missing:
+`sudo apt install -y unzip curl`):
+
+```bash
+ARCH="$(uname -m)"   # x86_64 or aarch64
+case "$ARCH" in
+  x86_64|aarch64)
+    curl "https://awscli.amazonaws.com/awscli-exe-linux-${ARCH}.zip" -o awscliv2.zip
+    unzip -q awscliv2.zip
+    sudo ./aws/install --update
+    aws --version ;;
+  *) echo "AWS CLI v2 for Linux supports x86_64 and aarch64 only (this machine: $ARCH)" ;;
+esac
+```
+
+See the [AWS CLI install guide](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html).
+
+**2. Configure credentials** ([AWS CLI configuration guide](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html)).
+
+- *Option A — access key:* create one in the IAM console (Users → Security credentials →
+  Create access key), then run `aws configure`:
+
+    ```text
+    $ aws configure
+    AWS Access Key ID [None]: AKIA****************
+    AWS Secret Access Key [None]: ****************************************
+    Default region name [None]: ap-northeast-2
+    Default output format [None]: json
+    ```
+
+- *Option B — IAM Identity Center (SSO):* `aws configure sso` once to create a named
+  profile, then `aws sso login --profile <name>` whenever the session expires.
+
+**3. Verify** with `aws sts get-caller-identity`.
+
+**4. Permissions.** The identity needs CloudFormation, S3, Step Functions, SSM
+`GetParameter`, EC2, IAM (stacks are created with `CAPABILITY_IAM`), CloudWatch Logs and
+Lambda; the Greengrass tab also needs Greengrass V2 and IoT. An account admin accepts the
+Marketplace subscription.
+
+**5. Check connection.** Press **Check connection** in step ①: the profile list reloads
+(no restart needed) and the account and ARN of the credentials appear. If the check fails,
+the guide opens with the error.
+
 ## Cloud Compile
 
 Step 1. Pick an **AWS profile** and a **region** (default `ap-northeast-2`). DX Cloud uses the

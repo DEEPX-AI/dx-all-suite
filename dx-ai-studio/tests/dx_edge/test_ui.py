@@ -38,6 +38,8 @@ def test_every_runtime_key_is_in_the_dictionary():
     state_msgs = js[js.index("var STATE_MSG"):js.index("};", js.index("var STATE_MSG"))]
     keys = set(re.findall(r"T\('([^']+)'\)", js)) | set(re.findall(r": '([^']+)'", state_msgs))
     keys |= {"pending", "running", "succeeded", "failed"}  # T(st.state)
+    step_text = js[js.index("var STEP_TEXT"):js.index("};", js.index("var STEP_TEXT"))]
+    keys |= set(re.findall(r": '([^']+)'", step_text))  # T(STEP_TEXT[st])
     for key in keys:
         assert key in d, key
 
@@ -58,6 +60,8 @@ def test_api_calls_are_relative_so_they_work_behind_the_launcher_proxy():
 
 def test_no_access_key_field_on_the_page():
     html = (APP / "templates/index.html").read_text(encoding="utf-8").lower()
+    # The setup guide shows the `aws configure` prompts as sample output; only fields count.
+    html = re.sub(r"<pre\b.*?</pre>", "", html, flags=re.S)
     for word in ("access key id", "secret", 'type="password"'):
         assert word not in html
 
@@ -121,3 +125,26 @@ def test_no_native_browser_dialogs():
     for fn in ("confirm(", "alert(", "prompt("):
         assert not re.search(r"(?<![\w.])" + re.escape(fn), js), fn
         assert "window." + fn not in js
+
+
+def test_aws_setup_guide_sits_in_step_one_with_one_linux_install_script():
+    html = (APP / "templates/index.html").read_text(encoding="utf-8")
+    step1 = html[html.index('id="edgeSetup"'):html.index('id="edgeTab-compiler"')]
+    assert 'id="edgeGuide"' in step1 and "<details" in step1 and 'id="edgeCheck"' in step1
+    assert step1.count('uname -m') == 1 and "awscli-exe-linux-${ARCH}.zip" in step1
+    for gone in ("AWSCLIV2.pkg", "AWSCLIV2.msi", "awscli-exe-linux-x86_64", "awscli-exe-linux-aarch64"):
+        assert gone not in step1, gone
+    for cmd in ("aws configure", "aws configure sso", "aws sso login --profile", "aws sts get-caller-identity"):
+        assert cmd in step1, cmd
+    assert step1.count('class="btn btn-sm btn-ghost edge-copy"') == step1.count('<div class="edge-cmd">')
+    assert "getting-started-install.html" in step1 and "cli-chap-configure.html" in step1
+    js = (APP / "static/js/edge.js").read_text(encoding="utf-8")
+    assert "api/aws/identity" in js and "$('edgeGuide').open = true" in js
+
+
+def test_compile_files_use_drop_zones_on_the_same_inputs():
+    html = (APP / "templates/index.html").read_text(encoding="utf-8")
+    for kind in KINDS:
+        for part, accept in (("Onnx", ".onnx"), ("Json", ".json")):
+            zone = html[html.index(f'id="edge{part}Drop-{kind}"'):]
+            assert zone.index(f'<input type="file" id="edge{part}-{kind}" accept="{accept}') < zone.index("</div>")
