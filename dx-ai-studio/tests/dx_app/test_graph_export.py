@@ -259,3 +259,8 @@ def test_any_failure_after_the_folder_is_made_removes_it_and_keeps_the_old_expor
     assert sorted(p.name for p in d.iterdir()) == ["old-{}".format(i) for i in range(graph_export.KEEP)]
     assert graph_export._lock.acquire(blocking=False)
     graph_export._lock.release()
+
+
+def test_the_upload_dirs_are_the_run_and_live_folders(fake):
+    from dx_app.core import graph_live
+    assert graph_export._UPLOAD_DIRS() == (graph_run.runs_dir(), graph_live.live_dir())

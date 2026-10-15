@@ -26,7 +26,7 @@ import time
 import zipfile
 from pathlib import Path
 
-from dx_app.core import config, graph_cli, graph_live, graph_run
+from dx_app.core import config, graph_cli, graph_run
 
 EXPORTER = Path("scripts") / "export_graph_project.py"
 SCHEMA = "export_graph_project 1"
@@ -115,11 +115,18 @@ def prepare(graph: dict, inputs=None) -> dict:
         except ValueError:
             raise Refused("invalid_input", f"source {n.get('id')!r}: {uri} is not an image or a video under the "
                                            "dx_app, sample, assets or outputs folders")
-        if any(_under(found, d) for d in (graph_run.runs_dir(), graph_live.live_dir())):
+        if any(_under(found, d) for d in _UPLOAD_DIRS()):
             raise Refused("invalid_input", f"source {n.get('id')!r}: {uri} is an upload kept by a run; an upload is "
                                            "not exported (pick a sample or keep the graph's own input)")
         n["uri"] = str(found)
     return out
+
+
+def _UPLOAD_DIRS() -> tuple:
+    """Where runs and Lives keep their uploads: graph_run.runs_dir() and graph_live.live_dir(), named here without
+    making them (a plan writes nothing)."""
+    graph = Path(config.OUTPUTS_DIR) / "graph"
+    return graph / "runs", graph / "live"
 
 
 def _under(path: Path, folder: Path) -> bool:

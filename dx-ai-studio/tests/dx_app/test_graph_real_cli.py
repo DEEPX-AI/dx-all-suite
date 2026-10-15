@@ -5,6 +5,7 @@ the run-once test does and needs DX_GRAPH_NPU=1.
 """
 from __future__ import annotations
 
+import json
 import os
 import time
 
@@ -156,3 +157,29 @@ def test_a_logic_template_runs_live_on_a_looping_video(tmp_path, monkeypatch):
         time.sleep(0.5)
     p = graph_live.poll(body["job_id"])
     assert p["running"] is False and p["stopped_by"] == "user" and p["errors"] == [], p
+
+
+def test_the_real_exporter_plans_a_template_without_writing(tmp_path, monkeypatch):
+    from dx_app.core import graph_export
+    if not graph_export.available():
+        pytest.skip("this dx_app has no scripts/export_graph_project.py")
+    monkeypatch.setattr(config, "OUTPUTS_DIR", tmp_path)
+    zone = [e for e in graph_catalog.examples() if e["id"] == "zone_intrusion"][0]["graph"]
+    body, code = graph_export.plan(zone)
+    assert code == 200, body
+    assert body["dry_run"] is True and [m["model"] for m in body["models"]] == ["yolov8-n_640x640"]
+    assert body["user_logic"] == [] and body["inputs"][0]["copied"] is True and body["source_bytes"] > 500_000
+    assert not any(tmp_path.iterdir())
+
+
+def test_the_real_check_and_exporter_both_refuse_a_keyword_name():
+    from dx_app.core import graph_export
+    g = json.loads(json.dumps(CASCADE))
+    g["nodes"].append({"id": "u", "type": "logic", "op": "user",
+                       "params": {"name": "class", "input": "boxes", "output": "boxes"}})
+    g["edges"].append({"from": "od", "to": "u", "carry": "result"})
+    v = graph_validate.validate(g)
+    assert [e["node"] for e in v["errors"]] == ["u"]                       # --check pins it on the node
+    if graph_export.available():
+        body, code = graph_export.plan(g)
+        assert (code, body["error_key"]) == (400, "user_name_invalid")
