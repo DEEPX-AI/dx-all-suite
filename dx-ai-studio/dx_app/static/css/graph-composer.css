@@ -114,6 +114,21 @@
 .gc-zone-warn{color:var(--status-warn)}
 .gc-zone-foot{display:flex;justify-content:flex-end;margin-top:var(--sp-3)}
 
+/* export a C++ project (graph-export.js) */
+.gc-export-modal{width:640px;max-width:96vw}
+.gc-export-check{display:flex;align-items:center;gap:var(--sp-2);margin-top:var(--sp-3);font-weight:600}
+.gc-export-head{margin:var(--sp-3) 0 var(--sp-1);font-size:var(--fs-sm)}
+.gc-export-table{width:100%;border-collapse:collapse;font-size:var(--fs-xs)}
+.gc-export-table td{padding:var(--sp-1);border-bottom:1px solid var(--border-subtle)}
+.gc-export-table td+td{text-align:right;white-space:nowrap}
+.gc-export-stubs{margin:0;padding-left:var(--sp-4);font-size:var(--fs-xs)}
+.gc-export-stubs code,.gc-export-cmd{font-family:var(--mono)}
+.gc-export-warn{color:var(--status-warn)}
+.gc-export-error,#gc-export-name-help.is-bad{color:var(--status-error-ink)}
+.gc-export-result{margin-top:var(--sp-3);padding:var(--sp-3);border-radius:var(--radius);background:var(--surface-sunken)}
+.gc-export-cmd{margin:var(--sp-2) 0 0;padding:var(--sp-2);border-radius:var(--radius-sm);background:var(--surface-panel);font-size:var(--fs-xs);overflow:auto}
+.gc-export-foot{display:flex;justify-content:flex-end;gap:var(--sp-2);margin-top:var(--sp-3)}
+
 /* run panel tabs, Live, events */
 .gc-tabs{display:flex;gap:var(--sp-1);margin-bottom:var(--sp-3);border-bottom:1px solid var(--border-subtle)}
 .gc-tab{display:inline-flex;align-items:center;gap:var(--sp-1);padding:var(--sp-2) var(--sp-3);background:transparent;border:0;border-bottom:2px solid transparent;color:var(--text-muted);font:inherit;font-weight:600;cursor:pointer}

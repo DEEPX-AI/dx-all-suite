@@ -14,7 +14,7 @@ JS = ROOT / "dx_app" / "static" / "js"
 PAGE_SCRIPTS = ("graph-composer.js", "graph-palette.js", "graph-inspector.js", "graph-run.js", "graph-live.js",
                 "graph-zone-editor.js")
 # Pure or component scripts: no language hook of their own (their owner re-renders them).
-COMPONENTS = ("graph-doc.js", "graph-zone.js", "graph-events.js", "graph-results.js")
+COMPONENTS = ("graph-doc.js", "graph-zone.js", "graph-events.js", "graph-results.js", "graph-export.js")
 
 
 def _page_html() -> str:
@@ -42,7 +42,8 @@ def test_nav_opens_the_composer():
                                     "gc-canvas-host", "gc-memory", "gc-inspector", "gc-inspector-body",
                                     "gc-run-panel", "gc-run-body", "gc-samples", "gc-live", "gc-tab-once",
                                     "gc-tab-live", "gc-live-body", "gc-zone-dialog", "gc-zone-title-text",
-                                    "gc-zone-body", "gc-zone-done"])
+                                    "gc-zone-body", "gc-zone-done", "gc-export-cpp", "gc-export-dialog",
+                                    "gc-export-title", "gc-export-body", "gc-export-go", "gc-export-close"])
 def test_the_template_has_every_region(region):
     assert f'id="{region}"' in _page_html()
 
@@ -61,7 +62,7 @@ def test_scripts_and_styles_load_in_order():
              "/static/js/graph-doc.js", "/static/js/graph-zone.js", "/static/js/graph-composer.js",
              "/static/js/graph-palette.js", "/static/js/graph-inspector.js", "/static/js/graph-events.js",
              "/static/js/graph-results.js", "/static/js/graph-run.js", "/static/js/graph-live.js",
-             "/static/js/graph-zone-editor.js", "/static/js/app.js"]
+             "/static/js/graph-zone-editor.js", "/static/js/graph-export.js", "/static/js/app.js"]
     positions = [html.index(s) for s in order]
     assert positions == sorted(positions)
     assert html.index("/static/shared/dx-components.css") < html.index("/static/shared/dx-graph-canvas.css")

@@ -575,6 +575,7 @@
       <button type="button" class="btn btn-ghost btn-sm" id="gc-validate"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#check"></use></svg> <span data-i18n="Validate">Validate</span></button>
       <button type="button" class="btn btn-primary btn-sm" id="gc-run" disabled><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#play"></use></svg> <span data-i18n="Run once">Run once</span></button>
       <button type="button" class="btn btn-neutral btn-sm" id="gc-live" disabled><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#camera"></use></svg> <span data-i18n="Live">Live</span></button>
+      <button type="button" class="btn btn-neutral btn-sm" id="gc-export-cpp" disabled><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#dev"></use></svg> <span data-i18n="Export C++ project">Export C++ project</span></button>
     </div>
   </div>
   <div class="gc-layout">
@@ -608,6 +609,16 @@
       <h2 id="gc-zone-title"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#logic-zone"></use></svg> <span id="gc-zone-title-text"></span></h2>
       <div id="gc-zone-body"></div>
       <div class="gc-zone-foot"><button type="button" class="btn btn-primary btn-sm" id="gc-zone-done" data-i18n="Done">Done</button></div>
+    </div>
+  </dialog>
+  <dialog class="modal-overlay" id="gc-export-dialog" aria-labelledby="gc-export-title">
+    <div class="modal gc-export-modal">
+      <h2 id="gc-export-title"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#dev"></use></svg> <span data-i18n="Export C++ project">Export C++ project</span></h2>
+      <div id="gc-export-body"></div>
+      <div class="gc-export-foot">
+        <button type="button" class="btn btn-ghost btn-sm" id="gc-export-close" data-i18n="Close">Close</button>
+        <button type="button" class="btn btn-primary btn-sm" id="gc-export-go" disabled>Export</button>
+      </div>
     </div>
   </dialog>
 </div>
@@ -903,6 +914,7 @@ document.querySelectorAll('.dx-tab').forEach(function (t) {
 <script src="/static/js/graph-run.js?m=dx_app"></script>
 <script src="/static/js/graph-live.js?m=dx_app"></script>
 <script src="/static/js/graph-zone-editor.js?m=dx_app"></script>
+<script src="/static/js/graph-export.js?m=dx_app"></script>
 <script src="/static/js/setup.js?m=dx_app"></script>
 <script src="/static/js/filebrowser.js?m=dx_app"></script>
 <script src="/static/js/app.js?m=dx_app"></script>

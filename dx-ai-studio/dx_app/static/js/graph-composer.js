@@ -3,7 +3,7 @@
    Palette, canvas, inspector, validation pins, the NPU memory bar, the run panel and projects around one dx_app
    graph. The server API is /api/graph/* (dx_app/core/graph_routes.py) with the Lab session token.
    Pieces: graph-doc.js (document model), graph-palette.js, graph-inspector.js, graph-run.js (run once) and
-   graph-results.js (its results view), graph-live.js (Live), graph-events.js (event lists), graph-zone.js + graph-zone-editor.js (zones and lines); the
+   graph-results.js (its results view), graph-live.js (Live), graph-events.js (event lists), graph-zone.js + graph-zone-editor.js (zones and lines), graph-export.js (the C++ project export dialog); the
    canvas is shared/static/dx-graph-canvas.js. While a run or a Live goes, its per-node time and event counts tint and
    badge the nodes (observe()). Contract: tests/dx_app/test_graph_composer_page.py,
    tests/dx_app/test_graph_composer_browser.py */
@@ -96,7 +96,9 @@ window.GraphComposer = (function () {
     },
     versions: function (id) { return call('GET', '/api/graph/project/versions?id=' + encodeURIComponent(id)); },
     save: function (id, project) { return call('POST', '/api/graph/project/save', { id: id, project: project }); },
-    remove: function (id) { return call('POST', '/api/graph/project/delete', { id: id }); }
+    remove: function (id) { return call('POST', '/api/graph/project/delete', { id: id }); },
+    exportPlan: function (body) { return call('POST', '/api/graph/export/plan', body); },
+    exportProject: function (body) { return call('POST', '/api/graph/export', body); }
   };
 
   /* ── the graph ── */
@@ -220,10 +222,22 @@ window.GraphComposer = (function () {
 
   function canRun() { return runnable() && !busy(); }
 
+  /* Export needs dx_app's exporter and a graph that checks clean; a missing model is fine (setup.sh fetches it). */
+  function canExport() {
+    var caps = (st.catalog && st.catalog.capabilities) || {};
+    return !!(caps.export && st.check && st.check.ok && !unusableCount() && st.cv.getGraph().nodes.length);
+  }
+
   function updateStatus() {
     var g = st.cv.getGraph(), run = $id('gc-run'), live = $id('gc-live');
     if (run) run.disabled = !canRun();
     if (live) live.disabled = !canRun();
+    var ex = $id('gc-export-cpp');
+    if (ex) {
+      ex.disabled = !canExport();
+      if (ex.disabled) ex.title = T('Export needs a graph without problems and a dx_app that can export projects.');
+      else ex.removeAttribute('title');
+    }
     if (st.catalog && st.catalog.available === false) {
       setStatus('error', T('The graph runner is not built. Build dx_app (./build.sh) to use the Graph Composer.'));
       return;
@@ -506,6 +520,7 @@ window.GraphComposer = (function () {
     $id('gc-validate').addEventListener('click', validateNow);
     $id('gc-run').addEventListener('click', function () { selectRunTab('once'); if (window.GraphRun) GraphRun.start(); });
     $id('gc-live').addEventListener('click', function () { selectRunTab('live'); if (window.GraphLive) GraphLive.start(); });
+    $id('gc-export-cpp').addEventListener('click', function () { if (window.GraphExport) GraphExport.open(); });
     ['once', 'live'].forEach(function (name) {
       var tab = $id('gc-tab-' + name);
       tab.addEventListener('click', function () { selectRunTab(name); });
@@ -551,6 +566,7 @@ window.GraphComposer = (function () {
     if (window.GraphLive) GraphLive.leave();
     var dlg = $id('gc-zone-dialog');
     if (dlg && dlg.open) dlg.close();
+    if (window.GraphExport) GraphExport.close();
   }
 
   async function open() {
@@ -576,6 +592,7 @@ window.GraphComposer = (function () {
       });
       if (window.GraphRun) GraphRun.mount($id('gc-run-body'), ctx());
       if (window.GraphLive) GraphLive.mount($id('gc-live-body'), ctx());
+      if (window.GraphExport) GraphExport.mount(ctx());
       selectRunTab(st.runTab);
       if (!restoreDraft()) { renderInspector(); updateStatus(); }
       await refreshProjects();
@@ -598,6 +615,7 @@ window.GraphComposer = (function () {
     refreshProjects();
     if (window.GraphRun) GraphRun.refreshLanguage();
     if (window.GraphLive) GraphLive.refreshLanguage();
+    if (window.GraphExport) GraphExport.refreshLanguage();
   }
 
   if (typeof registerLangRefresher === 'function') {
