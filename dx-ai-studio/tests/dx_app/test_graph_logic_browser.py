@@ -967,6 +967,28 @@ def test_a_live_whose_poll_fails_is_stopped_on_the_server(ui):
     assert stops == [{"id": "L1"}], fake.posted
 
 
+def test_a_gallery_name_already_taken_says_so_and_another_name_builds(ui):
+    page, _ = ui
+    fake = FakeGallery(result=GALLERY_DONE)
+    taken = lambda r: r.fulfill(status=409, content_type="application/json", body=json.dumps(
+        {"error": "a gallery named staff already exists; pick another name", "error_key": "gallery_exists"}))
+    _gallery_page(page, fake)
+    page.context.route("**/api/graph/gallery/build", taken)        # registered last: it answers the build
+    page.evaluate("DXI18n.setLang('ko')")
+    page.evaluate("GraphComposer.canvas().select({nodes: ['od']}); GraphComposer.canvas().select({nodes: ['known']})")
+    page.locator(f"{_GB} input").nth(0).fill("sample/people")
+    page.locator(f"{_GB} input").nth(2).fill("staff")
+    page.click(f"{_GB} button.btn-neutral")
+    page.wait_for_selector(f"{_GB} .gc-gallery-status.gc-error", timeout=10000)
+    text = page.inner_text(f"{_GB} .gc-gallery-status")
+    assert "같은 이름의 Gallery가 이미 있습니다" in text, text
+    page.context.unroute("**/api/graph/gallery/build", taken)
+    page.locator(f"{_GB} input").nth(2).fill("staff2")
+    page.click(f"{_GB} button.btn-neutral")
+    page.wait_for_selector(f"{_GB} .gc-gallery-status:not(.gc-error)", timeout=10000)
+    page.evaluate("DXI18n.setLang('en')")
+
+
 @pytest.mark.parametrize("reserved", ["base", "events"])
 def test_a_node_cannot_be_named_after_a_layer_file(ui, reserved):
     """dx_app's --output-layers writes <frame>_base.png and <frame>_events.png; --check refuses nodes with those ids."""

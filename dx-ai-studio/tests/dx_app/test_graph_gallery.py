@@ -340,3 +340,37 @@ def test_the_builder_runs_in_the_dx_rt_runtime_python(monkeypatch):
     monkeypatch.setattr(config, "_RUNTIME_PYTHONPATH", "/opt/dx_engine", raising=False)
     assert graph_gallery._python() == "/opt/venv-dx-runtime/bin/python3"
     assert graph_gallery._env()["PYTHONPATH"].split(":")[0] == "/opt/dx_engine"
+
+
+def test_a_gallery_is_never_built_over_one_that_exists(studio):
+    """A second build with the same name is refused at once (gallery_exists), so a gallery a graph uses is never
+    replaced by surprise; the page shows why and another name builds."""
+    first, code = _build("sample/gallery/staff", MODEL, name="staff")
+    assert (code, first["state"]) == (200, "done"), first
+    before = Path(first["path"]).read_bytes()
+    calls = len(_calls(studio))
+    body, code = graph_gallery.start("sample/gallery/staff", MODEL, name="staff")
+    assert (code, body["error_key"]) == (409, "gallery_exists") and "staff" in body["error"], body
+    assert len(_calls(studio)) == calls and npu_jobs.busy() is None, "refused before the builder starts"
+    assert Path(first["path"]).read_bytes() == before
+    other, code = _build("sample/gallery/staff", MODEL, name="staff2")
+    assert (code, other["state"]) == (200, "done"), other
+
+
+def test_a_gallery_that_appears_while_building_is_not_overwritten(studio, monkeypatch):
+    """The name was free at start, but a file of that name is there when the build ends: the build fails with
+    gallery_exists and the file stays as it is."""
+    monkeypatch.setenv("FAKE_SLEEP", "0.5")
+    body, code = graph_gallery.start("sample/gallery/staff", MODEL, name="race")
+    assert code == 200, body
+    target = graph_gallery.galleries_dir() / "race.bin"
+    target.write_bytes(b"someone else's")
+    end = time.time() + 20
+    while time.time() < end:
+        p, _ = graph_gallery.poll(body["job_id"])
+        if p["state"] != "running":
+            break
+        time.sleep(0.05)
+    assert (p["state"], p["error_key"]) == ("failed", "gallery_exists"), p
+    assert target.read_bytes() == b"someone else's"
+    assert not list(graph_gallery.galleries_dir().glob(".race.*")), "the temporary file is removed"

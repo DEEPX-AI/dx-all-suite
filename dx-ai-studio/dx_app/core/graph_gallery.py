@@ -19,10 +19,12 @@ page, or when the server shuts down; the hold ends with it. The file goes to out
       200 {job_id, state: "running", elapsed, images}
       200 {job_id, state: "done", elapsed, path, gallery, url, name, model, images, people, names, dim, log_tail}
       200 {job_id, state: "failed", elapsed, error, error_key, log_tail}
-          error_key gallery_build_failed | gallery_timeout | gallery_stopped
+          error_key gallery_build_failed | gallery_timeout | gallery_stopped | gallery_exists
       404 {error: "unknown_job", error_key: "unknown_job"}
     POST /api/graph/gallery/stop {id}   200 {status: "stopping" | "no_process"}
 
+A gallery is never built over one that exists: a name already taken is refused at start (409 gallery_exists), and a
+file of that name that appears while building fails the build with the same key, the file left as it is.
 A finished build is kept _DONE_TTL seconds (at most _KEEP_DONE of them) for the page to poll.
 Contract: tests/dx_app/test_graph_gallery.py
 """
@@ -194,6 +196,8 @@ def start(folder, model, name=None) -> tuple:
         return _err("runtime_python_missing", "the DX-RT runtime Python (venv-dx-runtime) was not found", 409)
     stem = name or re.sub(r"[^A-Za-z0-9_.-]", "_", f"{src.name}_{model}")[:64].lstrip(".") or "gallery"
     out_dir = galleries_dir()
+    if (out_dir / f"{stem}.bin").exists():
+        return _exists(stem)
 
     job_id = uuid.uuid4().hex
     holder = npu_jobs.acquire("gallery", job_id)
@@ -225,6 +229,26 @@ def start(folder, model, name=None) -> tuple:
         _jobs[job_id] = job
     threading.Thread(target=_run, args=(job,), daemon=True, name=f"graph-gallery-{job_id[:8]}").start()
     return {"job_id": job_id, "status": "started", "images": len(images)}, 200
+
+
+def _exists(stem: str) -> tuple:
+    return _err("gallery_exists", f"a gallery named {stem} already exists; pick another name", 409)
+
+
+def _place(job: dict) -> None:
+    """The built file under its name, never over a file of that name (os.replace would replace it): a hard link,
+    which fails when the name is taken; where links are not supported, a check, then a rename."""
+    try:
+        os.link(job["tmp"], job["final"])
+        return
+    except FileExistsError:
+        pass
+    except OSError:
+        if not job["final"].exists():
+            os.replace(job["tmp"], job["final"])
+            return
+    body, _ = _exists(job["stem"])
+    raise _Refused(body["error_key"], body["error"])
 
 
 def _cleanup(job: dict) -> None:
@@ -261,10 +285,12 @@ def _run(job: dict) -> None:
                                                  if proc.returncode else "the builder wrote no gallery file")
                 result = {"state": "failed", "error_key": "gallery_build_failed", "error": why, "log_tail": tail}
             else:
-                os.replace(job["tmp"], job["final"])
+                _place(job)
                 url = "/outputs/" + job["final"].relative_to(Path(config.OUTPUTS_DIR)).as_posix()
                 result = {"state": "done", "path": str(job["final"]), "gallery": str(job["final"]), "url": url,
                           "name": job["stem"], **summary, "log_tail": tail}
+    except _Refused as e:
+        result = {"state": "failed", "error_key": e.key, "error": str(e), "log_tail": log[-_LOG_TAIL:]}
     except Exception as e:                      # the build must end in a state the page can read
         result = {"state": "failed", "error_key": "gallery_build_failed", "error": str(e), "log_tail": log[-_LOG_TAIL:]}
     finally:

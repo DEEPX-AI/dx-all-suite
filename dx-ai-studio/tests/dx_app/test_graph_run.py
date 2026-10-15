@@ -6,6 +6,8 @@ import json
 import threading
 import time
 
+from pathlib import Path
+
 import pytest
 
 from dx_app.core import config, graph_run
@@ -611,6 +613,31 @@ def test_a_run_remembers_its_graph_and_inputs_for_a_later_frame(studio, monkeypa
     saved = json.loads((config.OUTPUTS_DIR / "graph" / "runs" / jid / "run.json").read_text())
     assert saved["graph"] == FANOUT and saved["variant"] == "async"
     assert saved["inputs"]["cam"].endswith(f"{jid}/input_cam.png")
+
+
+def _gallery_graph(path):
+    return dict(GRAPH, nodes=GRAPH["nodes"] + [{"id": "known", "type": "logic", "op": "gallery",
+                                                "params": {"gallery": path, "threshold": 0.7}}])
+
+
+@pytest.mark.parametrize("gallery", ["/etc/passwd", "../../secrets/g.bin", "sample/../../x.bin", "/tmp/../etc/g.bin"])
+def test_a_gallery_outside_the_input_roots_is_refused(studio, monkeypatch, gallery):
+    """The gallery op's file is read by the runner (and by --check): only under the input roots, as an input."""
+    graph_fakes.install(studio, monkeypatch, RUNNER)
+    body, code = graph_run.start(_gallery_graph(gallery))
+    assert (code, body["error_key"]) == (400, "gallery_outside_roots"), body
+    assert gallery in body["error"]
+    from dx_app.core import npu_jobs
+    assert npu_jobs.busy() is None and not graph_run._jobs
+
+
+def test_a_gallery_under_the_input_roots_runs(studio, monkeypatch):
+    graph_fakes.install(studio, monkeypatch, RUNNER)
+    built = Path(config.OUTPUTS_DIR) / "graph" / "galleries" / "staff.bin"
+    for gallery in ("sample/gallery/not_built_yet.bin", str(built)):
+        body, code = graph_run.start(_gallery_graph(gallery))
+        assert code == 200, body
+        _wait(body["job_id"])
 
 
 def test_a_result_that_cannot_be_read_still_ends_the_run(studio, monkeypatch):

@@ -232,6 +232,30 @@ def _terminate(proc, grace=None) -> None:
         proc.kill()
 
 
+def gallery_problem(graph: dict):
+    """(node id, why) of the first node whose "gallery" param cannot be handed to dx_app, or None. The runner (and
+    --check) opens that file, read against the dx_app root unless absolute; it has to lie under the input roots (the
+    galleries Studio builds are in outputs). It may not exist yet: dx_app says so on its node."""
+    roots = [Path(r).resolve() for r in input_roots()]
+    for n in graph.get("nodes") or []:
+        params = n.get("params") if isinstance(n, dict) else None
+        if not isinstance(params, dict) or "gallery" not in params:
+            continue
+        g = params["gallery"]
+        if isinstance(g, str) and not g.strip():
+            continue                            # not set yet: dx_app's check names the missing param
+        real = None
+        if isinstance(g, str):
+            try:
+                real = (Path(g) if Path(g).is_absolute() else Path(config.DX_APP_ROOT) / g).resolve()
+            except (OSError, RuntimeError, ValueError):
+                real = None
+        if real is None or not any(real == r or real.is_relative_to(r) for r in roots):
+            return n.get("id"), f"node {n.get('id')!r}: the gallery {g} is outside the dx_app, sample, assets and " \
+                                "outputs folders"
+    return None
+
+
 def _int_in(value, lo, hi, label):
     if value in (None, ""):
         return None
@@ -276,6 +300,9 @@ def start(graph: dict, *, variant="sync", inputs=None, uploads=None, max_infligh
     if bad:
         return {"error": f"source id {bad[0]!r} must be 1-64 letters, digits, '_', '.' or '-'",
                 "error_key": "invalid_source_id"}, 400
+    problem = gallery_problem(graph)
+    if problem:
+        return {"error": problem[1], "error_key": "gallery_outside_roots", "node": problem[0]}, 400
     job_id = uuid.uuid4().hex
     root = inspect_dir() if inspect else runs_dir()
     d = root / job_id

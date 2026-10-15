@@ -179,6 +179,13 @@ def validate(graph: dict) -> dict:
         return _studio_error("STUDIO_INVALID", "the graph must be an object with a nodes list")
     if len(graph["nodes"]) > MAX_NODES:
         return _studio_error("STUDIO_INVALID", f"a graph may have at most {MAX_NODES} nodes")
+    from dx_app.core import graph_run            # graph_run imports this module
+    problem = graph_run.gallery_problem(graph)
+    if problem:
+        res = _studio_error("GALLERY_OUTSIDE_ROOTS", problem[1], "build the gallery in Studio, or put the .bin "
+                            "under the dx_app, sample, assets or outputs folders")
+        res["errors"][0]["node"] = problem[0]
+        return res
     if graph_cli.available() is None:
         res = _studio_error("GRAPH_BINARY_MISSING", "multi_model_graph_sync is not built",
                             "build dx_app (./build.sh)")

@@ -355,3 +355,13 @@ def test_old_live_folders_are_pruned_but_never_the_running_one(studio, monkeypat
         graph_live.stop(jid)
         _poll_until(jid, lambda p: not p["running"])
     assert sorted(p.name for p in graph_live.live_dir().iterdir()) == sorted(ids[-2:])
+
+
+@pytest.mark.parametrize("gallery", ["/etc/passwd", "../../secrets/g.bin", "sample/../../x.bin"])
+def test_a_gallery_outside_the_input_roots_is_refused(studio, monkeypatch, gallery):
+    graph_fakes.install(studio["tmp"], monkeypatch, LIVE_RUNNER)
+    g = dict(GRAPH, nodes=GRAPH["nodes"] + [{"id": "known", "type": "logic", "op": "gallery",
+                                             "params": {"gallery": gallery}}])
+    body, code = graph_live.start(g)
+    assert (code, body["error_key"]) == (400, "gallery_outside_roots") and npu_jobs.busy() is None, body
+    assert not any("--graph" in c for c in graph_fakes.calls(studio["tmp"]))

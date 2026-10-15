@@ -165,3 +165,15 @@ def test_a_json_row_dx_rt_cannot_load_is_unusable_as_unloadable():
     r = graph_validate.parse_check_json(__import__("json").dumps(doc), {"nodes": []})
     assert r["unusable"] == {"od": "unloadable"} and r["missing"] == []
     assert "unloadable" in graph_validate.parse_check_json.__doc__
+
+
+def test_a_gallery_outside_the_input_roots_is_not_handed_to_check(tmp_path, monkeypatch):
+    """--check opens a gallery op's file as the run does: a path outside the input roots is refused on its node."""
+    graph_fakes.install(tmp_path, monkeypatch, graph_fakes.JSON_CLI)
+    g = {"version": 1, "name": "g", "nodes": [{"id": "cam", "type": "source", "uri": "x.jpg"},
+                                              {"id": "known", "type": "logic", "op": "gallery",
+                                               "params": {"gallery": "/etc/passwd"}}], "edges": []}
+    r = graph_validate.validate(g)
+    assert r["ok"] is False and r["errors"][0]["code"] == "GALLERY_OUTSIDE_ROOTS", r
+    assert r["errors"][0]["node"] == "known" and "/etc/passwd" in r["errors"][0]["what"]
+    assert not [c for c in graph_fakes.calls(tmp_path) if "--check" in c]

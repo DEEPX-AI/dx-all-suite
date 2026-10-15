@@ -4392,6 +4392,16 @@ window._DX_I18N_DICT = {
     'zh-CN': '正在构建图库', 'zh-TW': '正在建立圖庫',
     es: 'Ya se está creando una galería',
   },
+  'gallery_exists': {
+    ko: '같은 이름의 Gallery가 이미 있습니다. 다른 이름을 입력하세요', ja: '同じ名前のギャラリーがすでにあります。別の名前を入力してください',
+    'zh-CN': '已有同名图库，请输入其他名称', 'zh-TW': '已有同名圖庫，請輸入其他名稱',
+    es: 'Ya existe una galería con ese nombre; escriba otro',
+  },
+  'gallery_outside_roots': {
+    ko: 'Gallery 파일이 dx_app, sample, assets, outputs 폴더 밖에 있습니다', ja: 'ギャラリーファイルが dx_app・sample・assets・outputs フォルダーの外にあります',
+    'zh-CN': '图库文件不在 dx_app、sample、assets、outputs 文件夹内', 'zh-TW': '圖庫檔案不在 dx_app、sample、assets、outputs 資料夾內',
+    es: 'El archivo de la galería está fuera de las carpetas dx_app, sample, assets y outputs',
+  },
   'graph_run_busy': {
     ko: '그래프 실행이 진행 중입니다. 끝날 때까지 기다리세요', ja: 'グラフの実行中です。終わるまでお待ちください',
     'zh-CN': '图正在运行，请等待其结束', 'zh-TW': '圖正在執行，請等待其結束',

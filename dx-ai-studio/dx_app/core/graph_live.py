@@ -150,6 +150,9 @@ def start(graph: dict, *, variant="sync", inputs=None, max_inflight=None, draw=N
     if any(not isinstance(s.get("id"), str) or not graph_run._SOURCE_ID.fullmatch(s["id"]) for s in sources):
         return {"error": "source ids must be 1-64 letters, digits, '_', '.' or '-'",
                 "error_key": "invalid_source_id"}, 400
+    problem = graph_run.gallery_problem(graph)
+    if problem:
+        return {"error": problem[1], "error_key": "gallery_outside_roots", "node": problem[0]}, 400
     missing = _deps_missing()
     if missing:
         return {"error": "Live needs: " + ", ".join(missing), "error_key": "live_deps_missing"}, 409

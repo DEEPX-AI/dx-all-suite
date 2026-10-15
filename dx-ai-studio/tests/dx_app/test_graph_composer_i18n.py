@@ -208,3 +208,17 @@ def test_the_font_subsets_draw_every_glyph_of_the_logic_texts(op_texts):
                     ch for ch in x if is_cjk(ord(ch)) and not any(ord(ch) in cmaps[f] for f in CHAIN[k]))
     walk(op_texts)
     assert not {k: v for k, v in missing.items() if v}, missing
+
+
+# Error keys of the graph routes that the page shows through the dictionary (translatedError: the key's text, then the
+# server's English message), not through a sentence of its own in graph-run.js / graph-live.js / graph-inspector.js.
+DICTIONARY_ERROR_KEYS = ("invalid_stream", "gallery_exists", "gallery_outside_roots", "frame_too_large",
+                         "gallery_busy", "invalid_folder", "invalid_slot")
+
+
+@pytest.mark.parametrize("key", DICTIONARY_ERROR_KEYS)
+def test_graph_error_keys_read_in_every_language(key):
+    entry = dict_entry(key)
+    lacking = [lang for lang in TARGET_LANGS if f"{lang}:" not in entry and f"'{lang}':" not in entry]
+    assert entry and not lacking, (key, lacking)
+    assert not [w for w in _P2_HANGUL_SPELLINGS if w in _ko(entry)], _ko(entry)
