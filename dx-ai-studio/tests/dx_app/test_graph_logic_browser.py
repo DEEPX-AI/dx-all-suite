@@ -790,6 +790,30 @@ def test_two_sources_sit_side_by_side_labelled_and_a_cell_enlarges_and_closes_wi
     assert not errors, errors
 
 
+def test_the_results_and_events_follow_a_language_change(browser, server):
+    """The results grid and its dialog, and the event list, speak the new language (their owners re-render them through
+    each component's refreshLanguage); the dialog is built again, its close button included."""
+    fake = FakeApi(outputs=TWO_OUTPUTS)
+    ctx, page, errors = _page(browser, server, fake)
+    try:
+        _run_once(page)
+        page.click("#gc-run-results [data-stream='cam1'] .gc-res-base")
+        page.wait_for_selector(".gc-res-dialog[open]")
+        assert page.get_attribute(".gc-res-dialog .gc-res-close", "aria-label") == "Close"
+        page.evaluate("DXI18n.setLang('ko')")
+        page.wait_for_selector(".gc-res-dialog[open]", state="detached")
+        assert page.get_attribute("#gc-run-results [data-stream='cam2'] .gc-res-grow", "aria-label") != "Enlarge cam2"
+        page.click("#gc-run-results [data-stream='cam1'] .gc-res-base")
+        page.wait_for_selector(".gc-res-dialog[open]")
+        assert page.get_attribute(".gc-res-dialog .gc-res-close", "aria-label") == "닫기"
+        assert "events" not in page.inner_text("#gc-run-events .gc-ev-summary")
+        page.keyboard.press("Escape")
+        page.evaluate("DXI18n.setLang('en')")
+    finally:
+        ctx.close()
+    assert not errors, errors
+
+
 def test_the_layers_of_one_frame_align_and_toggle_per_node(browser, server):
     fake = FakeApi(outputs=FANOUT_OUTPUTS)
     ctx, page, errors = _page(browser, server, fake)

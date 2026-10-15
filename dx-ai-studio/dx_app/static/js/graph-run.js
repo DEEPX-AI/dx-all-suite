@@ -229,7 +229,7 @@ window.GraphRun = (function () {
       results = GraphResults.create(host, c, { canInspect: canInspect, inspect: inspectFrame, errorText: frameError });
     } else results.attach(host);
     /* The same run drawn again (a language change) keeps its toggles and the frames taken from its videos. */
-    if (shown === r) results.render();
+    if (shown === r) results.refreshLanguage();
     else results.set(r.outputs || [], { runId: r.run_id || null });
     shown = r;
     events.set(r.events || [], { total: r.event_total, truncated: r.events_truncated, partial: r.events_partial,
@@ -288,7 +288,7 @@ window.GraphRun = (function () {
     els.start.disabled = !!job;
     els.stop.disabled = !job;
     if (c.state.run) renderResult(c.state.run);
-    else events.render();
+    else events.refreshLanguage();
   }
 
   if (typeof registerLangRefresher === 'function') {

@@ -263,7 +263,7 @@ window.GraphLive = (function () {
     mount(root, c);
     els.mode.value = mode;
     if (job) { els.status.textContent = status; if (job.frame) showView(); }
-    events.render();
+    events.refreshLanguage();
   }
 
   if (typeof registerLangRefresher === 'function') {

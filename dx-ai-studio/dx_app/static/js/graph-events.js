@@ -166,7 +166,9 @@ window.GraphEvents = (function () {
       /* Draw into another element (the owner rebuilt its panel). */
       attach: function (el) { host = el; render(); },
       state: function () { return st; },
-      render: render
+      render: render,
+      /* A language change: the owner (graph-run.js, graph-live.js) asks for the list in the new language. */
+      refreshLanguage: render
     };
     return api;
   }

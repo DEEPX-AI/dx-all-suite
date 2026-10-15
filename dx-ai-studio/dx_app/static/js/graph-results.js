@@ -351,7 +351,13 @@ window.GraphResults = (function () {
       },
       runId: function () { return st.runId; },
       state: function () { return st; },
-      render: render
+      render: render,
+      /* A language change (graph-run.js asks): the grid is drawn again and the dialog built again on its next open,
+         so its close button speaks the new language too. */
+      refreshLanguage: function () {
+        if (dlg) { if (dlg.open) dlg.close(); dlg.remove(); dlg = null; }
+        render();
+      }
     };
     return api;
   }
