@@ -154,3 +154,22 @@ def test_writing_a_preview_replaces_only_its_own_files(tmp_path):
     (out / "notes.txt").write_text("keep")
     thumbs.write_preview(_run_result(outputs), outputs, out)
     assert not (out / "old_cam9.jpg").exists() and (out / "notes.txt").read_text() == "keep"
+
+
+def test_the_shipped_tutorial_preview_is_a_complete_recorded_run():
+    """dx_app/static/img/graph-tutorial/ (Task 4 of the Phase 4 plan): multistream_people_count on its samples."""
+    doc = json.loads((thumbs.TUTORIAL_DIR / "preview.json").read_text(encoding="utf-8"))
+    assert doc["preview"] is True and doc["ok"] is True and doc["run_id"] is None
+    assert [o["stream"] for o in doc["outputs"]] == ["cam1", "cam2"]
+    assert all(o["layers"]["layers"] for o in doc["outputs"]), "every cell has its layers"
+    assert any(e["stream"] == "cam2" and e["event"] == "crowded" for e in doc["events"])
+    urls = [u for o in doc["outputs"] for u in [o["url"], o["layers"]["base"]] + [l["url"] for l in o["layers"]["layers"]]]
+    for u in urls:
+        assert u.startswith(thumbs.TUTORIAL_URL) and (thumbs.TUTORIAL_DIR / u[len(thumbs.TUTORIAL_URL):]).is_file(), u
+    assert sum(p.stat().st_size for p in thumbs.TUTORIAL_DIR.iterdir()) < 600 * 1024
+
+
+def test_the_new_templates_have_their_thumbnails():
+    from dx_app.core import graph_catalog
+    for ex_id in ("driver_attention", "multistream_people_count", "logistics_volume_alert"):
+        assert (graph_catalog.THUMBS_DIR / f"{ex_id}.jpg").is_file(), ex_id
