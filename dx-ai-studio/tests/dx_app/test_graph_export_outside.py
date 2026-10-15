@@ -63,3 +63,38 @@ def test_an_export_builds_and_runs_outside_the_suite(capsys):
         pytest.skip(out.strip().splitlines()[-1])
     assert code == 0 and "RESULT: PASS" in out, out
     assert not Path("/dev/shm/gc-export-check-pytest").exists()
+
+
+def test_the_work_folder_is_never_above_the_suite_or_someone_elses(tmp_path, capsys):
+    """The check removes its work folder: it may be neither the suite's parent nor a folder it did not make."""
+    assert not check.outside_suite(SUITE_ROOT.parent) and not check.outside_suite(Path("/"))
+    assert check.main(["--work", str(SUITE_ROOT.parent)]) == 1
+    theirs = tmp_path / "theirs"
+    theirs.mkdir()
+    (theirs / "keep.txt").write_text("not the check's")
+    assert check.main(["--work", str(theirs)]) == 1
+    assert (theirs / "keep.txt").is_file() and "RESULT: FAIL" in capsys.readouterr().out
+
+
+def test_a_crash_in_a_step_still_ends_in_a_result_line(capsys):
+    def boom():
+        raise FileNotFoundError("results/events.jsonl")
+    with pytest.raises(check.Failed):
+        check._step("compare", boom)
+    assert "FAIL compare: results/events.jsonl" in capsys.readouterr().out
+
+
+def test_leaks_reads_both_spellings_of_a_linked_suite(tmp_path):
+    real = tmp_path / "real"
+    real.mkdir()
+    link = tmp_path / "link"
+    link.symlink_to(real)
+    (tmp_path / "p").mkdir()
+    (tmp_path / "p" / "a.txt").write_text("cd {}/x\n".format(real))
+    assert check.leaks_of(tmp_path / "p", link) == ["a.txt"]
+
+
+def test_the_studio_run_uses_the_executor_run_sh_uses():
+    """run.sh with no options runs the async executor (cli::ProjectArgs); Studio's run must too."""
+    import inspect
+    assert 'variant="async"' in inspect.getsource(check.compare_step)

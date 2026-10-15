@@ -9,8 +9,8 @@ project where nothing of the suite can be seen, and compare it with Studio's own
               file of the project may name the suite's path
   3. build    setup.sh with a clean environment (PATH=/usr/local/bin:/usr/bin:/bin, HOME, LANG): the DEEPX runtime,
               CMake, a compiler and OpenCV, nothing else; the program may not name the suite's path either
-  4. compare  (--npu) run.sh, then Studio's own run of CHECK_GRAPH (graph_run, the sync executor): the same events, and
-              result images within a mean difference of 0.5 per channel
+  4. compare  (--npu) run.sh, then Studio's own run of CHECK_GRAPH (graph_run, the async executor, as run.sh uses):
+              the same events, and result images within a mean difference of 0.5 per channel
 Prints "PASS <step>" per step and "RESULT: PASS" (exit 0); on a failure "FAIL <step>: <why>" and "RESULT: FAIL" (exit
 1). "RESULT: SKIP <why>" (exit 0) when the dx_app build cannot export or yolov8-n_640x640.dxnn is not downloaded.
 DIR is removed at the end unless --keep. Contract: tests/dx_app/test_graph_export_outside.py
@@ -26,12 +26,8 @@ import sys
 import zipfile
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
-
-from dx_app.core import config, graph_cli, graph_export, graph_run  # noqa: E402
-from shared.paths import SUITE_ROOT  # noqa: E402
+from dx_app.core import config, graph_cli, graph_export, graph_run
+from shared.paths import SUITE_ROOT
 
 NAME = "check-user-zone"
 PROGRAM = "check_user_zone"
@@ -93,8 +89,17 @@ def unzip(zip_path: Path, dest: Path) -> None:
 
 
 def outside_suite(path: Path) -> bool:
+    """Neither the suite, nor inside it, nor one of the folders that hold it (the check removes its work folder)."""
     real, suite = Path(path).resolve(), SUITE_ROOT.resolve()
-    return real != suite and suite not in real.parents
+    return real != suite and suite not in real.parents and real not in suite.parents
+
+
+MARKER = ".gc-export-check"     # written into the work folder: only a folder holding it is removed and reused
+
+
+def leaks_of(folder: Path, root: Path) -> list:
+    """leaks() for each spelling of `root`: as given and with its links resolved."""
+    return sorted({hit for needle in {str(root), str(Path(root).resolve())} for hit in leaks(folder, needle)})
 
 
 def _step(name: str, fn):
@@ -103,6 +108,9 @@ def _step(name: str, fn):
     except Failed as e:
         print(f"FAIL {name}: {e}", flush=True)
         raise
+    except Exception as e:      # a timeout, a missing result file: still one FAIL line and RESULT: FAIL
+        print(f"FAIL {name}: {e}", flush=True)
+        raise Failed(str(e)) from e
     print(f"PASS {name}", flush=True)
     return out
 
@@ -119,7 +127,7 @@ def unzip_step(body: dict, work: Path) -> Path:
     zip_path = Path(config.OUTPUTS_DIR) / body["zip_url"][len("/outputs/"):]
     unzip(zip_path, work / "unzipped")
     project = work / "unzipped" / NAME
-    found = leaks(project, str(SUITE_ROOT))
+    found = leaks_of(project, SUITE_ROOT)
     if found:
         raise Failed("these files name the suite's path: " + ", ".join(found))
     return project
@@ -133,7 +141,8 @@ def build_step(project: Path) -> Path:
     program = project / "build" / PROGRAM
     if not program.is_file():
         raise Failed(f"{program} was not built")
-    if str(SUITE_ROOT).encode() in program.read_bytes():
+    data = program.read_bytes()
+    if any(p.encode() in data for p in {str(SUITE_ROOT), str(SUITE_ROOT.resolve())}):
         raise Failed("the program names the suite's path")
     return program
 
@@ -147,7 +156,8 @@ def compare_step(project: Path) -> None:
                        timeout=600)
     if r.returncode != 0:
         raise Failed("run.sh: " + (r.stdout + r.stderr)[-2000:])
-    started, code = graph_run.start(CHECK_GRAPH)
+    # run.sh with no options runs the async executor (dx_app's cli::ProjectArgs), so Studio's run does too.
+    started, code = graph_run.start(CHECK_GRAPH, variant="async")
     if code != 200:
         raise Failed(f"Studio's run did not start: {started.get('error')}")
     result = graph_run.wait(started["job_id"], 300)
@@ -175,7 +185,10 @@ def main(argv=None) -> int:
     args = ap.parse_args(argv)
     work = Path(args.work)
     if not outside_suite(work):
-        print(f"FAIL setup: --work {work} is inside the suite\nRESULT: FAIL")
+        print(f"FAIL setup: --work {work} is the suite, inside it or above it\nRESULT: FAIL")
+        return 1
+    if work.exists() and (not work.is_dir() or (any(work.iterdir()) and not (work / MARKER).is_file())):
+        print(f"FAIL setup: --work {work} exists and is not a folder this check made\nRESULT: FAIL")
         return 1
     if not graph_export.available():
         print("RESULT: SKIP this dx_app build has no scripts/export_graph_project.py")
@@ -186,6 +199,7 @@ def main(argv=None) -> int:
         return 0
     shutil.rmtree(work, ignore_errors=True)
     work.mkdir(parents=True)
+    (work / MARKER).write_text("scripts/check_graph_export.py\n")
     saved = config.OUTPUTS_DIR
     try:
         body = _step("export", lambda: export_step(work))
