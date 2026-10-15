@@ -129,6 +129,10 @@ def test_the_dialog_shows_the_plan_and_exports_a_zip(ui):
     assert page.input_value("#gc-export-name") == "person-attributes"
     assert page.evaluate("document.activeElement.id") == "gc-export-name"
     assert page.inner_text(".gc-export-table").split() == ["yolov8-n_640x640", "8", "MB"]
+    inputs = page.inner_text(".gc-export-inputs")
+    assert "inputs/sample_people.jpg" in inputs and "for source cam" in inputs
+    assert "An uploaded image is not exported" in page.inner_text("#gc-export-plan")
+    assert page.is_hidden("#gc-export-models-why")
     stubs = page.inner_text(".gc-export-stubs")
     assert "user_logic/tag_people.cpp" in stubs and "for node tag (input: boxes)" in stubs
     assert not page.is_checked("#gc-export-models") and page.is_enabled("#gc-export-models")
@@ -167,6 +171,8 @@ def test_a_missing_model_file_turns_the_model_choice_off(browser, server):
     _open_dialog(page)
     assert page.is_disabled("#gc-export-models") and not page.is_checked("#gc-export-models")
     assert "not installed" in page.inner_text(".gc-export-table")
+    assert page.inner_text("#gc-export-models-why") == "Every model must be installed to include the files."
+    assert "gc-export-models-why" in page.get_attribute("#gc-export-models", "aria-describedby")
     assert not errors, errors
     ctx.close()
 
@@ -216,3 +222,26 @@ def test_the_dialog_follows_a_language_change(browser, server):
     assert page.inner_text("#gc-export-close") == "Close"
     assert not errors, errors
     ctx.close()
+
+
+def test_a_ticked_model_choice_does_not_outlive_the_dialog(ui):
+    """Each opening starts from the default: the model files left out."""
+    page, fake = ui
+    _open_dialog(page)
+    page.check("#gc-export-models")
+    page.keyboard.press("Escape")
+    _open_dialog(page)
+    assert not page.is_checked("#gc-export-models")
+    page.click("#gc-export-go")
+    page.wait_for_selector("#gc-export-zip")
+    assert fake.posted[-1][1]["include_models"] is False
+
+
+def test_typing_keeps_the_caret_when_the_plan_arrives(ui):
+    page, _ = ui
+    _open_dialog(page)
+    page.fill("#gc-export-name", "abcdef")
+    page.evaluate("() => { const n = document.getElementById('gc-export-name'); n.setSelectionRange(2, 2); }")
+    page.evaluate("GraphExport.refreshLanguage()")
+    assert page.evaluate("document.activeElement.id") == "gc-export-name"
+    assert page.evaluate("document.getElementById('gc-export-name').selectionStart") == 2

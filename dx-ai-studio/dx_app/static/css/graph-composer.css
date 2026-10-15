@@ -121,8 +121,8 @@
 .gc-export-table{width:100%;border-collapse:collapse;font-size:var(--fs-xs)}
 .gc-export-table td{padding:var(--sp-1);border-bottom:1px solid var(--border-subtle)}
 .gc-export-table td+td{text-align:right;white-space:nowrap}
-.gc-export-stubs{margin:0;padding-left:var(--sp-4);font-size:var(--fs-xs)}
-.gc-export-stubs code,.gc-export-cmd{font-family:var(--mono)}
+.gc-export-stubs,.gc-export-inputs{margin:0;padding-left:var(--sp-4);font-size:var(--fs-xs)}
+.gc-export-stubs code,.gc-export-inputs code,.gc-export-cmd{font-family:var(--mono)}
 .gc-export-warn{color:var(--status-warn)}
 .gc-export-error,#gc-export-name-help.is-bad{color:var(--status-error-ink)}
 .gc-export-result{margin-top:var(--sp-3);padding:var(--sp-3);border-radius:var(--radius);background:var(--surface-sunken)}

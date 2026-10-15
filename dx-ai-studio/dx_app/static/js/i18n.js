@@ -4633,6 +4633,33 @@ window._DX_I18N_DICT = {
     'zh-CN': '关闭', 'zh-TW': '關閉',
     es: 'Cerrar',
   },
+  'Inputs': {
+    ko: '입력', ja: '入力',
+    'zh-CN': '输入', 'zh-TW': '輸入',
+    es: 'Entradas',
+  },
+  'for source {source}': {
+    ko: '소스 {source}용', ja: 'ソース {source} 用',
+    'zh-CN': '用于来源 {source}', 'zh-TW': '用於來源 {source}',
+    es: 'para la fuente {source}',
+  },
+  'no input: give one with --input': {
+    ko: '입력 없음: --input 으로 지정하세요', ja: '入力なし: --input で指定してください',
+    'zh-CN': '无输入：请用 --input 指定', 'zh-TW': '無輸入：請用 --input 指定',
+    es: 'sin entrada: indíquela con --input',
+  },
+  'An uploaded image is not exported: a source uses the sample picked for it, else its own input.': {
+    ko: '업로드한 이미지는 내보내지 않습니다: 소스는 선택한 샘플을, 없으면 자신의 입력을 사용합니다.',
+    ja: 'アップロードした画像はエクスポートしません: ソースは選んだサンプルを、なければ自身の入力を使います。',
+    'zh-CN': '上传的图片不会导出：来源使用为其选择的样例，否则使用其自身的输入。',
+    'zh-TW': '上傳的圖片不會匯出：來源使用為其選擇的範例，否則使用其自身的輸入。',
+    es: 'Una imagen subida no se exporta: una fuente usa la muestra elegida para ella o, si no, su propia entrada.',
+  },
+  'Every model must be installed to include the files.': {
+    ko: '모델 파일을 포함하려면 모든 모델이 설치되어 있어야 합니다.', ja: 'ファイルを含めるには、すべてのモデルがインストールされている必要があります。',
+    'zh-CN': '要包含文件，所有模型都必须已安装。', 'zh-TW': '要包含檔案，所有模型都必須已安裝。',
+    es: 'Para incluir los archivos, todos los modelos deben estar instalados.',
+  },
   'export_busy': {
     en: 'Another export is running; wait for it.',
     ko: '다른 내보내기가 진행 중입니다. 끝날 때까지 기다리세요.', ja: '別のエクスポートが実行中です。終わるまでお待ちください。',

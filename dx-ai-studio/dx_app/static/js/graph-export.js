@@ -52,6 +52,14 @@ window.GraphExport = (function () {
     box.appendChild(h('table', { class: 'gc-export-table' }, [h('tbody', null, p.models.map(function (m) {
       return h('tr', null, [h('td', { text: m.model }), h('td', { text: m.present ? bytes(m.bytes) : T('not installed') })]);
     }))]));
+    /* The inputs the project carries: a run's upload is never one of them (the source keeps its own input). */
+    box.appendChild(h('h3', { class: 'gc-export-head', text: T('Inputs') }));
+    box.appendChild(h('ul', { class: 'gc-export-inputs' }, (p.inputs || []).map(function (i) {
+      return h('li', null, [h('code', { text: i.uri || T('no input: give one with --input') }), ' ',
+        c.fmt(T('for source {source}'), { source: i.source })]);
+    })));
+    box.appendChild(h('p', { class: 'gc-help',
+      text: T('An uploaded image is not exported: a source uses the sample picked for it, else its own input.') }));
     box.appendChild(h('h3', { class: 'gc-export-head', text: T('User logic stubs to fill in') }));
     if (!p.user_logic.length) {
       box.appendChild(h('p', { class: 'gc-help', text: T('No User logic block: the project runs the graph as it is.') }));
@@ -90,6 +98,8 @@ window.GraphExport = (function () {
       models.disabled = !st.plan || !canInclude() || st.busy;
       models.checked = st.include;
     }
+    var why = $id('gc-export-models-why');
+    if (why) why.hidden = !(st.plan && !canInclude());
     if (size) size.textContent = c.fmt(T('Include the model files ({size})'), { size: st.plan ? bytes(st.plan.model_bytes) : '…' });
     if (go) {
       go.disabled = st.busy || !st.plan || !ok;
@@ -102,6 +112,7 @@ window.GraphExport = (function () {
     if (!body) return;
     /* A re-render (the plan arriving, a language change) keeps the focus where it was. */
     var active = document.activeElement, focused = active && body.contains(active) ? active.id : '';
+    var caret = focused === 'gc-export-name' ? [active.selectionStart, active.selectionEnd] : null;
     body.textContent = '';
     var name = h('input', { type: 'text', id: 'gc-export-name', class: 'input', maxlength: '48', autocomplete: 'off',
       spellcheck: 'false', 'aria-describedby': 'gc-export-name-help' });
@@ -111,11 +122,16 @@ window.GraphExport = (function () {
     body.appendChild(h('label', { class: 'gc-field' }, [h('span', { text: T('Project folder name') }), name]));
     body.appendChild(h('p', { class: 'gc-help', id: 'gc-export-name-help',
       text: T('Letters, digits, _ and -, starting with a letter (at most 48).') }));
-    var models = h('input', { type: 'checkbox', id: 'gc-export-models', 'aria-describedby': 'gc-export-models-help' });
+    var models = h('input', { type: 'checkbox', id: 'gc-export-models',
+      'aria-describedby': 'gc-export-models-help gc-export-models-why' });
     models.addEventListener('change', function () { st.include = models.checked; refreshControls(); });
     body.appendChild(h('label', { class: 'gc-export-check' }, [models, h('span', { id: 'gc-export-size' })]));
     body.appendChild(h('p', { class: 'gc-help', id: 'gc-export-models-help',
       text: T('Without them, setup.sh downloads the models from the DEEPX Model Zoo.') }));
+    var why = h('p', { class: 'gc-help gc-export-warn', id: 'gc-export-models-why',
+      text: T('Every model must be installed to include the files.') });
+    why.hidden = true;
+    body.appendChild(why);
     body.appendChild(h('p', { class: 'gc-help', text: T('The project holds the graph, the engine with only these models, a main.cpp, setup.sh, run.sh and a README. It builds and runs anywhere the DEEPX runtime is installed.') }));
     body.appendChild(planBlock());
     var err = h('p', { id: 'gc-export-error', class: 'gc-export-error', role: 'alert', text: st.error });
@@ -125,6 +141,7 @@ window.GraphExport = (function () {
     if (res) body.appendChild(res);
     refreshControls();
     if (focused && $id(focused)) $id(focused).focus();
+    if (caret && $id('gc-export-name')) $id('gc-export-name').setSelectionRange(caret[0], caret[1]);
   }
 
   async function open() {
