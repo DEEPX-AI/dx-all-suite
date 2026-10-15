@@ -133,10 +133,16 @@
       LauncherRouter._showSdk({ source: 'boot-ready', skipHistory: true });
       return;
     }
+    // Reopen the same subpath and hash (e.g. /cloud/guide#compiler-cfn-3), not just the module root.
+    var base = (ns.APP_PATHS[ns.currentApp] || '').replace(/\/$/, '');
+    var path = window.location.pathname;
     LauncherRouter._showApp(ns.currentApp, {
       forceReload: true,
       skipHistory: true,
       source: 'boot-ready',
+      suffix: base && path.indexOf(base + '/') === 0 ? path.slice(base.length + 1) : '',
+      rawQuery: window.location.search,
+      hash: window.location.hash,
     });
   }
 
@@ -845,7 +851,7 @@
       if (appKey) {
         var basePath = ns.APP_PATHS[appKey].replace(/\/$/, '');
         var suffix = pathname.length > basePath.length ? pathname.slice(basePath.length + 1) : '';
-        return _showApp(appKey, { suffix: suffix, rawQuery: search, source: source });
+        return _showApp(appKey, { suffix: suffix, rawQuery: search, hash: loc.hash || '', source: source });
       }
       if (pathname !== '/') renderRouteRecoveryNotice(pathname);
       _showHome();

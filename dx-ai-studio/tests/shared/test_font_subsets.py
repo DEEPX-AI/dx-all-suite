@@ -44,6 +44,20 @@ def test_dictionary_glyphs_are_per_language(glyphs):
     assert per["zh-TW"] - per["zh-CN"]
 
 
+def test_language_tagged_content_files_count_as_that_languages_dictionary(glyphs):
+    """content.<lang>.json (DX Cloud console guide) is translated text for one language, like a dictionary."""
+    from scripts.font_glyphs import is_cjk
+
+    dic = glyphs[0]
+    files = sorted((ROOT / "dx_edge" / "static" / "guide").glob("content.*.json"))
+    assert files
+    for path in files:
+        lang = path.name.split(".")[1]
+        if lang not in dic:
+            continue
+        used = {cp for cp in map(ord, path.read_text(encoding="utf-8")) if is_cjk(cp)}
+        assert used <= dic[lang], f"{path.name}: {''.join(map(chr, sorted(used - dic[lang])))}"
+
 def test_all_glyphs_is_a_superset_of_the_dictionaries(glyphs):
     dic, full = glyphs
     for lang in dic:

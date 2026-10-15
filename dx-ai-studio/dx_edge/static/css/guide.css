@@ -1,0 +1,147 @@
+/* DX Cloud — AWS Console guide page (templates/guide.html, js/guide.js).
+   Tokens only: colours from the theme files, spacing from --sp-*, breakpoints from the shared scale. */
+
+.guide{max-width:1200px;margin:0 auto;min-width:0}
+
+/* ── Header ─────────────────────────────────────────────────── */
+.guide-head{display:flex;flex-direction:column;align-items:flex-start;gap:var(--sp-2);margin-bottom:var(--sp-5)}
+.guide-back-ico{transform:rotate(180deg)}
+.guide-title{font-size:var(--fs-3xl);font-weight:var(--fw-bold);line-height:var(--lh-tight);margin-top:var(--sp-2)}
+.guide-lead{color:var(--text-secondary);font-size:var(--fs-md);max-width:72ch}
+
+.guide-switch{
+  display:inline-flex;gap:var(--sp-1);padding:var(--sp-1);margin-top:var(--sp-2);
+  background:var(--surface-panel);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);
+  max-width:100%;
+}
+.guide-tab{
+  display:inline-flex;align-items:center;gap:var(--sp-2);padding:var(--sp-2) var(--sp-4);
+  border-radius:var(--radius);color:var(--text-muted);font-weight:var(--fw-semibold);font-size:var(--fs-base);
+  white-space:nowrap;
+}
+.guide-tab:hover{color:var(--text-primary);background:var(--surface-hover);text-decoration:none}
+.guide-tab[aria-selected="true"]{color:var(--accent-ink);background:var(--accent-dim)}
+
+/* ── Layout: TOC + content ──────────────────────────────────── */
+.guide-layout{display:grid;grid-template-columns:260px minmax(0,1fr);gap:var(--sp-5);align-items:start}
+
+.guide-toc{
+  position:sticky;top:0;max-height:calc(100vh - var(--dx-module-header-h) - var(--sp-7));overflow-y:auto;
+  padding:var(--sp-4);background:var(--surface-raised);border:1px solid var(--border-subtle);
+  border-radius:var(--radius-lg);box-shadow:var(--surface-raised-shadow);
+}
+.guide-toc-title{
+  font-size:var(--fs-xs);font-weight:var(--fw-semibold);color:var(--text-muted);
+  text-transform:uppercase;letter-spacing:.5px;margin-bottom:var(--sp-2);
+}
+.guide-toc-list,.guide-toc-steps{list-style:none}
+.guide-toc-sec + .guide-toc-sec{margin-top:var(--sp-3)}
+.guide-toc-sec-title{display:block;font-size:var(--fs-sm);font-weight:var(--fw-semibold);color:var(--text-secondary);margin-bottom:var(--sp-1)}
+.guide-toc-link{
+  display:flex;gap:var(--sp-2);align-items:baseline;padding:var(--sp-1) var(--sp-2);border-radius:var(--radius-sm);
+  color:var(--text-muted);font-size:var(--fs-sm);line-height:var(--lh-snug);border-left:2px solid transparent;
+}
+.guide-toc-link:hover{color:var(--text-primary);background:var(--surface-hover);text-decoration:none}
+.guide-toc-link[aria-current="step"]{color:var(--accent-ink);background:var(--accent-dim);border-left-color:var(--accent)}
+.guide-toc-no{font-family:var(--mono);font-size:var(--fs-xs);color:var(--text-faint);min-width:2ch;text-align:right}
+.guide-toc-link[aria-current="step"] .guide-toc-no{color:var(--accent-ink)}
+
+/* The select replaces the list at narrow widths. */
+.guide-jump{
+  display:none;width:100%;padding:var(--sp-2) var(--sp-3);background:var(--control-bg);color:var(--text-primary);
+  border:1px solid var(--control-border);border-radius:var(--radius);font-size:var(--fs-base);
+}
+
+/* ── Content ────────────────────────────────────────────────── */
+.guide-body{display:flex;flex-direction:column;gap:var(--sp-5);min-width:0;padding-bottom:var(--sp-7)}
+.guide-intro-title{font-size:var(--fs-xl);font-weight:var(--fw-semibold);margin-bottom:var(--sp-2)}
+.guide-intro p{color:var(--text-secondary);max-width:80ch}
+.guide-sec{display:flex;flex-direction:column;gap:var(--sp-4);min-width:0}
+.guide-sec-title{
+  font-size:var(--fs-sm);font-weight:var(--fw-semibold);color:var(--text-muted);
+  text-transform:uppercase;letter-spacing:.5px;padding-top:var(--sp-2);border-top:1px solid var(--border-subtle);
+}
+
+.guide-step{scroll-margin-top:var(--sp-4);min-width:0;padding:var(--sp-5)}
+.guide-step:hover{transform:none}
+.guide-step:target{border-color:var(--accent)}
+.guide-step-head{display:flex;align-items:center;gap:var(--sp-3);margin-bottom:var(--sp-3)}
+.guide-step-no{
+  flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;
+  border-radius:var(--radius-pill);background:var(--accent-fill);color:var(--text-on-accent-solid);
+  font-size:var(--fs-sm);font-weight:var(--fw-bold);
+}
+.guide-step-title{font-size:var(--fs-lg);font-weight:var(--fw-semibold);line-height:var(--lh-snug);min-width:0}
+.guide-step-link{margin-left:auto;color:var(--text-faint);opacity:0;padding:0 var(--sp-1)}
+.guide-step:hover .guide-step-link,.guide-step-link:focus-visible{opacity:1}
+
+.guide-path{display:flex;flex-wrap:wrap;align-items:center;gap:var(--sp-2);margin-bottom:var(--sp-3);font-size:var(--fs-sm)}
+.guide-path-label{background:var(--surface-sunken);color:var(--text-muted);border:1px solid var(--border-subtle)}
+.guide-crumbs{display:flex;flex-wrap:wrap;align-items:center;gap:var(--sp-1);min-width:0}
+.guide-crumb{color:var(--text-primary);font-weight:var(--fw-medium);overflow-wrap:anywhere}
+.guide-crumb-sep{color:var(--text-faint)}
+
+.guide-items{padding-left:var(--sp-5);display:flex;flex-direction:column;gap:var(--sp-2);color:var(--text-secondary)}
+.guide-items li{padding-left:var(--sp-1);overflow-wrap:anywhere}
+.guide-items li::marker{color:var(--text-faint);font-weight:var(--fw-semibold)}
+.guide-items strong,.guide-note strong{color:var(--text-primary)}
+
+.guide-note{
+  display:flex;gap:var(--sp-2);margin-top:var(--sp-3);padding:var(--sp-3);border-radius:var(--radius);
+  background:rgba(var(--info-rgb),.08);border:1px solid rgba(var(--info-rgb),.25);color:var(--text-secondary);
+  font-size:var(--fs-base);
+}
+.guide-note > .dx-ico{flex-shrink:0;color:var(--status-info);margin-top:var(--sp-1)}
+.guide-note p{min-width:0;overflow-wrap:anywhere}
+
+.guide-cmd{position:relative;margin-top:var(--sp-3);min-width:0}
+.guide-cmd-pre{
+  margin:0;padding:var(--sp-3);padding-right:calc(var(--sp-7) + var(--sp-6));background:var(--surface-sunken);
+  font-size:var(--fs-sm);line-height:var(--lh-normal);overflow-x:auto;max-width:100%;
+}
+.guide-cmd-pre code{background:none;padding:0;color:var(--text-primary);font-size:inherit;white-space:pre;font-variant-ligatures:none}
+.guide-copy{position:absolute;top:var(--sp-2);right:var(--sp-2);background:var(--surface-raised)}
+.guide-copy-buffer{position:fixed;top:0;left:0;opacity:0;pointer-events:none}
+
+.guide-shot{margin-top:var(--sp-4)}
+.guide-shot-btn{
+  display:block;width:100%;padding:0;border:1px solid var(--border-subtle);border-radius:var(--radius);
+  background:var(--surface-sunken);cursor:zoom-in;overflow:hidden;
+}
+.guide-shot-btn:hover{border-color:var(--accent)}
+.guide-shot-btn img{display:block;width:100%;height:auto;max-height:520px;object-fit:contain}
+.guide-shot-cap{margin-top:var(--sp-2);font-size:var(--fs-sm);color:var(--text-muted)}
+
+.guide-error{color:var(--status-error)}
+
+/* ── Zoom dialog ────────────────────────────────────────────── */
+.guide-zoom-box{
+  position:relative;margin:0;padding:calc(var(--sp-6) + var(--sp-2)) var(--sp-4) var(--sp-4);max-width:96vw;max-height:94vh;display:flex;flex-direction:column;
+  gap:var(--sp-2);background:var(--surface-overlay);border:1px solid var(--glass-border);border-radius:var(--radius-lg);
+  box-shadow:var(--shadow-lg);
+}
+.guide-zoom-img{display:block;max-width:100%;max-height:calc(94vh - var(--sp-7) - var(--sp-7));object-fit:contain;margin:0 auto}
+.guide-zoom-cap{font-size:var(--fs-sm);color:var(--text-muted)}
+.guide-zoom-x{position:absolute;top:var(--sp-2);right:var(--sp-2)}
+
+/* ── Narrow: the TOC becomes a select above the content ─────── */
+@media (max-width:900px){
+  .guide-layout{grid-template-columns:minmax(0,1fr);gap:var(--sp-4)}
+  .guide-toc{position:sticky;top:0;z-index:5;max-height:none;padding:var(--sp-3)}
+  .guide-toc-list{display:none}
+  .guide-jump{display:block}
+  .guide-step{scroll-margin-top:calc(var(--sp-7) + var(--sp-6))}
+}
+
+@media (max-width:600px){
+  .guide-title{font-size:var(--fs-2xl)}
+  .guide-switch{display:flex;width:100%}
+  .guide-tab{flex:1;justify-content:center;padding:var(--sp-2)}
+  .guide-step{padding:var(--sp-4)}
+  .guide-step-head{align-items:flex-start}
+  .guide-items{padding-left:var(--sp-4)}
+  /* The copy button sits above the code instead of over its first line. */
+  .guide-cmd{display:flex;flex-direction:column;gap:var(--sp-1)}
+  .guide-copy{position:static;align-self:flex-end}
+  .guide-cmd-pre{padding-right:var(--sp-3)}
+}

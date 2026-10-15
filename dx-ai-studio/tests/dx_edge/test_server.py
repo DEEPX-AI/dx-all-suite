@@ -72,6 +72,14 @@ def test_page_has_the_marketplace_cards_and_the_compile_panel(base):
     assert "{{DX_SHELL_" not in html  # shell slots filled
 
 
+def test_console_guide_page_is_served_and_linked_from_both_tabs(base):
+    code, _, body = _get(base + "/guide")
+    html = body.decode()
+    assert code == 200
+    assert "/static/js/guide.js" in html and "{{DX_SHELL_" not in html
+    _, _, main = _get(base + "/")
+    assert 'href="guide#compiler"' in main.decode() and 'href="guide#greengrass"' in main.decode()
+
 def test_heartbeat(base):
     code, _, body = _get(base + "/api/hb")
     assert code == 200 and json.loads(body) == {"ok": True}

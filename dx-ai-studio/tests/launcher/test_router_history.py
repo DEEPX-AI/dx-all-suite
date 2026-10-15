@@ -426,3 +426,13 @@ def test_the_address_bar_uses_the_module_path_not_its_js_key():
     frame = _read("launcher-app-frame.js")
     assert "var historyUrl = '/' + appKey;" not in frame
     assert re.search(r"var historyUrl = ns\.APP_PATHS\[appKey\]", frame)
+
+
+def test_deep_links_into_a_module_keep_their_subpath_and_hash():
+    """/cloud/guide#compiler-cfn-3 opened directly must load that page and step, also after the boot-ready reload."""
+    frame = _read("launcher-app-frame.js")
+    restore = re.search(r"function\s+restoreFromLocation\b.*?_showHome\(\);", frame, re.DOTALL).group(0)
+    assert re.search(r"_showApp\(appKey, \{[^}]*hash: loc\.hash", restore), "restore must pass the URL hash on"
+    refresh = re.search(r"function _refreshViewAfterStudioReady\(\) \{.*?\n  \}\n", frame, re.DOTALL).group(0)
+    assert "location.pathname" in refresh and "suffix" in refresh and "hash" in refresh, \
+        "the boot-ready reload must reopen the same subpath and hash"

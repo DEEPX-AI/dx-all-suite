@@ -53,6 +53,8 @@ class DXEdgeHandler(DXBaseHandler):
         path = self.url_path
         try:
             if self.command == "GET":
+                if path == "/guide":
+                    return self.serve_template("guide.html")
                 if path == "/api/hb":
                     return self.send_json({"ok": True})
                 if path == "/api/aws/status":

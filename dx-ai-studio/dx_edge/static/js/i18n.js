@@ -20,6 +20,13 @@ window._DX_I18N_DICT = {
     'zh-TW': 'DEEPX Greengrass Solution 將 NPU 驅動程式、韌體、dx_rt 與 dx_stream 部署到 Thing Group 中的每台裝置，同一 Stack 也包含編譯管線。',
     es: 'DEEPX Greengrass Solution despliega el controlador NPU, el firmware, dx_rt y dx_stream en cada dispositivo de un Thing Group, con el pipeline de compilación en la misma pila.',
   },
+  'AWS Console guide': {
+    ko: 'AWS 콘솔 가이드',
+    ja: 'AWS コンソールガイド',
+    'zh-CN': 'AWS 控制台指南',
+    'zh-TW': 'AWS 主控台指南',
+    es: 'Guía de la consola de AWS',
+  },
   'Open Marketplace listing': {
     ko: 'Marketplace 페이지 열기',
     ja: 'Marketplace ページを開く',

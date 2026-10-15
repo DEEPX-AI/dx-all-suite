@@ -1,0 +1,667 @@
+{
+ "lang": "ko",
+ "ui": {
+  "title": "AWS 콘솔 가이드",
+  "lead": "AWS Marketplace 구독부터 스택 배포, 모델 컴파일, DEEPX 런타임 배포까지 모든 과정을 AWS Management Console에서 단계별로 진행합니다.",
+  "back": "DX Cloud로 돌아가기",
+  "guide": "가이드",
+  "onThisPage": "이 페이지 목차",
+  "jumpTo": "단계로 이동",
+  "consolePath": "콘솔 경로",
+  "note": "참고",
+  "copy": "복사",
+  "copied": "복사됨",
+  "copyFailed": "복사 실패",
+  "zoom": "클릭하면 확대됩니다",
+  "close": "닫기",
+  "loadError": "가이드를 불러오지 못했습니다."
+ },
+ "guides": [
+  {
+   "id": "compiler",
+   "name": "AWS Compiler",
+   "title": "DEEPX Compiler Solution",
+   "intro": "AWS에서 ONNX 모델을 DEEPX NPU용 DXNN 형식으로 컴파일합니다. Amazon EC2 인스턴스에서 대화형으로 직접 컴파일하거나, Amazon S3에 업로드한 모델을 자동으로 컴파일하는 CloudFormation 스택을 사용할 수 있습니다. 두 방식은 같은 컴파일러와 캘리브레이션 데이터셋을 사용하므로 결과가 같습니다.",
+   "sections": [
+    {
+     "id": "prep",
+     "title": "시작하기 전에",
+     "steps": [
+      {
+       "id": "choose",
+       "title": "배포 방식 선택",
+       "path": [
+        "AWS Marketplace",
+        "DEEPX Compiler Solution"
+       ],
+       "items": [
+        "AWS Marketplace에서 [DEEPX Compiler Solution](https://aws.amazon.com/marketplace/pp/prodview-ev6ed5omu4ulo) 리스팅을 엽니다. 배포 화면에서 두 가지 서비스를 선택할 수 있습니다.",
+        "**Amazon EC2**(AMI를 이용한 사용자 지정 배포): 인스턴스를 직접 시작하고 컴파일러를 실행합니다. 컴파일 옵션을 바꿔가며 실험하거나 대화형으로 디버깅할 때 적합합니다.",
+        "**AWS CloudFormation**(한 번에 끝나는 자동 배포): Amazon S3에 파일을 업로드하면 컴파일이 자동으로 시작되고, 워크플로가 인스턴스를 시작·종료합니다. 정형화된 컴파일 반복과 CI 연계에 적합합니다."
+       ],
+       "image": {
+        "src": "compiler-marketplace.png",
+        "width": 1377,
+        "height": 428,
+        "alt": "AWS Marketplace의 DEEPX Compiler Solution 제품 페이지"
+       }
+      },
+      {
+       "id": "prereq",
+       "title": "사전 준비 사항",
+       "items": [
+        "EC2 인스턴스를 시작하거나 CloudFormation 스택을 생성할 수 있는 AWS 계정과 권한",
+        "ONNX 모델과 JSON 설정 파일. 검증된 모델과 설정 파일은 [DEEPX Model Zoo](https://developer.deepx.ai/modelzoo/)에서 받을 수 있습니다.",
+        "Amazon S3, AWS Systems Manager, Amazon CloudWatch Logs에 HTTPS로 연결되는 기존 VPC와 서브넷. 프라이빗 서브넷이라면 NAT Gateway나 VPC 엔드포인트가 필요합니다.",
+        "로컬에서 AWS CLI 명령을 실행하려면 자격 증명을 한 번 설정합니다. `aws sts get-caller-identity`가 계정 ID와 사용자 ARN을 출력하면 준비가 끝난 것입니다."
+       ],
+       "commands": [
+        "aws configure\n# AWS Access Key ID [None]: <access-key-id>\n# AWS Secret Access Key [None]: <secret-access-key>\n# Default region name [None]: <region, for example us-east-1>\n# Default output format [None]: json\n\naws sts get-caller-identity"
+       ]
+      }
+     ]
+    },
+    {
+     "id": "ec2",
+     "title": "경로 A — Amazon EC2에서 컴파일",
+     "steps": [
+      {
+       "id": "ec2-1",
+       "title": "구독 및 인스턴스 시작",
+       "path": [
+        "AWS Marketplace",
+        "DEEPX Compiler Solution",
+        "Launch DEEPX Compiler Solution"
+       ],
+       "items": [
+        "제품 페이지에서 **View purchase options**를 선택해 구독합니다.",
+        "**Launch DEEPX Compiler Solution** 화면에서 **Service**를 **Amazon EC2**로 선택합니다.",
+        "**Launch method**에서 **One-click launch from AWS Marketplace**를 선택합니다. 인스턴스 프로파일, 사용자 데이터, 추가 볼륨처럼 양식에 없는 옵션이 필요할 때만 **Launch from EC2 Console**을 사용합니다.",
+        "**Version**(최신 stable `dx-com` 릴리스가 기본 선택됨), **Region**, **Number of instances**, **Instance type**, **VPC**, **Subnet**, **Security group**, **Key pair**를 입력합니다.",
+        "**Launch**를 선택합니다."
+       ],
+       "note": "컴파일은 CPU와 메모리를 많이 사용합니다. 배포 화면은 `t3.xlarge`(4 vCPU, 16 GiB)를 **Vendor recommended**로 표시하며, 큰 모델이나 캘리브레이션 이미지가 많다면 더 큰 유형이 유리할 수 있습니다. 보안 그룹은 SSH 외에 인바운드 연결이 필요 없습니다.",
+       "image": {
+        "src": "compiler-launch.png",
+        "width": 2648,
+        "height": 1639,
+        "alt": "Service를 Amazon EC2로 선택한 배포 설정 화면"
+       }
+      },
+      {
+       "id": "ec2-2",
+       "title": "접속 및 모델 준비",
+       "path": [
+        "EC2",
+        "Instances"
+       ],
+       "items": [
+        "**EC2 › Instances**에서 인스턴스 주소를 확인하고 `ubuntu` 사용자로 SSH 접속합니다.",
+        "컴파일러의 Python 환경을 활성화합니다. 컴파일러와 캘리브레이션 데이터셋은 `/opt/dx-compiler` 아래에 미리 설치되어 있습니다.",
+        "모델과 Model Zoo 설정 파일을 내려받고, `dataset_path`가 AMI에 포함된 캘리브레이션 데이터셋을 가리키도록 수정합니다."
+       ],
+       "note": "설정 파일은 Model Zoo 것으로 시작하십시오. `preprocessings` 항목이 없는 직접 작성한 파일은 컴파일에 실패합니다. 캘리브레이션 이미지는 AMI 안내보다 한 단계 아래인 `/opt/dx-compiler/calibration_dataset/calibration_dataset`에 있습니다.",
+       "commands": [
+        "ssh -i <your-key>.pem ubuntu@<instance-address>\n\nsource /opt/dx-compiler/venv/bin/activate",
+        "curl -fLO https://sdk.deepx.ai/modelzoo/onnx/yolov5-s-face_640x640.onnx\ncurl -fLO https://sdk.deepx.ai/modelzoo/q-lite-json/2_4_0/yolov5-s-face_640x640.json\n\nsed -i 's#\"dataset_path\": *\"[^\"]*\"#\"dataset_path\": \"/opt/dx-compiler/calibration_dataset/calibration_dataset\"#' \\\n    yolov5-s-face_640x640.json"
+       ]
+      },
+      {
+       "id": "ec2-3",
+       "title": "컴파일 실행",
+       "items": [
+        "모델(`-m`), 설정 파일(`-c`), 출력 디렉토리(`-o`)를 지정해 `dxcom`을 실행합니다. `(venv)` 환경이 활성화된 상태에서만 `PATH`에 잡힙니다.",
+        "컴파일러는 설정 내용과 양자화·전처리 처리 내역을 출력한 뒤 진행률을 표시합니다."
+       ],
+       "note": "시작 시 나오는 `GPU device discovery failed` 경고는 무시해도 됩니다. 인스턴스에 GPU가 없어 CPU로 진행합니다.",
+       "image": {
+        "src": "compiler-dxcom-run.png",
+        "width": 2029,
+        "height": 1122,
+        "alt": "EC2 인스턴스에서 dxcom으로 ONNX 모델 컴파일"
+       },
+       "commands": [
+        "dxcom -m yolov5-s-face_640x640.onnx \\\n      -c yolov5-s-face_640x640.json \\\n      -o output/yolov5-s-face_640x640"
+       ]
+      },
+      {
+       "id": "ec2-4",
+       "title": "결과 확인 및 업로드",
+       "items": [
+        "`.dxnn` 파일은 `-o`로 지정한 디렉토리 안에 모델 이름으로 생성됩니다.",
+        "엣지 디바이스나 다른 환경에서 내려받을 수 있도록 Amazon S3에 업로드합니다."
+       ],
+       "image": {
+        "src": "compiler-dxnn-output.png",
+        "width": 854,
+        "height": 252,
+        "alt": "출력 디렉토리에 생성된 .dxnn 파일"
+       },
+       "commands": [
+        "ls -lhR output/",
+        "aws s3 cp output/yolov5-s-face_640x640/yolov5-s-face_640x640.dxnn s3://<your-bucket>/<path>/"
+       ]
+      },
+      {
+       "id": "ec2-5",
+       "title": "인스턴스 종료",
+       "path": [
+        "EC2",
+        "Instances",
+        "Instance state"
+       ],
+       "items": [
+        "**EC2 › Instances**에서 컴파일러 인스턴스를 선택합니다.",
+        "**Instance state › Terminate instance**를 선택해 비용 발생을 멈춥니다. 인스턴스와 함께 삭제되지 않은 EBS 볼륨은 따로 삭제합니다.",
+        "컴파일을 자주 한다면 경로 B가 관리하기 쉽고 유휴 비용이 없습니다."
+       ]
+      }
+     ]
+    },
+    {
+     "id": "cfn",
+     "title": "경로 B — CloudFormation으로 자동화",
+     "steps": [
+      {
+       "id": "cfn-1",
+       "title": "리스팅에서 스택 시작",
+       "path": [
+        "AWS Marketplace",
+        "DEEPX Compiler Solution",
+        "Launch DEEPX Compiler Solution"
+       ],
+       "items": [
+        "아직 구독하지 않았다면 제품 페이지에서 **View purchase options**로 구독합니다.",
+        "**Launch DEEPX Compiler Solution** 화면에서 **Service**를 **AWS CloudFormation**으로 선택하고 Region을 고릅니다.",
+        "시작하면 템플릿이 선택된 상태로 CloudFormation 콘솔의 **Create stack** 화면이 열립니다."
+       ]
+      },
+      {
+       "id": "cfn-2",
+       "title": "스택 파라미터 입력",
+       "path": [
+        "CloudFormation",
+        "Stacks",
+        "Create stack",
+        "Specify stack details"
+       ],
+       "items": [
+        "**Stack name**을 입력합니다(영문, 숫자, 하이픈).",
+        "`ImageId` — DX Compiler AMI를 가리키는 SSM 파라미터 경로입니다. Region별 AMI로 자동 해석되므로 기본값을 그대로 둡니다.",
+        "`ModelBucketName` — `.onnx`/`.json` 입력과 `.dxnn` 결과를 저장할 S3 버킷입니다. 전역에서 고유해야 합니다.",
+        "`InstanceType` — 컴파일러 인스턴스 유형입니다. 기본값은 `t3.xlarge`입니다.",
+        "`VpcId` / `SubnetId` — 컴파일러 인스턴스를 실행할 기존 VPC와 서브넷입니다. AWS 서비스로 HTTPS 아웃바운드가 가능해야 합니다."
+       ],
+       "note": "스크린샷은 `ThingGroupName`과 런타임 항목이 추가된 Greengrass 스택 화면입니다. Compiler 스택에는 AMI, 네트워크, 인스턴스, 스토리지 그룹만 표시됩니다.",
+       "image": {
+        "src": "cfn-parameters.png",
+        "width": 1974,
+        "height": 1658,
+        "alt": "CloudFormation 콘솔의 스택 세부 정보 입력 화면"
+       }
+      },
+      {
+       "id": "cfn-3",
+       "title": "스택 생성 및 Outputs 확인",
+       "path": [
+        "CloudFormation",
+        "Stacks",
+        "<stack-name>",
+        "Outputs"
+       ],
+       "items": [
+        "**Next**를 선택하고 스택 옵션은 그대로 둔 채 검토 화면에서 **Submit**을 선택합니다. 요청되면 CloudFormation이 IAM 리소스를 생성할 수 있음을 확인합니다.",
+        "스택이 **CREATE_COMPLETE** 상태가 될 때까지 기다립니다. 모델 버킷, Lambda 함수, Step Functions 상태 머신, 최소 권한 IAM 역할이 생성됩니다.",
+        "**Outputs** 탭에서 `ModelBucketName`, `StateMachineArn`, `CompilerExecutionLogGroupName`을 확인합니다."
+       ],
+       "image": {
+        "src": "cfn-create-complete.png",
+        "width": 1998,
+        "height": 890,
+        "alt": "CREATE_COMPLETE 상태가 된 스택"
+       }
+      },
+      {
+       "id": "cfn-4",
+       "title": ".onnx와 .json을 S3에 업로드",
+       "path": [
+        "S3",
+        "Buckets",
+        "<ModelBucketName>",
+        "models/<model-name>/"
+       ],
+       "items": [
+        "**S3 › Buckets**에서 `ModelBucketName` 버킷을 엽니다.",
+        "**Create folder**로 `models/<model-name>/` 폴더를 만듭니다. 모델마다 전용 폴더를 사용합니다.",
+        "폴더를 열고 **Upload › Add files**로 이름이 같은 `.onnx` 모델과 `.json` 설정 파일을 추가한 뒤 **Upload**를 선택합니다.",
+        "두 파일이 같은 폴더에 모두 있어야 컴파일이 시작됩니다. 아래 CLI 명령으로도 같은 작업을 할 수 있습니다."
+       ],
+       "note": "설정 파일의 `dataset_path`에 어떤 값이 있더라도 파이프라인이 AMI에 포함된 캘리브레이션 데이터셋 경로(`/opt/dx-compiler/calibration_dataset`)로 자동 치환합니다.",
+       "image": {
+        "src": "s3-upload.png",
+        "width": 1977,
+        "height": 652,
+        "alt": "모델과 설정 파일을 같은 S3 경로에 업로드"
+       },
+       "commands": [
+        "export STACK_NAME=<cloudformation-stack-name>\n\nexport MODEL_BUCKET=$(aws cloudformation describe-stacks \\\n  --stack-name \"$STACK_NAME\" \\\n  --query \"Stacks[0].Outputs[?OutputKey=='ModelBucketName'].OutputValue\" \\\n  --output text)\n\nexport MODEL_PREFIX=models/yolov5-s-face_640x640\n\ncurl -fLO https://sdk.deepx.ai/modelzoo/onnx/yolov5-s-face_640x640.onnx\ncurl -fLO https://sdk.deepx.ai/modelzoo/q-lite-json/2_4_0/yolov5-s-face_640x640.json\n\naws s3 cp --only-show-errors yolov5-s-face_640x640.onnx \"s3://${MODEL_BUCKET}/${MODEL_PREFIX}/\"\naws s3 cp --only-show-errors yolov5-s-face_640x640.json \"s3://${MODEL_BUCKET}/${MODEL_PREFIX}/\""
+       ]
+      },
+      {
+       "id": "cfn-5",
+       "title": "Step Functions 워크플로 확인",
+       "path": [
+        "Step Functions",
+        "State machines",
+        "CompilerStateMachine-…",
+        "Execution"
+       ],
+       "items": [
+        "**Step Functions › State machines**에서 `StateMachineArn`의 상태 머신을 열고 최신 실행을 선택합니다.",
+        "그래프에서 인스턴스 시작, Systems Manager를 통한 컴파일 명령 실행, 상태 폴링, 인스턴스 종료 순서를 볼 수 있습니다. 실패 경로에서도 인스턴스를 종료합니다.",
+        "**Succeeded**가 될 때까지 기다립니다. `dxcom` 상세 로그는 CloudWatch Logs의 `/dx-compiler/<stack-name>/execution`에 있습니다."
+       ],
+       "image": {
+        "src": "sfn-succeeded.png",
+        "width": 2174,
+        "height": 1286,
+        "alt": "Step Functions 콘솔의 컴파일 워크플로"
+       },
+       "commands": [
+        "export STATE_MACHINE_ARN=$(aws cloudformation describe-stacks \\\n  --stack-name \"$STACK_NAME\" \\\n  --query \"Stacks[0].Outputs[?OutputKey=='StateMachineArn'].OutputValue\" \\\n  --output text)\n\naws stepfunctions list-executions \\\n  --state-machine-arn \"$STATE_MACHINE_ARN\" \\\n  --max-results 5 \\\n  --query \"executions[].[status,startDate,stopDate,name]\" \\\n  --output table",
+        "export COMPILER_LOG_GROUP=$(aws cloudformation describe-stacks \\\n  --stack-name \"$STACK_NAME\" \\\n  --query \"Stacks[0].Outputs[?OutputKey=='CompilerExecutionLogGroupName'].OutputValue\" \\\n  --output text)\n\naws logs tail \"$COMPILER_LOG_GROUP\" --since 1h --follow"
+       ]
+      },
+      {
+       "id": "cfn-6",
+       "title": ".dxnn 내려받기",
+       "path": [
+        "S3",
+        "Buckets",
+        "<ModelBucketName>",
+        "models/<model-name>/"
+       ],
+       "items": [
+        "버킷의 모델 폴더로 돌아가면 원본 `.onnx`, `.json` 옆에 컴파일된 `.dxnn`이 있습니다.",
+        "파일을 선택하고 **Download**를 선택하거나 CLI로 복사합니다."
+       ],
+       "image": {
+        "src": "s3-dxnn.png",
+        "width": 1971,
+        "height": 479,
+        "alt": "원본 모델과 같은 S3 경로에 생성된 .dxnn"
+       },
+       "commands": [
+        "aws s3 ls \"s3://${MODEL_BUCKET}/${MODEL_PREFIX}/\"\n# yolov5-s-face_640x640.onnx\n# yolov5-s-face_640x640.json\n# yolov5-s-face_640x640.dxnn",
+        "aws s3 cp \"s3://${MODEL_BUCKET}/${MODEL_PREFIX}/yolov5-s-face_640x640.dxnn\" ."
+       ]
+      }
+     ]
+    },
+    {
+     "id": "end",
+     "title": "마무리",
+     "steps": [
+      {
+       "id": "cost",
+       "title": "비용",
+       "items": [
+        "소프트웨어 요금과 구독 조건은 AWS Marketplace 리스팅에서 확인합니다. AWS 리소스 사용 비용은 별도로 발생합니다.",
+        "**Amazon EC2, EBS**: 컴파일러 인스턴스와 볼륨의 실행 시간. CloudFormation 파이프라인은 작업 중에만 인스턴스를 실행하며, 직접 시작한 인스턴스는 종료할 때까지 비용이 발생합니다.",
+        "**Amazon S3, AWS Lambda, AWS Step Functions, Amazon CloudWatch Logs**(CloudFormation 경로): 저장, 이벤트 처리, 워크플로 실행, 로그 보관.",
+        "배포 전에 [AWS Pricing Calculator](https://calculator.aws/)로 예상 비용을 확인합니다."
+       ]
+      },
+      {
+       "id": "cleanup",
+       "title": "리소스 정리",
+       "path": [
+        "CloudFormation",
+        "Stacks",
+        "Delete"
+       ],
+       "items": [
+        "EC2 경로: 인스턴스를 종료하고 남은 EBS 볼륨을 삭제합니다.",
+        "CloudFormation 경로: **CloudFormation › Stacks**에서 스택을 선택하고 **Delete**를 선택합니다.",
+        "모델 버킷은 데이터 보호를 위해 유지됩니다. 필요 없다면 S3 콘솔에서 버킷을 비우고 삭제합니다.",
+        "구독이 더 이상 필요 없다면 [Manage subscriptions](https://aws.amazon.com/marketplace/library)에서 취소합니다."
+       ]
+      },
+      {
+       "id": "troubleshoot",
+       "title": "문제 해결",
+       "items": [
+        "**업로드했는데 워크플로가 시작되지 않음** — `.onnx`와 `.json`이 모두 같은 S3 경로에 있어야 합니다. 한쪽만 있으면 트리거가 대기합니다.",
+        "**워크플로가 실패함** — `/dx-compiler/<stack-name>/execution` 로그 그룹에서 `dxcom` 로그를 확인합니다.",
+        "**인스턴스가 시작되지 않음** — 서브넷에 HTTPS 아웃바운드(NAT Gateway 또는 VPC 엔드포인트)가 있는지, 구독이 완료되었는지 확인합니다.",
+        "**`dxcom: command not found`** — 먼저 `source /opt/dx-compiler/venv/bin/activate`를 실행합니다.",
+        "**캘리브레이션 이미지를 찾지 못함** — `dataset_path`는 상위 디렉토리가 아니라 `/opt/dx-compiler/calibration_dataset/calibration_dataset`이어야 합니다.",
+        "**입력 형상 오류 또는 낮은 정확도** — `inputs`를 ONNX 모델과, `preprocessings`를 학습 시 전처리와 맞추고 필요하면 `calibration_num`을 늘립니다."
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "greengrass",
+   "name": "AWS Greengrass",
+   "title": "DEEPX Greengrass Solution",
+   "intro": "CloudFormation 스택 하나로 클라우드 컴파일 파이프라인을 구성하고, Thing Group의 모든 Greengrass 코어 디바이스에 DEEPX 런타임(NPU 드라이버, 펌웨어, dx_rt, dx_stream)을 OTA로 배포합니다.",
+   "sections": [
+    {
+     "id": "prep",
+     "title": "시작하기 전에",
+     "steps": [
+      {
+       "id": "how",
+       "title": "솔루션 동작 방식",
+       "items": [
+        "클라우드에서는 `.onnx`와 `.json`을 같은 S3 prefix에 올리면 AWS Lambda가 Step Functions 워크플로를 시작합니다. 워크플로는 DEEPX Compiler AMI로 임시 EC2 인스턴스를 시작하고, Systems Manager Run Command로 `dxcom`을 실행해 원본 옆에 `.dxnn`을 저장한 뒤 인스턴스를 종료합니다.",
+        "엣지에서는 스택이 `com.deepx.dx-runtime` Greengrass 컴포넌트를 게시하고 Thing Group에 배포합니다. 그룹의 모든 코어 디바이스가 NPU 드라이버, 펌웨어, dx_rt, dx_stream을 설치하고 결과를 보고합니다.",
+        "등록된 디바이스를 Thing Group에 추가하기만 하면 프로비저닝됩니다(Zero-Touch Provisioning). 제조 단계의 인증서 주입이나 Fleet Provisioning은 별도 설계가 필요합니다."
+       ],
+       "image": {
+        "src": "gg-architecture.png",
+        "width": 1100,
+        "height": 700,
+        "alt": "클라우드 컴파일 파이프라인과 Greengrass 런타임 배포"
+       }
+      },
+      {
+       "id": "prereq",
+       "title": "사전 준비 사항",
+       "items": [
+        "CloudFormation 스택을 생성할 수 있는 AWS 계정과 권한",
+        "DEEPX DX-M1 M.2 모듈이 장착된 엣지 디바이스. 예: Raspberry Pi 5(arm64) 또는 x86_64 Ubuntu 호스트",
+        "ONNX 모델과 JSON 설정 파일. 예: [DEEPX Model Zoo](https://developer.deepx.ai/modelzoo/)",
+        "컴파일러 인스턴스를 실행할 기존 VPC와 서브넷. Amazon S3, AWS Systems Manager, Amazon CloudWatch Logs로 HTTPS 아웃바운드가 가능해야 합니다(프라이빗 서브넷은 NAT Gateway 또는 VPC 엔드포인트)."
+       ]
+      }
+     ]
+    },
+    {
+     "id": "stack",
+     "title": "구독 및 스택 배포",
+     "steps": [
+      {
+       "id": "subscribe",
+       "title": "AWS Marketplace에서 구독",
+       "path": [
+        "AWS Marketplace",
+        "DEEPX Greengrass Solution"
+       ],
+       "items": [
+        "AWS Marketplace에서 [DEEPX Greengrass Solution](https://aws.amazon.com/marketplace/pp/prodview-732s46qfzuh34)을 검색해 선택하고 구독합니다.",
+        "배포할 AWS Region을 선택하고 **Launch with CloudFormation**을 선택합니다.",
+        "디바이스 배포 없이 컴파일만 필요하다면 AWS Compiler 가이드를 사용하십시오."
+       ],
+       "image": {
+        "src": "gg-marketplace.png",
+        "width": 1722,
+        "height": 586,
+        "alt": "AWS Marketplace의 DEEPX 솔루션 구독 화면"
+       }
+      },
+      {
+       "id": "stack-1",
+       "title": "스택 파라미터 입력",
+       "path": [
+        "CloudFormation",
+        "Stacks",
+        "Create stack",
+        "Specify stack details"
+       ],
+       "items": [
+        "**Stack name**을 입력합니다.",
+        "`ImageId` — DX Compiler AMI를 가리키는 SSM 파라미터 경로입니다. 기본값을 그대로 둡니다.",
+        "`ModelBucketName` — ONNX 입력과 DXNN 결과를 저장할 S3 버킷입니다. 전역에서 고유해야 합니다.",
+        "`InstanceType` — 컴파일러 인스턴스 유형입니다. 기본값은 `t3.xlarge`입니다.",
+        "`VpcId` / `SubnetId` — 컴파일러 인스턴스를 실행할 기존 VPC와 서브넷입니다. AWS 서비스로 HTTPS 아웃바운드가 가능해야 합니다.",
+        "`ThingGroupName` — 런타임을 받을 Thing Group입니다. 비워 두면 `<stack-name>-cores` 그룹이 생성되고, 기존 그룹 이름을 입력하면 그 그룹을 사용합니다."
+       ],
+       "image": {
+        "src": "cfn-parameters.png",
+        "width": 1974,
+        "height": 1658,
+        "alt": "CloudFormation 콘솔의 스택 세부 정보 입력 화면"
+       }
+      },
+      {
+       "id": "stack-2",
+       "title": "스택 생성 및 Outputs 확인",
+       "path": [
+        "CloudFormation",
+        "Stacks",
+        "<stack-name>",
+        "Outputs"
+       ],
+       "items": [
+        "**Next**로 검토 화면에 이동한 뒤 **Submit**을 선택합니다. 요청되면 CloudFormation이 IAM 리소스를 생성할 수 있음을 확인합니다.",
+        "스택은 모델 버킷, Lambda 함수, Step Functions 상태 머신, 최소 권한 IAM 역할, Greengrass 컴포넌트와 배포를 생성합니다. **CREATE_COMPLETE**가 될 때까지 기다립니다.",
+        "**Outputs**에서 `ModelBucketName`, `StateMachineArn`, `CompilerExecutionLogGroupName`, `ThingGroupName`, `TokenExchangeRoleName`을 확인합니다."
+       ],
+       "image": {
+        "src": "cfn-create-complete.png",
+        "width": 1998,
+        "height": 890,
+        "alt": "CREATE_COMPLETE 상태가 된 스택"
+       }
+      }
+     ]
+    },
+    {
+     "id": "compile",
+     "title": "모델 컴파일",
+     "steps": [
+      {
+       "id": "compile-1",
+       "title": ".onnx와 .json을 S3에 업로드",
+       "path": [
+        "S3",
+        "Buckets",
+        "<ModelBucketName>",
+        "models/<model-name>/"
+       ],
+       "items": [
+        "**S3 › Buckets**에서 `ModelBucketName` 버킷을 열고 `models/yolov5-s-face_640x640/`처럼 모델별 전용 폴더를 만듭니다.",
+        "**Upload › Add files**로 이름이 같은 `.onnx` 모델과 `.json` 설정 파일을 추가하고 **Upload**를 선택합니다.",
+        "모델의 Model Zoo 설정 파일을 사용합니다. 파이프라인이 `dataset_path`를 AMI에 포함된 캘리브레이션 데이터셋 경로로 자동 치환합니다."
+       ],
+       "image": {
+        "src": "s3-upload.png",
+        "width": 1977,
+        "height": 652,
+        "alt": "모델과 설정 파일을 같은 S3 경로에 업로드"
+       },
+       "commands": [
+        "export STACK_NAME=<cloudformation-stack-name>\n\nexport MODEL_BUCKET=$(aws cloudformation describe-stacks \\\n  --stack-name \"$STACK_NAME\" \\\n  --query \"Stacks[0].Outputs[?OutputKey=='ModelBucketName'].OutputValue\" \\\n  --output text)\n\nexport MODEL_PREFIX=models/yolov5-s-face_640x640\n\ncurl -fLO https://sdk.deepx.ai/modelzoo/onnx/yolov5-s-face_640x640.onnx\ncurl -fLO https://sdk.deepx.ai/modelzoo/q-lite-json/2_4_0/yolov5-s-face_640x640.json\n\naws s3 cp --only-show-errors yolov5-s-face_640x640.onnx \"s3://${MODEL_BUCKET}/${MODEL_PREFIX}/\"\naws s3 cp --only-show-errors yolov5-s-face_640x640.json \"s3://${MODEL_BUCKET}/${MODEL_PREFIX}/\""
+       ]
+      },
+      {
+       "id": "compile-2",
+       "title": "Step Functions 워크플로 확인",
+       "path": [
+        "Step Functions",
+        "State machines",
+        "CompilerStateMachine-…",
+        "Execution"
+       ],
+       "items": [
+        "**Step Functions › State machines**에서 `StateMachineArn`의 상태 머신을 열고 최신 실행을 선택합니다.",
+        "워크플로는 인스턴스 시작, 컴파일 실행, 상태 폴링, 인스턴스 종료 순으로 진행되며 실패 경로에서도 인스턴스를 종료합니다.",
+        "`/dx-compiler/<stack-name>/execution` 로그 그룹에서 S3 다운로드, `dxcom` 실행, `.dxnn` 업로드 메시지를 순서대로 확인합니다."
+       ],
+       "image": {
+        "src": "sfn-succeeded.png",
+        "width": 2174,
+        "height": 1286,
+        "alt": "Succeeded 상태의 컴파일 워크플로"
+       },
+       "commands": [
+        "export STATE_MACHINE_ARN=$(aws cloudformation describe-stacks \\\n  --stack-name \"$STACK_NAME\" \\\n  --query \"Stacks[0].Outputs[?OutputKey=='StateMachineArn'].OutputValue\" \\\n  --output text)\n\naws stepfunctions list-executions \\\n  --state-machine-arn \"$STATE_MACHINE_ARN\" \\\n  --max-results 5 \\\n  --query \"executions[].[status,startDate,stopDate,name]\" \\\n  --output table",
+        "export COMPILER_LOG_GROUP=$(aws cloudformation describe-stacks \\\n  --stack-name \"$STACK_NAME\" \\\n  --query \"Stacks[0].Outputs[?OutputKey=='CompilerExecutionLogGroupName'].OutputValue\" \\\n  --output text)\n\naws logs tail \"$COMPILER_LOG_GROUP\" --since 1h --follow"
+       ]
+      },
+      {
+       "id": "compile-3",
+       "title": "S3에서 .dxnn 확인",
+       "path": [
+        "S3",
+        "Buckets",
+        "<ModelBucketName>",
+        "models/<model-name>/"
+       ],
+       "items": [
+        "컴파일된 `.dxnn`은 원본 모델과 같은 S3 폴더에 생성됩니다.",
+        "상시 컴파일 서버가 없습니다. EC2 인스턴스는 작업이 있을 때만 실행됩니다."
+       ],
+       "image": {
+        "src": "s3-dxnn.png",
+        "width": 1971,
+        "height": 479,
+        "alt": "원본 모델과 같은 S3 경로에 생성된 .dxnn"
+       },
+       "commands": [
+        "aws s3 ls \"s3://${MODEL_BUCKET}/${MODEL_PREFIX}/\"\n# yolov5-s-face_640x640.onnx\n# yolov5-s-face_640x640.json\n# yolov5-s-face_640x640.dxnn"
+       ]
+      }
+     ]
+    },
+    {
+     "id": "device",
+     "title": "디바이스에 런타임 배포",
+     "steps": [
+      {
+       "id": "device-1",
+       "title": "디바이스를 Greengrass 코어로 등록",
+       "path": [
+        "IoT Greengrass",
+        "Core devices"
+       ],
+       "items": [
+        "디바이스에 Java 11 이상을 설치하고, Greengrass 프로비저닝(IoT Thing, 인증서와 정책, IAM 역할 별칭) 권한이 있는 AWS 자격 증명을 제공합니다. IAM 사용자 장기 키는 개발 용도로만 사용합니다.",
+        "AWS IoT Greengrass Core 소프트웨어를 내려받아 스택 Outputs 값으로 설치합니다. `--thing-group-name`은 `ThingGroupName`, `--tes-role-name`은 `TokenExchangeRoleName`입니다.",
+        "서비스가 실행 중인지 확인하고, **IoT Greengrass › Core devices**에서 디바이스가 **Healthy**인지 확인합니다."
+       ],
+       "note": "Thing Group에 들어가는 것이 런타임 배포를 시작합니다. 이미 등록된 디바이스라면 그룹에 추가하기만 하면 됩니다.",
+       "commands": [
+        "curl -s https://d2s8p88vqu9w66.cloudfront.net/releases/greengrass-nucleus-latest.zip -o greengrass-nucleus-latest.zip\nunzip greengrass-nucleus-latest.zip -d GreengrassInstaller\n\nsudo -E java -Droot=\"/greengrass/v2\" -Dlog.store=FILE \\\n  -jar ./GreengrassInstaller/lib/Greengrass.jar \\\n  --aws-region <region> \\\n  --thing-name <thing-name> \\\n  --thing-group-name <ThingGroupName> \\\n  --tes-role-name <TokenExchangeRoleName> \\\n  --component-default-user ggc_user:ggc_group \\\n  --provision true \\\n  --setup-system-service true",
+        "sudo systemctl status greengrass.service"
+       ]
+      },
+      {
+       "id": "device-2",
+       "title": "com.deepx.dx-runtime 배포 확인",
+       "path": [
+        "IoT Greengrass",
+        "Deployments",
+        "<stack-name> DX Runtime Deployment"
+       ],
+       "items": [
+        "**IoT Greengrass › Deployments**에서 **<stack-name> DX Runtime Deployment**를 엽니다. Thing Group을 대상으로 하며 그룹의 모든 코어 디바이스에서 시작됩니다.",
+        "Greengrass는 TLS로 보호되는 MQTT 위에서 AWS IoT Job으로 컴포넌트를 전달합니다. 디바이스는 패키지를 HTTPS로 내려받아 NPU 드라이버(`dxrt-driver-dkms`), dx_rt(`libdxrt-bin`), 펌웨어(`dxcli -u`로 `fw.bin` 적용), dx_stream을 설치합니다.",
+        "각 디바이스가 **Succeeded**가 될 때까지 기다립니다. 문제가 생긴 디바이스는 컴포넌트 로그로 진단합니다.",
+        "새 런타임 버전을 배포할 때도 컴포넌트 버전을 올리고 Thing Group에 새 배포를 생성합니다."
+       ],
+       "note": "설치 시간은 디바이스 사양과 네트워크 상태에 따라 다릅니다. 의존성 라이브러리를 소스에서 빌드하는 저사양 arm64 디바이스는 수십 분 이상 걸릴 수 있습니다.",
+       "image": {
+        "src": "gg-deployment.png",
+        "width": 1970,
+        "height": 1095,
+        "alt": "대상 디바이스의 배포 상태"
+       },
+       "commands": [
+        "# Classic Greengrass nucleus\nsudo tail -f /greengrass/v2/logs/com.deepx.dx-runtime.log\n\n# Greengrass nucleus lite\nsudo journalctl -f -u ggl.com.deepx.dx-runtime.service"
+       ]
+      },
+      {
+       "id": "device-3",
+       "title": "디바이스에서 NPU 확인",
+       "items": [
+        "`dxcli -s`로 인식된 NPU와 펌웨어 버전을 확인합니다."
+       ],
+       "image": {
+        "src": "dxcli-status.png",
+        "width": 632,
+        "height": 557,
+        "alt": "인식된 NPU와 펌웨어 버전을 보여주는 dxcli -s 출력"
+       },
+       "commands": [
+        "dxcli -s"
+       ]
+      },
+      {
+       "id": "device-4",
+       "title": "dx_stream 플러그인 확인",
+       "items": [
+        "dx_stream 실행 파일과 라이브러리 경로를 설정합니다. 스니펫이 x86_64와 aarch64의 플러그인 경로를 자동으로 판별하며, 모든 셸에 적용하려면 `~/.bashrc` 끝에 추가합니다.",
+        "`gst-inspect-1.0 dxstream`이 등록된 dx_stream 요소를 보여줍니다."
+       ],
+       "image": {
+        "src": "gst-inspect.png",
+        "width": 1041,
+        "height": 815,
+        "alt": "등록된 요소를 보여주는 gst-inspect-1.0 dxstream 출력"
+       },
+       "commands": [
+        "GST_ARCH_TRIPLET=\"$(gcc -dumpmachine 2>/dev/null || true)\"\nif [ -z \"$GST_ARCH_TRIPLET\" ]; then\n  case \"$(uname -m)\" in\n    x86_64) GST_ARCH_TRIPLET=\"x86_64-linux-gnu\" ;;\n    aarch64|arm64) GST_ARCH_TRIPLET=\"aarch64-linux-gnu\" ;;\n    armv7l|armv6l) GST_ARCH_TRIPLET=\"arm-linux-gnueabihf\" ;;\n    *) GST_ARCH_TRIPLET=\"$(uname -m)-linux-gnu\" ;;\n  esac\nfi\n\nGST_PLUGIN_DIR=\"/usr/local/lib/$GST_ARCH_TRIPLET/gstreamer-1.0\"\nexport GST_PLUGIN_PATH=\"$GST_PLUGIN_DIR:$GST_PLUGIN_PATH\"\nexport LD_LIBRARY_PATH=\"$GST_PLUGIN_DIR:/usr/local/share/gstdxstream/lib:$LD_LIBRARY_PATH\"\nexport PATH=\"/usr/local/share/gstdxstream/bin:/usr/local/bin:$PATH\"\n\ngst-inspect-1.0 dxstream"
+       ]
+      },
+      {
+       "id": "device-5",
+       "title": "테스트 추론 실행",
+       "items": [
+        "스택은 런타임을 배포하고, 컴파일된 모델은 S3에 저장합니다. 이 테스트에서는 `.dxnn`을 디바이스로 직접 복사합니다. 모델도 OTA로 배포하려면 별도 Greengrass 컴포넌트가 필요합니다.",
+        "샘플 영상을 내려받아 파이프라인을 실행합니다. `dxpreprocess`가 프레임을 640×640으로 변환하고, `dxinfer`가 NPU에서 추론하며, `dxpostprocess`가 YOLOv5s-Face 결과를 해석하고, `dxosd`가 박스를 그려 `fpsdisplaysink`가 FPS와 함께 표시합니다."
+       ],
+       "note": "후처리 라이브러리는 모델에 종속적입니다. 다른 모델을 쓰면 `model-path`와 함께 `library-file-path`도 바꿔야 합니다.",
+       "image": {
+        "src": "dxstream-result.png",
+        "width": 1914,
+        "height": 1111,
+        "alt": "DEEPX dx_stream에서 실행한 얼굴 검출"
+       },
+       "commands": [
+        "aws s3 cp \"s3://${MODEL_BUCKET}/${MODEL_PREFIX}/yolov5-s-face_640x640.dxnn\" .",
+        "curl -fSLO https://sdk.deepx.ai/res/video/sample_videos.tar.gz\ntar xzf sample_videos.tar.gz\n\nexport MODEL_PATH=\"$PWD/yolov5-s-face_640x640.dxnn\"\nexport INPUT_VIDEO_PATH=\"$PWD/dance-group.mov\"\nexport VIDEOCONVERT_PIPELINE=\"videoconvert\"\n\ngst-launch-1.0 urisourcebin uri=file://$INPUT_VIDEO_PATH ! decodebin ! \\\n  dxpreprocess preprocess-id=1 resize-width=640 resize-height=640 ! \\\n  queue max-size-buffers=1 ! \\\n  dxinfer preprocess-id=1 inference-id=1 model-path=$MODEL_PATH ! \\\n  queue max-size-buffers=1 ! \\\n  dxpostprocess inference-id=1 \\\n  library-file-path=/usr/local/share/gstdxstream/lib/libpostprocess_yolov5s_face.so \\\n  function-name=PostProcess ! \\\n  queue max-size-buffers=1 ! dxosd ! \\\n  $VIDEOCONVERT_PIPELINE ! fpsdisplaysink sync=false"
+       ]
+      }
+     ]
+    },
+    {
+     "id": "end",
+     "title": "마무리",
+     "steps": [
+      {
+       "id": "cost",
+       "title": "비용",
+       "items": [
+        "소프트웨어 요금과 구독 조건은 AWS Marketplace 리스팅에서 확인합니다. AWS 리소스 사용 비용은 별도로 발생합니다.",
+        "**Amazon EC2**: 컴파일러 인스턴스는 컴파일 중에만 실행되고 성공·실패 모두에서 종료되므로 컴파일 시간만큼만 비용이 발생합니다.",
+        "**Amazon S3, AWS Lambda, AWS Step Functions, Amazon CloudWatch Logs**: 저장, 이벤트 처리, 워크플로 실행, 로그 보관.",
+        "**AWS IoT Core, AWS IoT Greengrass**: 사용하는 기능과 디바이스 수에 따라 달라집니다.",
+        "배포 전에 [AWS Pricing Calculator](https://calculator.aws/)로 예상 비용을 확인합니다."
+       ]
+      },
+      {
+       "id": "cleanup",
+       "title": "리소스 정리",
+       "path": [
+        "CloudFormation",
+        "Stacks",
+        "Delete"
+       ],
+       "items": [
+        "**CloudFormation › Stacks**에서 스택을 선택하고 **Delete**를 선택합니다. 스택이 만든 Thing Group과 컴포넌트 버전은 함께 정리되고, 기존 그룹은 유지됩니다.",
+        "모델 버킷은 데이터 보호를 위해 유지됩니다. 필요 없다면 버킷을 비우고 삭제합니다.",
+        "구독이 더 이상 필요 없다면 [Manage subscriptions](https://aws.amazon.com/marketplace/library)에서 취소합니다.",
+        "(선택) Greengrass 콘솔에서 배포를 수정해 디바이스에서 컴포넌트를 제거합니다."
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}
