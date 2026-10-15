@@ -481,9 +481,9 @@ compares each against a committed baseline:
 | `<engine>/<module>__<theme>__<locale>.png` | 9 modules x {dark, light} x {en, es} at 1280x800 | 36 |
 | `<engine>/<module>__w<width>.png` | 9 modules x {650, 860, 1150, 1320} at dark/en | 36 |
 | `<engine>/launcher__intro__<state>.png` | the intro at `hero`, `work` and `close` | 3 |
-| `<engine>/<page>__<theme>__<locale>.png` | pages behind a tab (`PAGE_SPECS`): DX App's Graph Composer x {dark, light} x {en, ko} | 4 |
+| `<engine>/<page>__<theme>__<locale>.png` | pages behind a tab (`PAGE_SPECS`): DX App's Graph Composer and its logic template page x {dark, light} x {en, ko} | 8 |
 
-79 shots. `tests/visual/baseline_spec.py` is the source of truth for the axes and
+83 shots. `tests/visual/baseline_spec.py` is the source of truth for the axes and
 carries the reasoning for each one; do not restate the numbers here.
 
 This is **not** what `tests/test_ux_visual_gate.py` does — that audits tutorial

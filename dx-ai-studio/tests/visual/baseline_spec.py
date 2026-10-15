@@ -190,6 +190,22 @@ PAGE_SPECS: dict[str, dict] = {
         "setup": "async () => { nav('graph'); await GraphComposer.open(); GraphComposer.loadExample('cascade_od_attr'); }",
         "wait": "() => { const s = GraphComposer.state(); return !!(s.check && s.memory); }",
     },
+    # Phase 2: a scenario template with logic blocks, its zone block selected (the inspector's schema form and zone
+    # preview), the Templates and Logic palette groups, the run panel's Run once / Live tabs.
+    "dx_app_graph_logic": {
+        "module": "dx_app",
+        "settle_ms": _DEFAULT_SETTLE_MS,
+        "routes": {
+            "**/api/graph/catalog*": _fixture("visual_catalog_logic.json"),
+            "**/api/graph/validate": _fixture("visual_check_logic.json"),
+            "**/api/graph/memory": _fixture("visual_memory_logic.json"),
+            "**/api/graph/projects": {"projects": []},
+        },
+        "setup": ("async () => { nav('graph'); await GraphComposer.open(); "
+                  "GraphComposer.loadExample('zone_intrusion'); "
+                  "GraphComposer.canvas().select({nodes: ['zone']}); }"),
+        "wait": "() => { const s = GraphComposer.state(); return !!(s.check && s.memory) && !!document.querySelector('.gc-zone-preview'); }",
+    },
 }
 PAGE_LOCALES = ("en", "ko")
 
