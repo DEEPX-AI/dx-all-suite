@@ -115,18 +115,20 @@ def _probe_engine_key() -> bool:
 
 # What --help names for each capability Studio reads from it.
 _HELP_FLAGS = {"json": "--json", "report_timing": "--report-timing", "list_ops": "--list-ops",
-               "events": "--events", "loop": "--loop"}
+               "events": "--events", "loop": "--loop", "draw": "--draw", "output_layers": "--output-layers"}
 
 
 def no_capabilities() -> dict:
     return {"json": False, "engine_key": False, "report_timing": False, "list_ops": False, "events": False,
-            "loop": False}
+            "loop": False, "draw": False, "output_layers": False}
 
 
 def capabilities() -> dict:
     """{"json": --list-models / --check print JSON with --json, "engine_key": nodes accept "engine",
     "report_timing": --report-timing adds per-node ms to --report, "list_ops": --list-ops --json lists the logic
-    blocks, "events": --events <file.jsonl> writes every event, "loop": --loop restarts video sources at the end}.
+    blocks, "events": --events <file.jsonl> writes every event, "loop": --loop restarts video sources at the end,
+    "draw": --draw <ids> draws only those nodes, "output_layers": --output-layers <dir> writes each node's drawing
+    alone (README "Results for front ends")}.
 
     Probed once per binary build (keyed by the binary's path and mtime)."""
     found = available()

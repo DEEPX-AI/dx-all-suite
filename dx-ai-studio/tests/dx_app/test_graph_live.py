@@ -302,3 +302,39 @@ def test_a_new_live_waits_for_the_old_reader_and_keeps_its_display(studio, monke
     graph_live.stop(jid)
     _poll_until(jid, lambda p: not p["running"])
     assert order[-1] == ("stop", graph_live.SLOT), "the current Live's reader closes it"
+
+
+# Results view: the nodes Live draws are picked before it starts (dx_app --draw).
+
+DRAW_RUNNER = LIVE_RUNNER.replace('cat "$FIX/help_p2.txt"', 'cat "$FIX/help_p3.txt"')
+
+
+def test_live_draws_only_the_picked_nodes(studio, monkeypatch):
+    graph_fakes.install(studio["tmp"], monkeypatch, DRAW_RUNNER)
+    body, code = graph_live.start(GRAPH, draw=["zone", "od"])
+    assert code == 200, body
+    _poll_until(body["job_id"], lambda p: p["frames"] >= 1)
+    args = [c for c in graph_fakes.calls(studio["tmp"]) if "--graph" in c][-1]
+    assert "--draw zone,od" in args
+    graph_live.stop(body["job_id"])
+
+
+def test_without_a_pick_every_node_draws(studio, monkeypatch):
+    graph_fakes.install(studio["tmp"], monkeypatch, DRAW_RUNNER)
+    body, _ = graph_live.start(GRAPH, draw=None)
+    _poll_until(body["job_id"], lambda p: p["frames"] >= 1)
+    assert "--draw" not in [c for c in graph_fakes.calls(studio["tmp"]) if "--graph" in c][-1]
+    graph_live.stop(body["job_id"])
+
+
+@pytest.mark.parametrize("draw", [["cam"], ["nope"], "od", [], [1], ["od"] * 300])
+def test_a_pick_that_is_not_the_graph_s_drawing_nodes_is_refused(studio, monkeypatch, draw):
+    graph_fakes.install(studio["tmp"], monkeypatch, DRAW_RUNNER)
+    body, code = graph_live.start(GRAPH, draw=draw)
+    assert (code, body["error_key"]) == (400, "invalid_draw") and npu_jobs.busy() is None
+
+
+def test_a_build_without_draw_refuses_a_pick(studio, monkeypatch):
+    graph_fakes.install(studio["tmp"], monkeypatch, LIVE_RUNNER)
+    body, code = graph_live.start(GRAPH, draw=["od"])
+    assert (code, body["error_key"]) == (409, "draw_unsupported")

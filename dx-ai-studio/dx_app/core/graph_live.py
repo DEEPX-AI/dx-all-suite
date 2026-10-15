@@ -4,7 +4,11 @@ private Xvfb display, and the page watches an MJPEG stream grabbed from that dis
 
     multi_model_graph_{sync,async} --graph graph.json --input <source>=camera:N|rtsp://...|<video> ...
                                    --display [--loop] [--events events.jsonl] --model-dir <models>
-                                   [--max-inflight N]
+                                   [--max-inflight N] [--draw <id,id...>]
+
+`draw` (picked on the page before start) keeps the picture to those nodes; every node still runs and reports. With
+several sources the runner's one window is a grid of the streams, each cell labelled with its source id, so the
+MJPEG stream shows them all.
 
 One graph Live at a time, on its own Xvfb slot (SLOT; the Run page's Live uses slots 0-7), so the two never draw on
 one display. One NPU job at a time (npu_jobs.py): a graph Live, a graph run once and the Run page's Live never overlap
@@ -106,8 +110,21 @@ def _env() -> dict:
     return env
 
 
-def start(graph: dict, *, variant="sync", inputs=None, max_inflight=None) -> tuple:
-    """Start the graph Live; ({"job_id"}, 200) or ({"error", "error_key"}, status)."""
+def _draw_ids(graph: dict, draw) -> list:
+    """The node ids of a `draw` pick, checked against the graph: a list of 1 to 256 ids (duplicates dropped) of
+    nodes that are not sources. ValueError otherwise."""
+    if not isinstance(draw, list) or not draw or len(draw) > 256 or not all(isinstance(i, str) for i in draw):
+        raise ValueError("draw must list the ids of the nodes to draw")
+    drawable = {n.get("id") for n in graph.get("nodes") or [] if isinstance(n, dict) and n.get("type") != "source"}
+    bad = [i for i in draw if i not in drawable]
+    if bad:
+        raise ValueError(f"{bad[0]!r} is not a node of this graph that draws")
+    return list(dict.fromkeys(draw))
+
+
+def start(graph: dict, *, variant="sync", inputs=None, max_inflight=None, draw=None) -> tuple:
+    """Start the graph Live; ({"job_id"}, 200) or ({"error", "error_key"}, status). `draw`: the node ids to draw
+    (None: every node)."""
     if variant not in graph_cli.NAMES:
         return {"error": f"unknown variant {variant!r}", "error_key": "invalid_payload"}, 400
     if inputs is not None and not isinstance(inputs, dict):
@@ -116,6 +133,11 @@ def start(graph: dict, *, variant="sync", inputs=None, max_inflight=None) -> tup
         max_inflight = graph_run._int_in(max_inflight, 1, 64, "max_inflight")
     except ValueError as e:
         return {"error": str(e), "error_key": "invalid_payload"}, 400
+    if draw is not None:
+        try:
+            draw = _draw_ids(graph, draw)
+        except ValueError as e:
+            return {"error": str(e), "error_key": "invalid_draw"}, 400
     binary = graph_cli.binary(variant)
     if binary is None:
         return {"error": f"{graph_cli.NAMES[variant]} is not built", "error_key": "graph_binary_missing"}, 409
@@ -137,6 +159,8 @@ def start(graph: dict, *, variant="sync", inputs=None, max_inflight=None) -> tup
     except ValueError as e:
         return {"error": str(e), "error_key": "invalid_live_input"}, 400
     caps = graph_cli.capabilities()
+    if draw and not caps.get("draw"):
+        return {"error": "this dx_app build draws every node (no --draw)", "error_key": "draw_unsupported"}, 409
     if files and not caps.get("loop"):
         return {"error": "this dx_app build cannot loop a video (no --loop); use a camera or an RTSP stream",
                 "error_key": "loop_unsupported"}, 409
@@ -170,6 +194,8 @@ def start(graph: dict, *, variant="sync", inputs=None, max_inflight=None) -> tup
         cmd += ["--events", str(d / "events.jsonl")]
     if variant == "async" and max_inflight:
         cmd += ["--max-inflight", str(max_inflight)]
+    if draw:
+        cmd += ["--draw", ",".join(draw)]
     if shutil.which("stdbuf"):
         cmd = [shutil.which("stdbuf"), "-oL", "-eL"] + cmd
     try:

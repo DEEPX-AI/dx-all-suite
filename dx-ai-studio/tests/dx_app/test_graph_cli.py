@@ -30,19 +30,28 @@ def test_the_environment_turns_progress_on_and_qt_off_screen():
 def test_todays_dx_app_has_neither_json_nor_the_engine_key(tmp_path, monkeypatch):
     graph_fakes.install(tmp_path, monkeypatch, graph_fakes.TEXT_CLI)
     assert graph_cli.capabilities() == {"json": False, "engine_key": False, "report_timing": False,
-                                        "list_ops": False, "events": False, "loop": False}
+                                        "list_ops": False, "events": False, "loop": False, "draw": False,
+                                        "output_layers": False}
 
 
 def test_the_planned_dx_app_has_both(tmp_path, monkeypatch):
     graph_fakes.install(tmp_path, monkeypatch, graph_fakes.JSON_CLI)
     assert graph_cli.capabilities() == {"json": True, "engine_key": True, "report_timing": True,
-                                        "list_ops": False, "events": False, "loop": False}
+                                        "list_ops": False, "events": False, "loop": False, "draw": False,
+                                        "output_layers": False}
 
 
 def test_the_phase_2_dx_app_lists_ops_writes_events_and_loops(tmp_path, monkeypatch):
     graph_fakes.install(tmp_path, monkeypatch, graph_fakes.P2_CLI)
     assert graph_cli.capabilities() == {"json": True, "engine_key": True, "report_timing": True,
-                                        "list_ops": True, "events": True, "loop": True}
+                                        "list_ops": True, "events": True, "loop": True, "draw": False,
+                                        "output_layers": False}
+
+
+def test_the_results_dx_app_draws_chosen_nodes_and_writes_layers(tmp_path, monkeypatch):
+    graph_fakes.install(tmp_path, monkeypatch, graph_fakes.LAYERS_RUNNER)
+    caps = graph_cli.capabilities()
+    assert caps["draw"] is True and caps["output_layers"] is True and caps["events"] is True
 
 
 def test_a_flag_is_found_only_as_a_whole_word(tmp_path, monkeypatch):

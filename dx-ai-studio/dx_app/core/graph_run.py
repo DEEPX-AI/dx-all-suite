@@ -4,12 +4,16 @@ One job is one subprocess
 
     multi_model_graph_{sync,async} --graph graph.json --input <source>=<file> ... --output result.jpg|raw.mp4
                                    --report report.json --model-dir <models> [--events events.jsonl]
-                                   [--max-inflight N] [--frames N]
+                                   [--max-inflight N] [--frames N] [--output-layers layers]
 
 in its own folder outputs/dx_app/graph/runs/<job>. The page polls: progress comes from the runner's
 `[PROGRESS] frames=N fps=F avg_fps=A node_ms=<id>:<ms>,...` lines (DXAPP_PROGRESS=1), results from --report once it
 exits; events from its `[EVENT] {json}` lines while it runs (numbered, so a poll asks only for new ones) and from
 --events once it exits (graph_events.py). Same lifetime rule as run_progress.py: a job nobody polls for _JOB_TTL seconds is stopped and dropped.
+An image run also asks for --output-layers (when the build has it): each output then carries the clean frame and
+every node's drawing as its own RGBA layer, which the page stacks and toggles. Every output names its stream (source
+id). run.json keeps the graph and the inputs a run read, so graph_frame.inspect can run that graph again on one frame
+of its video.
 One NPU job at a time (npu_jobs.py: a run once, a graph Live or the Run page's Live): the NPU is taken before
 anything is prepared and given back when the runner exits. A run is stopped (SIGTERM, then
 SIGKILL after _STOP_GRACE seconds) when it outlives DX_GRAPH_RUN_MAX_SECONDS (default 600) or its log outgrows
@@ -226,8 +230,10 @@ def _int_in(value, lo, hi, label):
     return v
 
 
-def start(graph: dict, *, variant="sync", inputs=None, uploads=None, max_inflight=None, frames=None):
-    """Start a run; returns ({"job_id"}, 200) or ({"error", "error_key"}, status)."""
+def start(graph: dict, *, variant="sync", inputs=None, uploads=None, max_inflight=None, frames=None,
+          frame_files=None):
+    """Start a run; returns ({"job_id"}, 200) or ({"error", "error_key"}, status). `frame_files` ({source id: PNG
+    bytes}, graph_frame.inspect only) replaces those sources with one frame each."""
     if variant not in graph_cli.NAMES:
         return {"error": f"unknown variant {variant!r}", "error_key": "invalid_payload"}, 400
     if inputs is not None and not isinstance(inputs, dict):
@@ -259,6 +265,7 @@ def start(graph: dict, *, variant="sync", inputs=None, uploads=None, max_infligh
     d = runs_dir() / job_id
     now = time.time()
     job = {"id": job_id, "dir": d, "proc": None, "log": None, "graph": graph, "video": False, "start": now,
+           "sources": [s["id"] for s in sources],
            "touched": now, "cursor": 0, "progress": {"node_ms": {}}, "result": None, "stop_reason": None,
            "events": graph_events.EventLog()}
     with _lock:
@@ -280,17 +287,23 @@ def start(graph: dict, *, variant="sync", inputs=None, uploads=None, max_infligh
     try:
         _prune_runs()
         d.mkdir(parents=True)
-        args, video = [], False
+        args, video, paths = [], False, {}
         for s in sources:
             sid = s["id"]
-            if uploads and sid in uploads:
+            if frame_files and sid in frame_files:
+                p = d / f"input_{sid}.png"
+                p.write_bytes(frame_files[sid])
+            elif uploads and sid in uploads:
                 p = _write_upload(d, sid, uploads[sid])
             else:
                 p = _resolve_uri((inputs or {}).get(sid) or s.get("uri"))
             video = video or p.suffix.lower() in _VIDEO_EXT
             args += ["--input", f"{sid}={p}"]
+            paths[sid] = str(p)
         caps = graph_cli.capabilities()
         (d / "graph.json").write_text(json.dumps(engine_graph(graph, caps)), encoding="utf-8")
+        (d / "run.json").write_text(json.dumps({"graph": graph, "inputs": paths, "variant": variant}),
+                                    encoding="utf-8")
         cmd = [str(binary), "--graph", str(d / "graph.json"), *args,
                "--output", str(d / ("raw.mp4" if video else "result.jpg")), "--report", str(d / "report.json"),
                "--model-dir", str(graph_cli.models_dir())]
@@ -302,6 +315,8 @@ def start(graph: dict, *, variant="sync", inputs=None, uploads=None, max_infligh
             cmd += ["--max-inflight", str(max_inflight)]
         if frames:
             cmd += ["--frames", str(frames)]
+        if caps.get("output_layers") and not video:     # a video needs --frames N and gives a layer set per frame
+            cmd += ["--output-layers", str(d / "layers")]
         job["log"] = (d / "run.log").open("w", encoding="utf-8")
         proc = subprocess.Popen(cmd, stdout=job["log"], stderr=subprocess.STDOUT, cwd=str(config.DX_APP_ROOT),
                                 env=graph_cli.env(), text=True, close_fds=True)
@@ -324,7 +339,66 @@ def start(graph: dict, *, variant="sync", inputs=None, uploads=None, max_infligh
     return {"job_id": job_id, "status": "started"}, 200
 
 
-def _outputs(d: Path, video: bool) -> list:
+def _stream_of(name: str, sources) -> tuple:
+    """(source id, frame index or None for a video) of an output file. One source: result.jpg / result.mp4. Several:
+    result_<source>_<frame6>.<ext> (images) or result_<source>.<ext> (videos); the longest id that fits wins, so
+    "cam_a" is not read as "cam" with frame "a"."""
+    stem, _, ext = name.rpartition(".")
+    video = "." + ext.lower() in _VIDEO_EXT
+    if len(sources) == 1 and stem == "result":
+        return sources[0], None if video else 0
+    for sid in sorted(sources, key=len, reverse=True):
+        if video and stem == f"result_{sid}":
+            return sid, None
+        m = re.fullmatch(rf"result_{re.escape(sid)}_(\d+)", stem)
+        if m and not video:
+            return sid, int(m.group(1))
+    return None, None
+
+
+def _image_size(path: Path):
+    try:
+        from PIL import Image
+        with Image.open(path) as im:
+            return im.size
+    except Exception:                   # Pillow missing, or a file that is not an image
+        return None, None
+
+
+def _layers(d: Path) -> dict:
+    """{(stream, frame): {"base", "width", "height", "layers": [{node|panel, model|op, url}]}} from
+    <d>/layers/layers.json (dx_app --output-layers). Only plain file names inside that folder that exist are kept."""
+    ld = d / "layers"
+    try:
+        doc = json.loads((ld / "layers.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    base_url = "/outputs/" + ld.relative_to(Path(config.OUTPUTS_DIR)).as_posix() + "/"
+
+    def ok(name):
+        return isinstance(name, str) and name and "/" not in name and "\\" not in name and name not in (".", "..") \
+            and (ld / name).is_file()
+
+    out = {}
+    for fr in doc.get("frames") or [] if isinstance(doc, dict) else []:
+        if not isinstance(fr, dict) or not ok(fr.get("base")):
+            continue
+        rows = []
+        for lay in fr.get("layers") or []:
+            if not isinstance(lay, dict) or not ok(lay.get("file")):
+                continue
+            row = {k: lay[k] for k in ("node", "model", "op", "panel") if isinstance(lay.get(k), str)}
+            row["url"] = base_url + lay["file"]
+            rows.append(row)
+        w, h = _image_size(ld / fr["base"])
+        out[(fr.get("stream"), fr.get("frame"))] = {"base": base_url + fr["base"], "width": w, "height": h,
+                                                    "layers": rows}
+    return out
+
+
+def _outputs(d: Path, video: bool, sources=()) -> list:
+    """The rendered results, each with its stream (source id) and, for an image with --output-layers, its layers."""
+    sources = list(sources)
     out = []
     if video:
         from dx_app.core.performance import _cvt_video
@@ -336,12 +410,16 @@ def _outputs(d: Path, video: bool) -> list:
     else:
         out = sorted(p for p in d.glob("result*") if p.suffix.lower() in _IMAGE_EXT)
     base = Path(config.OUTPUTS_DIR)
+    layers = {} if video else _layers(d)
     rows = []
     for p in out:
+        stream, frame = _stream_of(p.name, sources)
         row = {"url": "/outputs/" + p.relative_to(base).as_posix(), "kind": "video" if video else "image",
-               "name": p.name}
+               "name": p.name, "stream": stream}
         if video:
             row["fps"] = video_fps(p)       # the event list seeks the video to an event's frame
+        elif (stream, frame) in layers:
+            row["layers"] = layers[(stream, frame)]
         rows.append(row)
     return rows
 
@@ -447,8 +525,8 @@ def _wait(job: dict) -> None:
                if isinstance(n, dict) and n.get("type") == "source"}
     report = summarize_report(d / "report.json", sources=sources)
     last = _last_progress(log)
-    outputs = _outputs(d, job["video"])
-    result = {"ok": code == 0 and not errors, "exit_code": code, "outputs": outputs,
+    outputs = _outputs(d, job["video"], job["sources"])
+    result = {"ok": code == 0 and not errors, "exit_code": code, "run_id": job["id"], "outputs": outputs,
               "frames": report["frames"] or int(last.get("frames", 0)), "error_frames": report["error_frames"],
               "fps": last.get("fps"), "avg_fps": last.get("avg_fps"),
               "node_ms": report["node_ms"] or last.get("node_ms") or {}, "nodes": report["nodes"],
@@ -513,6 +591,20 @@ def result(job_id: str) -> dict:
             return {"running": True}
         _jobs.pop(job_id)
         return job["result"]
+
+
+def wait(job_id: str, timeout: float) -> dict:
+    """Block until a run ends and hand out its result, as result() does (graph_frame.inspect). A run still going
+    after `timeout` seconds is stopped (SIGTERM, then SIGKILL) and its result handed out once it has ended."""
+    end, stopped = time.time() + timeout, False
+    while True:
+        r = result(job_id)
+        if not r.get("running"):
+            return r
+        if not stopped and time.time() > end:
+            stop(job_id)
+            stopped = True
+        time.sleep(0.05)
 
 
 def stop(job_id: str) -> dict:

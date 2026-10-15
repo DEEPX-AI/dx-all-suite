@@ -11,7 +11,7 @@ GET_ROUTES = ("/api/graph/catalog", "/api/graph/run/poll", "/api/graph/run/resul
               "/api/graph/gallery/poll")
 POST_ROUTES = ("/api/graph/validate", "/api/graph/memory", "/api/graph/run", "/api/graph/run/stop",
                "/api/graph/project/save", "/api/graph/project/delete", "/api/graph/live/start",
-               "/api/graph/live/stop", "/api/graph/gallery/build", "/api/graph/gallery/stop")
+               "/api/graph/live/stop", "/api/graph/gallery/build", "/api/graph/gallery/stop", "/api/graph/run/frame")
 LOCAL = {"Origin": "http://localhost:8080"}
 GRAPH = {"version": 1, "name": "g", "nodes": [{"id": "cam", "type": "source", "uri": "x.jpg"}], "edges": []}
 
@@ -189,7 +189,9 @@ def test_live_start_poll_and_stop_reach_graph_live(monkeypatch):
     r = _route("POST", "/api/graph/live/start", {"graph": GRAPH, "variant": "async",
                                                  "inputs": {"cam": "camera:0"}, "max_inflight": 2}, h)
     assert r["data"] == {"job_id": "L1"} and seen["start"] == {"variant": "async", "inputs": {"cam": "camera:0"},
-                                                               "max_inflight": 2}
+                                                               "max_inflight": 2, "draw": None}
+    _route("POST", "/api/graph/live/start", {"graph": GRAPH, "draw": ["od", "zone"]}, h)
+    assert seen["start"]["draw"] == ["od", "zone"]
     assert _route("GET", "/api/graph/live/poll", headers=h, query={"id": "L1", "events_after": "3"})["code"] == 200
     assert seen["poll"] == ("L1", "3")
     assert _route("POST", "/api/graph/live/stop", {"id": "L1"}, h)["data"] == {"status": "stopping"}
@@ -258,3 +260,18 @@ def test_gallery_build_poll_and_stop_reach_graph_gallery(monkeypatch):
     assert (r["code"], r["data"]["error_key"], seen["poll"]) == (404, "unknown_job", "G1")
     r = _route("POST", "/api/graph/gallery/stop", {"id": "G1"}, h)
     assert (r["code"], r["data"], seen["stop"]) == (200, {"status": "stopping"}, "G1")
+
+
+# Results view: the layers of one frame of a run's video.
+
+def test_the_run_frame_route_reaches_graph_frame_inspect(monkeypatch):
+    from dx_app.core import graph_frame
+    seen = {}
+    monkeypatch.setattr(graph_frame, "inspect", lambda data: seen.update(data) or ({"ok": True, "stream": "cam"}, 200))
+    h = {"X-Lab-Token": _token(), **LOCAL}
+    r = _route("POST", "/api/graph/run/frame", {"run_id": "a" * 32, "stream": "cam", "time_s": 1.5}, h)
+    assert (r["code"], r["data"]) == (200, {"ok": True, "stream": "cam"})
+    assert seen == {"run_id": "a" * 32, "stream": "cam", "time_s": 1.5}
+    big = {"nodes": [{"id": f"n{i}"} for i in range(graph_routes.MAX_NODES + 1)], "edges": []}
+    bad = _route("POST", "/api/graph/run/frame", {"graph": big, "stream": "cam", "time_s": 0}, h)
+    assert (bad["code"], bad["data"]["error_key"]) == (400, "invalid_payload")

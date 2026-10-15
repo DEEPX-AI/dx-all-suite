@@ -96,3 +96,134 @@ def test_ffmpeg_reads_no_terminal_input(root, monkeypatch):
     (root / "assets" / "videos" / "clip.mp4").write_bytes(b"\0")
     body, code = graph_frame.first_frame("assets/videos/clip.mp4")
     assert code == 422 and seen["stdin"] == subprocess.DEVNULL and "-nostdin" in seen["cmd"]
+
+
+# Results view: "Layers for this frame" runs the graph again on one frame of a run's video, with --output-layers.
+
+FANOUT = {"version": 1, "name": "adas-fanout",
+          "nodes": [{"id": "cam", "type": "source", "uri": "assets/videos/clip.mp4"},
+                    {"id": "od", "model": "yolov8-n_640x640"}, {"id": "seg", "model": "bisenetv2_1024x2048"},
+                    {"id": "depth", "model": "fastdepth_224x224"}],
+          "edges": [{"from": "cam", "to": "od"}, {"from": "cam", "to": "seg"}, {"from": "cam", "to": "depth"}]}
+TWO = {"version": 1, "name": "two-cameras",
+       "nodes": [{"id": "cam1", "type": "source", "uri": "assets/videos/clip.mp4"},
+                 {"id": "cam2", "type": "source", "uri": "sample/img/a.jpg"},
+                 {"id": "od", "model": "yolov8-n_640x640"}],
+       "edges": [{"from": "cam1", "to": "od"}, {"from": "cam2", "to": "od"}]}
+
+
+@pytest.fixture
+def runs(root, tmp_path, monkeypatch):
+    """A fake dx_app with --output-layers, a video and an image input, and frames grabbed without ffmpeg."""
+    from dx_app.core import graph_run, npu_jobs
+    from tests.dx_app import graph_fakes
+    npu_jobs._reset()
+    graph_run._jobs.clear()
+    graph_fakes.install(tmp_path, monkeypatch, graph_fakes.LAYERS_RUNNER)
+    (root / "assets" / "videos" / "clip.mp4").write_bytes(b"\0")
+    PIL.new("RGB", (8, 6)).save(root / "sample" / "img" / "a.jpg")
+    grabbed = []
+
+    def grab(path, t):
+        grabbed.append((path.name, t))
+        buf = io.BytesIO()
+        PIL.new("RGB", (16, 12)).save(buf, format="PNG")
+        return buf.getvalue()
+    monkeypatch.setattr(graph_frame, "_frame_png", grab)
+    monkeypatch.setattr(graph_run, "video_fps", lambda p: 10.0)
+    yield {"tmp": tmp_path, "grabbed": grabbed}
+    for job in list(graph_run._jobs.values()):
+        if job["proc"] is not None and job["proc"].poll() is None:
+            job["proc"].kill()
+    graph_run._jobs.clear()
+    npu_jobs._reset()
+
+
+def _video_run(graph=FANOUT):
+    from dx_app.core import graph_run
+    body, code = graph_run.start(graph)
+    assert code == 200, body
+    r = graph_run.wait(body["job_id"], timeout=10)
+    assert r["run_id"] == body["job_id"]
+    return r["run_id"]
+
+
+def test_a_paused_video_frame_runs_again_with_each_node_s_layer(runs):
+    from tests.dx_app import graph_fakes
+    rid = _video_run()
+    assert "--output-layers" not in graph_fakes.calls(runs["tmp"])[-1], "the video run itself has no layers"
+    body, code = graph_frame.inspect({"run_id": rid, "stream": "cam", "time_s": 1.25})
+    assert code == 200 and body["ok"] is True, body
+    assert runs["grabbed"] == [("clip.mp4", 1.25)]
+    args = graph_fakes.calls(runs["tmp"])[-1]
+    assert "input_cam.png" in args and "--output-layers" in args and "clip.mp4" not in args
+    assert body["stream"] == "cam" and body["time_s"] == 1.25 and body["run_id"] != rid
+    out = body["output"]
+    assert out["kind"] == "image" and out["stream"] == "cam"
+    assert [x["node"] for x in out["layers"]["layers"]] == ["seg", "depth", "od"]
+    assert out["layers"]["base"].endswith("/layers/result_000000_base.png")
+
+
+def test_a_frame_number_is_found_at_the_middle_of_that_frame(runs):
+    rid = _video_run()
+    body, code = graph_frame.inspect({"run_id": rid, "stream": "cam", "frame": 12})
+    assert code == 200 and runs["grabbed"] == [("clip.mp4", 1.25)] and body["time_s"] == 1.25
+
+
+def test_with_two_sources_the_other_video_is_taken_at_the_same_time_and_an_image_as_it_is(runs):
+    from tests.dx_app import graph_fakes
+    rid = _video_run(TWO)
+    body, code = graph_frame.inspect({"run_id": rid, "stream": "cam2", "time_s": 0.5})
+    assert code == 200 and body["output"]["stream"] == "cam2"
+    assert [x["node"] for x in body["output"]["layers"]["layers"]] == ["od", "reid"]
+    assert runs["grabbed"] == [("clip.mp4", 0.5)]
+    args = graph_fakes.calls(runs["tmp"])[-1]
+    assert "cam1=" in args and "input_cam1.png" in args and "cam2=" in args and "a.jpg" in args
+
+
+def test_a_graph_and_its_inputs_stand_in_for_a_run(runs):
+    body, code = graph_frame.inspect({"graph": FANOUT, "inputs": {"cam": "assets/videos/clip.mp4"},
+                                      "stream": "cam", "time_s": 0})
+    assert code == 200 and body["ok"] is True and runs["grabbed"] == [("clip.mp4", 0.0)]
+
+
+@pytest.mark.parametrize("data, code, key", [
+    ({"run_id": "0" * 32, "stream": "cam", "time_s": 1}, 404, "run_gone"),
+    ({"run_id": "../x", "stream": "cam", "time_s": 1}, 400, "invalid_payload"),
+    ({"stream": "cam", "time_s": 1}, 400, "invalid_payload"),
+    ({"graph": FANOUT, "stream": "cam2", "time_s": 1}, 400, "invalid_stream"),
+    ({"graph": FANOUT, "stream": "cam"}, 400, "invalid_payload"),
+    ({"graph": FANOUT, "stream": "cam", "time_s": -1}, 400, "invalid_payload"),
+    ({"graph": FANOUT, "stream": "cam", "frame": "x"}, 400, "invalid_payload"),
+    ({"graph": FANOUT, "inputs": {"cam": "camera:0"}, "stream": "cam", "time_s": 1}, 400, "live_source"),
+])
+def test_a_frame_request_that_cannot_be_answered_says_why(runs, data, code, key):
+    body, got = graph_frame.inspect(data)
+    assert (got, body["error_key"]) == (code, key), body
+    assert runs["grabbed"] == []
+
+
+def test_a_frame_waits_for_the_npu_like_any_run(runs):
+    from dx_app.core import npu_jobs
+    npu_jobs.acquire("graph_live", "a-graph-live")
+    body, code = graph_frame.inspect({"graph": FANOUT, "stream": "cam", "time_s": 0})
+    assert (code, body["error_key"]) == (409, "graph_live_busy")
+
+
+def test_a_build_without_layers_cannot_show_a_frame_s_layers(runs, tmp_path, monkeypatch):
+    from tests.dx_app import graph_fakes
+    graph_fakes.install(tmp_path, monkeypatch, 'case "$1" in --help) cat "$FIX/help_p2.txt"; exit 0 ;; esac\nexit 0')
+    body, code = graph_frame.inspect({"graph": FANOUT, "stream": "cam", "time_s": 0})
+    assert (code, body["error_key"]) == (409, "layers_unsupported") and runs["grabbed"] == []
+
+
+def test_ffmpeg_takes_the_frame_at_a_time(root):
+    if not shutil.which("ffmpeg"):
+        pytest.skip("ffmpeg is needed for a video frame")
+    v = root / "assets" / "videos" / "clip.mp4"
+    subprocess.run(["ffmpeg", "-v", "error", "-f", "lavfi", "-i", "testsrc=size=64x48:rate=10:duration=2",
+                    "-pix_fmt", "yuv420p", str(v)], check=True, timeout=60)
+    a, b = graph_frame._frame_png(v, 0.05), graph_frame._frame_png(v, 1.55)
+    assert PIL.open(io.BytesIO(a)).size == (64, 48) and a[:8] == b"\x89PNG\r\n\x1a\n" and a != b
+    with pytest.raises(RuntimeError):
+        graph_frame._frame_png(v, 60)

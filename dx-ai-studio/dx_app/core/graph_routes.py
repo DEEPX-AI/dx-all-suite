@@ -10,7 +10,9 @@ NPU work and the catalog lists local model files.
     POST /api/graph/run        {graph, variant, inputs, uploads, max_inflight, frames}
     GET  /api/graph/run/poll?id=[&events_after=N]   GET /api/graph/run/result?id=   POST /api/graph/run/stop {id}
     GET  /api/graph/frame?uri=                 one frame of an input (zone and line drawing)
-    POST /api/graph/live/start {graph, variant, inputs, max_inflight}
+    POST /api/graph/run/frame  {run_id | graph, inputs, variant; stream, time_s | frame}
+                                              one frame of a run's video run again with per-node layers (blocks)
+    POST /api/graph/live/start {graph, variant, inputs, max_inflight, draw}
     GET  /api/graph/live/poll?id=[&events_after=N]   POST /api/graph/live/stop {id}
     POST /api/graph/gallery/build {folder, model, name?}   a gallery .bin for the gallery op (graph_gallery.py)
     GET  /api/graph/gallery/poll?id=   POST /api/graph/gallery/stop {id}
@@ -93,10 +95,16 @@ def handle(method: str, path: str, query, data, headers, server_host) -> tuple:
             return graph_memory.estimate(g), 200
         if path == "/api/graph/live/start":
             return graph_live.start(g, variant=data.get("variant", "sync"), inputs=data.get("inputs"),
-                                    max_inflight=data.get("max_inflight"))
+                                    max_inflight=data.get("max_inflight"), draw=data.get("draw"))
         return graph_run.start(g, variant=data.get("variant", "sync"), inputs=data.get("inputs"),
                                uploads=data.get("uploads"), max_inflight=data.get("max_inflight"),
                                frames=data.get("frames"))
+    if path == "/api/graph/run/frame":
+        if "graph" in data:
+            _g, bad = _graph(data)
+            if bad:
+                return bad
+        return graph_frame.inspect(data)
     if path == "/api/graph/run/stop":
         return graph_run.stop(str(data.get("id") or "")), 200
     if path == "/api/graph/live/stop":

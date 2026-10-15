@@ -519,3 +519,95 @@ def test_a_run_waits_for_a_graph_live_to_end(studio, monkeypatch):
     npu_jobs.acquire("graph_live", "a-graph-live")            # the registry every NPU job starts through
     body, code = graph_run.start(GRAPH)
     assert (code, body["error_key"]) == (409, "graph_live_busy") and _started(studio) == []
+
+
+# Results view: per-node layers of an image run, the stream of every output.
+
+FANOUT = {"version": 1, "name": "adas-fanout",
+          "nodes": [{"id": "cam", "type": "source", "uri": "sample/img/sample_people.jpg"},
+                    {"id": "od", "model": "yolov8-n_640x640"}, {"id": "seg", "model": "bisenetv2_1024x2048"},
+                    {"id": "depth", "model": "fastdepth_224x224"}],
+          "edges": [{"from": "cam", "to": "od"}, {"from": "cam", "to": "seg"}, {"from": "cam", "to": "depth"}]}
+TWO = {"version": 1, "name": "two-cameras",
+       "nodes": [{"id": "cam1", "type": "source", "uri": "sample/img/sample_people.jpg"},
+                 {"id": "cam2", "type": "source", "uri": "sample/img/sample_people.jpg"},
+                 {"id": "od", "model": "yolov8-n_640x640"}, {"id": "reid", "model": "casvit-t_224x224"}],
+       "edges": [{"from": "cam1", "to": "od"}, {"from": "cam2", "to": "od"},
+                 {"from": "od", "to": "reid", "roi": {"classes": ["person"]}}]}
+
+
+def _run_to_end(graph, **kw):
+    body, code = graph_run.start(graph, **kw)
+    assert code == 200, body
+    _wait(body["job_id"])
+    return body["job_id"], graph_run.result(body["job_id"])
+
+
+def test_an_image_run_returns_each_node_s_layer_over_the_clean_frame(studio, monkeypatch):
+    graph_fakes.install(studio, monkeypatch, graph_fakes.LAYERS_RUNNER)
+    jid, r = _run_to_end(FANOUT)
+    d = config.OUTPUTS_DIR / "graph" / "runs" / jid
+    assert f"--output-layers {d / 'layers'}" in graph_fakes.calls(studio)[-1]
+    assert r["run_id"] == jid
+    (out,) = r["outputs"]
+    assert out["stream"] == "cam" and out["name"] == "result.jpg"
+    lay = out["layers"]
+    base = f"/outputs/graph/runs/{jid}/layers/"
+    assert lay["base"] == base + "result_000000_base.png" and (lay["width"], lay["height"]) == (16, 12)
+    assert lay["layers"] == [
+        {"node": "seg", "model": "bisenetv2_1024x2048", "url": base + "result_000000_seg.png"},
+        {"node": "depth", "model": "fastdepth_224x224", "url": base + "result_000000_depth.png"},
+        {"node": "od", "model": "yolov8-n_640x640", "url": base + "result_000000_od.png"}], "bottom first"
+
+
+def test_with_two_sources_every_output_names_its_stream_and_has_its_own_layers(studio, monkeypatch):
+    graph_fakes.install(studio, monkeypatch, graph_fakes.LAYERS_RUNNER)
+    jid, r = _run_to_end(TWO)
+    assert [(o["stream"], o["name"]) for o in r["outputs"]] == [("cam1", "result_cam1_000000.jpg"),
+                                                                ("cam2", "result_cam2_000000.jpg")]
+    assert [o["layers"]["base"].rsplit("/", 1)[1] for o in r["outputs"]] == ["result_cam1_000000_base.png",
+                                                                             "result_cam2_000000_base.png"]
+    assert [x["node"] for x in r["outputs"][1]["layers"]["layers"]] == ["od", "reid"]
+
+
+def test_a_source_id_with_underscores_still_finds_its_stream(tmp_path):
+    assert graph_run._stream_of("result_cam_a_000000.jpg", ["cam", "cam_a"]) == ("cam_a", 0)
+    assert graph_run._stream_of("result_cam_000012.jpg", ["cam", "cam_a"]) == ("cam", 12)
+    assert graph_run._stream_of("result_cam_a.mp4", ["cam", "cam_a"]) == ("cam_a", None)
+    assert graph_run._stream_of("result.jpg", ["cam"]) == ("cam", 0)
+    assert graph_run._stream_of("result.mp4", ["cam"]) == ("cam", None)
+
+
+def test_a_layer_file_outside_the_layers_folder_is_left_out(studio, monkeypatch):
+    graph_fakes.install(studio, monkeypatch, graph_fakes.LAYERS_RUNNER)
+    jid, _ = _run_to_end(FANOUT)
+    d = config.OUTPUTS_DIR / "graph" / "runs" / jid
+    doc = json.loads((d / "layers" / "layers.json").read_text())
+    doc["frames"][0]["layers"][0]["file"] = "../graph.json"
+    doc["frames"][0]["layers"][1]["file"] = "missing.png"
+    (d / "layers" / "layers.json").write_text(json.dumps(doc))
+    (out,) = graph_run._outputs(d, False, ["cam"])
+    assert [x["node"] for x in out["layers"]["layers"]] == ["od"]
+
+
+def test_a_build_without_layers_runs_as_before(studio, monkeypatch):
+    graph_fakes.install(studio, monkeypatch, RUNNER)
+    _, r = _run_to_end(GRAPH)
+    assert "--output-layers" not in graph_fakes.calls(studio)[-1]
+    assert r["outputs"][0]["stream"] == "cam" and "layers" not in r["outputs"][0]
+
+
+def test_a_video_run_asks_for_no_layers(studio, monkeypatch):
+    graph_fakes.install(studio, monkeypatch, graph_fakes.LAYERS_RUNNER)
+    (config.ASSETS_DIR / "clip.mp4").write_bytes(b"\0")
+    _run_to_end(FANOUT, inputs={"cam": "assets/clip.mp4"})
+    args = graph_fakes.calls(studio)[-1]
+    assert "raw.mp4" in args and "--output-layers" not in args
+
+
+def test_a_run_remembers_its_graph_and_inputs_for_a_later_frame(studio, monkeypatch):
+    graph_fakes.install(studio, monkeypatch, graph_fakes.LAYERS_RUNNER)
+    jid, _ = _run_to_end(FANOUT, variant="async", uploads={"cam": "data:image/png;base64," + PNG})
+    saved = json.loads((config.OUTPUTS_DIR / "graph" / "runs" / jid / "run.json").read_text())
+    assert saved["graph"] == FANOUT and saved["variant"] == "async"
+    assert saved["inputs"]["cam"].endswith(f"{jid}/input_cam.png")

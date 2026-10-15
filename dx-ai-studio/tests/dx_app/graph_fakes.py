@@ -99,3 +99,47 @@ def install_examples(root: Path) -> Path:
     for p in sorted((FIX / "examples").glob("*.json")):
         (d / p.name).write_text(p.read_text(encoding="utf-8"), encoding="utf-8")
     return d
+
+
+# The dx_app results-for-front-ends CLI (e4840f9b): help_p3.txt is its --help; layers/layers_fanout.json the real
+# layers.json of fanout_od_seg_depth on sample_street.jpg, layers/layers_two_sources.json that of
+# multistream_od_two_sources (both with --output result.jpg). The runner writes what the real one writes: --output
+# (one file per stream with several sources: result_<source>_000000.jpg, or result_<source>.mp4), --report, and with
+# --output-layers the layers.json of one source or of two (cam1, cam2), its PNGs as tiny stand-ins (layers/base.png
+# 16x12 RGB, layers/layer.png 16x12 RGBA), and the closing "layers: <dir>/layers.json" line. Arguments are echoed as
+# "arg ..." lines; SLEEP=<s> holds it until SIGTERM.
+LAYERS_RUNNER = r"""
+case "$1" in --help) cat "$FIX/help_p3.txt"; exit 0 ;; --check) exit 0 ;; esac
+out=""; rep=""; lay=""; srcs=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --output) out="$2"; shift 2 ;;
+    --report) rep="$2"; shift 2 ;;
+    --output-layers) lay="$2"; shift 2 ;;
+    --input) srcs="$srcs ${2%%=*}"; echo "arg --input $2"; shift 2 ;;
+    *) echo "arg $1"; shift ;;
+  esac
+done
+if [ -n "$SLEEP" ]; then trap 'echo stopped; exit 0' TERM; sleep "$SLEEP" & wait; fi
+set -- $srcs
+cat "$FIX/run_progress.log"
+[ -n "$rep" ] && cp "$FIX/report.json" "$rep"
+ext="${out##*.}"; stem="${out%.*}"
+if [ $# -gt 1 ]; then
+  for s in "$@"; do
+    if [ "$ext" = "mp4" ]; then printf 'vid' > "${stem}_${s}.mp4"; else printf 'img' > "${stem}_${s}_000000.${ext}"; fi
+  done
+else
+  printf 'img' > "$out"
+fi
+if [ -n "$lay" ]; then
+  mkdir -p "$lay"
+  if [ $# -gt 1 ]; then cp "$FIX/layers/layers_two_sources.json" "$lay/layers.json"
+  else cp "$FIX/layers/layers_fanout.json" "$lay/layers.json"; fi
+  names() { grep -o "\"$1\": *\"[^\"]*\"" "$lay/layers.json" | sed 's/.*"\([^"]*\)"$/\1/'; }
+  for f in $(names base); do cp "$FIX/layers/base.png" "$lay/$f"; done
+  for f in $(names file); do cp "$FIX/layers/layer.png" "$lay/$f"; done
+  echo "layers: $lay/layers.json"
+fi
+exit 0
+"""
