@@ -169,13 +169,14 @@ window.GraphPalette = (function () {
     ]);
   }
 
-  /* Open a group and scroll it to the top of the palette (the tutorial points at it). Null when it is not drawn,
-     e.g. while a search hides it. */
+  /* Open a group and scroll the palette (only the palette, not the page) so the group starts at its top: the
+     tutorial points at it. Null when it is not drawn, e.g. while a search hides it. */
   function reveal(key) {
     expanded[key] = true;
     if (lastRoot && lastCtx) render(lastRoot, lastCtx);
     var g = lastRoot && lastRoot.querySelector('.gc-group[data-group="' + key + '"]');
-    if (g && g.scrollIntoView) g.scrollIntoView({ block: 'start' });
+    var box = lastRoot && lastRoot.closest ? lastRoot.closest('.gc-palette') : null;
+    if (g && box) box.scrollTop += g.getBoundingClientRect().top - box.getBoundingClientRect().top;
     return g || null;
   }
 

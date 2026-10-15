@@ -8,6 +8,7 @@ whose pictures are the 16x12 layer fixtures, so these tests do not depend on the
 from __future__ import annotations
 
 import json
+from contextlib import contextmanager
 from pathlib import Path
 
 import pytest
@@ -143,11 +144,15 @@ def test_a_template_goes_on_the_canvas_only_when_no_work_is_lost(ui):
 
 def test_the_run_tab_comes_back_as_it_was(ui):
     page = ui
+    page.click("#gc-tab-live")
+    page.evaluate("GraphComposer.tutorial.runTab('once')")
+    assert page.is_visible("#gc-run-body") and page.is_hidden("#gc-live-body")
     page.evaluate("GraphComposer.tutorial.runTab('live')")
-    assert page.is_visible("#gc-live-body") and page.is_hidden("#gc-run-body")
+    page.evaluate("GraphComposer.tutorial.restoreRunTab()")
+    assert page.evaluate("GraphComposer.state().runTab") == "live"
     page.evaluate("GraphComposer.tutorial.runTab('once')")
     page.evaluate("GraphComposer.tutorial.restoreRunTab()")
-    assert page.evaluate("GraphComposer.state().runTab") == "once"
+    assert page.evaluate("GraphComposer.state().runTab") == "live", "a restore forgets the tab it put back"
 
 
 def test_reveal_opens_a_palette_group(ui):
@@ -156,6 +161,13 @@ def test_reveal_opens_a_palette_group(ui):
     assert page.is_hidden("[data-group='templates'] .gc-group-body")
     page.evaluate("GraphPalette.reveal('templates')")
     assert page.is_visible("[data-group='templates'] .gc-group-body")
+    page.evaluate("window.scrollTo(0, 0)")
+    page.evaluate("GraphPalette.reveal('sources')")
+    got = page.evaluate("""() => { const g = document.querySelector('.gc-group[data-group="sources"]');
+        const box = document.getElementById('gc-palette');
+        return [g.getBoundingClientRect().top - box.getBoundingClientRect().top, window.scrollY, box.scrollTop]; }""")
+    assert abs(got[0]) < 2 and got[2] > 0, got
+    assert got[1] == 0, "only the palette scrolls, never the page (its sticky bar would cover the group)"
 
 
 STEP_JS = """() => { const e = window._dxTutorial, step = e._curSection && e._curSection.steps[e._curStep];
@@ -195,42 +207,76 @@ def _tour(page, until=None):
     return seen
 
 
+@contextmanager
+def _opened(browser, server, lang="en"):
+    """A fresh page on the composer, closed even when the test fails."""
+    ctx, page, errors = _page(browser, server, lang)
+    try:
+        yield page, errors
+    finally:
+        ctx.close()
+
+
 @pytest.mark.parametrize("lang", ["en", "ja"])
 def test_the_graph_tour_points_at_every_part_of_the_composer(browser, server, lang):
-    ctx, page, errors = _page(browser, server, lang)
-    seen = _tour(page)
-    assert [s["target"] for s in seen] == GRAPH_STEP_TARGETS
-    bad = [s for s in seen if not (s["found"] and s["visible"] and s["spotlight"] and not s["floating"])]
-    assert not bad, bad
-    by = {s["target"]: s for s in seen}
-    assert by["#gc-run-results"]["mocks"] == 2 and by["#gc-run-events"]["mocks"] == 2
-    assert by["#gc-live-body"]["tab"] == "live" and by["#gc-export-cpp"]["tab"] == "once"
-    assert page.locator("[data-dxt-tutorial-mock]").count() == 0, "the preview is gone after the tour"
-    assert page.evaluate("GraphComposer.state().name") == "zone-intrusion"
-    assert seen[1]["title"] == ("テンプレート" if lang == "ja" else "Templates")
-    assert not errors, errors
-    ctx.close()
+    with _opened(browser, server, lang) as (page, errors):
+        seen = _tour(page)
+        assert [s["target"] for s in seen] == GRAPH_STEP_TARGETS
+        bad = [s for s in seen if not (s["found"] and s["visible"] and s["spotlight"] and not s["floating"])]
+        assert not bad, bad
+        by = {s["target"]: s for s in seen}
+        assert by["#gc-run-results"]["mocks"] == 2 and by["#gc-run-events"]["mocks"] == 2
+        assert by["#gc-live-body"]["tab"] == "live" and by["#gc-export-cpp"]["tab"] == "once"
+        assert page.locator("[data-dxt-tutorial-mock]").count() == 0, "the preview is gone after the tour"
+        assert page.evaluate("GraphComposer.state().name") == "zone-intrusion"
+        assert seen[1]["title"] == ("テンプレート" if lang == "ja" else "Templates")
+        assert not errors, errors
 
 
 def test_the_tour_leaves_unsaved_work_on_the_canvas(browser, server):
-    ctx, page, errors = _page(browser, server)
-    page.evaluate("GraphComposer.loadExample('line_counting')")
-    page.evaluate("GraphComposer.state().dirty = true")
-    page.evaluate(START)
-    page.wait_for_function(ANCHORED, arg=1, timeout=15000)
-    page.evaluate("window._dxTutorial.stop()")
-    assert page.evaluate("GraphComposer.state().name") == "line-counting"
-    assert page.evaluate("GraphComposer.state().dirty") is True
-    assert not errors, errors
-    ctx.close()
+    with _opened(browser, server) as (page, errors):
+        page.evaluate("GraphComposer.loadExample('line_counting')")
+        page.evaluate("GraphComposer.state().dirty = true")
+        page.evaluate(START)
+        page.wait_for_function(ANCHORED, arg=1, timeout=15000)
+        page.evaluate("window._dxTutorial.stop()")
+        assert page.evaluate("GraphComposer.state().name") == "line-counting"
+        assert page.evaluate("GraphComposer.state().dirty") is True
+        assert not errors, errors
 
 
-@pytest.mark.parametrize("where", ["#gc-run-results", "#gc-live-body"])
+def test_the_tour_leaves_an_open_project_and_the_last_run_alone(browser, server):
+    with _opened(browser, server) as (page, errors):
+        page.evaluate("GraphComposer.loadExample('line_counting')")
+        page.evaluate("GraphComposer.state().projectId = 'p1'")
+        assert page.evaluate("GraphComposer.tutorial.useExample('zone_intrusion')") is False
+        page.evaluate("GraphComposer.state().projectId = null")
+        page.evaluate("GraphComposer.state().run = {ok: true, outputs: [], nodes: {}, events: []}")
+        assert page.evaluate("GraphComposer.tutorial.useExample('zone_intrusion')") is False
+        assert page.evaluate("GraphComposer.state().name") == "line-counting"
+        assert page.evaluate("GraphComposer.state().run") is not None
+        assert not errors, errors
+
+
+def test_a_preview_that_lands_after_the_step_is_left_is_not_shown(browser, server):
+    with _opened(browser, server) as (page, errors):
+        page.evaluate("""() => { const f = window.fetch;
+            window.fetch = (u, o) => new Promise(r => setTimeout(() => r(f(u, o)), 800)); }""")
+        page.evaluate("() => { GraphComposer.tutorial.showResults(); }")
+        page.evaluate("GraphComposer.tutorial.hideResults()")
+        page.wait_for_timeout(1500)
+        assert page.locator("[data-dxt-tutorial-mock]").count() == 0
+        assert page.locator("#gc-run-results").count() == 0
+        assert not errors, errors
+
+
+@pytest.mark.parametrize("where", ["#gc-run-panel", "#gc-run-results", "#gc-run-events", "#gc-live-body"])
 def test_leaving_the_tour_midway_undoes_the_step(browser, server, where):
-    ctx, page, errors = _page(browser, server)
-    _tour(page, until=where)
-    page.evaluate("window._dxTutorial.stop()")
-    assert page.locator("[data-dxt-tutorial-mock]").count() == 0
-    assert page.evaluate("GraphComposer.state().runTab") == "once"
-    assert not errors, errors
-    ctx.close()
+    with _opened(browser, server) as (page, errors):
+        page.click("#gc-tab-live")
+        assert page.evaluate("GraphComposer.state().runTab") == "live"
+        _tour(page, until=where)
+        page.evaluate("window._dxTutorial.stop()")
+        assert page.locator("[data-dxt-tutorial-mock]").count() == 0
+        assert page.evaluate("GraphComposer.state().runTab") == "live", "the tab the page had before the tour"
+        assert not errors, errors

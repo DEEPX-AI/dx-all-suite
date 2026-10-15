@@ -612,9 +612,10 @@ window.GraphComposer = (function () {
 
   /* ── the tutorial (tutorial.js, graph section) ──
      What the tour may do to the page. Nothing here runs the graph, and nothing replaces work: a template goes on the
-     canvas only when it holds no unsaved change and nothing runs; the run tab and the preview have their undo. */
+     canvas only when it holds no unsaved change, no open project and no run result, and nothing runs; the run tab
+     and the preview have their undo. */
   var PREVIEW_URL = '/static/img/graph-tutorial/preview.json';
-  var tour = { preview: null, tab: null };
+  var tour = { preview: null, tab: null, gen: 0 };   // gen: a hideResults() cancels a showResults() still loading
   var tutorial = {
     /* The page is open and its catalog has landed (or `ms` passed): the palette and the templates are drawn. */
     ready: async function (ms) {
@@ -624,9 +625,10 @@ window.GraphComposer = (function () {
     },
     useExample: function (id) {
       var ex = exampleById(id);
-      if (!ex || !st.cv || st.dirty) return false;
-      if ((window.GraphRun && GraphRun.running()) || (window.GraphLive && GraphLive.running())) return false;
+      if (!ex || !st.cv) return false;
       if (!st.projectId && st.name === ex.name && st.cv.getGraph().nodes.length) return true;
+      if (st.dirty || st.projectId || st.run) return false;
+      if ((window.GraphRun && GraphRun.running()) || (window.GraphLive && GraphLive.running())) return false;
       showExample(ex);
       return true;
     },
@@ -645,15 +647,20 @@ window.GraphComposer = (function () {
       tour.tab = null;
     },
     showResults: async function () {
+      var gen = ++tour.gen;
       if (!tour.preview) {
         try {
           var res = await fetch(PREVIEW_URL, { cache: 'no-cache' });
           tour.preview = res.ok ? await res.json() : null;
         } catch (e) { tour.preview = null; }
       }
+      if (gen !== tour.gen) return false;      // the step was left while the preview loaded
       return !!(tour.preview && window.GraphRun && GraphRun.preview(tour.preview));
     },
-    hideResults: function () { if (window.GraphRun) GraphRun.clearPreview(); }
+    hideResults: function () {
+      tour.gen++;
+      if (window.GraphRun) GraphRun.clearPreview();
+    }
   };
 
   function refreshLanguage() {
