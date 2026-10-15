@@ -205,6 +205,7 @@ artifacts/cpp_example/
 - Template: Logic 블록이 들어간 dx_app 예제 graph (출입 금지 구역, 선 통과 계수, 보호구 확인, 배회 감지, 인원 계수) 를 결과 그림과 함께 연다.
 - Live: camera, RTSP, 반복 재생 비디오로 멈출 때까지 실행 (`--display`, 비디오는 `--loop`). Run 페이지 Live 와 같은 Xvfb 화면 경로 (별도 slot), 화면 / FPS / node별 시간 / event. 한 번에 하나, run once 나 Run 페이지 Live 와 동시에 돌지 않고, 페이지를 떠나면 멈춘다.
 - Project: Studio workspace (`outputs/dx_app/graph/projects/`) 에 저장하고, 저장할 때마다 version 이 남는다. JSON export / import.
+- C++ project export: 상단의 "C++ 프로젝트 내보내기" 가 dx_app `scripts/export_graph_project.py` 로 graph 를 독립 CMake 프로젝트로 만든다 (`CMakeLists.txt`, `main.cpp`, `graph.json`, 사용한 model 의 factory 만 담은 engine, `models/`, `user_logic/<name>.{hpp,cpp}` stub, `setup.sh`, `run.sh`, `README.md`). 사용자 Logic 블록은 C++ class stub 이 되고 채우기 전에는 pass-through. 필요한 것은 DEEPX runtime (dx_rt), CMake, C++17 compiler, OpenCV 4 뿐이다. model 파일은 기본으로 빠지고 ("모델 파일 포함" 을 고르면 들어감, 모든 model 이 설치돼 있을 때만 가능), 빠진 model 은 `./setup.sh` 가 Model Zoo 에서 내려받는다. `./setup.sh` 가 빌드, `./run.sh` 가 `results/` 에 결과 이미지·`events.jsonl`·`report.json` 을 쓴다. 결과는 `outputs/dx_app/graph/exports/` (최근 5개) 와 zip.
 
 ### Studio Lab 탭
 - **Add Model**: category 의 기존 예제 하나(**Start from**)를 새 이름으로 복사한다 (`add_model.sh --base-model`).

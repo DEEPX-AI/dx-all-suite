@@ -41,6 +41,13 @@ The module opens on a set of pages (top tabs):
   blocks fire (filter by node, event, track id, time; a row shows that moment of the result video; download as JSONL)
   and counts them on the nodes. **Live** runs the graph on a camera, an RTSP stream or a looping video until stopped,
   with the rendered view, FPS, time per node and events as they fire; one Live at a time, and leaving the page stops it.  
+  **Export C++ project** writes the graph as a standalone CMake project (dx_app's `export_graph_project.py`): the
+  engine with only the graph's models, `main.cpp`, `graph.json`, `setup.sh`, `run.sh` and a README. The model files
+  are left out unless you tick **Include the model files** (possible when every model is installed); without them
+  `setup.sh` downloads them from the DEEPX Model Zoo. Each **User logic** block becomes a C++ class stub in
+  `user_logic/` that passes data through until you fill it in. The project builds and runs anywhere the DEEPX runtime
+  is installed and gives the same events; it is kept under `outputs/dx_app/graph/exports/` (the newest five) and
+  offered as a zip.  
 - **Lab** — advanced tools, each with a change preview before anything is written:  
     - **Add Model** — copies an existing example of a category (**Start from**) under a new name,
       in C++, Python or both. Run the Python copy with your own model:
