@@ -88,6 +88,15 @@ class TestTranslationsDoNotBlowUpInLength:
         rec = _rec('Warmup Runs', 'ko', '워밍업 실행')
         assert classify_length_overflow([rec]) == []
 
+    def test_an_error_key_is_not_measured_against_its_message(self):
+        """A dictionary entry keyed by an error key ('graph_live_busy') has no English copy of its own: the key is no
+        sentence to compare the translated message with."""
+        from tools.i18n_audit.classify import classify_length_overflow
+        rec = _rec('graph_live_busy', 'es', 'El Graph Composer tiene un en vivo en ejecución; deténgalo primero')
+        assert classify_length_overflow([rec]) == []
+        rec = _rec('Graph busy', 'es', 'El Graph Composer tiene un en vivo en ejecución; deténgalo primero')
+        assert classify_length_overflow([rec]), "copy that only looks short is still measured"
+
     def test_cjk_is_not_penalised_for_being_short(self):
         """Chinese is **shorter** than English. The length check must not count that as a defect."""
         from tools.i18n_audit.classify import classify_length_overflow
@@ -120,15 +129,15 @@ class TestTheRealRepositoryIsMeasured:
     # words most likely to drift between screens.
     # What remains needs product decisions — which of two Korean words for "Task" to
     # standardise on, or whether to translate placeholder paths such as /path/to/*.json.
-    MAX_TERMINOLOGY_DRIFT = 239
+    MAX_TERMINOLOGY_DRIFT = 237
     # **Zero is not the goal.** Most overflows are legitimate translations:
     #   'Inference timed out' -> 'La inferencia agotó el tiempo de espera'
     # Spanish is simply longer, and shortening it would make it worse. Many are error
-    # **messages**, not button labels, where length does not matter. Some English entries
-    # (e.g. 'runner_error', 'live_deps_missing' in dx_app i18n.js) are error keys, not
-    # sentences, so the key's length is compared against a one-sentence message.
+    # **messages**, not button labels, where length does not matter. Entries keyed by an
+    # error key (e.g. 'runner_error', 'live_deps_missing' in dx_app i18n.js) are not measured:
+    # the key is no sentence to compare a one-sentence message with.
     # The value of this check is **picking out what is worth a look**, not driving it to 0.
-    MAX_LENGTH_OVERFLOW = 24
+    MAX_LENGTH_OVERFLOW = 14
     MAX_PLACEHOLDER_MISMATCH = 0
 
     def test_terminology_drift_does_not_grow(self):

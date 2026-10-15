@@ -189,6 +189,9 @@ def classify_terminology_drift(records: list[AuditRecord]) -> list[Finding]:
     return findings
 
 
+_ERROR_KEY_RE = re.compile(r"[a-z][a-z0-9]*(?:_[a-z0-9]+)+")
+
+
 def classify_length_overflow(records: list[AuditRecord]) -> list[Finding]:
     """Report translations so much longer than the English that they may overflow the UI.
 
@@ -198,8 +201,8 @@ def classify_length_overflow(records: list[AuditRecord]) -> list[Finding]:
     findings: list[Finding] = []
     for record in records:
         en = (record.texts.get("en") or "").strip()
-        if len(en) < 6:
-            continue
+        if len(en) < 6 or _ERROR_KEY_RE.fullmatch(en):
+            continue                     # an error key ('graph_live_busy') is no copy to compare a message with
         for lang in LANGUAGES:
             if lang == "en" or lang in _CJK_LANGS:
                 continue

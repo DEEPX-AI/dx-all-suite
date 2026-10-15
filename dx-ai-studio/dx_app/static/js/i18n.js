@@ -3883,14 +3883,14 @@ window._DX_I18N_DICT = {
     es: 'Esta compilación de dx_app no lista este bloque; sus parámetros se editan como texto.',
   },
   'Default ({value})': {
-    ko: '기본값 ({value})', ja: '既定値 ({value})',
-    'zh-CN': '默认 ({value})', 'zh-TW': '預設 ({value})',
-    es: 'Predeterminado ({value})',
+    ko: '기본값 ({value})', ja: 'デフォルト ({value})',
+    'zh-CN': '默认值 ({value})', 'zh-TW': '預設值 ({value})',
+    es: 'Por defecto ({value})',
   },
   'Default': {
-    ko: '기본값', ja: '既定値',
-    'zh-CN': '默认', 'zh-TW': '預設',
-    es: 'Predeterminado',
+    ko: '기본값', ja: 'デフォルト',
+    'zh-CN': '默认值', 'zh-TW': '預設值',
+    es: 'Por defecto',
   },
   '{min} to {max}': {
     ko: '{min} ~ {max}', ja: '{min} ～ {max}',
