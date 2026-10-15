@@ -73,6 +73,13 @@ JOURNEY_MODULES = [
         "ready": "() => window._dxTutorial",
     },
     {
+        "id": "dx_edge",
+        "server": "dx_edge",
+        "setup": "() => {}",
+        "wait": ".edge-main",
+        "ready": "() => window._dxTutorial",
+    },
+    {
         "id": "dx_agent_dev",
         "server": "dx_agent_dev",
         "setup": "() => {}",
