@@ -270,3 +270,21 @@ def test_delete_refuses_a_stack_still_in_progress(aws):
     with pytest.raises(ac.AwsError) as exc:
         st.delete_stack("", REGION, NAME, NAME)
     assert exc.value.status == 400
+
+
+# ── stack kind ──────────────────────────────────────────────────────────────
+
+@pytest.mark.parametrize("outputs,tags,kind", [
+    ({"ModelBucketName": BUCKET}, [], "compiler"),
+    ({"ModelBucketName": BUCKET, "ThingGroupName": "g"}, [], "greengrass"),
+    ({}, [{"Key": "ManagedBy", "Value": "dx-ai-studio"}, {"Key": "Template", "Value": "greengrass"}],
+     "greengrass"),
+    ({}, [{"Key": "ManagedBy", "Value": "dx-ai-studio"}, {"Key": "Template", "Value": "compiler"}],
+     "compiler"),
+])
+def test_stack_row_reports_its_kind(outputs, tags, kind):
+    row = ac.stack_row({"StackName": NAME, "StackStatus": "CREATE_COMPLETE", "CreationTime": NOW,
+                        "Outputs": [{"OutputKey": k, "OutputValue": v} for k, v in outputs.items()],
+                        "Tags": tags})
+    assert row["kind"] == kind
+    assert {"name", "status", "bucket", "state_machine", "created", "ready", "deletable"} <= set(row)

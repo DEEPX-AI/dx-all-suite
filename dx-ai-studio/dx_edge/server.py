@@ -3,14 +3,15 @@
 
 DEEPX on AWS: the AWS Marketplace entry points (DEEPX Compiler Solution, DEEPX Greengrass
 Solution) and a cloud ONNX → DXNN compile through a deployed DEEPX Compiler stack.
-The AWS work lives in dx_edge/core/aws_compile.py (compile) and aws_stack.py (stack setup);
-this file only routes.
+The AWS work lives in dx_edge/core/aws_compile.py (compile), aws_stack.py (stack setup) and
+aws_greengrass.py (Greengrass devices); this file only routes.
 """
 from pathlib import Path
 
 from shared.dx_server import DXBaseHandler, DXServer, RequestBodyError
 from shared.shell import ShellSpec
 from dx_edge.core import aws_compile as ac
+from dx_edge.core import aws_greengrass as gg
 from dx_edge.core import aws_stack as st
 
 DEFAULT_PORT = 8100
@@ -43,7 +44,8 @@ class DXEdgeHandler(DXBaseHandler):
                 src.get("prefix", ""))
 
     def _query(self) -> dict:
-        return {k: self.read_query_param(k) for k in ("profile", "region", "stack", "prefix", "name")}
+        return {k: self.read_query_param(k) for k in ("profile", "region", "stack", "prefix", "name",
+                                                       "device")}
 
     def route(self):
         if self.route_common():
@@ -68,6 +70,13 @@ class DXEdgeHandler(DXBaseHandler):
                     return self.send_json(ac.compile_status(*self._job_args(self._query())))
                 if path == "/api/aws/compile/download":
                     return self._download()
+                if path == "/api/aws/greengrass/devices":
+                    q = self._query()
+                    return self.send_json(gg.devices(q["profile"], q["region"], q["stack"]))
+                if path == "/api/aws/greengrass/components":
+                    q = self._query()
+                    return self.send_json({"components": gg.components(q["profile"], q["region"],
+                                                                       q["device"])})
             elif self.command == "POST":
                 if path == "/api/aws/compile":
                     return self._start_compile()
@@ -79,6 +88,10 @@ class DXEdgeHandler(DXBaseHandler):
                     b = self.read_json_body()
                     return self.send_json(st.delete_stack(b.get("profile", ""), b.get("region", ""),
                                                           b.get("name", ""), b.get("confirm", "")))
+                if path == "/api/aws/greengrass/install-script":
+                    b = self.read_json_body()
+                    return self.send_json(gg.install_script(b.get("profile", ""), b.get("region", ""),
+                                                            b.get("stack", ""), b.get("thing", "")))
                 if path == "/api/aws/compile/save":
                     out = ac.save_dxnn(*self._job_args(self.read_json_body()), _models_dir())
                     return self.send_json({"path": str(out)})

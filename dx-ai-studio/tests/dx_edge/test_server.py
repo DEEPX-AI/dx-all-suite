@@ -68,7 +68,7 @@ def test_page_has_the_marketplace_cards_and_the_compile_panel(base):
     assert code == 200
     assert "prodview-ev6ed5omu4ulo" in html  # DEEPX Compiler Solution
     assert "prodview-732s46qfzuh34" in html  # DEEPX Greengrass Solution
-    assert 'id="cloudCompile"' in html
+    assert 'id="cloudCompile-compiler"' in html and 'id="cloudCompile-greengrass"' in html
     assert "{{DX_SHELL_" not in html  # shell slots filled
 
 
@@ -255,4 +255,65 @@ def test_stack_posts_cross_origin_are_refused(base, monkeypatch, path, fn):
     payload = json.dumps({"region": "ap-northeast-2", "name": "s", "confirm": "s",
                           "template": "compiler"}).encode()
     code, _ = _post(base + path, payload, "application/json", {"Origin": "http://evil.example"})
+    assert code == 403
+
+
+# ── Greengrass tab ──────────────────────────────────────────────────────────
+
+def test_greengrass_devices_endpoint(base, monkeypatch):
+    from dx_edge.core import aws_greengrass as gg
+
+    seen = {}
+
+    def fake(profile, region, stack):
+        seen.update(profile=profile, region=region, stack=stack)
+        return {"thing_group": "g", "deployment": None, "devices": []}
+
+    monkeypatch.setattr(gg, "devices", fake)
+    code, _, body = _get(base + "/api/aws/greengrass/devices?profile=dev&region=ap-northeast-2&stack=gg1")
+    assert code == 200
+    assert json.loads(body)["thing_group"] == "g"
+    assert seen == {"profile": "dev", "region": "ap-northeast-2", "stack": "gg1"}
+
+
+def test_greengrass_components_endpoint(base, monkeypatch):
+    from dx_edge.core import aws_greengrass as gg
+
+    monkeypatch.setattr(gg, "components", lambda p, r, d: [{"name": d, "version": "1", "state": "RUNNING"}])
+    code, _, body = _get(base + "/api/aws/greengrass/components?region=ap-northeast-2&device=dev-a")
+    assert code == 200
+    assert json.loads(body)["components"][0]["name"] == "dev-a"
+
+
+def test_greengrass_components_validation_is_a_json_400(base):
+    code, _, body = _get(base + "/api/aws/greengrass/components?region=ap-northeast-2&device=a%20b")
+    assert code == 400
+    assert "error" in json.loads(body)
+
+
+def test_greengrass_install_script_endpoint(base, monkeypatch):
+    from dx_edge.core import aws_greengrass as gg
+
+    seen = {}
+
+    def fake(profile, region, stack, thing):
+        seen.update(profile=profile, region=region, stack=stack, thing=thing)
+        return {"script": "#!/usr/bin/env bash\n", "thing": thing, "thing_group": "g"}
+
+    monkeypatch.setattr(gg, "install_script", fake)
+    payload = json.dumps({"profile": "dev", "region": "ap-northeast-2", "stack": "gg1",
+                          "thing": "dev-a"}).encode()
+    code, resp = _post(base + "/api/aws/greengrass/install-script", payload, "application/json")
+    assert code == 200, resp
+    assert json.loads(resp)["thing"] == "dev-a"
+    assert seen == {"profile": "dev", "region": "ap-northeast-2", "stack": "gg1", "thing": "dev-a"}
+
+
+def test_greengrass_install_script_cross_origin_is_refused(base, monkeypatch):
+    from dx_edge.core import aws_greengrass as gg
+
+    monkeypatch.setattr(gg, "install_script", lambda *a: pytest.fail("must not run"))
+    payload = json.dumps({"region": "ap-northeast-2", "stack": "gg1", "thing": "dev-a"}).encode()
+    code, _ = _post(base + "/api/aws/greengrass/install-script", payload, "application/json",
+                    {"Origin": "http://evil.example"})
     assert code == 403

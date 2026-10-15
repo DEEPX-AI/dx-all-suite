@@ -145,17 +145,21 @@ def stack_row(s: dict) -> dict | None:
 
     Ready = complete with a ModelBucketName output. Stacks this page created (tag ManagedBy) are kept
     in any state — in progress, or failed so they can still be deleted from here. Their outputs only
-    exist on success, so the bucket comes from the parameters.
+    exist on success, so the bucket comes from the parameters. kind is "greengrass" for a DEEPX
+    Greengrass stack (ThingGroupName output, or the Template tag this page sets), else "compiler".
     """
     outputs = {o["OutputKey"]: o["OutputValue"] for o in (s.get("Outputs") or [])}
     params = {p["ParameterKey"]: p.get("ParameterValue") for p in (s.get("Parameters") or [])}
     status = s.get("StackStatus", "")
     ready = status in _READY and bool(outputs.get("ModelBucketName"))
-    ours = {"Key": "ManagedBy", "Value": "dx-ai-studio"} in (s.get("Tags") or [])
+    tags = s.get("Tags") or []
+    ours = {"Key": "ManagedBy", "Value": "dx-ai-studio"} in tags
     if not (ready or ours):
         return None
+    greengrass = bool(outputs.get("ThingGroupName")) or {"Key": "Template", "Value": "greengrass"} in tags
     return {
         "name": s["StackName"],
+        "kind": "greengrass" if greengrass else "compiler",
         "status": status,
         "bucket": outputs.get("ModelBucketName") or params.get("ModelBucketName", ""),
         "state_machine": bool(outputs.get("StateMachineArn")),
