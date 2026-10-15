@@ -71,8 +71,8 @@ def _deps_missing() -> list:
     missing = []
     if not shutil.which("Xvfb"):
         missing.append("Xvfb (sudo apt install xvfb)")
-    if camera._xlib() is None or camera._xcb() is None:
-        missing.append("libX11 / libxcb (sudo apt install libx11-6)")
+    if camera._xcb() is None:
+        missing.append("libxcb (sudo apt install libxcb1)")
     try:
         import PIL  # noqa: F401
     except ImportError:

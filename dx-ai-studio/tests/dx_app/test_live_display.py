@@ -10,6 +10,7 @@
 import shutil
 import subprocess
 import time
+from pathlib import Path
 
 import pytest
 from PIL import Image, ImageDraw
@@ -576,3 +577,82 @@ def test_a_window_resized_later_is_fitted_again_within_a_second(graph_live_displ
         assert abs(b - 0xA0) < 24, "the corner is the window again, not the black screen"
     finally:
         x.XCloseDisplay(d)
+
+
+_RACE = r"""
+import sys
+from dx_app.core import camera
+display = sys.argv[1]
+x = camera._xlib()
+d = x.XOpenDisplay(display.encode())
+root = x.XDefaultRootWindow(d)
+wins = []
+for _ in range(3):
+    w = x.XCreateSimpleWindow(d, root, 0, 0, 100, 75, 0, 0, 0x2060A0)
+    x.XMapWindow(d, w)
+    wins.append(w)
+x.XSync(d, 0)
+listed = camera._child_windows
+def racing(*a):
+    found = listed(*a)
+    for w in wins[:2]:          # the runner closes windows after the tree was read, before they are asked about
+        x.XDestroyWindow(d, w)
+    x.XSync(d, 0)
+    return found
+camera._child_windows = racing
+print("fitted", camera._fit_windows(display, 320, 180), flush=True)
+camera._child_windows = listed
+print("again", camera._fit_windows(display, 320, 180), flush=True)
+"""
+
+
+def test_a_window_closed_while_it_is_fitted_never_ends_the_server(tmp_path):
+    """Xlib's default error handler exits the process on BadWindow; a window the runner closes between the tree query
+    and the per-window requests must only be skipped. Run in a child process, so a regression is an exit code
+    rather than the end of the test session."""
+    import os
+    import sys
+    if not shutil.which("Xvfb"):
+        pytest.skip("Xvfb not installed")
+    if camera._xlib() is None or camera._xcb() is None:
+        pytest.skip("libX11 / libxcb not available")
+    display = ":187"
+    proc = subprocess.Popen(["Xvfb", display, "-screen", "0", "320x180x24", "-nolisten", "tcp"],
+                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    try:
+        for _ in range(50):
+            if os.path.exists("/tmp/.X11-unix/X187"):
+                break
+            time.sleep(0.1)
+        else:
+            pytest.skip("Xvfb did not come up")
+        root = str(Path(__file__).resolve().parents[2])
+        r = subprocess.run([sys.executable, "-c", _RACE, display], capture_output=True, text=True, timeout=30,
+                           cwd=root, env=dict(os.environ, PYTHONPATH=root))
+        assert r.returncode == 0, (r.returncode, r.stdout, r.stderr)
+        assert "fitted 1" in r.stdout and "again 1" in r.stdout, r.stdout
+    finally:
+        proc.terminate()
+        proc.wait(timeout=5)
+
+
+def test_stopping_a_slot_s_display_waits_for_a_grab_in_progress(monkeypatch):
+    """stop_xvfb frees the slot's xcb connection; a grab holds _display_env_lock while it uses that connection, so the
+    connection is dropped only once the grab is done."""
+    import threading
+    freed = []
+
+    class FakeXcb:
+        def xcb_disconnect(self, conn):
+            freed.append(conn)
+
+    monkeypatch.setattr(camera, "_XCB", FakeXcb())
+    display = f":{camera._XVFB_BASE + 5}"
+    monkeypatch.setitem(camera._xcb_conns, display, ("conn-5", 1, 320, 180))
+    with camera._display_env_lock:
+        t = threading.Thread(target=camera.stop_xvfb, args=(5,))
+        t.start()
+        t.join(0.3)
+        assert freed == [] and display in camera._xcb_conns, "the grab in progress keeps its connection"
+    t.join(5)
+    assert freed == ["conn-5"] and display not in camera._xcb_conns

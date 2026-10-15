@@ -13,6 +13,8 @@ from dx_app.core.inference_exec import _TMP
 
 _xvfb_procs = {}             # slot_idx -> Xvfb proc
 _xvfb_lock = threading.Lock()
+# Held while DISPLAY is switched for a grab and while a display's cached xcb connection (_xcb_conns) is used or freed
+_display_env_lock = threading.Lock()
 _capture_locks = {}          # slot_idx -> Lock (lazy)
 _capture_locks_meta = threading.Lock()
 _XVFB_BASE = 99
@@ -159,7 +161,9 @@ def _ensure_xvfb(slot_idx=0):
             return
         # If that display already has an X server (left by an earlier run, or another studio), use it rather than
         # kill it: a `pkill -f 'Xvfb :99'` would also kill ':990' or someone else's Xvfb. It runs with -ac, so drawing works.
-        if _xcb_conn(display) is not None:
+        with _display_env_lock:
+            there = _xcb_conn(display) is not None
+        if there:
             _xvfb_procs.pop(slot_idx, None)
             return
         p = subprocess.Popen(
@@ -174,12 +178,13 @@ def stop_xvfb(slot_idx):
     """Stop only the Xvfb of a slot this server started (displays started by others are left alone). The next run restarts it (about 1 s)."""
     with _xvfb_lock:
         p = _xvfb_procs.pop(slot_idx, None)
-    conn = _xcb_conns.pop(f":{_XVFB_BASE + slot_idx}", None)
-    if conn is not None and _XCB:
-        try:
-            _XCB.xcb_disconnect(conn[0])
-        except Exception:
-            pass
+    with _display_env_lock:             # a grab in progress finishes with the connection before it is freed
+        conn = _xcb_conns.pop(f":{_XVFB_BASE + slot_idx}", None)
+        if conn is not None and _XCB:
+            try:
+                _XCB.xcb_disconnect(conn[0])
+            except Exception:
+                pass
     if p is not None and p.poll() is None:
         p.terminate()
         try:
@@ -191,7 +196,9 @@ def stop_xvfb(slot_idx):
 # ── Live view: fit the window, crop the Qt frame (contract: tests/dx_app/test_live_display.py) ──────────────
 # dx_app's C++ runner opens an OpenCV (Qt) window at its default size (400x300). Xvfb has no window manager, so it
 # stays small in the top-left corner and a full-screen grab is mostly black. The window is stretched to the screen,
-# and the Qt toolbar, status bar and aspect padding (gray) are cut from the grab. libX11 via ctypes, no new dependency (the screen is grabbed with libxcb, `_grab_screen`).
+# and the Qt toolbar, status bar and aspect padding (gray) are cut from the grab. libxcb via ctypes, no new dependency:
+# the windows are fitted and the screen is grabbed over xcb (`_fit_windows_ex`, `_grab_screen`). libX11 (`_xlib`) is
+# only what the tests draw windows with: its default error handlers exit the process on a BadWindow or a lost display.
 _LIVE_FRAME_MAX = (960, 540)
 _QT_CHROME = (239, 239, 239)
 _FIT_EVERY_S = 1.0
@@ -238,7 +245,7 @@ _IS_VIEWABLE = 2
 
 
 def _xlib():
-    """libX11 (ctypes), or None."""
+    """libX11 (ctypes), or None. The tests draw windows with it; the server itself talks to X over xcb only."""
     global _XLIB
     if _XLIB is not None:
         return _XLIB or None
@@ -268,6 +275,7 @@ def _xlib():
 
 _ZPIXMAP = 2
 _ALL_PLANES = 0xFFFFFFFF
+_XCB_CONFIG_XYWH = 1 | 2 | 4 | 8     # XCB_CONFIG_WINDOW_X | _Y | _WIDTH | _HEIGHT
 
 
 _XCB = None
@@ -276,7 +284,8 @@ _xcb_conns = {}              # display -> (conn, root, width, height)
 
 def _xcb():
     """libxcb + libc (ctypes), or None. Why xcb rather than Xlib: when the X server connection drops (Xvfb dies), Xlib's
-    default IO error handler exits the process, taking the whole dx_app server down. xcb just returns an error."""
+    default IO error handler exits the process, taking the whole dx_app server down, and its default error handler
+    does the same on a BadWindow (a window closed between listing it and asking about it). xcb returns an error."""
     global _XCB
     if _XCB is not None:
         return _XCB or None
@@ -305,6 +314,20 @@ def _xcb():
     x.xcb_get_image_reply.argtypes = [P, Cookie, ctypes.POINTER(P)]
     x.xcb_get_image_data.restype, x.xcb_get_image_data.argtypes = ctypes.POINTER(ctypes.c_ubyte), [P]
     x.xcb_get_image_data_length.restype, x.xcb_get_image_data_length.argtypes = I, [P]
+    # window fitting (_fit_windows_ex): every reply is checked, so a window that is gone is an error reply, not an exit
+    x.xcb_query_tree.restype, x.xcb_query_tree.argtypes = Cookie, [P, U32]
+    x.xcb_query_tree_reply.restype, x.xcb_query_tree_reply.argtypes = P, [P, Cookie, ctypes.POINTER(P)]
+    x.xcb_query_tree_children.restype = ctypes.POINTER(U32)
+    x.xcb_query_tree_children.argtypes = [P]
+    x.xcb_query_tree_children_length.restype, x.xcb_query_tree_children_length.argtypes = I, [P]
+    x.xcb_get_window_attributes.restype, x.xcb_get_window_attributes.argtypes = Cookie, [P, U32]
+    x.xcb_get_window_attributes_reply.restype = P
+    x.xcb_get_window_attributes_reply.argtypes = [P, Cookie, ctypes.POINTER(P)]
+    x.xcb_get_geometry.restype, x.xcb_get_geometry.argtypes = Cookie, [P, U32]
+    x.xcb_get_geometry_reply.restype, x.xcb_get_geometry_reply.argtypes = P, [P, Cookie, ctypes.POINTER(P)]
+    x.xcb_configure_window_checked.restype = Cookie
+    x.xcb_configure_window_checked.argtypes = [P, U32, U16, ctypes.POINTER(U32)]
+    x.xcb_request_check.restype, x.xcb_request_check.argtypes = P, [P, Cookie]
     libc.free.argtypes = [P]
     x._libc = libc
     _XCB = x
@@ -378,42 +401,71 @@ def _fit_windows(display, width, height):
     return _fit_windows_ex(display, width, height)[0]
 
 
+def _reply(x, conn, get_reply, cookie):
+    """The reply to a request, or None (an error reply, such as BadWindow, is freed and dropped)."""
+    import ctypes
+    err = ctypes.c_void_p()
+    reply = get_reply(conn, cookie, ctypes.byref(err))
+    if err.value:
+        x._libc.free(err)
+    return reply or None
+
+
+def _child_windows(x, conn, root):
+    """The root window's children (the top-level windows: Xvfb has no window manager), or [] when it cannot be asked."""
+    reply = _reply(x, conn, x.xcb_query_tree_reply, x.xcb_query_tree(conn, root))
+    if reply is None:
+        return []
+    try:
+        n, ids = x.xcb_query_tree_children_length(reply), x.xcb_query_tree_children(reply)
+        return [ids[i] for i in range(n)]
+    finally:
+        x._libc.free(reply)
+
+
 def _fit_windows_ex(display, width, height):
     """_fit_windows, as (windows fitted, of them moved or resized just now); (None, 0) when the display cannot be
-    asked (no libX11, display gone). Only shown (viewable) windows count: Qt makes unmapped helper windows first."""
+    asked (no libxcb, display gone). Only shown (viewable) windows count: Qt makes unmapped helper windows first.
+    Over xcb, on the display's cached connection (callers hold _display_env_lock, as for a grab): a window the runner
+    closes between the tree query and the requests about it is an error reply and is skipped."""
     import ctypes
-    x = _xlib()
-    if x is None:
+    x = _xcb()
+    c = _xcb_conn(display) if x is not None else None
+    if c is None:
         return None, 0
-    d = x.XOpenDisplay(display.encode())
-    if not d:
+    conn, root = c[0], c[1]
+    wins = _child_windows(x, conn, root)
+    if x.xcb_connection_has_error(conn):
         return None, 0
     fitted = resized = 0
-    try:
-        root, parent = ctypes.c_ulong(), ctypes.c_ulong()
-        children, n = ctypes.POINTER(ctypes.c_ulong)(), ctypes.c_uint()
-        if not x.XQueryTree(d, x.XDefaultRootWindow(d), ctypes.byref(root), ctypes.byref(parent),
-                            ctypes.byref(children), ctypes.byref(n)):
-            return None, 0
-        wins = [children[i] for i in range(n.value)]
-        if n.value:
-            x.XFree(children)
-        gx, gy = ctypes.c_int(), ctypes.c_int()
-        gw, gh, bw, depth = ctypes.c_uint(), ctypes.c_uint(), ctypes.c_uint(), ctypes.c_uint()
-        attrs = _XWindowAttributes()
-        for w in wins:
-            if not x.XGetWindowAttributes(d, w, ctypes.byref(attrs)) or attrs.map_state != _IS_VIEWABLE:
+    for w in wins:
+        attrs = _reply(x, conn, x.xcb_get_window_attributes_reply, x.xcb_get_window_attributes(conn, w))
+        if attrs is None:
+            continue
+        try:
+            # xcb_get_window_attributes_reply_t: ... save_under (u8, at 24) · map_is_installed · map_state (at 26)
+            viewable = ctypes.c_uint8.from_address(attrs + 26).value == _IS_VIEWABLE
+        finally:
+            x._libc.free(attrs)
+        if not viewable:
+            continue
+        geo = _reply(x, conn, x.xcb_get_geometry_reply, x.xcb_get_geometry(conn, w))
+        if geo is None:
+            continue
+        try:
+            # xcb_get_geometry_reply_t: ... root (u32, at 8) · x, y (i16, at 12, 14) · width, height (u16, at 16, 18)
+            box = (ctypes.c_int16.from_address(geo + 12).value, ctypes.c_int16.from_address(geo + 14).value,
+                   ctypes.c_uint16.from_address(geo + 16).value, ctypes.c_uint16.from_address(geo + 18).value)
+        finally:
+            x._libc.free(geo)
+        if box != (0, 0, width, height):
+            values = (ctypes.c_uint32 * 4)(0, 0, width, height)
+            err = x.xcb_request_check(conn, x.xcb_configure_window_checked(conn, w, _XCB_CONFIG_XYWH, values))
+            if err:
+                x._libc.free(err)               # closed meanwhile
                 continue
-            if not x.XGetGeometry(d, w, ctypes.byref(root), ctypes.byref(gx), ctypes.byref(gy),
-                                  ctypes.byref(gw), ctypes.byref(gh), ctypes.byref(bw), ctypes.byref(depth)):
-                continue
-            if (gx.value, gy.value, gw.value, gh.value) != (0, 0, width, height):
-                x.XMoveResizeWindow(d, w, 0, 0, width, height)
-                resized += 1
-            fitted += 1
-        x.XFlush(d)
-    finally:
-        x.XCloseDisplay(d)
+            resized += 1
+        fitted += 1
     return fitted, resized
 
 
@@ -475,8 +527,6 @@ def _frame_jpeg(img, box=None):
     img.save(buf, format="JPEG", quality=70)
     return buf.getvalue()
 
-
-_display_env_lock = threading.Lock()   # global lock for DISPLAY env changes
 
 def capture_live_frame(slot_idx=0):
     """Capture per-slot Xvfb screen as JPEG bytes (thread-safe)."""
