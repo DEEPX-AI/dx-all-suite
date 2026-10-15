@@ -206,6 +206,21 @@ PAGE_SPECS: dict[str, dict] = {
                   "GraphComposer.canvas().select({nodes: ['zone']}); }"),
         "wait": "() => { const s = GraphComposer.state(); return !!(s.check && s.memory) && !!document.querySelector('.gc-zone-preview'); }",
     },
+    # Phase 3: the Export C++ project dialog over the cascade example, with the recorded plan (one model, one stub).
+    "dx_app_graph_export": {
+        "module": "dx_app",
+        "settle_ms": _DEFAULT_SETTLE_MS,
+        "routes": {
+            "**/api/graph/catalog*": _fixture("catalog.json"),
+            "**/api/graph/validate": _fixture("visual_check.json"),
+            "**/api/graph/memory": _fixture("visual_memory.json"),
+            "**/api/graph/projects": {"projects": []},
+            "**/api/graph/export/plan": _fixture("export_plan.json"),
+        },
+        "setup": ("async () => { nav('graph'); await GraphComposer.open(); "
+                  "GraphComposer.loadExample('cascade_od_attr'); await GraphExport.open(); }"),
+        "wait": "() => !!(GraphExport.state().plan && document.querySelector('#gc-export-dialog[open] .gc-export-table')) && document.fonts.status === 'loaded'",
+    },
 }
 PAGE_LOCALES = ("en", "ko")
 
