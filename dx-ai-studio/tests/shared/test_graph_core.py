@@ -218,6 +218,22 @@ eq(tiny.nodes.map(n => n.y), [40, 40, 40, 40, 40], 'a canvas not laid out yet (1
 """)
 
 
+def test_auto_layout_keeps_a_short_chain_in_one_row_even_at_a_lower_zoom():
+    """Three ranks or fewer (cascade_od_attr: cam -> od -> attr) read best in one row: on a canvas narrower than the
+    row they are not wrapped 2 + 1, the view zooms out instead."""
+    _run(_CHAIN + r"""
+for (const [w, h] of [[480, 558], [360, 700], [714, 558]]) {
+  const L = C.autoLayout(chain(['cam', 'od', 'attr']), {width: w, height: h, insets: INSETS});
+  eq(L.nodes.map(n => [n.x, n.y]), [[40, 40], [320, 40], [600, 40]], w + 'x' + h + ': one row');
+}
+const fan = C.autoLayout({nodes: ['cam', 'od', 'seg', 'depth'].map(id => ({id, x: 0, y: 0})),
+  edges: ['od', 'seg', 'depth'].map(to => ({id: 'cam->' + to, from: 'cam', to}))}, {width: 360, height: 700, insets: INSETS});
+eq(new Set(fan.nodes.map(n => n.x)).size, 2, 'a fan-out keeps its two columns');
+const four = C.autoLayout(chain(['a', 'b', 'c', 'd']), {width: 360, height: 900, insets: INSETS});
+ok(new Set(four.nodes.map(n => n.y)).size >= 2, 'four ranks still wrap when that reads better');
+""")
+
+
 def test_a_backward_edge_between_rows_runs_through_the_lane():
     """An edge whose input port is left of its output port, a row lower, leaves right, turns down into the lane above
     the target, runs left and enters the target from the left; it is hit and labelled on the lane."""

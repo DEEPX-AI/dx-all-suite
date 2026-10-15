@@ -338,8 +338,10 @@
      graph with more ranks than fit across is wrapped: the ranks are laid in rows of k columns, read left to right then
      top to bottom, with a lane between rows for the edges that wrap (edgeRoute). k is the widest row count whose fitted
      zoom is close to the best one (at least WRAP_KEEP of it, the best counted up to 100 %), so a graph that already
-     fits stays in one row. Without a usable size the ranks stay in one row. g is not changed. */
-  var WRAP_KEEP = 0.85, BAND_GAP = 64;
+     fits stays in one row. A graph of SHORT_RANKS ranks or fewer is never wrapped: a short chain reads best in one row
+     (cascade_od_attr wrapped 2 + 1 looked broken), so the canvas zooms out instead. Without a usable size the ranks
+     stay in one row. g is not changed. */
+  var WRAP_KEEP = 0.85, BAND_GAP = 64, SHORT_RANKS = 3;
 
   function autoLayout(g, opts) {
     var o = opts || {}, colW = o.colW || 280, rowH = o.rowH || 100, x0 = o.x0 || 40, y0 = o.y0 || 40;
@@ -381,7 +383,7 @@
     }
 
     var w = Number(o.width) || 0, h = Number(o.height) || 0, insets = o.insets && o.insets.length ? o.insets : [40];
-    if (ranks < 2 || w < NODE_W * 2 || h < NODE_H * 2) { place(Math.max(1, ranks)); return out; }
+    if (ranks <= SHORT_RANKS || w < NODE_W * 2 || h < NODE_H * 2) { place(Math.max(1, ranks)); return out; }
     var zooms = [], best = 0;
     for (var k = ranks; k >= 1; k--) {
       place(k);
