@@ -1,13 +1,28 @@
 {
   "errors": [
-    {"code": "GRAPH_SCHEMA", "edge": null, "how": "give \"polygon\" x, y pairs for at least 3 points",
-     "node": "zone", "what": "\"polygon\" must hold at least 3 points, got 2",
-     "where": "graph node[3] \"zone\" \"params\""}
+    {
+      "code": "GRAPH_SCHEMA",
+      "edge": null,
+      "how": "x0, y0, x1, y1, ...: at least 3 points, each a fraction 0..1 of the frame's width and height",
+      "node": "zone",
+      "what": "\"polygon\" must hold at least 3 points as x, y pairs (an even count of 6 numbers or more), got 4 numbers",
+      "where": "node \"zone\" \"params\""
+    }
   ],
   "graph": "zone-intrusion",
   "models": [
-    {"container": "v9", "engine": {"buffers": 0, "share": false, "shared_with": null},
-     "file": "yolov8-n_640x640.dxnn", "model": "yolov8-n_640x640", "node": "od", "state": "present"}
+    {
+      "container": "v9",
+      "engine": {
+        "buffers": 0,
+        "share": false,
+        "shared_with": null
+      },
+      "file": "yolov8-n_640x640.dxnn",
+      "model": "yolov8-n_640x640",
+      "node": "od",
+      "state": "present"
+    }
   ],
   "notes": [],
   "ok": false

@@ -53,7 +53,38 @@ def test_params_keep_type_range_default_choices_and_help():
     assert user["input"]["required"] is True and "default" not in user["input"] and "boxes" in user["input"]["choices"]
     flt = {p["name"]: p for p in _ops()["filter"]["params"]}
     assert flt["classes"] == {"name": "classes", "type": "text_list", "required": False, "help": flt["classes"]["help"],
-                              "default": []}
+                              "items": "string"}, "no default: leaving it out keeps every class"
+
+
+def test_steps_list_items_and_input_dependent_values_are_kept():
+    """dx_app's catalog also says how a number moves (step), what a list holds (items), what an omitted list means
+    (when_omitted), what kind of text a param is (format, extensions), what a choice must equal and which values a
+    param takes for each input shape (values_by_input)."""
+    ops = _ops()
+    flt = {p["name"]: p for p in ops["filter"]["params"]}
+    assert flt["min_score"]["step"] == 0.01 and flt["min_area"]["step"] == 1
+    gallery = {p["name"]: p for p in ops["gallery"]["params"]}
+    assert (gallery["gallery"]["format"], gallery["gallery"]["extensions"]) == ("file", [".bin"])
+    user = {p["name"]: p for p in ops["user"]["params"]}
+    assert user["output"]["equals"] == "input"
+    value = {p["name"]: p for p in ops["condition"]["params"]}["value"]
+    assert {"shape": "boxes", "per_crop": False, "values": ["count"]} in value["values_by_input"]
+    assert {"shape": "records", "per_crop": False, "values_from": "numbers"} in value["values_by_input"]
+    text = json.dumps([{"op": "count", "params": [
+        {"name": "classes", "type": "text_list", "items": "integer", "when_omitted": ["24", 26]},
+        {"name": "n", "type": "number", "step": 0}, {"name": "m", "type": "number", "step": "1"},
+        {"name": "t", "type": "text", "format": 3, "extensions": [".bin", 4],
+         "values_by_input": [{"shape": "boxes", "values": ["count", 1]}, {"shape": "Bad"}, {"shape": "records",
+                                                                                            "values_from": 5}, "x"]},
+        {"name": "c", "type": "choice", "choices": ["a"], "equals": ["input"]}]}])
+    (op,) = graph_ops.parse_list_ops(text)
+    got = {p["name"]: p for p in op["params"]}
+    assert (got["classes"]["items"], got["classes"]["when_omitted"]) == ("integer", ["24"])
+    assert "step" not in got["n"] and "step" not in got["m"], "a step is a number above 0"
+    assert "format" not in got["t"] and got["t"]["extensions"] == [".bin"]
+    assert got["t"]["values_by_input"] == [{"shape": "boxes", "per_crop": False, "values": ["count"]},
+                                           {"shape": "records", "per_crop": False}]
+    assert "equals" not in got["c"]
 
 
 def test_odd_entries_are_read_safely():

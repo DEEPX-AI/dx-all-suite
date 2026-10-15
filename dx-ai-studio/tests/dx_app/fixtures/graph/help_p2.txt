@@ -2,9 +2,10 @@ Run a multi-model pipeline described entirely by a node-graph JSON
 file. Changing which models run is a text edit, never a rebuild.
 
 Usage: ./bin/multi_model_graph_sync --graph <file.json> [options]
-       ./bin/multi_model_graph_sync --check <file.json> [--model-dir <dir>]
+       ./bin/multi_model_graph_sync --check <file.json> [--model-dir <dir>] [--json]
        ./bin/multi_model_graph_sync --list-models [--consumes <roi|frame|either>] [--produces <shape>]
-                     [--model-dir <dir>]
+                     [--model-dir <dir>] [--json]
+       ./bin/multi_model_graph_sync --list-ops [--json]
 
 Options:
   --graph <file>        the node-graph JSON to run
@@ -20,11 +21,19 @@ Options:
                         <stem>_<source_id><ext>, or images, always numbered:
                         <stem>_<source_id>_<index><ext>
   --display             show each rendered frame in a window; q or ESC stops
-                        the run as Ctrl-C does
+                        the run as Ctrl-C does. With several sources, one
+                        window: a grid of the streams, each cell labelled
+                        with its source id
   --report <file>       write every FrameReport as JSON, ordered by
                         (node, parent_index, roi_index)
+  --report-timing       with --report: add each frame's "node_ms", the
+                        time per node. Off by default, so the sync and
+                        async reports stay byte-identical
+  --events <file>       write every event of the graph's logic nodes, one
+                        JSON object per line (JSONL); they are printed as
+                        [EVENT] {...} lines too
   --model-dir <dir>     where the .dxnn files live
-                        (default: /home/deepx/hj_ws/dx-all-suite/dx-runtime/dx_app/assets/models)
+                        (default: <dx_app>/assets/models)
   --max-inflight <N>    frames in flight at once (default: 16, at least 1).
                         multi_model_graph_async only
   --max-jobs-per-stage <N>
@@ -36,12 +45,14 @@ Options:
                         multi_model_graph_async only
   --frames <N>          stop after N frames (default: all); with several
                         sources, N frames of each stream
+  --loop                a video source starts again at its end, so the run
+                        goes on until Ctrl-C, q/ESC or --frames N (Live)
   --check [<file>]      validate the graph and list the model files it
                         needs, without opening the NPU, then exit.
                         Exit code reflects the graph itself; a missing
                         .dxnn is reported but is not an error here; a .dxnn
-                        this DX-RT cannot load (v9 before 3.5.0) is one
-                        (exit 1)
+                        that cannot load here (not a .dxnn, or v9 before
+                        DX-RT 3.5.0) is one (exit 1)
   --list-models         print every model this build can put in a graph, with
                         its published flag and the container version of its
                         .dxnn in --model-dir (v8, v9, missing; and when this
@@ -51,17 +62,11 @@ Options:
   --produces <shape>    with --list-models: boxes, obboxes, instances,
                         keypoints, labelmap, densemap, image, scores,
                         vector, boxes3d
-  --report-timing       with --report: add each frame's "node_ms", the
-                        time per node
-  --events <file>       write every event as one JSON object per line, as
-                        the [EVENT] {...} lines too
-  --loop                a video file that ends starts again from its first
-                        frame (Live); images, cameras and RTSP are unaffected
+  --json                with --check, --list-models or --list-ops: one JSON
+                        document on stdout instead of the tables (README)
   --list-ops            print every logic and cpu op a graph can use: its
                         inputs, output, events and params (--json: the
                         catalog a front end builds its palette from)
-  --json                with --check, --list-models or --list-ops: one JSON
-                        document on stdout instead of the tables
   --help                this message
 
 Sample graphs: src/cpp_example/multi_model_graph/

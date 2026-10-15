@@ -2,8 +2,18 @@
   "errors": [],
   "graph": "zone-intrusion",
   "models": [
-    {"container": "v9", "engine": {"buffers": 0, "share": false, "shared_with": null},
-     "file": "yolov8-n_640x640.dxnn", "model": "yolov8-n_640x640", "node": "od", "state": "present"}
+    {
+      "container": "v9",
+      "engine": {
+        "buffers": 0,
+        "share": false,
+        "shared_with": null
+      },
+      "file": "yolov8-n_640x640.dxnn",
+      "model": "yolov8-n_640x640",
+      "node": "od",
+      "state": "present"
+    }
   ],
   "notes": [],
   "ok": true

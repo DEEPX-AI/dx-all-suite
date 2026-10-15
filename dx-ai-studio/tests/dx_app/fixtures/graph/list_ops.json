@@ -30,7 +30,7 @@
         "name": "classes",
         "type": "text_list",
         "required": false,
-        "default": [],
+        "items": "string",
         "help": "class names to keep, as the detector names them; leave it out to keep every class"
       },
       {
@@ -40,6 +40,7 @@
         "default": 0,
         "min": 0,
         "max": 1,
+        "step": 0.01,
         "help": "the smallest confidence kept (0.5, not 50)"
       },
       {
@@ -48,6 +49,7 @@
         "required": false,
         "default": 0,
         "min": 0,
+        "step": 1,
         "help": "the smallest box area kept, in source-frame pixels"
       }
     ]
@@ -211,7 +213,7 @@
         "name": "classes",
         "type": "text_list",
         "required": false,
-        "default": [],
+        "items": "string",
         "help": "count only these classes, one number each besides \"total\"; leave it out to count every box"
       }
     ]
@@ -255,6 +257,7 @@
         "default": 10,
         "min": 0,
         "min_exclusive": true,
+        "step": 0.1,
         "help": "seconds a box must stay before its \"dwell\" event"
       },
       {
@@ -264,6 +267,7 @@
         "default": 1,
         "min": 0,
         "max": 60,
+        "step": 0.1,
         "help": "seconds a box may be missing (an occlusion) and still be the same stay"
       }
     ]
@@ -317,6 +321,50 @@
         "type": "text",
         "required": false,
         "default": "count",
+        "values_by_input": [
+          {
+            "shape": "boxes",
+            "per_crop": false,
+            "values": [
+              "count"
+            ]
+          },
+          {
+            "shape": "obboxes",
+            "per_crop": false,
+            "values": [
+              "count"
+            ]
+          },
+          {
+            "shape": "instances",
+            "per_crop": false,
+            "values": [
+              "count"
+            ]
+          },
+          {
+            "shape": "records",
+            "per_crop": false,
+            "values_from": "numbers"
+          },
+          {
+            "shape": "scores",
+            "per_crop": true,
+            "values": [
+              "count",
+              "with:<label>",
+              "without:<label>"
+            ]
+          },
+          {
+            "shape": "vector",
+            "per_crop": true,
+            "values": [
+              "count"
+            ]
+          }
+        ],
         "help": "\"count\" (boxes or crops), a number the input writes (records), or \"with:<label>\" / \"without:<label>\" (crops with scores)"
       },
       {
@@ -360,6 +408,7 @@
         "default": 0,
         "min": 0,
         "max": 86400,
+        "step": 0.1,
         "help": "0: one event when the condition becomes true; more: an event at most this often while it holds"
       },
       {
@@ -405,6 +454,10 @@
         "name": "gallery",
         "type": "text",
         "required": true,
+        "format": "file",
+        "extensions": [
+          ".bin"
+        ],
         "help": "a DXGAL1 .bin built from an image folder: python3 scripts/build_gallery_database.py --variant <model> --images <folder> --out <file>.bin"
       },
       {
@@ -414,6 +467,7 @@
         "default": 0.5,
         "min": 0,
         "max": 1,
+        "step": 0.01,
         "help": "the smallest cosine similarity that names a match"
       },
       {
@@ -525,6 +579,7 @@
           "vector",
           "records"
         ],
+        "equals": "input",
         "help": "the kind it returns; in a run the input passes through, so it equals \"input\""
       }
     ]
@@ -595,21 +650,35 @@
         "required": false,
         "default": 1,
         "min": 0,
+        "step": 0.1,
         "help": "multiplies the proxy; 1.0 leaves it in mask-pixels times depth"
       },
       {
         "name": "classes",
         "type": "text_list",
         "required": false,
-        "default": [],
-        "help": "package class names; leave it out for the defaults, [] to match none"
+        "items": "string",
+        "when_omitted": [
+          "backpack",
+          "handbag",
+          "suitcase",
+          "box",
+          "package",
+          "luggage"
+        ],
+        "help": "package class names; leave it out for the built-in ones (when_omitted), [] to match none"
       },
       {
         "name": "class_ids",
         "type": "text_list",
         "required": false,
-        "default": [],
-        "help": "package class ids as strings; leave it out for the defaults, [] to match none"
+        "items": "integer",
+        "when_omitted": [
+          "24",
+          "26",
+          "28"
+        ],
+        "help": "package class ids, each an integer written as a string (\"24\"); leave it out for the built-in ones (when_omitted), [] to match none"
       }
     ]
   }

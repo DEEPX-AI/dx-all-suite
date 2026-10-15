@@ -5,7 +5,8 @@ dx_app prints one JSON array: the eight logic ops ("type": "logic"), then the tw
     {"op", "type", "summary", "inputs": {"min", "max", "accepts": [{"shape", "per_crop"}]},
      "output": "same" | "records", "tracking", "events", "numbers",
      "params": [{"name", "type": number|text|choice|text_list|polygon|line, "required", "default", "min",
-                 "min_exclusive", "max", "choices", "min_points", "points", "help"}]}
+                 "min_exclusive", "max", "step", "choices", "equals", "items", "when_omitted", "format",
+                 "extensions", "values_by_input", "min_points", "points", "help"}]}
 
 (dx_app src/cpp_example/multi_model_graph/README.md, "--list-ops --json"). Studio keeps the logic ops, checks every
 field's type, and hands them to the page as they are: the palette's Logic group and the inspector's form are built
@@ -39,6 +40,22 @@ def _strings(v) -> list:
     return [str(x) for x in v if isinstance(x, str)] if isinstance(v, list) else []
 
 
+def _values_by_input(v) -> list:
+    """[{"shape", "per_crop", "values": [...]} | {..., "values_from": "numbers"}]: the values a param takes for each
+    input shape (the condition block's "value")."""
+    out = []
+    for a in v if isinstance(v, list) else []:
+        if not isinstance(a, dict) or not isinstance(a.get("shape"), str) or not _SHAPE.fullmatch(a["shape"]):
+            continue
+        row = {"shape": a["shape"], "per_crop": bool(a.get("per_crop"))}
+        if isinstance(a.get("values"), list):
+            row["values"] = _strings(a["values"])
+        if isinstance(a.get("values_from"), str):
+            row["values_from"] = a["values_from"]
+        out.append(row)
+    return out
+
+
 def _param(p) -> dict | None:
     if not isinstance(p, dict) or not isinstance(p.get("name"), str) or not _NAME.fullmatch(p["name"]):
         return None
@@ -50,8 +67,24 @@ def _param(p) -> dict | None:
             out[k] = p[k]
     if p.get("min_exclusive") is True:
         out["min_exclusive"] = True
+    if kind == "number" and _num(p.get("step")) is not None and p["step"] > 0:
+        out["step"] = p["step"]
     if kind == "choice":
         out["choices"] = _strings(p.get("choices"))
+        if isinstance(p.get("equals"), str):
+            out["equals"] = p["equals"]
+    if kind == "text_list":
+        if p.get("items") in ("string", "integer"):
+            out["items"] = p["items"]
+        if isinstance(p.get("when_omitted"), list):
+            out["when_omitted"] = _strings(p["when_omitted"])
+    if kind == "text":
+        if isinstance(p.get("format"), str):
+            out["format"] = p["format"]
+        if isinstance(p.get("extensions"), list):
+            out["extensions"] = _strings(p["extensions"])
+        if "values_by_input" in p:
+            out["values_by_input"] = _values_by_input(p["values_by_input"])
     if kind == "polygon":
         out["min_points"] = p["min_points"] if isinstance(p.get("min_points"), int) and p["min_points"] >= 3 else 3
     if kind == "line":

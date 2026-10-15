@@ -72,10 +72,12 @@ esac
 exit 2
 """
 
-# The dx_app Phase 2 CLI (docs/superpowers/plans/2026-10-14-graph-composer-p2-dxapp.md Tasks 12-15), recorded from
-# that plan until its build lands (Task "align with dx_app" re-captures them): list_ops.json is its --list-ops --json
-# catalog, help_p2.txt its --help, check_logic_*.json --check --json on zone_intrusion.json (and with a 2-point
-# polygon), run_events.log / events.jsonl / report_logic.json a 2-frame run of it, examples/*.json its six samples.
+# The dx_app Phase 2 CLI, captured from dx_app's build (feat/graph-composer e4840f9b): list_ops.json is its
+# --list-ops --json catalog, check_logic_*.json --check --json on zone_intrusion.json (and with a 2-point polygon),
+# run_events.log ([PROGRESS], [EVENT] and frame lines) / events.jsonl / report_logic.json a 2-frame run of it on
+# assets/videos/dance-group.mov with --report-timing, examples/*.json its six samples. help_p2.txt is that build's
+# --help without the two results-for-front-ends options (--draw, --output-layers; help_p3.txt has them), so it stands
+# for a Phase 2 build.
 P2_CLI = r"""
 case "$1" in
   --help) cat "$FIX/help_p2.txt"; exit 0 ;;

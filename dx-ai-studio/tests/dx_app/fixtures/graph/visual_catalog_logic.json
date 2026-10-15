@@ -1024,7 +1024,7 @@
      "type": "text_list",
      "required": false,
      "help": "class names to keep, as the detector names them; leave it out to keep every class",
-     "default": []
+     "items": "string"
     },
     {
      "name": "min_score",
@@ -1033,6 +1033,7 @@
      "help": "the smallest confidence kept (0.5, not 50)",
      "min": 0,
      "max": 1,
+     "step": 0.01,
      "default": 0
     },
     {
@@ -1041,6 +1042,7 @@
      "required": false,
      "help": "the smallest box area kept, in source-frame pixels",
      "min": 0,
+     "step": 1,
      "default": 0
     }
    ]
@@ -1202,7 +1204,7 @@
      "type": "text_list",
      "required": false,
      "help": "count only these classes, one number each besides \"total\"; leave it out to count every box",
-     "default": []
+     "items": "string"
     }
    ]
   },
@@ -1244,6 +1246,7 @@
      "help": "seconds a box must stay before its \"dwell\" event",
      "min": 0,
      "min_exclusive": true,
+     "step": 0.1,
      "default": 10
     },
     {
@@ -1253,6 +1256,7 @@
      "help": "seconds a box may be missing (an occlusion) and still be the same stay",
      "min": 0,
      "max": 60,
+     "step": 0.1,
      "default": 1
     }
    ]
@@ -1305,6 +1309,50 @@
      "type": "text",
      "required": false,
      "help": "\"count\" (boxes or crops), a number the input writes (records), or \"with:<label>\" / \"without:<label>\" (crops with scores)",
+     "values_by_input": [
+      {
+       "shape": "boxes",
+       "per_crop": false,
+       "values": [
+        "count"
+       ]
+      },
+      {
+       "shape": "obboxes",
+       "per_crop": false,
+       "values": [
+        "count"
+       ]
+      },
+      {
+       "shape": "instances",
+       "per_crop": false,
+       "values": [
+        "count"
+       ]
+      },
+      {
+       "shape": "records",
+       "per_crop": false,
+       "values_from": "numbers"
+      },
+      {
+       "shape": "scores",
+       "per_crop": true,
+       "values": [
+        "count",
+        "with:<label>",
+        "without:<label>"
+       ]
+      },
+      {
+       "shape": "vector",
+       "per_crop": true,
+       "values": [
+        "count"
+       ]
+      }
+     ],
      "default": "count"
     },
     {
@@ -1348,6 +1396,7 @@
      "help": "0: one event when the condition becomes true; more: an event at most this often while it holds",
      "min": 0,
      "max": 86400,
+     "step": 0.1,
      "default": 0
     },
     {
@@ -1392,7 +1441,11 @@
      "name": "gallery",
      "type": "text",
      "required": true,
-     "help": "a DXGAL1 .bin built from an image folder: python3 scripts/build_gallery_database.py --variant <model> --images <folder> --out <file>.bin"
+     "help": "a DXGAL1 .bin built from an image folder: python3 scripts/build_gallery_database.py --variant <model> --images <folder> --out <file>.bin",
+     "format": "file",
+     "extensions": [
+      ".bin"
+     ]
     },
     {
      "name": "threshold",
@@ -1401,6 +1454,7 @@
      "help": "the smallest cosine similarity that names a match",
      "min": 0,
      "max": 1,
+     "step": 0.01,
      "default": 0.5
     },
     {
@@ -1511,7 +1565,8 @@
       "scores",
       "vector",
       "records"
-     ]
+     ],
+     "equals": "input"
     }
    ]
   }

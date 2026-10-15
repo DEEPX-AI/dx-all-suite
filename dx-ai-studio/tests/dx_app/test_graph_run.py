@@ -402,14 +402,14 @@ def test_events_reach_the_poll_while_running_and_the_result_from_the_file(studio
     graph_fakes.install(studio, monkeypatch, EVENTS_RUNNER)
     body, _ = graph_run.start(GRAPH)
     p = _wait(body["job_id"])
-    assert p["event_total"] == 3 and [e["event"] for e in p["events"]] == ["enter", "intrusion", "enter"]
-    assert graph_run.poll(body["job_id"], events_after=2)["events"][0]["seq"] == 3
+    assert p["event_total"] == 6 and [e["event"] for e in p["events"]] == ["enter"] * 5 + ["intrusion"]
+    assert graph_run.poll(body["job_id"], events_after=4)["events"][0]["seq"] == 5
     assert "--events" in graph_fakes.calls(studio)[-1]
     r = graph_run.result(body["job_id"])
-    assert r["event_total"] == 3 and r["event_counts"] == {"zone": {"enter": 2}, "alarm": {"intrusion": 1}}
+    assert r["event_total"] == 6 and r["event_counts"] == {"zone": {"enter": 5}, "alarm": {"intrusion": 1}}
     assert r["events_url"] == f"/outputs/graph/runs/{body['job_id']}/events.jsonl" and r["events_truncated"] is False
-    assert r["nodes"]["alarm"]["last_records"] == [{"numbers": {"value": 2, "active": 1}, "text": {}}]
-    assert r["nodes"]["zone"]["items_total"] == 3 and "last_records" not in r["nodes"]["zone"]
+    assert r["nodes"]["alarm"]["last_records"] == [{"numbers": {"value": 5, "active": 1}, "text": {}}]
+    assert r["nodes"]["zone"]["items_total"] == 10 and "last_records" not in r["nodes"]["zone"]
 
 
 def test_a_build_without_events_files_still_lists_the_printed_events(studio, monkeypatch):
@@ -418,7 +418,7 @@ def test_a_build_without_events_files_still_lists_the_printed_events(studio, mon
     _wait(body["job_id"])
     r = graph_run.result(body["job_id"])
     assert "--events" not in graph_fakes.calls(studio)[-1]
-    assert r["event_total"] == 3 and r["events_url"] is None and r["events_partial"] is False
+    assert r["event_total"] == 6 and r["events_url"] is None and r["events_partial"] is False
 
 
 def test_printed_events_from_a_log_cut_to_its_tail_are_partial(studio, monkeypatch):

@@ -35,8 +35,9 @@ CATALOG = json.loads((FIX / "catalog.json").read_text(encoding="utf-8"))
 CATALOG.update(logic_ops=OPS, logic_error=None, examples=CATALOG["examples"] + EXAMPLES,
                limits={"uploads_total_b64": 20 * 1024 * 1024})
 CATALOG["capabilities"].update(list_ops=True, events=True, loop=True, draw=True, output_layers=True)
-EVENTS = [dict(json.loads(line), seq=i + 1) for i, line in
-          enumerate(l for l in (FIX / "events.jsonl").read_text().splitlines() if l.strip())][:3]
+# Of the real run's six events (five zone enters on frame 0, then the alarm): two enters and the alarm.
+_REAL = [json.loads(l) for l in (FIX / "events.jsonl").read_text().splitlines() if l.strip()]
+EVENTS = [dict(e, seq=i + 1) for i, e in enumerate([_REAL[0], _REAL[1], _REAL[-1]])]
 for _e in EVENTS:
     _e.setdefault("track_id", None)
 
@@ -394,8 +395,8 @@ def test_run_events_are_listed_filtered_badged_and_downloadable(browser, server,
         if webm:
             page.wait_for_function("() => document.querySelector('.gc-res-video').readyState >= 1", timeout=10000)
             page.click("#gc-run-events tbody tr button")
-            # frame 1 of the stream at the video's 10 fps, in the middle of the frame
-            page.wait_for_function("() => Math.abs(document.querySelector('.gc-res-video').currentTime - 0.15) < 0.02")
+            # frame 0 of the stream at the video's 10 fps, in the middle of the frame
+            page.wait_for_function("() => Math.abs(document.querySelector('.gc-res-video').currentTime - 0.05) < 0.02")
         assert page.evaluate("GraphComposer.canvas().selection().nodes") == ["zone"]
         assert not errors, errors
     finally:
