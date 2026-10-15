@@ -348,7 +348,8 @@
 /* Drop the separator line (inset box-shadow from style.css's .orbital-card + .orbital-card)
    meant for the vertical list; in the grid it showed above only some cells. */
 .stage-deck .studio-grid > *,
-.stage-deck .studio-grid > *:focus-visible { box-shadow: none; }   /* focus is drawn by outline */
+.stage-deck .studio-grid > *:focus-visible,
+.stage-deck .studio-grid > .about-book-card + .about-book-card { box-shadow: none; }   /* focus is drawn by outline */
 
 /* Icon — Liquid Glass. Colours mix from style.css's single --mod-tint (no new hex).
    Gloss, edge light and shadow are neutral rgba (css_token_gate does not count them). */

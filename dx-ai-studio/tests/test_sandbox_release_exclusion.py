@@ -102,8 +102,8 @@ def test_launcher_home_copy_and_cards_are_nine_module_release():
     # list together with the grid order.
     cards = re.findall(r'class="orbital-card"[^>]*\sdata-app="([^"]+)"', html)
     assert cards == [
-        "app", "stream", "zoo", "compiler", "edge",
-        "benchmark", "planner", "dx_monitor", "agent",
+        "app", "stream", "zoo", "compiler", "benchmark",
+        "planner", "dx_monitor", "agent", "edge",
     ]
 
 

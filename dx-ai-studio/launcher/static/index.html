@@ -277,8 +277,8 @@
         </dl>
       </aside>
 
-      <!-- Order: modules fill 3×3 (app · stream · zoo / compiler · edge · benchmark / planner ·
-           dx_monitor · agent); SDK Library and About DEEPX sit in the last column (home-stage.css) -->
+      <!-- Order: modules fill 3×3 (app · stream · zoo / compiler · benchmark · planner /
+           dx_monitor · agent · edge); SDK Library and About DEEPX sit in the last column (home-stage.css) -->
       <div class="studio-grid" id="studioGrid">
             <div class="orbital-card" data-app="app" tabindex="0" role="button">
               <span class="orbital-status" id="orbStatusApp"></span>
@@ -320,22 +320,6 @@
               <span class="card-state" data-role="state"></span>
               <span class="mod-chev" aria-hidden="true">›</span>
             </div>
-            <div class="orbital-card" data-app="edge" tabindex="0" role="button">
-              <span class="orbital-status" id="orbStatusEdge"></span>
-              <span class="mod-tile" data-mod="edge" aria-hidden="true"><svg class="mod-glyph"><use href="/static/shared/dx-icons.svg#cloud"></use></svg></span>
-              <span class="mod-text">
-                <span class="orbital-name">Cloud</span>
-                <span class="card-desc" data-i18n="AWS cloud compile &amp; edge deployment">AWS cloud compile &amp; edge deployment</span>
-              </span>
-              <span class="card-state" data-role="state"></span>
-              <span class="mod-chev" aria-hidden="true">›</span>
-            </div>
-            <div class="about-book-card sdk-card" tabindex="0" role="button">
-              <div class="orbital-icon"><svg class="mod-glyph" aria-hidden="true"><use href="/static/shared/dx-icons.svg#library"></use></svg></div>
-              <div class="orbital-name" data-i18n-module="sdk-library" data-i18n-variant="poster"></div>
-              <div class="orbital-port" data-i18n="Tech Library">Tech Library
-              </div>
-            </div>
             <div class="orbital-card" data-app="benchmark" tabindex="0" role="button">
               <span class="orbital-status" id="orbStatusBenchmark"></span>
               <span class="mod-tile" data-mod="benchmark" aria-hidden="true"><svg class="mod-glyph"><use href="/static/shared/dx-icons.svg#bench"></use></svg></span>
@@ -375,6 +359,22 @@
               </span>
               <span class="card-state" data-role="state"></span>
               <span class="mod-chev" aria-hidden="true">›</span>
+            </div>
+            <div class="orbital-card" data-app="edge" tabindex="0" role="button">
+              <span class="orbital-status" id="orbStatusEdge"></span>
+              <span class="mod-tile" data-mod="edge" aria-hidden="true"><svg class="mod-glyph"><use href="/static/shared/dx-icons.svg#cloud"></use></svg></span>
+              <span class="mod-text">
+                <span class="orbital-name">Cloud</span>
+                <span class="card-desc" data-i18n="AWS cloud compile &amp; edge deployment">AWS cloud compile &amp; edge deployment</span>
+              </span>
+              <span class="card-state" data-role="state"></span>
+              <span class="mod-chev" aria-hidden="true">›</span>
+            </div>
+            <div class="about-book-card sdk-card" tabindex="0" role="button">
+              <div class="orbital-icon"><svg class="mod-glyph" aria-hidden="true"><use href="/static/shared/dx-icons.svg#library"></use></svg></div>
+              <div class="orbital-name" data-i18n-module="sdk-library" data-i18n-variant="poster"></div>
+              <div class="orbital-port" data-i18n="Tech Library">Tech Library
+              </div>
             </div>
             <div class="about-book-card" tabindex="0" role="button">
               <div class="orbital-icon"><svg class="mod-glyph" aria-hidden="true"><use href="/static/shared/dx-icons.svg#book"></use></svg></div>

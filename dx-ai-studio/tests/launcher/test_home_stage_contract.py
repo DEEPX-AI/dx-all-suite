@@ -70,8 +70,8 @@ def test_grid_is_eleven_tiles_in_spec_order():
     grid = _region("studioGrid")
     tiles = re.findall(r'class="(orbital-card|about-book-card(?: sdk-card)?)"(?:[^>]*data-app="(\w+)")?', grid)
     got = [app or ("sdk" if "sdk" in cls else "about") for cls, app in tiles]
-    assert got == ["app", "stream", "zoo", "compiler", "edge", "sdk",
-                   "benchmark", "planner", "dx_monitor", "agent", "about"]
+    assert got == ["app", "stream", "zoo", "compiler", "benchmark", "planner",
+                   "dx_monitor", "agent", "edge", "sdk", "about"]
 
 
 @pytest.mark.parametrize("gone", [
