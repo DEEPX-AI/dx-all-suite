@@ -82,7 +82,7 @@
       steps: [
         { target: '.edge-tabs', position: 'bottom',
           title: { ko: 'Solution 탭', en: 'Solution Tabs', ja: 'ソリューションタブ', 'zh-CN': '解决方案标签页', 'zh-TW': '解決方案分頁', es: 'Pestañas de solución' },
-          content: { ko: 'Marketplace 제품마다 탭이 하나씩 있습니다. 2–4단계는 탭마다 반복되고, <strong>DEEPX Greengrass Solution</strong> 탭에는 5단계 Devices가 더 있습니다.', en: 'One tab per Marketplace product. Steps 2–4 repeat in each tab, and the <strong>DEEPX Greengrass Solution</strong> tab adds step 5, Devices.', ja: 'Marketplace 製品ごとにタブが 1 つあります。手順 2–4 はタブごとに繰り返され、<strong>DEEPX Greengrass Solution</strong> タブには手順 5 のデバイスが加わります。', 'zh-CN': '每个 Marketplace 产品对应一个标签页。步骤 2–4 在每个标签页中重复，<strong>DEEPX Greengrass Solution</strong> 标签页另有步骤 5 设备。', 'zh-TW': '每個 Marketplace 產品對應一個分頁。步驟 2–4 在每個分頁中重複，<strong>DEEPX Greengrass Solution</strong> 分頁另有步驟 5 裝置。', es: 'Una pestaña por producto de Marketplace. Los pasos 2–4 se repiten en cada pestaña y la pestaña <strong>DEEPX Greengrass Solution</strong> añade el paso 5, Dispositivos.' } },
+          content: { ko: 'Marketplace 제품마다 탭이 하나씩 있습니다. 2–4단계는 탭마다 반복되고, <strong>DEEPX Greengrass Solution</strong> 탭에서는 4-1 Cloud Compile과 4-2 Devices를 따로 쓸 수 있습니다.', en: 'One tab per Marketplace product. Steps 2–4 repeat in each tab; in the <strong>DEEPX Greengrass Solution</strong> tab, 4-1 Cloud Compile and 4-2 Devices can be used separately.', ja: 'Marketplace 製品ごとにタブが 1 つあります。手順 2–4 はタブごとに繰り返され、<strong>DEEPX Greengrass Solution</strong> タブでは 4-1 クラウドコンパイルと 4-2 デバイスを別々に使えます。', 'zh-CN': '每个 Marketplace 产品对应一个标签页。步骤 2–4 在每个标签页中重复；在 <strong>DEEPX Greengrass Solution</strong> 标签页中，4-1 云端编译和 4-2 设备可以分别使用。', 'zh-TW': '每個 Marketplace 產品對應一個分頁。步驟 2–4 在每個分頁中重複；在 <strong>DEEPX Greengrass Solution</strong> 分頁中，4-1 雲端編譯和 4-2 裝置可以分別使用。', es: 'Una pestaña por producto de Marketplace. Los pasos 2–4 se repiten en cada pestaña; en la pestaña <strong>DEEPX Greengrass Solution</strong>, 4-1 Compilación en la nube y 4-2 Dispositivos se usan por separado.' } },
         { target: '[aria-labelledby="edgeSubsTitle-compiler"]', position: 'bottom',
           beforeStep: function () { _tab('compiler'); _pick(this, ['#edgeSubs-compiler', '[aria-labelledby="edgeSubsTitle-compiler"]']); },
           title: { ko: '2. Marketplace 구독', en: '2. Marketplace Subscription', ja: '2. Marketplace の購読', 'zh-CN': '2. Marketplace 订阅', 'zh-TW': '2. Marketplace 訂閱', es: '2. Suscripción de Marketplace' },
@@ -138,14 +138,14 @@
     },
 
     { id: 'devices', icon: 'dev',
-      title: { ko: '5. Devices (dx-runtime)', en: '5. Devices (dx-runtime)', ja: '5. デバイス（dx-runtime）', 'zh-CN': '5. 设备（dx-runtime）', 'zh-TW': '5. 裝置（dx-runtime）', es: '5. Dispositivos (dx-runtime)' },
+      title: { ko: '4-2. Devices (dx-runtime)', en: '4-2. Devices (dx-runtime)', ja: '4-2. デバイス（dx-runtime）', 'zh-CN': '4-2. 设备（dx-runtime）', 'zh-TW': '4-2. 裝置（dx-runtime）', es: '4-2. Dispositivos (dx-runtime)' },
       description: { ko: 'Greengrass 탭의 device 표와 device 등록 script', en: 'The device table and the register-device script on the Greengrass tab', ja: 'Greengrass タブのデバイス表とデバイス登録スクリプト', 'zh-CN': 'Greengrass 标签页中的设备表和设备注册脚本', 'zh-TW': 'Greengrass 分頁中的裝置表和裝置註冊腳本', es: 'La tabla de dispositivos y el script de registro en la pestaña Greengrass' },
       beforeStart: function () { _tab('greengrass'); },
       steps: [
         { target: '#edgeTab-greengrass', position: 'bottom',
           beforeStep: function () { _tab('greengrass'); },
           title: { ko: 'DEEPX Greengrass Solution 탭', en: 'DEEPX Greengrass Solution Tab', ja: 'DEEPX Greengrass Solution タブ', 'zh-CN': 'DEEPX Greengrass Solution 标签页', 'zh-TW': 'DEEPX Greengrass Solution 分頁', es: 'Pestaña DEEPX Greengrass Solution' },
-          content: { ko: '이 탭은 Greengrass 스택의 2–4단계와 함께, 스택이 관리하는 device를 다루는 5단계를 보여줍니다.', en: 'This tab shows steps 2–4 for Greengrass stacks plus step 5 for the devices the stack manages.', ja: 'このタブには Greengrass スタックの手順 2–4 と、スタックが管理するデバイスを扱う手順 5 があります。', 'zh-CN': '此标签页显示 Greengrass 堆栈的步骤 2–4，以及管理堆栈所辖设备的步骤 5。', 'zh-TW': '此分頁顯示 Greengrass 堆疊的步驟 2–4，以及管理堆疊所轄裝置的步驟 5。', es: 'Esta pestaña muestra los pasos 2–4 de las pilas de Greengrass y el paso 5 para los dispositivos que gestiona la pila.' } },
+          content: { ko: '이 탭은 Greengrass 스택의 2–3단계와 함께, 따로 쓸 수 있는 4-1 Cloud Compile과 4-2 Devices를 보여줍니다.', en: 'This tab shows steps 2–3 for Greengrass stacks plus two independent steps: 4-1 Cloud Compile and 4-2 Devices.', ja: 'このタブには Greengrass スタックの手順 2–3 と、別々に使える手順 4-1 クラウドコンパイルと 4-2 デバイスがあります。', 'zh-CN': '此标签页显示 Greengrass 堆栈的步骤 2–3，以及可分别使用的步骤 4-1 云端编译和 4-2 设备。', 'zh-TW': '此分頁顯示 Greengrass 堆疊的步驟 2–3，以及可分別使用的步驟 4-1 雲端編譯和 4-2 裝置。', es: 'Esta pestaña muestra los pasos 2–3 de las pilas de Greengrass y dos pasos independientes: 4-1 Compilación en la nube y 4-2 Dispositivos.' } },
         { target: '#cloudCompile-greengrass .edge-jobs', position: 'top',
           beforeStep: function () { _tab('greengrass'); },
           title: { ko: 'Greengrass 컴파일 작업', en: 'Greengrass Compile Jobs', ja: 'Greengrass のコンパイルジョブ', 'zh-CN': 'Greengrass 编译任务', 'zh-TW': 'Greengrass 編譯工作', es: 'Trabajos de compilación de Greengrass' },
