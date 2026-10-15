@@ -14,7 +14,7 @@ import subprocess
 import threading
 from pathlib import Path
 
-from dx_app.core import config, graph_cli, graph_ops, graph_run
+from dx_app.core import config, graph_cli, graph_export, graph_ops, graph_run
 
 # The graph engine's two CPU reductions (README "three node kinds"): what they take over "carry": "result" edges.
 CPU_OPS = [
@@ -234,5 +234,6 @@ def catalog(refresh: bool = False) -> dict:
     ops = graph_ops.list_ops(refresh) if available else {"ops": [], "error": "graph_binary_missing"}
     return {"available": available, "error": lm.get("error"), "models": models, "aliases": lm["aliases"],
             "cpu_ops": CPU_OPS, "logic_ops": ops["ops"], "logic_error": ops["error"], "examples": examples(),
-            "capabilities": graph_cli.capabilities() if available else graph_cli.no_capabilities(),
+            "capabilities": dict(graph_cli.capabilities() if available else graph_cli.no_capabilities(),
+                                 export=graph_export.available()),
             "limits": {"uploads_total_b64": graph_run.MAX_UPLOADS_TOTAL_B64}}

@@ -193,3 +193,15 @@ def test_examples_with_logic_nodes_are_templates_with_a_thumbnail(tmp_path, monk
     assert ex["loitering_dwell"]["thumb"] == "/static/img/graph-examples/loitering_dwell.jpg"
     assert ex["ppe_zone_check"]["models"] == ["deepmar_resnet18_224x224", "yolov8-n_640x640"]
     assert sum(e["logic"] for e in ex.values()) == 6
+
+
+def test_the_catalog_says_whether_dx_app_can_export(tmp_path, monkeypatch):
+    from dx_app.core import graph_export, graph_ops
+    graph_fakes.install(tmp_path, monkeypatch, graph_fakes.P2_CLI)
+    graph_ops._cache.update(key=None, value=None)
+    monkeypatch.setattr(graph_catalog, "examples", lambda: [])
+    monkeypatch.setattr(graph_export, "available", lambda: True)
+    assert graph_catalog.catalog()["capabilities"]["export"] is True
+    monkeypatch.setattr(graph_export, "available", lambda: False)
+    graph_catalog._cache.update(key=None, value=None)
+    assert graph_catalog.catalog()["capabilities"]["export"] is False
