@@ -15,6 +15,7 @@ import pytest
 pytest.importorskip("playwright.sync_api")
 
 from tests.dx_app.test_graph_logic_browser import FakeApi  # noqa: E402
+from tests.dx_app.test_tutorial import GRAPH_STEP_TARGETS  # noqa: E402
 from tests.server_helpers import start_module_server  # noqa: E402
 
 LAYERS = Path(__file__).resolve().parent / "fixtures" / "graph" / "layers"
@@ -155,3 +156,81 @@ def test_reveal_opens_a_palette_group(ui):
     assert page.is_hidden("[data-group='templates'] .gc-group-body")
     page.evaluate("GraphPalette.reveal('templates')")
     assert page.is_visible("[data-group='templates'] .gc-group-body")
+
+
+STEP_JS = """() => { const e = window._dxTutorial, step = e._curSection && e._curSection.steps[e._curStep];
+  const t = step && step.target ? e._queryTarget(step.target) : null;
+  const tip = document.querySelector('.dxt-tooltip.active'), r = t && t.getBoundingClientRect();
+  const title = tip && tip.querySelector('.dxt-tip-title');
+  return { index: e._curStep, target: step && step.target, found: !!t, visible: !!(r && r.width > 2 && r.height > 2),
+           spotlight: !!document.querySelector('.dxt-spotlight.active'),
+           floating: !!(tip && tip.style.transform && tip.style.transform.indexOf('translate(-50%') >= 0),
+           title: title ? title.textContent : null,
+           mocks: document.querySelectorAll('[data-dxt-tutorial-mock]').length,
+           tab: GraphComposer.state().runTab }; }"""
+
+# The tour is driven without awaiting the engine's promises: next() on a last step waits for the "Section Complete"
+# dialog, so a tour shorter than expected would otherwise hang the test instead of failing it.
+START = "() => { window._dxTutorial.startSection('graph'); }"
+NEXT = "() => { window._dxTutorial.next(); }"
+
+ANCHORED = """(n) => { const c = document.querySelector('.dxt-tooltip.active .dxt-tip-counter');
+  return !!c && c.textContent.trim().indexOf(n + ' /') === 0 && !!document.querySelector('.dxt-spotlight.active'); }"""
+
+
+def _tour(page, until=None):
+    """Start the graph section and step through it; the state of each step once its spotlight is up. With `until`
+    (a target), stop on that step and leave the tour running."""
+    page.evaluate(START)
+    seen = []
+    for i in range(len(GRAPH_STEP_TARGETS)):
+        page.wait_for_function(ANCHORED, arg=i + 1, timeout=15000)
+        page.wait_for_timeout(250)
+        seen.append(page.evaluate(STEP_JS))
+        if seen[-1]["target"] == until:
+            return seen
+        if i < len(GRAPH_STEP_TARGETS) - 1:
+            page.evaluate(NEXT)
+    page.evaluate("window._dxTutorial.stop()")
+    return seen
+
+
+@pytest.mark.parametrize("lang", ["en", "ja"])
+def test_the_graph_tour_points_at_every_part_of_the_composer(browser, server, lang):
+    ctx, page, errors = _page(browser, server, lang)
+    seen = _tour(page)
+    assert [s["target"] for s in seen] == GRAPH_STEP_TARGETS
+    bad = [s for s in seen if not (s["found"] and s["visible"] and s["spotlight"] and not s["floating"])]
+    assert not bad, bad
+    by = {s["target"]: s for s in seen}
+    assert by["#gc-run-results"]["mocks"] == 2 and by["#gc-run-events"]["mocks"] == 2
+    assert by["#gc-live-body"]["tab"] == "live" and by["#gc-export-cpp"]["tab"] == "once"
+    assert page.locator("[data-dxt-tutorial-mock]").count() == 0, "the preview is gone after the tour"
+    assert page.evaluate("GraphComposer.state().name") == "zone-intrusion"
+    assert seen[1]["title"] == ("テンプレート" if lang == "ja" else "Templates")
+    assert not errors, errors
+    ctx.close()
+
+
+def test_the_tour_leaves_unsaved_work_on_the_canvas(browser, server):
+    ctx, page, errors = _page(browser, server)
+    page.evaluate("GraphComposer.loadExample('line_counting')")
+    page.evaluate("GraphComposer.state().dirty = true")
+    page.evaluate(START)
+    page.wait_for_function(ANCHORED, arg=1, timeout=15000)
+    page.evaluate("window._dxTutorial.stop()")
+    assert page.evaluate("GraphComposer.state().name") == "line-counting"
+    assert page.evaluate("GraphComposer.state().dirty") is True
+    assert not errors, errors
+    ctx.close()
+
+
+@pytest.mark.parametrize("where", ["#gc-run-results", "#gc-live-body"])
+def test_leaving_the_tour_midway_undoes_the_step(browser, server, where):
+    ctx, page, errors = _page(browser, server)
+    _tour(page, until=where)
+    page.evaluate("window._dxTutorial.stop()")
+    assert page.locator("[data-dxt-tutorial-mock]").count() == 0
+    assert page.evaluate("GraphComposer.state().runTab") == "once"
+    assert not errors, errors
+    ctx.close()

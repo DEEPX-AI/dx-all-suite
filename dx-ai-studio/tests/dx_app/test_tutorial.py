@@ -32,7 +32,29 @@ RUNTIME_SELECTOR_ALLOWLIST = {
     "#rundemo-root .dds-stage",
     '#rundemo-root .dds-stage [data-axis-row="post"]',
     "#rundemo-root .dds-stage .dds-run",
+    # Graph Composer: drawn by graph-palette.js, graph-inspector.js and graph-run.js once the page opens.
+    ".gc-group",
+    ".gc-zone-edit",
+    "#gc-run-results",
+    "#gc-run-events",
 }
+
+# The graph tour, in order: one step per part of the composer (Phase 4).
+GRAPH_STEP_TARGETS = [
+    "#gc-palette",
+    '.gc-group[data-group="templates"]',
+    "#gc-canvas-host",
+    "#gc-inspector",
+    '.gc-group[data-group="logic"]',
+    "#gc-inspector .gc-zone-edit",
+    "#gc-validate",
+    "#gc-run-panel",
+    "#gc-run-results",
+    "#gc-run-events",
+    "#gc-live-body",
+    "#gc-export-cpp",
+    "#gc-toolbar",
+]
 
 EXPECTED_SECTION_IDS = [
     "setup",
@@ -192,3 +214,35 @@ def test_sections_cover_target_languages():
         if count < ko_count:
             deficits[lang] = (count, ko_count)
     assert not deficits, f"language coverage deficits (count < ko): {deficits}"
+
+
+def _graph_section(source: str) -> str:
+    return source[source.index("{ id:'graph'"):source.index("{ id:'lab'")]
+
+
+def test_graph_tour_covers_the_composer_in_order():
+    section = _graph_section(read_text(JS_DIR / "tutorial.js"))
+    assert re.findall(r"target:'([^']+)'", section) == GRAPH_STEP_TARGETS
+
+
+def test_graph_tour_undoes_what_it_shows():
+    steps = re.split(r"\n        \{ target:", _graph_section(read_text(JS_DIR / "tutorial.js")))[1:]
+    for step in steps:
+        if "_gcShowResults" in step:
+            assert "_gcHideResults" in step, step[:60]
+        if "_gcTab('live')" in step:
+            assert "_gcRestoreTab" in step, step[:60]
+    assert "ensureExample" not in read_text(JS_DIR / "tutorial.js")
+
+
+def test_graph_steps_that_need_a_template_are_optional():
+    """With unsaved work on the canvas the tour shows no template, so these targets may be absent."""
+    steps = re.split(r"\n        \{ target:", _graph_section(read_text(JS_DIR / "tutorial.js")))[1:]
+    optional = {re.match(r"'([^']+)'", s).group(1) for s in steps if "optionalTarget:true" in s}
+    assert optional == {'.gc-group[data-group="templates"]', '.gc-group[data-group="logic"]',
+                        "#gc-inspector .gc-zone-edit", "#gc-run-results", "#gc-run-events"}
+
+
+def test_the_graph_composer_has_a_reference_doc():
+    source = read_text(JS_DIR / "tutorial.js")
+    assert re.search(r"\{ id:'ref-graph', icon:'graph'", source)
