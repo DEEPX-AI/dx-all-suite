@@ -116,3 +116,95 @@ def test_korean_composer_strings_keep_english_technical_terms(strings):
     section = tut[tut.index("{ id:'graph'"):tut.index("{ id:'lab'")]
     ko = re.findall(r"\bko:\s*'((?:[^'\\]|\\.)*)'", section)
     assert ko and not [(s, w) for s in ko for w in _P2_HANGUL_SPELLINGS if w in s]
+
+
+# The logic blocks' texts come from dx_app's --list-ops in English only; Studio translates each op's summary and each
+# param's label and help in dx_app/static/js/i18n.js (window._DX_GRAPH_OPS_I18N). `en` is dx_app's own text, which
+# the inspector compares before using a translation, so it has to match the recorded --list-ops output exactly.
+_OPS_JS = """
+const fs = require('fs'), vm = require('vm');
+const sandbox = {window: {}};
+vm.runInNewContext(fs.readFileSync(process.argv[1], 'utf8'), sandbox);
+console.log(JSON.stringify(sandbox.window._DX_GRAPH_OPS_I18N || null));
+"""
+ALL_LANGS = ("en",) + TARGET_LANGS
+
+
+@pytest.fixture(scope="module")
+def op_texts():
+    node = resolve_node_executable()
+    if not node:
+        pytest.skip("node is required to read the logic block translations")
+    proc = subprocess.run([node, "-e", _OPS_JS, str(ROOT / "dx_app/static/js/i18n.js")], capture_output=True,
+                          text=True, check=False)
+    assert proc.returncode == 0, proc.stderr
+    return json.loads(proc.stdout)
+
+
+def _logic_ops():
+    ops = json.loads((ROOT / "tests/dx_app/fixtures/graph/list_ops.json").read_text(encoding="utf-8"))
+    return [o for o in ops if o.get("type") == "logic"]
+
+
+def test_every_logic_op_and_param_is_translated_into_six_languages(op_texts):
+    assert op_texts, "window._DX_GRAPH_OPS_I18N is missing"
+    lacking = {}
+    for op in _logic_ops():
+        entry = op_texts.get(op["op"]) or {}
+        texts = {"summary": entry.get("summary")}
+        for p in op["params"]:
+            spec = ((entry.get("params") or {}).get(p["name"])) or {}
+            texts[p["name"] + ".label"] = spec.get("label")
+            texts[p["name"] + ".help"] = spec.get("help")
+        for where, t in texts.items():
+            miss = [lang for lang in ALL_LANGS if not (t or {}).get(lang)]
+            if miss:
+                lacking[op["op"] + ":" + where] = miss
+    assert not lacking, lacking
+    assert sorted(op_texts) == sorted(o["op"] for o in _logic_ops()), "one entry per logic op of --list-ops"
+
+
+def test_the_english_of_each_translation_is_dx_apps_text(op_texts):
+    stale = {}
+    for op in _logic_ops():
+        entry = op_texts.get(op["op"]) or {}
+        if (entry.get("summary") or {}).get("en") != op["summary"]:
+            stale[op["op"] + ":summary"] = op["summary"]
+        for p in op["params"]:
+            got = (((entry.get("params") or {}).get(p["name"]) or {}).get("help") or {}).get("en")
+            if p.get("help") and got != p["help"]:
+                stale[op["op"] + ":" + p["name"]] = p["help"]
+    assert not stale, stale
+
+
+def test_korean_logic_texts_keep_english_technical_terms(op_texts):
+    def strings(v):
+        if isinstance(v, dict):
+            return [s for k, x in v.items() for s in ([x] if k == "ko" and isinstance(x, str) else strings(x))]
+        return []
+    ko = strings(op_texts)
+    assert len(ko) > 40
+    found = [(s, w) for s in ko for w in _P2_HANGUL_SPELLINGS + ("트랙", "레코드", "스텁", "임베딩", "갤러리") if w in s]
+    assert not found, found
+
+
+def test_the_font_subsets_draw_every_glyph_of_the_logic_texts(op_texts):
+    """scripts/font_coverage_gate.py reads the dictionaries; these translations sit beside them, so they are checked
+    here against the same font chain (rebuild with `python -m scripts.build_font_subsets` when this fails)."""
+    from fontTools.ttLib import TTFont
+
+    from scripts.font_coverage_gate import CHAIN, FONTS, SOURCES
+    from scripts.font_glyphs import is_cjk
+    specs = json.loads(SOURCES.read_text(encoding="utf-8"))
+    cmaps = {s["lang"]: TTFont(FONTS / s["output"]).getBestCmap() for s in specs.values() if s["lang"] != "latin"}
+    missing: dict[str, set[str]] = {}
+
+    def walk(v):
+        for k, x in v.items():
+            if isinstance(x, dict):
+                walk(x)
+            elif k in CHAIN:
+                missing.setdefault(k, set()).update(
+                    ch for ch in x if is_cjk(ord(ch)) and not any(ord(ch) in cmaps[f] for f in CHAIN[k]))
+    walk(op_texts)
+    assert not {k: v for k, v in missing.items() if v}, missing

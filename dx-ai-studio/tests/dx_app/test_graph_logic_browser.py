@@ -244,12 +244,12 @@ def test_the_inspector_builds_the_form_from_list_ops_and_offers_tracking(ui):
     assert "This block needs track ids" in body
     page.click("#gc-inspector-body button:has-text('Track objects on od')")
     assert _node(page, "od")["track"] == {"algo": "iou", "iou": 0.3, "max_age": 30}
-    page.select_option("#gc-inspector-body .gc-fg:has(label:text-is('direction')) select", "in")
+    page.select_option("#gc-inspector-body .gc-fg[data-param='direction'] select", "in")
     assert _node(page, "line")["params"]["direction"] == "in"
     page.evaluate("GraphComposer.canvas().undo()")
     assert _node(page, "line")["params"]["direction"] == "both", "one undo step per edit"
     page.evaluate("GraphComposer.canvas().select({nodes: ['person']})")
-    classes = page.locator("#gc-inspector-body .gc-fg:has(label:text-is('classes')) input")
+    classes = page.locator("#gc-inspector-body .gc-fg[data-param='classes'] input")
     classes.fill("person, rider")
     classes.dispatch_event("change")
     assert _node(page, "person")["params"]["classes"] == ["person", "rider"]
@@ -264,7 +264,7 @@ def test_a_condition_suggests_the_values_its_input_writes(ui):
     page.evaluate("GraphComposer.canvas().select({nodes: ['condition']})")
     opts = page.eval_on_selector_all("#gc-inspector-body datalist option", "els => els.map(e => e.value)")
     assert opts == ["count", "in", "out", "total"]
-    assert page.get_attribute("#gc-inspector-body .gc-fg:has(label:text-is('value')) input", "placeholder") == "count"
+    assert page.get_attribute("#gc-inspector-body .gc-fg[data-param='value'] input", "placeholder") == "count"
     assert "Fires: condition" in page.inner_text("#gc-inspector-body"), "the event takes the node id by default"
 
 
@@ -450,7 +450,18 @@ def test_the_logic_pieces_follow_a_language_change(ui):
     assert names[:3] == ["필터", "구역", "선 통과"]
     assert "프레임 위에서 편집" in page.inner_text("#gc-inspector-body") and "점 4개" in page.inner_text("#gc-inspector-body")
     assert page.inner_text("#gc-tab-live") .strip() == "Live"
+    # dx_app's op texts are English only; Studio's translations stand in for them, field labels included.
+    body = page.inner_text("#gc-inspector-body")
+    assert "기준점이 다각형 안" in body and "keeps the boxes" not in body, body
+    assert page.inner_text("#gc-inspector-body .gc-fg[data-param='mode'] label") == "방식"
+    assert "통과시킬 박스" in page.inner_text("#gc-inspector-body .gc-fg[data-param='mode']")
+    assert page.inner_text("#gc-inspector-body .gc-drawn[data-param='polygon'] .gc-drawn-label").startswith("다각형")
+    # A text this Studio has no translation for (dx_app reworded it, or a new op) shows dx_app's own words.
+    page.evaluate("""() => { GraphComposer.state().ops.zone.summary = 'keeps boxes in a polygon (reworded)';
+      const cv = GraphComposer.canvas(); cv.select({nodes: ['od']}); cv.select({nodes: ['zone']}); }""")
+    assert "keeps boxes in a polygon (reworded)" in page.inner_text("#gc-inspector-body")
     page.evaluate("DXI18n.setLang('en')")
+    assert page.text_content("#gc-inspector-body .gc-fg[data-param='mode'] label") == "Mode", "text_content: CSS draws labels in capitals"
 
 class FakeGallery:
     """/api/graph/gallery/{build,poll,stop}: a build that runs for `polls` polls, then ends as `result`; `hold` keeps it

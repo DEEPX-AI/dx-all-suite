@@ -11,6 +11,22 @@ window.GraphInspector = (function () {
 
   function nextId() { uid += 1; return 'gc-f' + uid; }
 
+  /* dx_app gives a logic op's summary and its params' help in English only; Studio's translations
+     (window._DX_GRAPH_OPS_I18N in i18n.js) stand in for them in the page language. `given` is dx_app's text: an entry
+     is used only while its English matches it, so a reworded text or an unknown op or param shows dx_app's words. */
+  function opText(op, param, what, given) {
+    var all = window._DX_GRAPH_OPS_I18N || {}, e = all[op];
+    e = e && (param ? e.params && e.params[param] && e.params[param][what] : e.summary);
+    if (!e || (given && e.en !== given)) return given;
+    var lang = (window.DXI18n && DXI18n.lang) || 'en';
+    return e[lang] || e.en || given;
+  }
+
+  /* The label of a logic param: Studio's name for it, or dx_app's param name. */
+  function paramLabel(n, p) { return (opText((n.data || {}).op, p.name, 'label', null) || p.name) + (p.required ? ' *' : ''); }
+
+  function paramHelp(n, p) { return p.help ? opText((n.data || {}).op, p.name, 'help', p.help) : p.help; }
+
   function field(c, label, input, help) {
     if (!input.id) input.id = nextId();
     return c.h('div', { class: 'fg gc-fg' }, [c.h('label', { for: input.id, text: label }), input,
@@ -255,13 +271,19 @@ window.GraphInspector = (function () {
   }
 
   function paramField(c, n, p) {
-    var params = (n.data && n.data.params) || {}, v = params[p.name], label = p.name + (p.required ? ' *' : '');
+    var params = (n.data && n.data.params) || {}, v = params[p.name], label = paramLabel(n, p), help = paramHelp(n, p);
     if (p.type === 'polygon' || p.type === 'line') return drawnField(c, n, p, v);
+    var wrap = paramInput(c, n, p, v, label, help);
+    wrap.setAttribute('data-param', p.name);
+    return wrap;
+  }
+
+  function paramInput(c, n, p, v, label, help) {
     if (p.type === 'choice') {
       var opts = (p.required ? [] : [{ value: '', label: p.default !== undefined && p.default !== ''
         ? c.fmt(T('Default ({value})'), { value: p.default }) : T('Default') }])
         .concat((p.choices || []).map(function (x) { return { value: x, label: x }; }));
-      return field(c, label, selectInput(c, opts, v == null ? '' : v, function (x) { setParam(c, n.id, p.name, x || null); }), p.help);
+      return field(c, label, selectInput(c, opts, v == null ? '' : v, function (x) { setParam(c, n.id, p.name, x || null); }), help);
     }
     if (p.type === 'number') {
       var attrs = { step: 'any' };
@@ -272,20 +294,20 @@ window.GraphInspector = (function () {
         if (x != null && p.min != null && x < p.min) x = p.min;
         if (x != null && p.max != null && x > p.max) x = p.max;
         setParam(c, n.id, p.name, x);
-      }, attrs), [rangeText(c, p), p.help].filter(Boolean).join(' · '));
+      }, attrs), [rangeText(c, p), help].filter(Boolean).join(' · '));
     }
     if (p.type === 'text_list') {
       return field(c, label, textInput(c, Array.isArray(v) ? v.join(', ') : '', function (raw) {
         var items = list(raw);
         setParam(c, n.id, p.name, items.length ? items : null);
-      }), p.help || T('Comma separated. Empty: all.'));
+      }), help || T('Comma separated. Empty: all.'));
     }
     var attrs2 = p.default !== undefined && p.default !== '' ? { placeholder: String(p.default) } : {};
     if (n.data.op === 'condition' && p.name === 'value') {
       attrs2.list = 'gc-value-suggest-' + n.id;
     }
     var input = textInput(c, v == null ? '' : v, function (raw) { setParam(c, n.id, p.name, raw || null); }, attrs2);
-    var wrap = field(c, label, input, p.help);
+    var wrap = field(c, label, input, help);
     if (attrs2.list) {
       wrap.appendChild(c.h('datalist', { id: attrs2.list }, valueSuggestions(c, n).map(function (k) { return c.h('option', { value: k }); })));
     }
@@ -297,12 +319,12 @@ window.GraphInspector = (function () {
     var s = window.GraphZoneGeom ? GraphZoneGeom.shapeFrom(v) : null;
     var dir = ((n.data && n.data.params) || {}).direction;
     var edit = c.h('button', { type: 'button', class: 'btn btn-neutral btn-sm gc-zone-edit',
-      'aria-label': c.fmt(T('Edit {param} on the frame'), { param: p.name }) }, [c.icon('image'), c.h('span', { text: ' ' + T('Edit on the frame…') })]);
+      'aria-label': c.fmt(T('Edit {param} on the frame'), { param: paramLabel(n, p).replace(/ \*$/, '') }) }, [c.icon('image'), c.h('span', { text: ' ' + T('Edit on the frame…') })]);
     edit.addEventListener('click', function () {
       GraphZoneEditor.open({ nodeId: n.id, param: p, frameUri: c.sourceFor(n.id), ctx: c });
     });
     setTimeout(function () { if (window.GraphZoneEditor && cv.isConnected) GraphZoneEditor.preview(cv, p, v, dir); }, 0);
-    return c.h('div', { class: 'fg gc-fg gc-drawn' }, [c.h('span', { class: 'gc-drawn-label', text: p.name + (p.required ? ' *' : '') }),
+    return c.h('div', { class: 'fg gc-fg gc-drawn', 'data-param': p.name }, [c.h('span', { class: 'gc-drawn-label', text: paramLabel(n, p) }),
       cv, c.h('p', { class: 'gc-help', text: s ? c.fmt(T('{n} points'), { n: s.points.length }) : T('Not drawn yet') }), edit]);
   }
 
@@ -425,7 +447,7 @@ window.GraphInspector = (function () {
       out.push(paramsEditor(c, n));
       return out;
     }
-    if (spec.summary) out.push(c.h('p', { class: 'gc-help', text: spec.summary }));
+    if (spec.summary) out.push(c.h('p', { class: 'gc-help', text: opText(d.op, null, 'summary', spec.summary) }));
     out.push(c.h('p', { class: 'gc-help', text: c.fmt(T('Takes {inputs} · hands on {output}'), {
       inputs: acceptsText(spec), output: spec.output === 'same' ? (c.D.outputOf(n, c.state.models, c.state.ops, c.canvas().getGraph()) || T('what it takes'))
         : 'records' }) }));

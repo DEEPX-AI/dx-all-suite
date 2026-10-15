@@ -4445,6 +4445,149 @@ window._DX_I18N_DICT = {
   },
 };
 
+/* ─── Graph Composer logic blocks: Studio's translations of dx_app's --list-ops texts ───
+   dx_app writes an op's summary and its params' help in English only. Per op: the summary, and per param a
+   label and the help, in six languages. `en` is dx_app's own text: graph-inspector.js uses an entry only while
+   it matches what the dx_app build gives, so a reworded or unknown op shows dx_app's text instead. */
+window._DX_GRAPH_OPS_I18N = {
+  filter: {
+    summary: { en: "keeps the boxes of the listed classes with at least a score and an area", ko: "나열한 클래스의 박스 중 점수와 면적이 기준 이상인 박스만 남깁니다", ja: "指定したクラスのうち、スコアと面積が基準以上のボックスだけを残します", "zh-CN": "只保留所列类别中分数和面积达到下限的框", "zh-TW": "只保留所列類別中分數和面積達到下限的框", es: "conserva las cajas de las clases indicadas con al menos una puntuación y un área" },
+    params: {
+      classes: {
+        label: { en: "Classes", ko: "클래스", ja: "クラス", "zh-CN": "类别", "zh-TW": "類別", es: "Clases" },
+        help: { en: "class names to keep, as the detector names them; leave it out to keep every class", ko: "남길 클래스 이름 (detector가 쓰는 이름 그대로). 비워 두면 모든 클래스를 남깁니다", ja: "残すクラス名 (検出器が使う名前のまま)。空にするとすべてのクラスを残します", "zh-CN": "要保留的类别名称（与检测器使用的名称一致）；留空则保留所有类别", "zh-TW": "要保留的類別名稱（與偵測器使用的名稱一致）；留空則保留所有類別", es: "nombres de las clases que se conservan, tal como los nombra el detector; vacío conserva todas" }
+      },
+      min_score: {
+        label: { en: "Minimum score", ko: "최소 점수", ja: "最小スコア", "zh-CN": "最低分数", "zh-TW": "最低分數", es: "Puntuación mínima" },
+        help: { en: "the smallest confidence kept (0.5, not 50)", ko: "남길 최소 신뢰도 (50이 아니라 0.5)", ja: "残す最小の信頼度 (50 ではなく 0.5)", "zh-CN": "保留的最低置信度（写 0.5，而不是 50）", "zh-TW": "保留的最低置信度（寫 0.5，而不是 50）", es: "la confianza mínima que se conserva (0.5, no 50)" }
+      },
+      min_area: {
+        label: { en: "Minimum area", ko: "최소 면적", ja: "最小面積", "zh-CN": "最小面积", "zh-TW": "最小面積", es: "Área mínima" },
+        help: { en: "the smallest box area kept, in source-frame pixels", ko: "남길 최소 박스 면적 (원본 프레임의 픽셀 단위)", ja: "残す最小のボックス面積 (元フレームのピクセル単位)", "zh-CN": "保留的最小框面积，单位为原始帧的像素", "zh-TW": "保留的最小框面積，單位為原始影格的像素", es: "el área mínima de caja que se conserva, en píxeles del fotograma de origen" }
+      }
+    }
+  },
+  zone: {
+    summary: { en: "keeps the boxes whose anchor point is inside (or outside) a polygon; with track ids, an event when a box enters or leaves", ko: "기준점이 다각형 안 (또는 밖)에 있는 박스를 남깁니다. track ID가 있으면 박스가 들어오거나 나갈 때 이벤트를 냅니다", ja: "基準点が多角形の内側 (または外側) にあるボックスを残します。トラック ID があれば、ボックスが入る・出るときにイベントを出します", "zh-CN": "保留基准点位于多边形内（或外）的框；有跟踪 ID 时，框进入或离开都会触发事件", "zh-TW": "保留基準點位於多邊形內（或外）的框；有追蹤 ID 時，框進入或離開都會觸發事件", es: "conserva las cajas cuyo punto de anclaje está dentro (o fuera) de un polígono; con ID de seguimiento, un evento cuando una caja entra o sale" },
+    params: {
+      polygon: {
+        label: { en: "Polygon", ko: "다각형", ja: "多角形", "zh-CN": "多边形", "zh-TW": "多邊形", es: "Polígono" },
+        help: { en: "x0, y0, x1, y1, ...: at least 3 points, each a fraction 0..1 of the frame's width and height", ko: "x0, y0, x1, y1, ...: 점 3개 이상, 각 좌표는 프레임 너비·높이에 대한 0..1 비율", ja: "x0, y0, x1, y1, ...: 3 点以上。各座標はフレームの幅・高さに対する 0..1 の割合", "zh-CN": "x0, y0, x1, y1, ...：至少 3 个点，每个坐标是相对帧宽度和高度的 0..1 比例", "zh-TW": "x0, y0, x1, y1, ...：至少 3 個點，每個座標是相對影格寬度和高度的 0..1 比例", es: "x0, y0, x1, y1, ...: al menos 3 puntos, cada uno una fracción 0..1 del ancho y el alto del fotograma" }
+      },
+      mode: {
+        label: { en: "Mode", ko: "방식", ja: "モード", "zh-CN": "模式", "zh-TW": "模式", es: "Modo" },
+        help: { en: "which boxes pass: those whose anchor is inside the polygon, or outside it", ko: "통과시킬 박스: 기준점이 다각형 안 (inside)에 있는 박스 또는 밖 (outside)에 있는 박스", ja: "通すボックス: 基準点が多角形の内側 (inside) にあるもの、または外側 (outside) にあるもの", "zh-CN": "放行哪些框：基准点在多边形内（inside）的，或在多边形外（outside）的", "zh-TW": "放行哪些框：基準點在多邊形內（inside）的，或在多邊形外（outside）的", es: "qué cajas pasan: las que tienen el punto de anclaje dentro del polígono (inside) o fuera (outside)" }
+      },
+      anchor: {
+        label: { en: "Anchor point", ko: "기준점", ja: "基準点", "zh-CN": "基准点", "zh-TW": "基準點", es: "Punto de anclaje" },
+        help: { en: "the point of a box that is tested: its bottom centre (where a person stands) or its centre", ko: "검사할 박스의 점: 아래쪽 가운데 (사람이 서 있는 곳) 또는 중심", ja: "判定に使うボックスの点: 下辺の中央 (人が立っている位置) または中心", "zh-CN": "用于判断的框上的点：底边中点（人站立的位置）或中心", "zh-TW": "用於判斷的框上的點：底邊中點（人站立的位置）或中心", es: "el punto de la caja que se comprueba: el centro de su borde inferior (donde está una persona) o su centro" }
+      }
+    }
+  },
+  line: {
+    summary: { en: "counts tracked boxes crossing a line, in each direction, with an event per crossing", ko: "선을 지나간 tracked 박스를 방향별로 세고, 지나갈 때마다 이벤트를 냅니다", ja: "ラインを横切った追跡中のボックスを方向ごとに数え、横切るたびにイベントを出します", "zh-CN": "按方向统计穿过线的已跟踪框，每次穿越触发一个事件", "zh-TW": "依方向統計穿過線的已追蹤框，每次穿越觸發一個事件", es: "cuenta las cajas con seguimiento que cruzan una línea, en cada sentido, con un evento por cruce" },
+    params: {
+      line: {
+        label: { en: "Line", ko: "선", ja: "ライン", "zh-CN": "线", "zh-TW": "線", es: "Línea" },
+        help: { en: "x0, y0, x1, y1: the line from A to B, each a fraction 0..1 of the frame's width and height; \"in\" is a crossing from the left of A->B to its right", ko: "x0, y0, x1, y1: A에서 B로 가는 선, 각 좌표는 프레임 너비·높이에 대한 0..1 비율. \"in\"은 A->B의 왼쪽에서 오른쪽으로 지나가는 것입니다", ja: "x0, y0, x1, y1: A から B へのライン。各座標はフレームの幅・高さに対する 0..1 の割合。\"in\" は A->B の左側から右側への通過です", "zh-CN": "x0, y0, x1, y1：从 A 到 B 的线，每个坐标是相对帧宽度和高度的 0..1 比例；\"in\" 表示从 A->B 的左侧穿到右侧", "zh-TW": "x0, y0, x1, y1：從 A 到 B 的線，每個座標是相對影格寬度和高度的 0..1 比例；\"in\" 表示從 A->B 的左側穿到右側", es: "x0, y0, x1, y1: la línea de A a B, cada valor una fracción 0..1 del ancho y el alto del fotograma; \"in\" es un cruce de la izquierda de A->B a su derecha" }
+      },
+      anchor: {
+        label: { en: "Anchor point", ko: "기준점", ja: "基準点", "zh-CN": "基准点", "zh-TW": "基準點", es: "Punto de anclaje" },
+        help: { en: "the point of a box that is tested: its bottom centre (where a person stands) or its centre", ko: "검사할 박스의 점: 아래쪽 가운데 (사람이 서 있는 곳) 또는 중심", ja: "判定に使うボックスの点: 下辺の中央 (人が立っている位置) または中心", "zh-CN": "用于判断的框上的点：底边中点（人站立的位置）或中心", "zh-TW": "用於判斷的框上的點：底邊中點（人站立的位置）或中心", es: "el punto de la caja que se comprueba: el centro de su borde inferior (donde está una persona) o su centro" }
+      },
+      direction: {
+        label: { en: "Direction", ko: "방향", ja: "方向", "zh-CN": "方向", "zh-TW": "方向", es: "Sentido" },
+        help: { en: "which crossings raise a \"cross\" event; the counts always keep both", ko: "\"cross\" 이벤트를 낼 통과 방향. 개수는 항상 양방향 모두 셉니다", ja: "\"cross\" イベントを出す通過の向き。件数は常に両方向とも数えます", "zh-CN": "哪些穿越会触发 \"cross\" 事件；计数始终包含两个方向", "zh-TW": "哪些穿越會觸發 \"cross\" 事件；計數始終包含兩個方向", es: "qué cruces lanzan un evento \"cross\"; los recuentos siempre guardan ambos sentidos" }
+      }
+    }
+  },
+  count: {
+    summary: { en: "counts the boxes of each input (one record per input), in total and per listed class", ko: "입력마다 박스를 셉니다 (입력마다 record 하나). 전체 개수와 나열한 클래스별 개수", ja: "入力ごとにボックスを数えます (入力ごとに 1 レコード)。合計と、指定したクラスごとの件数", "zh-CN": "统计每个输入的框（每个输入一条记录），包括总数和所列各类别的数量", "zh-TW": "統計每個輸入的框（每個輸入一筆記錄），包括總數和所列各類別的數量", es: "cuenta las cajas de cada entrada (un registro por entrada), en total y por cada clase indicada" },
+    params: {
+      classes: {
+        label: { en: "Classes", ko: "클래스", ja: "クラス", "zh-CN": "类别", "zh-TW": "類別", es: "Clases" },
+        help: { en: "count only these classes, one number each besides \"total\"; leave it out to count every box", ko: "이 클래스들만 셉니다 (\"total\" 외에 클래스마다 숫자 하나). 비워 두면 모든 박스를 셉니다", ja: "これらのクラスだけを数えます (\"total\" のほかにクラスごとに 1 つの数値)。空にするとすべてのボックスを数えます", "zh-CN": "只统计这些类别，除 \"total\" 外每个类别一个数；留空则统计所有框", "zh-TW": "只統計這些類別，除 \"total\" 外每個類別一個數；留空則統計所有框", es: "cuenta solo estas clases, un número por clase además de \"total\"; vacío cuenta todas las cajas" }
+      }
+    }
+  },
+  dwell: {
+    summary: { en: "measures how long each tracked box has stayed, with an event when it passes a threshold", ko: "tracked 박스마다 머문 시간을 재고, 기준 시간을 넘으면 이벤트를 냅니다", ja: "追跡中のボックスごとに滞在時間を測り、基準時間を超えるとイベントを出します", "zh-CN": "测量每个已跟踪框停留的时间，超过阈值时触发事件", "zh-TW": "測量每個已追蹤框停留的時間，超過閾值時觸發事件", es: "mide cuánto tiempo lleva cada caja con seguimiento, con un evento cuando supera un umbral" },
+    params: {
+      threshold_s: {
+        label: { en: "Threshold (s)", ko: "기준 시간 (초)", ja: "基準時間 (秒)", "zh-CN": "阈值（秒）", "zh-TW": "閾值（秒）", es: "Umbral (s)" },
+        help: { en: "seconds a box must stay before its \"dwell\" event", ko: "\"dwell\" 이벤트를 내기 전에 박스가 머물러야 하는 시간 (초)", ja: "\"dwell\" イベントを出すまでにボックスが滞在する必要がある秒数", "zh-CN": "框停留多少秒后才触发 \"dwell\" 事件", "zh-TW": "框停留多少秒後才觸發 \"dwell\" 事件", es: "segundos que una caja debe permanecer antes de su evento \"dwell\"" }
+      },
+      grace_s: {
+        label: { en: "Grace time (s)", ko: "유예 시간 (초)", ja: "猶予時間 (秒)", "zh-CN": "宽限时间（秒）", "zh-TW": "寬限時間（秒）", es: "Margen (s)" },
+        help: { en: "seconds a box may be missing (an occlusion) and still be the same stay", ko: "박스가 가려져 보이지 않아도 같은 체류로 보는 시간 (초)", ja: "ボックスが見えなくなっても (遮蔽) 同じ滞在とみなす秒数", "zh-CN": "框消失（被遮挡）多少秒内仍算同一次停留", "zh-TW": "框消失（被遮擋）多少秒內仍算同一次停留", es: "segundos que una caja puede faltar (una oclusión) y seguir contando como la misma permanencia" }
+      }
+    }
+  },
+  condition: {
+    summary: { en: "raises an event when a value passes a threshold: a box or crop count, a records number, or the crops with or without a label", ko: "값이 임계값을 넘으면 이벤트를 냅니다: 박스나 crop의 개수, records의 숫자, 또는 label이 있거나 없는 crop", ja: "値がしきい値を超えるとイベントを出します: ボックスやクロップの数、レコードの数値、またはラベルあり・なしのクロップ", "zh-CN": "当某个值越过阈值时触发事件：框或裁剪的数量、记录中的数值，或带有或不带某标签的裁剪", "zh-TW": "當某個值越過閾值時觸發事件：框或裁切的數量、記錄中的數值，或帶有或不帶某標籤的裁切", es: "lanza un evento cuando un valor supera un umbral: un recuento de cajas o recortes, un número de los registros, o los recortes con o sin una etiqueta" },
+    params: {
+      value: {
+        label: { en: "Value", ko: "값", ja: "値", "zh-CN": "值", "zh-TW": "值", es: "Valor" },
+        help: { en: "\"count\" (boxes or crops), a number the input writes (records), or \"with:<label>\" / \"without:<label>\" (crops with scores)", ko: "\"count\" (박스나 crop), 입력이 쓰는 숫자 (records), 또는 \"with:<label>\" / \"without:<label>\" (score가 있는 crop)", ja: "\"count\" (ボックスまたはクロップ)、入力が書く数値 (レコード)、または \"with:<label>\" / \"without:<label>\" (スコア付きクロップ)", "zh-CN": "\"count\"（框或裁剪）、输入写出的数值（记录），或 \"with:<label>\" / \"without:<label>\"（带分数的裁剪）", "zh-TW": "\"count\"（框或裁切）、輸入寫出的數值（記錄），或 \"with:<label>\" / \"without:<label>\"（帶分數的裁切）", es: "\"count\" (cajas o recortes), un número que escribe la entrada (registros), o \"with:<label>\" / \"without:<label>\" (recortes con puntuaciones)" }
+      },
+      comparator: {
+        label: { en: "Comparison", ko: "비교", ja: "比較", "zh-CN": "比较", "zh-TW": "比較", es: "Comparación" },
+        help: { en: "how the value is compared with \"threshold\"", ko: "값을 \"threshold\"와 비교하는 방법", ja: "値を \"threshold\" と比較する方法", "zh-CN": "值与 \"threshold\" 的比较方式", "zh-TW": "值與 \"threshold\" 的比較方式", es: "cómo se compara el valor con \"threshold\"" }
+      },
+      threshold: {
+        label: { en: "Threshold", ko: "임계값", ja: "しきい値", "zh-CN": "阈值", "zh-TW": "閾值", es: "Umbral" },
+        help: { en: "the number the value is compared with", ko: "값과 비교할 숫자", ja: "値と比較する数値", "zh-CN": "与该值比较的数", "zh-TW": "與該值比較的數", es: "el número con el que se compara el valor" }
+      },
+      reduce: {
+        label: { en: "Combine", ko: "합치는 방법", ja: "まとめ方", "zh-CN": "合并方式", "zh-TW": "合併方式", es: "Combinación" },
+        help: { en: "how several records' values become one: their largest, smallest or sum", ko: "여러 record의 값을 하나로 합치는 방법: 최댓값, 최솟값 또는 합", ja: "複数のレコードの値を 1 つにまとめる方法: 最大値、最小値、または合計", "zh-CN": "多条记录的值如何合成一个：取最大值、最小值或总和", "zh-TW": "多筆記錄的值如何合成一個：取最大值、最小值或總和", es: "cómo los valores de varios registros se vuelven uno: el mayor, el menor o la suma" }
+      },
+      cooldown_s: {
+        label: { en: "Repeat interval (s)", ko: "반복 간격 (초)", ja: "繰り返し間隔 (秒)", "zh-CN": "重复间隔（秒）", "zh-TW": "重複間隔（秒）", es: "Intervalo de repetición (s)" },
+        help: { en: "0: one event when the condition becomes true; more: an event at most this often while it holds", ko: "0: 조건이 참이 될 때 이벤트 한 번. 0보다 크면: 조건이 유지되는 동안 이 간격마다 최대 한 번", ja: "0: 条件が真になったときに 1 回。それより大きい値: 条件が続く間、この間隔ごとに最大 1 回", "zh-CN": "0：条件变为真时触发一次；大于 0：条件持续期间最多每隔这么久触发一次", "zh-TW": "0：條件變為真時觸發一次；大於 0：條件持續期間最多每隔這麼久觸發一次", es: "0: un evento cuando la condición se cumple; más: como mucho un evento cada tanto mientras se mantiene" }
+      },
+      event: {
+        label: { en: "Event name", ko: "이벤트 이름", ja: "イベント名", "zh-CN": "事件名称", "zh-TW": "事件名稱", es: "Nombre del evento" },
+        help: { en: "the event name (letters, digits, _ . : -); leave it out for the node id", ko: "이벤트 이름 (영문자, 숫자, _ . : -). 비워 두면 노드 ID를 씁니다", ja: "イベント名 (英字、数字、_ . : -)。空にするとノード ID を使います", "zh-CN": "事件名称（字母、数字、_ . : -）；留空则使用节点 ID", "zh-TW": "事件名稱（字母、數字、_ . : -）；留空則使用節點 ID", es: "el nombre del evento (letras, dígitos, _ . : -); vacío usa el id del nodo" }
+      }
+    }
+  },
+  gallery: {
+    summary: { en: "names each embedding after its nearest gallery entry, or \"unknown\" under a threshold, with an event when a track's name changes", ko: "각 embedding에 가장 가까운 Gallery 항목의 이름을 붙이고, 임계값 아래면 \"unknown\"으로 합니다. track의 이름이 바뀌면 이벤트를 냅니다", ja: "各埋め込みに最も近いギャラリー項目の名前を付け、しきい値未満なら \"unknown\" にします。トラックの名前が変わるとイベントを出します", "zh-CN": "为每个嵌入向量取最接近的图库条目的名称，低于阈值则为 \"unknown\"；跟踪对象的名称改变时触发事件", "zh-TW": "為每個嵌入向量取最接近的圖庫項目的名稱，低於閾值則為 \"unknown\"；追蹤對象的名稱改變時觸發事件", es: "da a cada embedding el nombre de la entrada de la galería más cercana, o \"unknown\" bajo un umbral, con un evento cuando cambia el nombre de un seguimiento" },
+    params: {
+      gallery: {
+        label: { en: "Gallery file", ko: "Gallery 파일", ja: "ギャラリーファイル", "zh-CN": "图库文件", "zh-TW": "圖庫檔案", es: "Archivo de galería" },
+        help: { en: "a DXGAL1 .bin built from an image folder: python3 scripts/build_gallery_database.py --variant <model> --images <folder> --out <file>.bin", ko: "이미지 폴더로 만든 DXGAL1 .bin 파일: python3 scripts/build_gallery_database.py --variant <model> --images <folder> --out <file>.bin", ja: "画像フォルダーから作った DXGAL1 .bin: python3 scripts/build_gallery_database.py --variant <model> --images <folder> --out <file>.bin", "zh-CN": "由图片文件夹生成的 DXGAL1 .bin：python3 scripts/build_gallery_database.py --variant <model> --images <folder> --out <file>.bin", "zh-TW": "由圖片資料夾產生的 DXGAL1 .bin：python3 scripts/build_gallery_database.py --variant <model> --images <folder> --out <file>.bin", es: "un .bin DXGAL1 creado a partir de una carpeta de imágenes: python3 scripts/build_gallery_database.py --variant <model> --images <folder> --out <file>.bin" }
+      },
+      threshold: {
+        label: { en: "Threshold", ko: "임계값", ja: "しきい値", "zh-CN": "阈值", "zh-TW": "閾值", es: "Umbral" },
+        help: { en: "the smallest cosine similarity that names a match", ko: "일치로 볼 최소 코사인 유사도", ja: "一致とみなす最小のコサイン類似度", "zh-CN": "判定为匹配的最低余弦相似度", "zh-TW": "判定為相符的最低餘弦相似度", es: "la similitud de coseno mínima que da nombre a una coincidencia" }
+      },
+      events: {
+        label: { en: "Events", ko: "이벤트", ja: "イベント", "zh-CN": "事件", "zh-TW": "事件", es: "Eventos" },
+        help: { en: "\"match\" events only, \"unknown\" events too, or none", ko: "\"match\" 이벤트만, \"unknown\" 이벤트도, 또는 이벤트 없음", ja: "\"match\" イベントのみ、\"unknown\" イベントも、またはなし", "zh-CN": "仅 \"match\" 事件、也包括 \"unknown\" 事件，或不触发", "zh-TW": "僅 \"match\" 事件、也包括 \"unknown\" 事件，或不觸發", es: "solo eventos \"match\", también eventos \"unknown\", o ninguno" }
+      }
+    }
+  },
+  user: {
+    summary: { en: "your own logic: in a run it passes its input through; an exported project gets a function stub to fill in", ko: "직접 작성하는 Logic: 실행할 때는 입력을 그대로 넘기고, export한 프로젝트에는 채워 넣을 함수 stub이 생깁니다", ja: "独自のロジック: 実行時は入力をそのまま渡し、エクスポートしたプロジェクトには中身を書く関数スタブが入ります", "zh-CN": "你自己的逻辑：运行时原样传递输入；导出的项目中会生成一个待填写的函数桩", "zh-TW": "你自己的邏輯：執行時原樣傳遞輸入；匯出的專案中會產生一個待填寫的函式樁", es: "su propia lógica: al ejecutar deja pasar su entrada; un proyecto exportado recibe un esqueleto de función para completar" },
+    params: {
+      name: {
+        label: { en: "Function name", ko: "함수 이름", ja: "関数名", "zh-CN": "函数名", "zh-TW": "函式名稱", es: "Nombre de la función" },
+        help: { en: "the stub function's name in an exported project: letters, digits and _, not starting with a digit", ko: "export한 프로젝트의 stub 함수 이름: 영문자, 숫자, _ 사용, 숫자로 시작하지 않음", ja: "エクスポートしたプロジェクトでのスタブ関数名: 英字・数字・_ で、数字で始まらないこと", "zh-CN": "导出项目中桩函数的名称：字母、数字和 _，不能以数字开头", "zh-TW": "匯出專案中樁函式的名稱：字母、數字和 _，不能以數字開頭", es: "el nombre de la función esqueleto en un proyecto exportado: letras, dígitos y _, sin empezar por un dígito" }
+      },
+      input: {
+        label: { en: "Input", ko: "입력", ja: "入力", "zh-CN": "输入", "zh-TW": "輸入", es: "Entrada" },
+        help: { en: "the kind of data the function receives", ko: "함수가 받는 데이터 종류", ja: "関数が受け取るデータの種類", "zh-CN": "函数接收的数据类型", "zh-TW": "函式接收的資料類型", es: "el tipo de datos que recibe la función" }
+      },
+      output: {
+        label: { en: "Output", ko: "출력", ja: "出力", "zh-CN": "输出", "zh-TW": "輸出", es: "Salida" },
+        help: { en: "the kind it returns; in a run the input passes through, so it equals \"input\"", ko: "함수가 돌려주는 종류. 실행할 때는 입력을 그대로 넘기므로 \"input\"과 같아야 합니다", ja: "関数が返す種類。実行時は入力をそのまま渡すので、\"input\" と同じにします", "zh-CN": "函数返回的类型；运行时输入原样传递，因此与 \"input\" 相同", "zh-TW": "函式回傳的類型；執行時輸入原樣傳遞，因此與 \"input\" 相同", es: "el tipo que devuelve; al ejecutar la entrada pasa tal cual, así que es igual a \"input\"" }
+      }
+    }
+  }
+};
+
 /* ─── CSS Selectors for DOM translation ─── */
 window._DX_I18N_SELECTORS = [
   '.nav-label',
