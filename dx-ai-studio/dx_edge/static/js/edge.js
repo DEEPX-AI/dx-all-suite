@@ -259,6 +259,7 @@
     return api('api/aws/stacks?' + qs(account())).then(function (res) {
       lastStacks = res.stacks;
       KINDS.forEach(renderStacks);
+      KINDS.forEach(loadJobs);
       updateSteps();
       loadDevices();
     }).catch(function (e) {
@@ -513,7 +514,11 @@
       var wasActive = !s.lastStatus || s.lastStatus.state === 'pending' || s.lastStatus.state === 'running';
       render(kind, st);
       // One last log read when the run ends, so the final lines and steps are shown.
-      if (wasActive && (st.state === 'succeeded' || st.state === 'failed')) pollLog(kind);
+      if (wasActive && (st.state === 'succeeded' || st.state === 'failed')) {
+        pollLog(kind);
+        loadJobs(kind);
+        clearDrops(kind);  // ready for the next upload
+      }
       if (st.state === 'pending' || st.state === 'running') s.pollTimer = setTimeout(function () { poll(kind); }, POLL_MS);
     }).catch(function (e) {
       setMsg(kind, e.message, true);
@@ -548,6 +553,7 @@
       $k('edgeLogOut', kind).replaceChildren();
       poll(kind);
       pollLog(kind);
+      loadJobs(kind);
     }).catch(function (e) {
       setMsg(kind, e.message, true);
     }).finally(function () {
@@ -565,6 +571,103 @@
     }).finally(function () {
       btn.disabled = false;
     });
+  }
+
+  // ── Compile jobs: every model folder in the picked stack's bucket ──────
+
+  var JOBS_POLL_MS = 15000;
+
+  function clearDrops(kind) {
+    ['Onnx', 'Json'].forEach(function (part) {
+      var input = $k('edge' + part, kind);
+      input.value = '';
+      input.dispatchEvent(new Event('change'));
+    });
+  }
+
+  function openJob(kind, job) {
+    var s = state[kind];
+    var f = account();
+    s.job = { profile: f.profile, region: f.region, stack: $k('edgeStack', kind).value, prefix: job.prefix };
+    s.lastStatus = null;
+    $k('edgeJobPrefix', kind).textContent = job.prefix;
+    $k('edgeLogSteps', kind).replaceChildren();
+    $k('edgeLogOut', kind).replaceChildren();
+    setMsg(kind, T('Loading…'));
+    poll(kind);
+    pollLog(kind);
+    if (s.lastJobs) renderJobs(kind, s.lastJobs);
+    $k('edgeJob', kind).scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function renderJobs(kind, jobs) {
+    var s = state[kind];
+    s.lastJobs = jobs;
+    var body = $k('edgeJobRows', kind);
+    body.replaceChildren();
+    if (!jobs.length) {
+      var empty = el('tr');
+      var td = el('td', 'edge-dim', T('No compile jobs in this stack yet'));
+      td.colSpan = 5;
+      empty.appendChild(td);
+      body.appendChild(empty);
+      return;
+    }
+    jobs.forEach(function (j) {
+      var tr = el('tr', s.job && s.job.prefix === j.prefix ? 'is-current' : null);
+      var name = el('td');
+      name.appendChild(el('strong', null, j.model));
+      name.appendChild(el('br'));
+      name.appendChild(el('code', 'edge-dim', j.prefix));
+      tr.appendChild(name);
+      tr.appendChild(el('td', null, new Date(j.uploaded).toLocaleString()));
+      var st = el('td');
+      var badge = el('span', 'badge', T(j.state));
+      badge.dataset.state = j.state === 'succeeded' ? 'ok' : j.state === 'failed' ? 'bad' : 'busy';
+      st.appendChild(badge);
+      tr.appendChild(st);
+      tr.appendChild(el('td', null, j.dxnn_size != null ? formatSize(j.dxnn_size) : '—'));
+      var actions = el('td');
+      var box = el('div', 'edge-job-actions');
+      var q = { profile: account().profile, region: account().region, stack: $k('edgeStack', kind).value, prefix: j.prefix };
+      if (j.dxnn) {
+        var dl = el('a', 'btn btn-sm', T('Download .dxnn'));
+        dl.href = 'api/aws/compile/download?' + jobQuery(q);
+        box.appendChild(dl);
+        var sv = el('button', 'btn btn-sm btn-ghost', T('Save to Studio models'));
+        sv.type = 'button';
+        sv.addEventListener('click', function () {
+          sv.disabled = true;
+          postJson('api/aws/compile/save', q).then(function (res) {
+            setMsg(kind, T('Saved to') + ' ' + res.path);
+          }).catch(function (e) {
+            setMsg(kind, e.message, true);
+          }).finally(function () { sv.disabled = false; });
+        });
+        box.appendChild(sv);
+      }
+      var lg = el('button', 'btn btn-sm btn-ghost', T('Show log'));
+      lg.type = 'button';
+      lg.addEventListener('click', function () { openJob(kind, j); });
+      box.appendChild(lg);
+      actions.appendChild(box);
+      tr.appendChild(actions);
+      body.appendChild(tr);
+    });
+  }
+
+  function loadJobs(kind) {
+    var s = state[kind];
+    clearTimeout(s.jobsTimer);
+    var stack = $k('edgeStack', kind).value;
+    if (!stack) return renderJobs(kind, []);
+    var f = account();
+    api('api/aws/compile/jobs?' + qs({ profile: f.profile, region: f.region, stack: stack })).then(function (res) {
+      if ($k('edgeStack', kind).value !== stack) return;
+      renderJobs(kind, res.jobs);
+      var active = res.jobs.some(function (j) { return j.state === 'pending' || j.state === 'running'; });
+      if (active) s.jobsTimer = setTimeout(function () { loadJobs(kind); }, JOBS_POLL_MS);
+    }).catch(function () { /* the stack picker and status line report AWS errors */ });
   }
 
   // ── Greengrass devices (the ready stack picked in the Greengrass compile card) ──
@@ -751,6 +854,8 @@
     $k('edgeStackName', k).value = newStackName(k);
     wireDrop(k, 'Onnx', '.onnx');
     wireDrop(k, 'Json', '.json');
+    $k('edgeJobsReload', k).addEventListener('click', function () { loadJobs(k); });
+    $k('edgeStack', k).addEventListener('change', function () { loadJobs(k); });
   });
   $('edgeCheck').addEventListener('click', loadStatus);
   document.querySelectorAll('.edge-copy').forEach(function (btn) {
@@ -777,6 +882,7 @@
       var lastStatus = state[k].lastStatus;
       if (lastStatus) render(k, lastStatus);
       if (state[k].lastLog) renderLog(k, state[k].lastLog);
+      if (state[k].lastJobs) renderJobs(k, state[k].lastJobs);
       if (lastSubs) renderSubs(k);
       if (lastStacks) renderStacks(k);
     });

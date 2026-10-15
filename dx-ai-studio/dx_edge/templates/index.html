@@ -60,7 +60,6 @@
         <div class="edge-actions">
           <a class="btn btn-sm btn-ghost" href="https://aws.amazon.com/marketplace/pp/prodview-732s46qfzuh34" target="_blank" rel="noopener noreferrer"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#external"></use></svg> <span data-i18n="Open Marketplace listing">Open Marketplace listing</span></a>
           <a class="btn btn-sm btn-ghost" href="guide#greengrass"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#book"></use></svg> <span data-i18n="AWS Console guide">AWS Console guide</span></a>
-          <a class="btn btn-sm btn-ghost" href="https://github.com/DEEPX-AI/dx-all-suite/blob/main/dx-edge/README.md" target="_blank" rel="noopener noreferrer"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#book"></use></svg> <span data-i18n="DX-Edge guides">DX-Edge guides</span></a>
         </div>
       </article>
     </div>
@@ -247,6 +246,19 @@ Default output format [None]: json</code></pre>
               <pre class="edge-log-out" id="edgeLogOut-compiler" tabindex="0" aria-label="dxcom output" data-i18n-aria-label="dxcom output"></pre>
             </details>
           </div>
+          <div class="edge-jobs">
+            <div class="edge-jobs-head">
+              <h3 class="edge-sub" data-i18n="Compile jobs">Compile jobs</h3>
+              <button type="button" class="btn btn-sm btn-ghost" id="edgeJobsReload-compiler"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#refresh"></use></svg> <span data-i18n="Refresh">Refresh</span></button>
+            </div>
+            <p class="edge-note" data-i18n='Every model folder in the stack bucket, including uploads from other sessions and the S3 console.'>Every model folder in the stack bucket, including uploads from other sessions and the S3 console.</p>
+            <div class="edge-table-wrap">
+              <table class="edge-table">
+                <thead><tr><th scope="col" data-i18n="Model">Model</th><th scope="col" data-i18n="Uploaded">Uploaded</th><th scope="col" data-i18n="Status">Status</th><th scope="col">.dxnn</th><th scope="col"><span class="dx-sr-only" data-i18n="Actions">Actions</span></th></tr></thead>
+                <tbody id="edgeJobRows-compiler"></tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
     </li>
@@ -351,6 +363,19 @@ Default output format [None]: json</code></pre>
               <ol class="edge-log-steps" id="edgeLogSteps-greengrass"></ol>
               <pre class="edge-log-out" id="edgeLogOut-greengrass" tabindex="0" aria-label="dxcom output" data-i18n-aria-label="dxcom output"></pre>
             </details>
+          </div>
+          <div class="edge-jobs">
+            <div class="edge-jobs-head">
+              <h3 class="edge-sub" data-i18n="Compile jobs">Compile jobs</h3>
+              <button type="button" class="btn btn-sm btn-ghost" id="edgeJobsReload-greengrass"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#refresh"></use></svg> <span data-i18n="Refresh">Refresh</span></button>
+            </div>
+            <p class="edge-note" data-i18n='Every model folder in the stack bucket, including uploads from other sessions and the S3 console.'>Every model folder in the stack bucket, including uploads from other sessions and the S3 console.</p>
+            <div class="edge-table-wrap">
+              <table class="edge-table">
+                <thead><tr><th scope="col" data-i18n="Model">Model</th><th scope="col" data-i18n="Uploaded">Uploaded</th><th scope="col" data-i18n="Status">Status</th><th scope="col">.dxnn</th><th scope="col"><span class="dx-sr-only" data-i18n="Actions">Actions</span></th></tr></thead>
+                <tbody id="edgeJobRows-greengrass"></tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>

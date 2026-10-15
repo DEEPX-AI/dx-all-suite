@@ -33,6 +33,9 @@ _REGION_RE = re.compile(r"^[a-z]{2}(-[a-z]+)+-\d$")
 _STACK_RE = re.compile(r"^[A-Za-z][A-Za-z0-9-]{0,127}$")
 # models/<stem>-<YYYYmmdd-HHMMSS>/ — exactly what start_compile creates.
 _PREFIX_RE = re.compile(r"^models/([A-Za-z0-9_][A-Za-z0-9_.-]{0,79})-(\d{8}-\d{6})/$")
+# Any one-level folder under models/ — also folders made by hand in the S3 console.
+_JOB_RE = re.compile(r"^models/([A-Za-z0-9_][A-Za-z0-9_.-]{0,99})/$")
+MAX_JOBS = 200
 _CHUNK = 1024 * 1024
 
 
@@ -102,11 +105,11 @@ def _call(fn, *args, **kwargs):
 
 
 def validate_prefix(prefix: str) -> str:
-    """A job prefix this module created: models/<one safe segment>/ (normalised with the slash)."""
+    """A job folder: models/<one safe segment>/ (normalised with the slash)."""
     p = (prefix or "").strip()
     if p and not p.endswith("/"):
         p += "/"
-    if ".." in p or not _PREFIX_RE.match(p):
+    if ".." in p or not _JOB_RE.match(p):
         raise AwsError(400, "Invalid job prefix")
     return p
 
@@ -278,8 +281,14 @@ def _keys(profile, region, bucket, prefix) -> list[str]:
 
 
 def _execution(profile, region, sm_arn, prefix) -> dict | None:
-    """The run for this upload: the trigger names it dx-compile-<stem>-<hash>, started after the upload."""
-    stem, stamp = _PREFIX_RE.match(prefix).groups()
+    """The run for this upload: the trigger names it dx-compile-<stem>-<hash>, started after the upload.
+
+    Only Studio uploads (models/<stem>-<YYYYmmdd-HHMMSS>/) carry the time needed to tell runs apart.
+    """
+    m = _PREFIX_RE.match(prefix)
+    if not m:
+        return None
+    stem, stamp = m.groups()
     # The prefix stamp is local time (start_compile's datetime.now()); a minute of slack for clock skew.
     uploaded = (datetime.datetime.strptime(stamp, "%Y%m%d-%H%M%S").astimezone()
                 - datetime.timedelta(minutes=1))
@@ -325,7 +334,8 @@ def compile_status(profile: str, region: str, stack: str, prefix: str) -> dict:
     else:
         execution = _execution(profile, region, sm_arn, prefix) if sm_arn else None
         if execution is None:
-            state = "pending"
+            # A folder made outside Studio cannot be matched to a run.
+            state = "pending" if _PREFIX_RE.match(prefix) else "unknown"
         elif execution["status"] in _FAILED:
             state = "failed"
         else:
@@ -460,6 +470,66 @@ def compile_log(profile: str, region: str, stack: str, prefix: str) -> dict:
         lines = [{"time": datetime.datetime.fromtimestamp(l["ts"] / 1000, datetime.timezone.utc).isoformat(),
                   "stream": l["stream"], "text": l["text"]} for l in lines[-MAX_LOG_LINES:]]
     return {**empty, "steps": steps, "lines": lines, "instance_id": instance, "command_id": command}
+
+
+def list_jobs(profile: str, region: str, stack: str) -> list[dict]:
+    """Every models/<folder>/ in the stack's bucket, newest first, with its state and .dxnn.
+
+    One S3 listing gives the files; one list_executions call gives the runs of folders that have no
+    .dxnn yet. Folders from another Studio session or the S3 console show up too.
+    """
+    _boto3()
+    _check(profile, region, stack)
+    outputs = _outputs(profile, region, stack)
+    bucket, sm_arn = outputs["ModelBucketName"], outputs.get("StateMachineArn")
+    s3 = _client("s3", profile, region)
+
+    def _objects():
+        return [o for page in s3.get_paginator("list_objects_v2").paginate(Bucket=bucket, Prefix="models/")
+                for o in page.get("Contents", [])]
+
+    folders: dict[str, list] = {}
+    for obj in _call(_objects):
+        prefix, _, name = obj["Key"].rpartition("/")
+        prefix += "/"
+        if name and _JOB_RE.match(prefix):
+            folders.setdefault(prefix, []).append(obj)
+
+    runs = []
+    if sm_arn and any(not any(o["Key"].endswith(".dxnn") for o in objs) for objs in folders.values()):
+        sfn = _client("stepfunctions", profile, region)
+        runs = _call(sfn.list_executions, stateMachineArn=sm_arn, maxResults=100)["executions"]
+
+    jobs = []
+    for prefix, objs in folders.items():
+        dxnn = next((o for o in objs if o["Key"].endswith(".dxnn")), None)
+        studio = _PREFIX_RE.match(prefix)
+        if studio:
+            stem, stamp = studio.groups()
+            uploaded = datetime.datetime.strptime(stamp, "%Y%m%d-%H%M%S").astimezone()
+        else:
+            stem = _JOB_RE.match(prefix).group(1)
+            uploaded = min(o["LastModified"] for o in objs).astimezone()
+        if dxnn:
+            state = "succeeded"
+        elif not studio:
+            state = "unknown"
+        else:
+            since = uploaded - datetime.timedelta(minutes=1)
+            run = next((r for r in runs if r["name"].startswith(f"dx-compile-{stem}-")
+                        and r["startDate"] >= since), None)
+            state = ("pending" if run is None else "failed" if run["status"] in _FAILED else "running")
+        jobs.append({
+            "prefix": prefix,
+            "model": stem,
+            "uploaded": uploaded.isoformat(),
+            "state": state,
+            "dxnn": dxnn["Key"][len(prefix):] if dxnn else None,
+            "dxnn_size": dxnn["Size"] if dxnn else None,
+            "files": sorted(o["Key"][len(prefix):] for o in objs),
+        })
+    jobs.sort(key=lambda j: j["uploaded"], reverse=True)
+    return jobs[:MAX_JOBS]
 
 
 def open_dxnn(profile: str, region: str, stack: str, prefix: str) -> tuple[str, int, object]:

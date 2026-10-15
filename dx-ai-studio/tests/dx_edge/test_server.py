@@ -104,6 +104,13 @@ def test_compile_log_endpoint(base, monkeypatch):
     assert code == 200 and json.loads(body)["lines"] == []
     assert seen == {"profile": "dev", "region": "ap-northeast-2", "stack": "s1", "prefix": "models/m-20261015-141012/"}
 
+def test_jobs_endpoint(base, monkeypatch):
+    from dx_edge.core import aws_compile as ac
+
+    monkeypatch.setattr(ac, "list_jobs", lambda profile, region, stack: [{"prefix": f"models/{stack}/"}])
+    code, _, body = _get(base + "/api/aws/compile/jobs?profile=dev&region=ap-northeast-2&stack=s1")
+    assert code == 200 and json.loads(body) == {"jobs": [{"prefix": "models/s1/"}]}
+
 def test_heartbeat(base):
     code, _, body = _get(base + "/api/hb")
     assert code == 200 and json.loads(body) == {"ok": True}

@@ -165,3 +165,12 @@ def test_both_tabs_show_the_compile_log():
         assert f'id="edgeLogSteps-{kind}"' in html and f'id="edgeLogOut-{kind}"' in html
     js = (APP / "static/js/edge.js").read_text(encoding="utf-8")
     assert "api/aws/compile/log" in js
+
+
+def test_both_tabs_list_the_stacks_compile_jobs():
+    html = (APP / "templates/index.html").read_text(encoding="utf-8")
+    for kind in ("compiler", "greengrass"):
+        assert f'id="edgeJobRows-{kind}"' in html and f'id="edgeJobsReload-{kind}"' in html
+    js = (APP / "static/js/edge.js").read_text(encoding="utf-8")
+    assert "api/aws/compile/jobs" in js
+    assert "clearDrops" in js, "a finished job frees the drop zones for the next upload"

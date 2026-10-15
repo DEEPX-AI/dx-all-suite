@@ -308,7 +308,7 @@ def test_aws_errors_become_aws_error(aws):
 @pytest.mark.parametrize("prefix", [
     "", "models/", "other/x/", "models/../secret/", "models/a/../b/", "/models/x/",
     "models/x/y/", "models/x y/", "models/x\\y/", "models/..", "models/x;rm/",
-    "models/yolov5s/", "models/yolov5s-2026-1014/", "models/.hidden-20261014-093000/",
+    "models/.hidden-20261014-093000/", "models/-x/",
 ])
 def test_bad_prefixes_are_rejected(prefix):
     with pytest.raises(ac.AwsError) as exc:
@@ -319,6 +319,11 @@ def test_bad_prefixes_are_rejected(prefix):
 @pytest.mark.parametrize("prefix", [PREFIX, PREFIX.rstrip("/")])
 def test_good_prefix_is_normalised(prefix):
     assert ac.validate_prefix(prefix) == PREFIX
+
+
+@pytest.mark.parametrize("prefix", ["models/yolov5s/", "models/yolov5s", "models/my_model-v2.1/"])
+def test_a_folder_made_in_the_s3_console_is_a_job_too(prefix):
+    assert ac.validate_prefix(prefix) == prefix.rstrip("/") + "/"
 
 
 def test_status_rejects_traversal_without_calling_aws(aws):
@@ -613,3 +618,47 @@ def test_compile_log_shows_completion_once():
                "stateEnteredEventDetails": {"name": "WorkflowComplete"}},
               {"id": 2, "type": "ExecutionSucceeded", "timestamp": NOW, "executionSucceededEventDetails": {}}]
     assert [s["name"] for s in ac._history_steps(events)[0]] == ["WorkflowComplete"]
+
+
+# ── job list (every models/<folder>/ in the stack's bucket) ──────────────────
+
+def _objects(stubs, objs):
+    stubs["s3"].add_response("list_objects_v2", {"Contents": [
+        {"Key": k, "Size": size, "LastModified": NOW + datetime.timedelta(minutes=m)} for k, size, m in objs],
+        "IsTruncated": False}, {"Bucket": BUCKET, "Prefix": "models/"})
+
+
+def test_jobs_lists_every_model_folder_newest_first_with_its_state(aws):
+    stubs, _ = aws
+    _describe(stubs)
+    old, new, run, manual = ("models/yolov5s-20261014-093000/", "models/yolov5s-20261014-103000/",
+                             "models/resnet-20261014-110000/", "models/console_model/")
+    _objects(stubs, [
+        (old + "yolov5s.onnx", 100, 0), (old + "yolov5s.json", 1, 0), (old + "yolov5s.dxnn", 17504739, 9),
+        (new + "yolov5s.onnx", 100, 60), (new + "yolov5s.json", 1, 60),
+        (run + "resnet.onnx", 100, 90), (run + "resnet.json", 1, 90),
+        (manual + "m.onnx", 5, 30), (manual + "m.json", 1, 30), (manual + "m.dxnn", 7, 40),
+        ("models/stray.txt", 1, 0),
+    ])
+    _executions(stubs, runs=[
+        _run("dx-compile-resnet-aaaa", "RUNNING", start=STARTED + datetime.timedelta(minutes=90)),
+        _run("dx-compile-yolov5s-bbbb", "FAILED", start=STARTED + datetime.timedelta(minutes=60)),
+    ])
+    jobs = ac.list_jobs("dev", REGION, STACK)
+    by = {j["prefix"]: j for j in jobs}
+    assert [j["prefix"] for j in jobs] == [run, new, manual, old]
+    assert by[old]["state"] == "succeeded" and by[old]["dxnn"] == "yolov5s.dxnn"
+    assert by[old]["dxnn_size"] == 17504739 and by[old]["model"] == "yolov5s"
+    assert by[new]["state"] == "failed"
+    assert by[run]["state"] == "running"
+    assert by[manual]["state"] == "succeeded" and by[manual]["model"] == "console_model"
+
+
+def test_status_of_a_console_folder_without_a_dxnn_is_unknown(aws):
+    stubs, _ = aws
+    _describe(stubs)
+    stubs["s3"].add_response("list_objects_v2", {"Contents": [
+        {"Key": "models/console_model/m.onnx", "Size": 1}, {"Key": "models/console_model/m.json", "Size": 1}]},
+        {"Bucket": BUCKET, "Prefix": "models/console_model/"})
+    st = ac.compile_status("dev", REGION, STACK, "models/console_model/")
+    assert st["state"] == "unknown" and st["execution"] is None
