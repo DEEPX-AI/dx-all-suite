@@ -236,6 +236,15 @@
     return null;
   }
 
+  function legacyPath(pathname) {
+    for (var old in ns.LEGACY_PATHS) {
+      if (pathname === old || pathname.indexOf(old + '/') === 0) {
+        return ns.LEGACY_PATHS[old] + pathname.slice(old.length);
+      }
+    }
+    return pathname;
+  }
+
   var _moduleIframes = {};
 
   function getIframePool() {
@@ -743,7 +752,7 @@
       else if (opts.rawQuery) iframePath += opts.rawQuery;
       if (opts.hash) iframePath += opts.hash;   // #demo=N · #ask= — opened from an answer
 
-      var historyUrl = '/' + appKey;
+      var historyUrl = ns.APP_PATHS[appKey] ? ns.APP_PATHS[appKey].replace(/\/$/, '') : '/' + appKey;
       if (opts.suffix) historyUrl += '/' + opts.suffix;
       if (opts.query) historyUrl += '?' + opts.query;
       else if (opts.rawQuery) historyUrl += opts.rawQuery;
@@ -822,8 +831,11 @@
     }
 
     function restoreFromLocation(loc, opts) {
-      var pathname = loc.pathname || '/';
+      var pathname = legacyPath(loc.pathname || '/');
       var search = loc.search || '';
+      if (pathname !== (loc.pathname || '/')) {
+        history.replaceState(history.state, '', pathname + search + (loc.hash || ''));
+      }
       var source = (opts && opts.source) || 'restore';
 
       if (pathname === '/about') return _showAbout();

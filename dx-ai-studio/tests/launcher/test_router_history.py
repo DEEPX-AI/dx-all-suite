@@ -396,3 +396,33 @@ def test_show_sdk_does_not_commit_history_on_popstate():
     assert history_guard, "_showSdk must guard _commitHistory with source !== 'popstate'"
     assert "_commitHistory" in history_guard.group("body"), \
         "_commitHistory must be inside the source !== 'popstate' guard"
+
+
+def test_renamed_module_paths_still_open_the_module():
+    """DX Cloud moved from /edge/ to /cloud/; old bookmarks and refreshes must land there, not home."""
+    import json
+    import shutil
+    import subprocess
+
+    node = shutil.which("node")
+    if not node:
+        pytest.skip("node is not installed")
+    state = _read("launcher-state.js")
+    frame = _read("launcher-app-frame.js")
+    fn = re.search(r"function legacyPath\(pathname\) \{.*?\n  \}\n", frame, re.DOTALL)
+    assert fn, "launcher-app-frame.js must define legacyPath(pathname)"
+    restore = re.search(r"function\s+restoreFromLocation\b.*?_showHome\(\);", frame, re.DOTALL).group(0)
+    assert "legacyPath(" in restore
+    assert "history.replaceState" in restore, "the address bar must switch to the new path"
+    script = ("var window = {}; " + state + "\nvar ns = window.DXLauncher;\n" + fn.group(0)
+              + "\nconsole.log(JSON.stringify(['/edge', '/edge/', '/edge/guide', '/cloud/', '/edgeguide', '/']"
+              + ".map(legacyPath)));")
+    out = subprocess.run([node, "-e", script], capture_output=True, text=True, check=True).stdout
+    assert json.loads(out) == ["/cloud", "/cloud/", "/cloud/guide", "/cloud/", "/edgeguide", "/"]
+
+
+def test_the_address_bar_uses_the_module_path_not_its_js_key():
+    """DX Cloud's JS key is 'edge' but its path is /cloud/; clicking it must put /cloud in the URL."""
+    frame = _read("launcher-app-frame.js")
+    assert "var historyUrl = '/' + appKey;" not in frame
+    assert re.search(r"var historyUrl = ns\.APP_PATHS\[appKey\]", frame)
