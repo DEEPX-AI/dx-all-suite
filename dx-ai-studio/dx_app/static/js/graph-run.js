@@ -2,12 +2,13 @@
    a sample, or an uploaded image), sync or async, then show progress, FPS, per-node time, the rendered result,
    per-node results and the events (graph-events.js), which also arrive while it runs. The rendered results are a
    grid of one cell per stream with per-node layer toggles (graph-results.js). Camera and RTSP run in the
-   Live tab (graph-live.js). Uploads of one run together stay under the server's limit (catalog `limits`).
+   Live tab (graph-live.js). Uploads of one run together stay under the server's limit (catalog `limits`). The
+   tutorial shows a recorded run here (preview / clearPreview).
    Contract: tests/dx_app/test_graph_composer_browser.py, tests/dx_app/test_graph_logic_browser.py */
 window.GraphRun = (function () {
   'use strict';
   var c = null, root = null, job = null, timer = 0, picks = {}, uploads = {}, samples = [], events = null;
-  var results = null, shown = null;
+  var results = null, shown = null, previewing = null;   // previewing: the tutorial's recorded result, while shown
   var els = {};
   var DEFAULT_UPLOAD_LIMIT = 20 * 1024 * 1024;
 
@@ -149,6 +150,7 @@ window.GraphRun = (function () {
     });
     if (els.mode.value === 'async') body.max_inflight = Number(els.inflight.value) || 4;
     if (els.frames.value) body.frames = Number(els.frames.value);
+    endPreview();
     els.result.textContent = '';
     if (results) results.clear();
     shown = null;
@@ -249,6 +251,41 @@ window.GraphRun = (function () {
       c.h('tbody', {}, rows)]));
   }
 
+  /* The tutorial's recorded result (tutorial.js graph section, GraphComposer.tutorial.showResults): drawn like a
+     finished run and marked data-dxt-tutorial-mock, never kept as the page's run (c.state.run), refused while a run
+     is going. clearPreview() draws the page's own run again, or nothing. */
+  function markPreview(on) {
+    [els.result, els.events].forEach(function (el) {
+      if (!el) return;
+      if (on) el.setAttribute('data-dxt-tutorial-mock', '');
+      else el.removeAttribute('data-dxt-tutorial-mock');
+    });
+  }
+
+  function endPreview() {
+    if (!previewing) return false;
+    previewing = null;
+    markPreview(false);
+    return true;
+  }
+
+  function preview(r) {
+    if (!root || job || !r) return false;
+    previewing = r;
+    renderResult(r);
+    markPreview(true);
+    return true;
+  }
+
+  function clearPreview() {
+    if (!endPreview()) return;
+    shown = null;
+    if (c.state.run) { renderResult(c.state.run); return; }
+    els.result.textContent = '';
+    if (results) results.clear();
+    events.clear();
+  }
+
   function canInspect() {
     var caps = c.state.catalog && c.state.catalog.capabilities;
     return !!(caps && caps.output_layers && results && results.runId());
@@ -267,6 +304,7 @@ window.GraphRun = (function () {
   }
 
   function reset() {
+    endPreview();
     clearTimeout(timer);
     picks = {};
     uploads = {};
@@ -287,7 +325,8 @@ window.GraphRun = (function () {
     els.inflightRow.hidden = mode !== 'async';
     els.start.disabled = !!job;
     els.stop.disabled = !job;
-    if (c.state.run) renderResult(c.state.run);
+    if (previewing) { renderResult(previewing); markPreview(true); }
+    else if (c.state.run) renderResult(c.state.run);
     else events.refreshLanguage();
   }
 
@@ -296,6 +335,7 @@ window.GraphRun = (function () {
   }
 
   return { mount: mount, start: start, stop: stop, reset: reset, running: running, refreshLanguage: refreshLanguage,
+    preview: preview, clearPreview: clearPreview,
     renderInputs: function () { if (root) renderInputs(); },
     /* The input picked for a source here (a sample path), else null: the zone editor draws on that frame. */
     inputFor: function (sid) { return picks[sid] || null; } };

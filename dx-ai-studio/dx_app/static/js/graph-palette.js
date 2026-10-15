@@ -167,6 +167,16 @@ window.GraphPalette = (function () {
     ]);
   }
 
+  /* Open a group and scroll it to the top of the palette (the tutorial points at it). Null when it is not drawn,
+     e.g. while a search hides it. */
+  function reveal(key) {
+    expanded[key] = true;
+    if (lastRoot && lastCtx) render(lastRoot, lastCtx);
+    var g = lastRoot && lastRoot.querySelector('.gc-group[data-group="' + key + '"]');
+    if (g && g.scrollIntoView) g.scrollIntoView({ block: 'start' });
+    return g || null;
+  }
+
   function pageOpen() { return !!document.querySelector('#page-graph.active'); }
 
   function stopFollowing() {
@@ -275,6 +285,6 @@ window.GraphPalette = (function () {
     });
   }
 
-  return { render: render, following: function () { return !!statusTimer; },
+  return { render: render, reveal: reveal, following: function () { return !!statusTimer; },
     downloading: function () { return downloading ? downloading.name : null; } };
 })();

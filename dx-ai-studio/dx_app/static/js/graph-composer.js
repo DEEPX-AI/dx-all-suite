@@ -401,10 +401,18 @@ window.GraphComposer = (function () {
     return !st.dirty || window.confirm(T('Discard the unsaved changes to this graph?'));
   }
 
-  function loadExample(id) {
-    var ex = ((st.catalog && st.catalog.examples) || []).filter(function (e) { return e.id === id; })[0];
-    if (!ex || !confirmLose()) return false;
+  function exampleById(id) {
+    return ((st.catalog && st.catalog.examples) || []).filter(function (e) { return e.id === id; })[0] || null;
+  }
+
+  function showExample(ex) {
     loadDoc({ graph: D.fromEngine(ex.graph), meta: { name: ex.name }, view: null, placed: false }, null);
+  }
+
+  function loadExample(id) {
+    var ex = exampleById(id);
+    if (!ex || !confirmLose()) return false;
+    showExample(ex);
     return true;
   }
 
@@ -602,6 +610,52 @@ window.GraphComposer = (function () {
     await loadCatalog(false);
   }
 
+  /* ── the tutorial (tutorial.js, graph section) ──
+     What the tour may do to the page. Nothing here runs the graph, and nothing replaces work: a template goes on the
+     canvas only when it holds no unsaved change and nothing runs; the run tab and the preview have their undo. */
+  var PREVIEW_URL = '/static/img/graph-tutorial/preview.json';
+  var tour = { preview: null, tab: null };
+  var tutorial = {
+    /* The page is open and its catalog has landed (or `ms` passed): the palette and the templates are drawn. */
+    ready: async function (ms) {
+      var end = Date.now() + (ms || 8000);
+      while (!(st.opened && st.catalog) && Date.now() < end) await new Promise(function (r) { setTimeout(r, 100); });
+      return !!st.catalog;
+    },
+    useExample: function (id) {
+      var ex = exampleById(id);
+      if (!ex || !st.cv || st.dirty) return false;
+      if ((window.GraphRun && GraphRun.running()) || (window.GraphLive && GraphLive.running())) return false;
+      if (!st.projectId && st.name === ex.name && st.cv.getGraph().nodes.length) return true;
+      showExample(ex);
+      return true;
+    },
+    select: function (id) {
+      if (!st.cv || !nodeOf(id)) return false;
+      st.cv.select({ nodes: [id] });
+      return true;
+    },
+    /* Switch the run panel's tab; restoreRunTab() puts back the tab the page had before the first switch. */
+    runTab: function (name) {
+      if (tour.tab === null) tour.tab = st.runTab;
+      selectRunTab(name);
+    },
+    restoreRunTab: function () {
+      if (tour.tab !== null) selectRunTab(tour.tab);
+      tour.tab = null;
+    },
+    showResults: async function () {
+      if (!tour.preview) {
+        try {
+          var res = await fetch(PREVIEW_URL, { cache: 'no-cache' });
+          tour.preview = res.ok ? await res.json() : null;
+        } catch (e) { tour.preview = null; }
+      }
+      return !!(tour.preview && window.GraphRun && GraphRun.preview(tour.preview));
+    },
+    hideResults: function () { if (window.GraphRun) GraphRun.clearPreview(); }
+  };
+
   function refreshLanguage() {
     if (!st.opened) return;
     st.lang = curLang();
@@ -626,6 +680,6 @@ window.GraphComposer = (function () {
     open: open, refreshLanguage: refreshLanguage, loadExample: loadExample, validate: validateNow,
     applySuggestion: applySuggestion, canRun: canRun, leave: leave, selectRunTab: selectRunTab,
     state: function () { return st; }, canvas: function () { return st.cv; }, ctx: ctx, h: h, fmt: fmt,
-    ensureExample: function (id) { if (st.cv && !st.cv.getGraph().nodes.length) loadExample(id); }
+    tutorial: tutorial
   };
 })();
