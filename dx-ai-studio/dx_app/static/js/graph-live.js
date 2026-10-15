@@ -219,7 +219,12 @@ window.GraphLive = (function () {
     timer = setTimeout(async function () {
       if (!job || !job.id) return;
       var p = await c.api.livePoll(job.id, events.lastSeq());
-      if (p.error) { finish({ errors: [], exit_code: null, error: p.error, error_key: p.error_key }); return; }
+      if (p.error) {
+        /* The page gives up on this Live: the runner is stopped too, not left to the server's unwatched timeout. */
+        c.api.liveStop(job.id);
+        finish({ errors: [], exit_code: null, error: p.error, error_key: p.error_key });
+        return;
+      }
       renderStats(p);
       events.append(p.events, p.event_total);
       c.observe({ node_ms: p.node_ms, event_counts: p.event_counts });
@@ -260,6 +265,9 @@ window.GraphLive = (function () {
   function refreshLanguage() {
     if (!root) return;
     var mode = els.mode.value, status = els.status.textContent;
+    /* The old view would keep its MJPEG stream open (a server thread, one of the stream's few viewers) until it is
+       collected; it is cut before the tab is rebuilt, and the new view opens the stream again. */
+    els.view.removeAttribute('src');
     mount(root, c);
     els.mode.value = mode;
     if (job) { els.status.textContent = status; if (job.frame) showView(); }

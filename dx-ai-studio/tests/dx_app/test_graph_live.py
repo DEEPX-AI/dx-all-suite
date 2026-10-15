@@ -125,6 +125,7 @@ def test_a_camera_or_stream_needs_no_loop(studio, monkeypatch):
 @pytest.mark.parametrize("inputs, code, key", [
     ({"cam": "camera:63"}, 400, "invalid_live_input"),              # no /dev/video63
     ({"cam": "rtsp://a b"}, 400, "invalid_live_input"),
+    ({"cam": "rtsps://10.0.0.2/stream1"}, 400, "invalid_live_input"),   # dx_app opens rtsp:// only
     ({"cam": "sample/img/a.jpg"}, 400, "invalid_live_input"),       # an image does not stream
     ({"cam": "/etc/passwd"}, 400, "invalid_live_input"),
 ])
@@ -338,3 +339,19 @@ def test_a_build_without_draw_refuses_a_pick(studio, monkeypatch):
     graph_fakes.install(studio["tmp"], monkeypatch, LIVE_RUNNER)
     body, code = graph_live.start(GRAPH, draw=["od"])
     assert (code, body["error_key"]) == (409, "draw_unsupported")
+
+
+def test_old_live_folders_are_pruned_but_never_the_running_one(studio, monkeypatch):
+    """Each Live writes outputs/graph/live/<job>/ (graph.json, events.jsonl); the newest _KEEP_LIVE_DIRS stay."""
+    graph_fakes.install(studio["tmp"], monkeypatch, LIVE_RUNNER)
+    monkeypatch.setattr(graph_live, "_KEEP_LIVE_DIRS", 2)
+    ids = []
+    for _ in range(4):
+        jid = graph_live.start(GRAPH)[0]["job_id"]
+        ids.append(jid)
+        _poll_until(jid, lambda p: p["frames"] >= 1)
+        kept = sorted(p.name for p in graph_live.live_dir().iterdir() if p.is_dir())
+        assert jid in kept and len(kept) <= 2, kept
+        graph_live.stop(jid)
+        _poll_until(jid, lambda p: not p["running"])
+    assert sorted(p.name for p in graph_live.live_dir().iterdir()) == sorted(ids[-2:])

@@ -933,6 +933,40 @@ def test_live_draws_the_nodes_picked_before_it_starts(ui):
     assert "draw" not in [b for path, b in fake.posted if path == "live/start"][-1], "every node: no --draw"
 
 
+def test_a_language_change_during_live_leaves_no_stream_open_behind(ui):
+    """The Live tab is rebuilt in the new language; the old <img> would keep its MJPEG stream (a server thread and
+    one of the stream's MAX_VIEWERS) for as long as it lives. Only the shown view may hold the stream."""
+    page, fake = ui
+    _open(page, "zone_intrusion")
+    page.click("#gc-live")
+    page.wait_for_function("() => document.getElementById('gc-live-view').src.includes('/api/graph/live/frame?id=L1')")
+    page.evaluate("window.__views = [document.getElementById('gc-live-view')]")
+    for lang in ("ko", "en", "ja", "en"):
+        page.evaluate(f"DXI18n.setLang('{lang}')")
+        page.wait_for_function("(l) => document.documentElement.lang === l", arg=lang)
+        page.evaluate("window.__views.push(document.getElementById('gc-live-view'))")
+    left = page.evaluate("""() => window.__views.filter(v => !v.isConnected && (v.getAttribute('src') || ''))
+      .map(v => v.getAttribute('src'))""")
+    assert left == [], left
+    assert "/api/graph/live/frame?id=L1" in page.get_attribute("#gc-live-view", "src"), "the shown view still streams"
+    page.click("#gc-live-stop")
+    page.wait_for_selector("#gc-live-body .gc-ok")
+
+
+def test_a_live_whose_poll_fails_is_stopped_on_the_server(ui):
+    """The page gives up on a Live it can no longer poll; the runner is asked to stop rather than left running
+    until the server's 30 s watchdog notices."""
+    page, fake = ui
+    page.context.route("**/api/graph/live/poll*", lambda r: r.fulfill(status=500, content_type="application/json",
+                                                                      body=json.dumps({"error": "boom"})))
+    _open(page, "zone_intrusion")
+    page.click("#gc-live")
+    page.wait_for_selector("#gc-live-body .gc-error", timeout=10000)
+    assert not page.evaluate("GraphLive.running()")
+    stops = [b for path, b in fake.posted if path == "live/stop"]
+    assert stops == [{"id": "L1"}], fake.posted
+
+
 @pytest.mark.parametrize("reserved", ["base", "events"])
 def test_a_node_cannot_be_named_after_a_layer_file(ui, reserved):
     """dx_app's --output-layers writes <frame>_base.png and <frame>_events.png; --check refuses nodes with those ids."""

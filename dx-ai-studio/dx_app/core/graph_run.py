@@ -199,11 +199,12 @@ def _write_upload(d: Path, sid: str, b64) -> Path:
     return p
 
 
-def _prune_runs(keep: int | None = None, root: Path | None = None) -> None:
-    """Keep the newest `keep` run folders of `root` (default: the runs folder and _KEEP_RUN_DIRS)."""
+def _prune_runs(keep: int | None = None, root: Path | None = None, active=()) -> None:
+    """Keep the newest `keep` run folders of `root` (default: the runs folder and _KEEP_RUN_DIRS). The folders of runs
+    still known, and those named in `active`, are never removed."""
     keep = _KEEP_RUN_DIRS if keep is None else keep
     with _lock:
-        active = {str(j["dir"]) for j in _jobs.values()}
+        active = {str(j["dir"]) for j in _jobs.values()} | {str(a) for a in active}
     root = runs_dir() if root is None else root
     dirs = sorted((p for p in root.iterdir() if p.is_dir()), key=lambda p: p.stat().st_mtime, reverse=True)
     for p in dirs[keep:]:

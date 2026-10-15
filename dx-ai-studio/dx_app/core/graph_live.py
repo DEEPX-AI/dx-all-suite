@@ -43,7 +43,8 @@ _STOP_GRACE = 5.0
 _MAX_EVENTS_BYTES = 64 * 1024 * 1024
 _TAIL_LINES = 400
 _CAMERA = re.compile(r"^camera:(\d{1,2})$")
-_STREAM = re.compile(r"^rtsps?://[^\s]{1,500}$")
+_STREAM = re.compile(r"^rtsp://[^\s]{1,500}$")    # rtsp:// only: what dx_app's runner opens as a stream
+_KEEP_LIVE_DIRS = 20            # outputs/graph/live/<job>/ folders kept, newest first (the running one always)
 
 _lock = threading.Lock()
 _job = None                     # the one graph Live: dict, or None
@@ -88,7 +89,9 @@ def resolve_input(value) -> tuple:
         if not Path(f"/dev/video{int(m.group(1))}").exists():
             raise ValueError(f"camera {m.group(1)} is not connected (/dev/video{int(m.group(1))})")
         return v, False
-    if v.startswith(("rtsp://", "rtsps://")):
+    if v.lower().startswith("rtsps://"):
+        raise ValueError("rtsps:// is not supported: dx_app opens rtsp:// streams")
+    if v.startswith("rtsp://"):
         if not _STREAM.fullmatch(v):
             raise ValueError("an RTSP address is one rtsp:// URL without spaces")
         return v, False
@@ -181,6 +184,7 @@ def start(graph: dict, *, variant="sync", inputs=None, max_inflight=None, draw=N
     try:
         d.mkdir(parents=True)
         (d / "graph.json").write_text(json.dumps(engine_graph(graph, caps)), encoding="utf-8")
+        graph_run._prune_runs(_KEEP_LIVE_DIRS, live_dir(), active=(d,))
     except OSError as e:
         npu_jobs.release(job_id)
         shutil.rmtree(d, ignore_errors=True)
