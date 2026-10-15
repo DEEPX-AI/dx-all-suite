@@ -34,7 +34,7 @@ for _p in sorted((FIX / "examples").glob("*.json")):
 CATALOG = json.loads((FIX / "catalog.json").read_text(encoding="utf-8"))
 CATALOG.update(logic_ops=OPS, logic_error=None, examples=CATALOG["examples"] + EXAMPLES,
                limits={"uploads_total_b64": 20 * 1024 * 1024})
-CATALOG["capabilities"].update(list_ops=True, events=True, loop=True)
+CATALOG["capabilities"].update(list_ops=True, events=True, loop=True, draw=True, output_layers=True)
 EVENTS = [dict(json.loads(line), seq=i + 1) for i, line in
           enumerate(l for l in (FIX / "events.jsonl").read_text().splitlines() if l.strip())][:3]
 for _e in EVENTS:
@@ -51,9 +51,10 @@ def _png(w=320, h=180):
 class FakeApi:
     """In-page answers for /api/graph/*: catalog, --check, memory, frame, a run with events, Live."""
 
-    def __init__(self, video_url=None):
+    def __init__(self, video_url=None, outputs=None, frame=None):
         self.posted, self.live_polls, self.live_running, self.video_url = [], 0, False, video_url
         self.limit = CATALOG["limits"]["uploads_total_b64"]
+        self.outputs, self.frame = outputs, frame        # the run's outputs, /run/frame's answer
 
     def handle(self, route):
         req = route.request
@@ -77,11 +78,16 @@ class FakeApi:
                    "has_result": True, "events": EVENTS, "event_total": 3,
                    "event_counts": {"zone": {"enter": 2}, "alarm": {"intrusion": 1}}}
         elif url.endswith("/api/graph/run/result"):
-            outputs = [{"url": self.video_url, "kind": "video", "name": "result.webm", "fps": 10.0}] if self.video_url else []
-            out = {"ok": True, "exit_code": 0, "frames": 2, "error_frames": 0, "fps": 8.1, "avg_fps": 8.1, "elapsed": 1.0,
+            outputs = [{"url": self.video_url, "kind": "video", "name": "result.webm", "stream": "cam", "fps": 10.0}] \
+                if self.video_url else []
+            if self.outputs is not None:
+                outputs = self.outputs
+            out = {"ok": True, "exit_code": 0, "run_id": "a" * 32, "frames": 2, "error_frames": 0, "fps": 8.1, "avg_fps": 8.1, "elapsed": 1.0,
                    "node_ms": {"od": 39.7}, "errors": [], "log_tail": "", "outputs": outputs, "nodes": {},
                    "events": EVENTS, "event_total": 3, "event_counts": {"zone": {"enter": 2}, "alarm": {"intrusion": 1}},
                    "events_truncated": False, "events_url": "/outputs/graph/runs/job1/events.jsonl"}
+        elif url.endswith("/api/graph/run/frame"):
+            out = self.frame or {"error": "no frame", "error_key": "frame_unreadable"}
         elif url.endswith("/api/graph/live/start"):
             self.live_running = True
             out = {"job_id": "L1", "status": "started", "frame_url": "/api/graph/live/frame?id=L1"}
@@ -158,6 +164,8 @@ def _page(browser, server, fake, webm=None):
                                                               body=base64.b64decode(_png().split(",", 1)[1])))
     if webm:
         ctx.route("**/fake/result.webm", lambda r: _serve_ranges(r, webm, "video/webm"))
+    ctx.route("**/fake/layers/*.png", lambda r: r.fulfill(status=200, content_type="image/png",
+                                                          body=_layer_png(r.request.url.rsplit("/", 1)[1])))
     page = ctx.new_page()
     errors = []
     page.on("pageerror", lambda e: errors.append(str(e)))
@@ -384,10 +392,10 @@ def test_run_events_are_listed_filtered_badged_and_downloadable(browser, server,
         pins = page.evaluate("GraphDoc.pins(null, null, GraphComposer.state().run, k => k).badges")
         assert pins["zone"] == [{"kind": "events", "text": "Events: 2"}]
         if webm:
-            page.wait_for_function("() => document.querySelector('.gc-run-media').readyState >= 1", timeout=10000)
+            page.wait_for_function("() => document.querySelector('.gc-res-video').readyState >= 1", timeout=10000)
             page.click("#gc-run-events tbody tr button")
             # frame 1 of the stream at the video's 10 fps, in the middle of the frame
-            page.wait_for_function("() => Math.abs(document.querySelector('.gc-run-media').currentTime - 0.15) < 0.02")
+            page.wait_for_function("() => Math.abs(document.querySelector('.gc-res-video').currentTime - 0.15) < 0.02")
         assert page.evaluate("GraphComposer.canvas().selection().nodes") == ["zone"]
         assert not errors, errors
     finally:
@@ -664,3 +672,213 @@ def test_a_long_template_opens_wrapped_into_rows_at_a_readable_zoom(browser, ser
     finally:
         ctx.close()
     assert not errors, errors
+
+
+# Results view: one cell per stream, per-node layers and their toggles, a paused video's frame, Live's "Draw".
+
+def _layer_png(name):
+    """The clean frame (base) and one node's drawing per layer, 64x36 like a 16:9 frame: od a box top left, seg a
+    band at the bottom, depth a block on the right; each layer transparent elsewhere."""
+    from PIL import Image, ImageDraw
+    if name.endswith("_base.png"):
+        img = Image.new("RGB", (64, 36), (60, 70, 80))
+    else:
+        img = Image.new("RGBA", (64, 36), (0, 0, 0, 0))
+        d = ImageDraw.Draw(img)
+        if "_od" in name:
+            d.rectangle([4, 4, 20, 20], outline=(255, 0, 0, 255), width=2)
+        elif "_seg" in name:
+            d.rectangle([0, 26, 63, 35], fill=(0, 200, 0, 140))
+        else:
+            d.rectangle([44, 0, 63, 20], fill=(0, 0, 255, 120))
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    return buf.getvalue()
+
+
+def _layers(prefix, nodes=("seg", "depth", "od")):
+    models = {"seg": "bisenetv2_1024x2048", "depth": "fastdepth_224x224", "od": "yolov8-n_640x640",
+              "reid": "casvit-t_224x224"}
+    return {"base": f"/fake/layers/{prefix}_base.png", "width": 64, "height": 36,
+            "layers": [{"node": n, "model": models[n], "url": f"/fake/layers/{prefix}_{n}.png"} for n in nodes]}
+
+
+TWO_OUTPUTS = [{"url": "/fake/layers/result_cam1_000000_base.png", "kind": "image", "name": "result_cam1_000000.jpg",
+                "stream": "cam1", "layers": _layers("result_cam1_000000", ("od",))},
+               {"url": "/fake/layers/result_cam2_000000_base.png", "kind": "image", "name": "result_cam2_000000.jpg",
+                "stream": "cam2", "layers": _layers("result_cam2_000000", ("od",))}]
+FANOUT_OUTPUTS = [{"url": "/fake/layers/result_base.png", "kind": "image", "name": "result.jpg", "stream": "cam",
+                   "layers": _layers("result_000000")}]
+
+
+def _run_once(page, template="zone_intrusion"):
+    _open(page, template)
+    page.click("#gc-run")
+    page.wait_for_selector("#gc-run-results .gc-res-cell")
+
+
+def _rects(page, sel):
+    return page.eval_on_selector_all(sel, """els => els.map(e => { const r = e.getBoundingClientRect();
+      return [Math.round(r.left * 10) / 10, Math.round(r.top * 10) / 10, Math.round(r.width * 10) / 10,
+              Math.round(r.height * 10) / 10, e.naturalWidth, e.naturalHeight]; })""")
+
+
+def _in_dialog(page):
+    return page.evaluate("!!document.activeElement.closest('.gc-res-dialog')")
+
+
+def test_two_sources_sit_side_by_side_labelled_and_a_cell_enlarges_and_closes_with_escape(browser, server):
+    fake = FakeApi(outputs=TWO_OUTPUTS)
+    ctx, page, errors = _page(browser, server, fake)
+    try:
+        _run_once(page)
+        labels = page.eval_on_selector_all("#gc-run-results .gc-res-label", "els => els.map(e => e.textContent)")
+        assert labels == ["cam1", "cam2"]
+        cells = page.eval_on_selector_all("#gc-run-results .gc-res-cell",
+                                          "els => els.map(e => { const r = e.getBoundingClientRect(); "
+                                          "return [r.left, r.top, r.width]; })")
+        assert cells[0][1] == cells[1][1] and cells[1][0] >= cells[0][0] + cells[0][2], "side by side"
+        grow = page.locator("#gc-run-results .gc-res-cell[data-stream='cam2'] .gc-res-grow")
+        assert grow.get_attribute("aria-label") == "Enlarge cam2"
+        grow.focus()
+        page.keyboard.press("Enter")
+        page.wait_for_selector(".gc-res-dialog[open]")
+        assert page.evaluate("document.activeElement.classList.contains('gc-res-close')")
+        assert page.locator(".gc-res-dialog .gc-res-stack").count() == 1
+        assert page.locator("#gc-run-results [data-stream='cam2'] .gc-res-stack").count() == 0, "moved into it"
+        assert page.inner_text(".gc-res-dialog h2 .gc-res-src") == "cam2", "the h2 is upper case; the id is not"
+        for _ in range(4):
+            page.keyboard.press("Tab")
+            assert _in_dialog(page), "Tab stays in the dialog"
+        page.keyboard.press("Shift+Tab")
+        assert _in_dialog(page)
+        page.keyboard.press("Escape")
+        page.wait_for_selector(".gc-res-dialog:not([open])", state="attached")
+        page.wait_for_selector("#gc-run-results [data-stream='cam2'] .gc-res-stack")      # back in its cell
+        assert page.evaluate("document.activeElement.classList.contains('gc-res-grow')"), "focus returns"
+        page.click("#gc-run-results [data-stream='cam1'] .gc-res-base")
+        page.wait_for_selector(".gc-res-dialog[open]")
+        page.click(".gc-res-dialog .gc-res-close")
+        page.wait_for_selector(".gc-res-dialog:not([open])", state="attached")
+    finally:
+        ctx.close()
+    assert not errors, errors
+
+
+def test_the_layers_of_one_frame_align_and_toggle_per_node(browser, server):
+    fake = FakeApi(outputs=FANOUT_OUTPUTS)
+    ctx, page, errors = _page(browser, server, fake)
+    try:
+        _run_once(page)
+        page.wait_for_function("() => [...document.querySelectorAll('#gc-run-results .gc-res-stack img')]"
+                               ".every(i => i.complete && i.naturalWidth)")
+        names = page.eval_on_selector_all("#gc-run-results .gc-check-name", "els => els.map(e => e.textContent)")
+        assert names == ["seg · bisenetv2_1024x2048", "depth · fastdepth_224x224", "od · yolov8-n_640x640"]
+        rects = _rects(page, "#gc-run-results .gc-res-stack img")
+        assert len(rects) == 4 and all(r == rects[0] for r in rects), rects
+        assert rects[0][4:] == [64, 36] and abs(rects[0][2] / rects[0][3] - 64 / 36) < 0.02, "the frame's shape"
+        page.uncheck("#gc-run-results .gc-check:has-text('seg') input")
+        hidden = page.eval_on_selector_all("#gc-run-results .gc-res-layer",
+                                           "els => els.map(e => [e.dataset.layer, e.hidden])")
+        assert hidden == [["seg", True], ["depth", False], ["od", False]]
+        page.click("#gc-run-results .gc-checks-all button:has-text('None')")
+        assert page.eval_on_selector_all("#gc-run-results .gc-res-layer", "els => els.every(e => e.hidden)")
+        assert not page.is_checked("#gc-run-results .gc-check:has-text('od') input")
+        page.click("#gc-run-results .gc-checks-all button:has-text('All')")
+        assert page.eval_on_selector_all("#gc-run-results .gc-res-layer", "els => els.every(e => !e.hidden)")
+        page.uncheck("#gc-run-results .gc-check:has-text('depth') input")
+        swatches = page.eval_on_selector_all("#gc-run-results .gc-swatch", "els => els.map(e => e.dataset.cat)")
+        assert swatches == ["model", "model", "model"]
+        page.evaluate("DXI18n.setLang('ko')")
+        page.wait_for_function("() => document.querySelector('#gc-run-results .gc-checks-title').textContent === '레이어'")
+        kept = page.eval_on_selector_all("#gc-run-results .gc-res-layer", "els => els.map(e => e.hidden)")
+        assert kept == [False, True, False], "the toggles survive a language change"
+    finally:
+        ctx.close()
+    assert not errors, errors
+
+
+def test_a_paused_video_shows_the_layers_of_its_frame(browser, server, webm):
+    if not webm:
+        pytest.skip("ffmpeg is needed for the result video")
+    frame = {"ok": True, "run_id": "b" * 32, "stream": "cam", "time_s": 0.25, "errors": [], "exit_code": 0,
+             "output": {"url": "/fake/layers/result_base.png", "kind": "image", "name": "result.jpg", "stream": "cam",
+                        "layers": _layers("result_000000")}}
+    fake = FakeApi(video_url="/fake/result.webm", frame=frame)
+    ctx, page, errors = _page(browser, server, fake, webm)
+    try:
+        _run_once(page)
+        page.wait_for_function("() => document.querySelector('.gc-res-video').readyState >= 1", timeout=10000)
+        assert page.is_visible("#gc-run-results .gc-res-inspect"), "a paused video offers its frame's layers"
+        page.evaluate("document.querySelector('.gc-res-video').currentTime = 0.25")
+        page.wait_for_function("() => !document.querySelector('.gc-res-video').seeking")
+        page.click("#gc-run-results .gc-res-inspect")
+        page.wait_for_selector("#gc-run-results .gc-res-stack")
+        body = [b for path, b in fake.posted if path == "run/frame"][-1]
+        assert body == {"run_id": "a" * 32, "stream": "cam", "frame": 2}, body
+        assert page.is_hidden("#gc-run-results .gc-res-video")
+        assert "Frame at 0.25 s" in page.inner_text("#gc-run-results .gc-res-frame-tools")
+        assert page.eval_on_selector_all("#gc-run-results .gc-check-name", "els => els.length") == 3
+        page.click("#gc-run-results .gc-res-back")
+        assert page.is_visible("#gc-run-results .gc-res-video")
+        assert page.locator("#gc-run-results .gc-res-stack").count() == 0
+        fake.frame = {"error": "a graph Live is running; stop it first", "error_key": "graph_live_busy"}
+        page.click("#gc-run-results .gc-res-inspect")
+        page.wait_for_function("() => /Stop Live first/.test("
+                               "document.querySelector('#gc-run-results .gc-res-note').textContent)")
+    finally:
+        ctx.close()
+    assert not errors, errors
+
+
+def test_an_event_seek_goes_to_its_stream_s_cell(browser, server, webm):
+    if not webm:
+        pytest.skip("ffmpeg is needed for the result videos")
+    outputs = [{"url": "/fake/result.webm", "kind": "video", "name": f"result_{s}.webm", "stream": s, "fps": 10.0}
+               for s in ("cam1", "cam2")]
+    fake = FakeApi(outputs=outputs)
+    ctx, page, errors = _page(browser, server, fake, webm)
+    try:
+        _run_once(page)
+        page.evaluate("""() => { const r = GraphComposer.state().run; r.events = [
+          {seq: 1, frame: 3, time: 0.3, stream: 'cam2', node: 'zone', event: 'enter', track_id: 1, data: {}}];
+          r.event_total = 1; GraphRun.refreshLanguage(); }""")
+        page.wait_for_function("() => [...document.querySelectorAll('.gc-res-video')].every(v => v.readyState >= 1)",
+                               timeout=10000)
+        page.click("#gc-run-events tbody tr button")
+        page.wait_for_selector("#gc-run-results .gc-res-cell[data-stream='cam2'].is-sought")
+        cam = "document.querySelector(\"[data-stream='%s'] video\")"
+        page.wait_for_function(f"() => Math.abs({cam % 'cam2'}.currentTime - 0.35) < 0.02")
+        assert page.evaluate(f"{cam % 'cam1'}.currentTime") == 0
+        assert page.evaluate(f"document.activeElement === {cam % 'cam2'}")
+    finally:
+        ctx.close()
+    assert not errors, errors
+
+
+def test_live_draws_the_nodes_picked_before_it_starts(ui):
+    page, fake = ui
+    _open(page, "zone_intrusion")
+    page.click("#gc-tab-live")
+    page.wait_for_selector("#gc-live-draw .gc-check")
+    names = page.eval_on_selector_all("#gc-live-draw .gc-check-name", "els => els.map(e => e.textContent)")
+    assert names == ["od · yolov8-n_640x640", "person · filter", "zone · zone", "alarm · condition"]
+    cats = page.eval_on_selector_all("#gc-live-draw .gc-swatch", "els => els.map(e => e.dataset.cat)")
+    assert cats == ["model", "logic", "logic", "logic"]
+    page.click("#gc-live-draw button:has-text('None')")
+    page.click("#gc-live-start")
+    assert page.inner_text("#gc-live-body .gc-run-progress") == "Check at least one node to draw."
+    assert not any(path == "live/start" for path, _ in fake.posted)
+    page.check("#gc-live-draw .gc-check:has-text('od') input")
+    page.check("#gc-live-draw .gc-check:has-text('zone ·') input")
+    page.click("#gc-live-start")
+    page.wait_for_function("() => GraphLive.running()")
+    started = [b for path, b in fake.posted if path == "live/start"][-1]
+    assert started["draw"] == ["od", "zone"]
+    assert page.eval_on_selector_all("#gc-live-draw input", "els => els.every(e => e.disabled)"), "fixed while running"
+    page.click("#gc-live-stop")
+    page.wait_for_selector("#gc-live-body .gc-ok")
+    page.click("#gc-live-draw button:has-text('All')")
+    page.click("#gc-live-start")
+    page.wait_for_function("() => GraphLive.running()")
+    assert "draw" not in [b for path, b in fake.posted if path == "live/start"][-1], "every node: no --draw"
