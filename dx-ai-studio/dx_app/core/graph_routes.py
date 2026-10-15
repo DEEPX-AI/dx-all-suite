@@ -15,6 +15,9 @@ NPU work and the catalog lists local model files.
     POST /api/graph/live/start {graph, variant, inputs, max_inflight, draw}
     GET  /api/graph/live/poll?id=[&events_after=N]   POST /api/graph/live/stop {id}
     POST /api/graph/gallery/build {folder, model, name?}   a gallery .bin for the gallery op (graph_gallery.py)
+    POST /api/graph/export/plan {graph, name?, inputs?}    what a C++ project export holds (graph_export.py)
+    POST /api/graph/export {graph, name, include_models?, inputs?}   the project folder and its zip (models: only when
+                                                                     include_models is true)
     GET  /api/graph/gallery/poll?id=   POST /api/graph/gallery/stop {id}
     GET  /api/graph/projects   GET /api/graph/project?id=[&version=]   GET /api/graph/project/versions?id=
     POST /api/graph/project/save {id?, project}   POST /api/graph/project/delete {id}
@@ -26,8 +29,8 @@ Contract: tests/dx_app/test_graph_routes.py
 """
 from __future__ import annotations
 
-from dx_app.core import (graph_catalog, graph_frame, graph_gallery, graph_live, graph_memory, graph_projects,
-                         graph_run, graph_validate)
+from dx_app.core import (graph_catalog, graph_export, graph_frame, graph_gallery, graph_live, graph_memory,
+                         graph_projects, graph_run, graph_validate)
 from dx_app.core.developer import _check_origin_local, require_lab
 
 MAX_NODES = graph_validate.MAX_NODES
@@ -99,6 +102,14 @@ def handle(method: str, path: str, query, data, headers, server_host) -> tuple:
         return graph_run.start(g, variant=data.get("variant", "sync"), inputs=data.get("inputs"),
                                uploads=data.get("uploads"), max_inflight=data.get("max_inflight"),
                                frames=data.get("frames"))
+    if path in ("/api/graph/export/plan", "/api/graph/export"):
+        g, bad = _graph(data)
+        if bad:
+            return bad
+        if path == "/api/graph/export/plan":
+            return graph_export.plan(g, name=data.get("name"), inputs=data.get("inputs"))
+        return graph_export.export(g, data.get("name"), include_models=data.get("include_models") is True,
+                                   inputs=data.get("inputs"))
     if path == "/api/graph/run/frame":
         if "graph" in data:
             _g, bad = _graph(data)

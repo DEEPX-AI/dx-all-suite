@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import pytest
 
-from dx_app.core import config, graph_catalog, graph_memory, graph_routes, graph_run, graph_validate
+from dx_app.core import config, graph_catalog, graph_export, graph_memory, graph_routes, graph_run, graph_validate
 from dx_app.core.developer import lab_session
 
 GET_ROUTES = ("/api/graph/catalog", "/api/graph/run/poll", "/api/graph/run/result", "/api/graph/projects",
@@ -11,7 +11,8 @@ GET_ROUTES = ("/api/graph/catalog", "/api/graph/run/poll", "/api/graph/run/resul
               "/api/graph/gallery/poll")
 POST_ROUTES = ("/api/graph/validate", "/api/graph/memory", "/api/graph/run", "/api/graph/run/stop",
                "/api/graph/project/save", "/api/graph/project/delete", "/api/graph/live/start",
-               "/api/graph/live/stop", "/api/graph/gallery/build", "/api/graph/gallery/stop", "/api/graph/run/frame")
+               "/api/graph/live/stop", "/api/graph/gallery/build", "/api/graph/gallery/stop", "/api/graph/run/frame",
+               "/api/graph/export/plan", "/api/graph/export")
 LOCAL = {"Origin": "http://localhost:8080"}
 GRAPH = {"version": 1, "name": "g", "nodes": [{"id": "cam", "type": "source", "uri": "x.jpg"}], "edges": []}
 
@@ -274,4 +275,21 @@ def test_the_run_frame_route_reaches_graph_frame_inspect(monkeypatch):
     assert seen == {"run_id": "a" * 32, "stream": "cam", "time_s": 1.5}
     big = {"nodes": [{"id": f"n{i}"} for i in range(graph_routes.MAX_NODES + 1)], "edges": []}
     bad = _route("POST", "/api/graph/run/frame", {"graph": big, "stream": "cam", "time_s": 0}, h)
+    assert (bad["code"], bad["data"]["error_key"]) == (400, "invalid_payload")
+
+
+def test_export_plan_and_export_reach_graph_export(monkeypatch):
+    seen = []
+    monkeypatch.setattr(graph_export, "plan", lambda g, name=None, inputs=None: (
+        seen.append(("plan", len(g["nodes"]), name, inputs)) or ({"ok": True, "dry_run": True}, 200)))
+    monkeypatch.setattr(graph_export, "export", lambda g, name, include_models=False, inputs=None: (
+        seen.append(("export", name, include_models, inputs)) or ({"ok": True, "zip_url": "/outputs/x.zip"}, 200)))
+    h = {"X-Lab-Token": _token(), **LOCAL}
+    r = _route("POST", "/api/graph/export/plan", {"graph": GRAPH, "inputs": {"cam": "a.jpg"}}, h)
+    assert (r["code"], r["data"]) == (200, {"ok": True, "dry_run": True})
+    r = _route("POST", "/api/graph/export", {"graph": GRAPH, "name": "g1", "include_models": True}, h)
+    assert (r["code"], r["data"]["zip_url"]) == (200, "/outputs/x.zip")
+    _route("POST", "/api/graph/export", {"graph": GRAPH, "name": "g2"}, h)       # no field: the models stay out
+    assert seen == [("plan", 1, None, {"cam": "a.jpg"}), ("export", "g1", True, None), ("export", "g2", False, None)]
+    bad = _route("POST", "/api/graph/export", {"graph": "x", "name": "g"}, h)
     assert (bad["code"], bad["data"]["error_key"]) == (400, "invalid_payload")
