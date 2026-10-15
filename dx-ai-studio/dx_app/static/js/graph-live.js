@@ -159,10 +159,13 @@ window.GraphLive = (function () {
     if (p.fps != null) parts.push(c.fmt(T('{fps} FPS (average {avg})'), { fps: p.fps.toFixed(1), avg: (p.avg_fps || 0).toFixed(1) }));
     parts.push(c.fmt(T('{s} s'), { s: p.elapsed }));
     els.status.appendChild(c.h('p', { text: parts.join(' · ') }));
-    var ms = p.node_ms || {}, ids = Object.keys(ms).sort(function (a, b) { return ms[b] - ms[a]; });
+    var ms = p.node_ms || {}, ids = Object.keys(ms).sort(function (a, b) { return ms[b] - ms[a]; }), total = 0;
+    ids.forEach(function (k) { total += ms[k]; });
     if (!ids.length) return;
     els.status.appendChild(c.h('ul', { class: 'gc-ms' }, ids.map(function (k) {
-      return c.h('li', {}, [c.h('span', { class: 'gc-ms-name', text: k }), c.h('span'),
+      var pct = total ? Math.round(ms[k] * 100 / total) : 0;
+      return c.h('li', {}, [c.h('span', { class: 'gc-ms-name', text: k }),
+        c.h('span', { class: 'gc-ms-bar' }, [c.h('span', { class: 'gc-ms-fill', style: 'width:' + pct + '%' })]),
         c.h('span', { class: 'gc-ms-value', text: ms[k].toFixed(1) + ' ms' })]);
     })));
   }

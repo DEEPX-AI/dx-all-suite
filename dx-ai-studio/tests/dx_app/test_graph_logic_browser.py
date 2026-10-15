@@ -604,3 +604,20 @@ def test_live_says_why_it_could_not_start_or_why_it_ended(ui):
     page.click("#gc-live-start")
     page.wait_for_selector("#gc-live-body .gc-error:has-text('This run is no longer known to the server')", timeout=10000)
     assert not page.evaluate("GraphLive.running()") and page.is_enabled("#gc-live-start")
+
+
+def test_the_drawing_dialog_keeps_the_input_path_case_and_live_shows_time_bars(ui):
+    page, _ = ui
+    _open(page, "zone_intrusion")
+    page.evaluate("GraphComposer.canvas().select({nodes: ['zone']})")
+    page.click("#gc-inspector-body .gc-zone-edit")
+    page.wait_for_function("() => GraphZoneEditor.state() && GraphZoneEditor.state().img")
+    uri = page.locator("#gc-zone-title-text .gc-zone-uri")
+    assert uri.inner_text() == "sample/img/sample_people.jpg", "the h2 is upper case; the path is not"
+    page.keyboard.press("Escape")
+    page.click("#gc-live")
+    page.wait_for_selector("#gc-live-body .gc-ms .gc-ms-fill")
+    widths = page.eval_on_selector_all("#gc-live-body .gc-ms-fill", "els => els.map(e => e.style.width)")
+    assert widths == ["98%", "2%"], "per-node time drawn as in Run once"
+    page.click("#gc-live-stop")
+    page.wait_for_selector("#gc-live-body .gc-ok")

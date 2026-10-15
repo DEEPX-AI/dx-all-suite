@@ -144,9 +144,14 @@ window.GraphZoneEditor = (function () {
       ctx.stroke();
       ctx.setLineDash([]);
       if (!poly && pts.length === 2) drawArrow(ctx, pts[0], pts[1], active ? accent : other, dirOf(t));
-      ctx.font = font;
+      ctx.font = font;                              // the name on a chip of the panel colour: any frame behind it
+      var lw = ctx.measureText(t.nodeId).width, lx = pts[0][0] + 8, ly = pts[0][1] - 8;
+      ctx.globalAlpha = 0.85;
+      ctx.fillStyle = panel;
+      ctx.fillRect(lx - 4, ly - 13, lw + 8, 18);
+      ctx.globalAlpha = 1;
       ctx.fillStyle = text;
-      ctx.fillText(t.nodeId, pts[0][0] + 8, pts[0][1] - 8);
+      ctx.fillText(t.nodeId, lx, ly);
       if (!active) return;
       if (poly && !st.drawing) {                    // the dots that add a point; a line keeps its two ends
         for (var i = 0; i < pts.length && pts.length < Z.MAX_POINTS; i++) {
@@ -463,14 +468,24 @@ window.GraphZoneEditor = (function () {
     }
   }
 
-  function title() { return T('Draw on the frame') + (st.frameUri ? ' · ' + st.frameUri : ''); }
+  /* The dialog title; the input's path keeps its letter case (dx_app's h2 is upper case). */
+  function setTitle() {
+    var el = $id('gc-zone-title-text');
+    el.textContent = T('Draw on the frame');
+    if (!st.frameUri) return;
+    el.appendChild(document.createTextNode(' · '));
+    var uri = document.createElement('span');
+    uri.className = 'gc-zone-uri';
+    uri.textContent = st.frameUri;
+    el.appendChild(uri);
+  }
 
   async function open(opts) {
     var c = opts.ctx, dlg = $id('gc-zone-dialog');
     st = { ctx: c, frameUri: opts.frameUri || null, frame: FRAME, img: null, targets: [], shapes: [], cur: 0, pt: 0,
       drag: false, drawing: false, idle: 0, frameError: '' };
     load({ nodeId: opts.nodeId, name: opts.param.name });
-    $id('gc-zone-title-text').textContent = title();
+    setTitle();
     build();
     if (typeof openModal === 'function') openModal('gc-zone-dialog'); else dlg.showModal();
     renderSide();
@@ -546,7 +561,7 @@ window.GraphZoneEditor = (function () {
   if (typeof registerLangRefresher === 'function') {
     registerLangRefresher(function () {
       if (!st) return;
-      $id('gc-zone-title-text').textContent = title();
+      setTitle();
       build();
       renderSide();
       paint();

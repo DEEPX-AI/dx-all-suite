@@ -97,7 +97,7 @@
 .gc-user-logic{padding:var(--sp-2);border-left:3px solid var(--cat-5);background:var(--surface-sunken)}
 
 /* drawn params (inspector) and the zone editor */
-.gc-drawn-label{display:block;margin-bottom:var(--sp-1);font-size:var(--fs-xs);font-weight:600;color:var(--text-muted)}
+.gc-drawn-label{display:block;margin-bottom:var(--sp-1);font-size:var(--fs-xs);font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px}
 .gc-zone-preview{display:block;width:100%;height:135px;border-radius:var(--radius-sm)}
 .gc-zone-modal{width:1100px;max-width:96vw}
 .gc-zone-tools{display:flex;flex-wrap:wrap;gap:var(--sp-1);margin-bottom:var(--sp-3)}
@@ -125,6 +125,8 @@
 .gc-events{margin-top:var(--sp-4)}
 .gc-ev-tools{display:flex;flex-wrap:wrap;align-items:flex-end;gap:var(--sp-3)}
 .gc-ev-tools .gc-fg{min-width:120px;margin-bottom:0}
+.gc-ev-tools input.input{width:120px}
+.gc-zone-uri{text-transform:none;letter-spacing:0}
 .gc-ev-summary{margin-top:var(--sp-2)}
 .gc-ev-scroll{max-height:320px;overflow:auto}
 .gc-ev-table{width:100%}
