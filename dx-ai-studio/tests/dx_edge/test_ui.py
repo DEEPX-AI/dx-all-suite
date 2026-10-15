@@ -174,3 +174,18 @@ def test_both_tabs_list_the_stacks_compile_jobs():
     js = (APP / "static/js/edge.js").read_text(encoding="utf-8")
     assert "api/aws/compile/jobs" in js
     assert "clearDrops" in js, "a finished job frees the drop zones for the next upload"
+
+
+def test_aws_partner_and_qualified_software_badges_for_both_themes():
+    """DEEPX is an AWS Partner; both solutions are AWS Qualified Software. Black art on light, white on dark."""
+    html = (APP / "templates/index.html").read_text(encoding="utf-8")
+    head = html[html.index('id="edgeMarketplace"'):html.index('class="edge-grid"')]
+    for theme in ("light", "dark"):
+        assert f"/static/badges/aws-partner-{theme}.png" in head
+        assert html.count(f"/static/badges/aws-qualified-software-{theme}.png") == 2  # one per solution card
+        for name in ("aws-partner", "aws-qualified-software"):
+            assert (APP / "static/badges" / f"{name}-{theme}.png").is_file()
+    css = (APP / "static/css/style.css").read_text(encoding="utf-8")
+    assert ".edge-badge-art--light" in css and 'data-theme="dark"' in css
+    # The launcher serves /static/img/ itself, so a module image there 404s behind it.
+    assert "/static/img/" not in html

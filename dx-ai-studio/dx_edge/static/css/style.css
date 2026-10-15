@@ -142,3 +142,17 @@
 .edge-jobs .edge-note{margin-top:var(--sp-1);font-size:var(--fs-sm)}
 .edge-job-actions{display:flex;flex-wrap:wrap;gap:var(--sp-1);justify-content:flex-end}
 .edge-table tr.is-current td{background:var(--accent-dim)}
+/* AWS Partner / AWS Qualified Software badges: black art on light themes, white art on dark */
+.edge-market-head{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-3)}
+.edge-market-head .edge-kicker{margin:0}
+.edge-badge-art{display:inline-flex;flex:none}
+.edge-badge-art img{display:block;width:100%;height:auto}
+.edge-badge-art--lg{width:calc(var(--sp-7) + var(--sp-4))}
+.edge-badge-art--md{width:var(--sp-7)}
+.edge-badge-art .edge-badge-art--light{display:none}
+:root[data-theme="light"] .edge-badge-art .edge-badge-art--light{display:block}
+:root[data-theme="light"] .edge-badge-art .edge-badge-art--dark{display:none}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]) .edge-badge-art .edge-badge-art--light{display:block}
+  :root:not([data-theme="dark"]) .edge-badge-art .edge-badge-art--dark{display:none}
+}

@@ -167,6 +167,20 @@ window._DX_I18N_DICT = {
     'zh-TW': '此堆疊中還沒有編譯工作',
     es: 'Aún no hay trabajos de compilación en esta pila',
   },
+  'DEEPX is an AWS Partner': {
+    ko: 'DEEPX는 AWS Partner입니다',
+    ja: 'DEEPX は AWS Partner です',
+    'zh-CN': 'DEEPX 是 AWS Partner',
+    'zh-TW': 'DEEPX 是 AWS Partner',
+    es: 'DEEPX es AWS Partner',
+  },
+  'AWS Qualified Software on AWS Marketplace': {
+    ko: 'AWS Marketplace의 AWS Qualified Software',
+    ja: 'AWS Marketplace の AWS Qualified Software',
+    'zh-CN': 'AWS Marketplace 上的 AWS Qualified Software',
+    'zh-TW': 'AWS Marketplace 上的 AWS Qualified Software',
+    es: 'AWS Qualified Software en AWS Marketplace',
+  },
   'Open Marketplace listing': {
     ko: 'Marketplace 페이지 열기',
     ja: 'Marketplace ページを開く',
