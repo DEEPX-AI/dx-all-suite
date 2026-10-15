@@ -269,6 +269,16 @@ def _run_slot(value):
     return value
 
 
+def _slot_count(value):
+    """How many Run page Live slots share one camera (n_total_slots: the camera fan-out's UDP streams), 1 to
+    RUN_SLOTS; ValueError otherwise."""
+    if isinstance(value, str) and value.strip().isdigit():
+        value = int(value)
+    if isinstance(value, bool) or not isinstance(value, int) or not 1 <= value <= RUN_SLOTS:
+        raise ValueError(f"n_total_slots must be a whole number from 1 to {RUN_SLOTS}")
+    return value
+
+
 def _take_viewer(key):
     with _viewers_lock:
         if _viewers.get(key, 0) >= MAX_VIEWERS:
@@ -645,6 +655,10 @@ class Handler(DXBaseHandler):
                     return self.send_json(stop_inference_live(slot))
 
             if path=="/api/run_live":
+                try:
+                    n_total = _slot_count(data.get("n_total_slots", 1))
+                except ValueError as e:
+                    return self.send_json(_error_payload("invalid_slot", str(e)), 400)
                 err, code = _validate_inference_payload(data, live=True)
                 if err:
                     return self.send_json(err, code)
@@ -655,7 +669,7 @@ class Handler(DXBaseHandler):
                     camera_id=data.get("camera_id"),rtsp_url=data.get("rtsp_url"),
                     video_path=data.get("video_path"),
                     device_id=data.get("device_id"),slot_idx=slot,
-                    n_total_slots=int(data.get("n_total_slots",1)))
+                    n_total_slots=n_total)
                 return self.send_json(r)
 
             if path=="/api/extract":

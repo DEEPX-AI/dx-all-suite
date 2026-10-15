@@ -195,6 +195,22 @@ def test_run_live_and_live_stop_take_only_the_run_page_slots(monkeypatch):
     assert calls == [("run", 7), ("run", 0), ("stop", 3), ("stop", None)]
 
 
+def test_run_live_takes_a_slot_count_of_the_run_page_slots(monkeypatch):
+    """n_total_slots sizes the camera fan-out (one ffmpeg UDP stream per slot): a whole number from 1 to RUN_SLOTS."""
+    from dx_app import server
+    calls = []
+    monkeypatch.setattr(server, "run_inference_live", lambda **kw: calls.append(kw["n_total_slots"]) or {})
+    monkeypatch.setattr(server, "_validate_inference_payload", lambda data, live=False: (None, None))
+    for bad in (0, -1, server.RUN_SLOTS + 1, 10 ** 6, "x", 1.5, True, None, [2]):
+        r = _handler("POST", "/api/run_live", payload={"slot_idx": 0, "n_total_slots": bad})
+        assert (r["code"], r["data"]["error_key"]) == (400, "invalid_slot"), bad
+    assert calls == []
+    for good, want in ((1, 1), (server.RUN_SLOTS, server.RUN_SLOTS), ("3", 3)):
+        _handler("POST", "/api/run_live", payload={"slot_idx": 0, "n_total_slots": good})
+    _handler("POST", "/api/run_live", payload={"slot_idx": 0})
+    assert calls == [1, server.RUN_SLOTS, 3, 1]
+
+
 def test_a_live_stream_takes_a_few_viewers_at_a_time(monkeypatch):
     from dx_app import server
     from dx_app.core import graph_live
