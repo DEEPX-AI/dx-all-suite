@@ -211,12 +211,16 @@
 .stage-deck .studio-grid {
   grid-area: grid;
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--sp-4);
   align-items: start;
 }
-/* Nine modules + two books: About DEEPX closes row 2 in the last column, under SDK Library. */
-.stage-deck .studio-grid > .about-book-card:not(.sdk-card) { grid-column: -2; }
+/* Nine modules fill a 3×3 block; the two books own the last column, centred across the three
+   rows. Each book spans two rows and centres in them, so SDK Library sits on the row 1/2 line
+   and About DEEPX on the row 2/3 line — no empty cell. */
+.stage-deck .studio-grid > .about-book-card { grid-column: 4; align-self: center; }
+.stage-deck .studio-grid > .sdk-card { grid-row: 1 / span 2; }
+.stage-deck .studio-grid > .about-book-card:not(.sdk-card) { grid-row: 2 / span 2; }
 .stage-widget { min-width: 0; display: flex; flex-direction: column; gap: var(--sp-2); }
 .stage-widget-title {
   margin: 0;
@@ -681,12 +685,11 @@
     grid-template-areas: "grid grid" "dev meas";
   }
 }
-@media (max-width: 900px) {
-  .stage-deck .studio-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-}
 @media (max-width: 600px) {
   .stage-deck { grid-template-columns: minmax(0, 1fr); grid-template-areas: "grid" "dev" "meas"; }
   .stage-deck .studio-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  /* Phone: the books drop under the 3×3 modules as a fourth row. */
+  .stage-deck .studio-grid > .about-book-card { grid-column: auto; grid-row: auto; align-self: start; }
 }
 
 
