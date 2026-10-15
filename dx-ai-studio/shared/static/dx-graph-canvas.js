@@ -420,7 +420,7 @@
          canvas gets a different first view than a later refit. */
       mini.style.display = g.nodes.length ? '' : 'none';
       fitInsets().forEach(function (ins) {
-        var v = C.fitTransform(g.nodes, cssW, cssH, ins);
+        var v = C.fitTransform(g.nodes, cssW, cssH, ins, g.edges);
         if (!best || v.zoom > best.zoom + 1e-6) best = v;
       });
       view = best;
@@ -429,7 +429,16 @@
 
     function fitView() { fitNow(); paint(); }
     function zoomBy(f) { fitted = false; view = C.zoomAt(view, f, cssW / 2, cssH / 2); paint(); }
-    function autoLayout() { if (!g.nodes.length) return; g = C.autoLayout(g); commit('layout'); fitView(); }
+    /* C.autoLayout for this canvas's size: a graph wider than the canvas wraps into rows. The minimap is shown first,
+       as fitNow does, so the insets it takes are counted. */
+    function layoutFor(graph) {
+      if (!graph || !graph.nodes || !graph.nodes.length) return graph;
+      mini.style.display = '';
+      var out = C.autoLayout(graph, { width: cssW, height: cssH, insets: fitInsets() });
+      mini.style.display = g.nodes.length ? '' : 'none';
+      return out;
+    }
+    function autoLayout() { if (!g.nodes.length) return; g = layoutFor(g); commit('layout'); fitView(); }
 
     function nodeRect(id) {
       var n = C.nodeMap(g.nodes)[id];
@@ -621,11 +630,13 @@
       }
     }
 
+    /* Traces the edge's route (C.edgeRoute: one bezier, or the lane of a wrapped row) and returns it. */
     function curve(ctx, x1, y1, x2, y2) {
-      var c = C.controlOffset(x1, x2);
+      var r = C.edgeRoute(x1, y1, x2, y2);
       ctx.beginPath();
       ctx.moveTo(x1, y1);
-      ctx.bezierCurveTo(x1 + c, y1, x2 - c, y2, x2, y2);
+      r.segs.forEach(function (s) { ctx.bezierCurveTo(s.c1x, s.c1y, s.c2x, s.c2y, s.x2, s.y2); });
+      return r;
     }
 
     function arrow(ctx, x, y, color) {
@@ -658,7 +669,7 @@
       if (!f || !to) return;
       var a = C.outPort(f), b = C.inPort(to), cf = catOf(f), ct = catOf(to);
       var selected = sel.edge === e.id, bad = edgeError(e.id) !== null;
-      curve(ctx, a.x, a.y, b.x, b.y);
+      var route = curve(ctx, a.x, a.y, b.x, b.y);
       if (selected) ctx.strokeStyle = theme.accent;
       else if (bad) ctx.strokeStyle = theme.error;
       else {
@@ -673,7 +684,7 @@
       ctx.setLineDash([]);
       /* The tip stops just outside the input port's ring so the port does not cover the arrowhead. */
       arrow(ctx, b.x - PR - 1, b.y, selected ? theme.accent : bad ? theme.error : ct.color);
-      var mid = C.bezierPoint(a.x, a.y, b.x, b.y, 0.5);
+      var mid = route.mid;
       if (e.label) drawEdgeLabel(ctx, mid, e.label, bad ? theme.error : theme.muted);
       if (bad && window.DXIcon && DXIcon.draw) DXIcon.draw(ctx, 'alert', mid.x - 8, mid.y - (e.label ? 30 : 18), 16, theme.error);
     }
@@ -708,7 +719,7 @@
       var m = miniCanvas.getContext('2d');
       m.setTransform(dpr, 0, 0, dpr, 0, 0);
       /* The map covers the nodes and the viewport, so the viewport rectangle is always whole on it. */
-      var nb = C.bounds(g.nodes), pad = 40, tl = C.screenToWorld(view, 0, 0), br = C.screenToWorld(view, cssW, cssH);
+      var nb = C.graphBounds(g.nodes, g.edges), pad = 40, tl = C.screenToWorld(view, 0, 0), br = C.screenToWorld(view, cssW, cssH);
       var ox = Math.min(nb.minX - pad, tl.x), oy = Math.min(nb.minY - pad, tl.y);
       var bw = Math.max(nb.maxX + pad, br.x) - ox, bh = Math.max(nb.maxY + pad, br.y) - oy, s = Math.min(mw / bw, mh / bh);
       mini._map = { ox: ox, oy: oy, s: s };
@@ -720,9 +731,11 @@
       g.edges.forEach(function (e) {
         var f = map[e.from], to = map[e.to];
         if (!f || !to) return;
+        var a = C.outPort(f), b = C.inPort(to), r = C.edgeRoute(a.x, a.y, b.x, b.y);
         m.beginPath();
-        m.moveTo((f.x + W - ox) * s, (f.y + H / 2 - oy) * s);
-        m.lineTo((to.x - ox) * s, (to.y + H / 2 - oy) * s);
+        m.moveTo((a.x - ox) * s, (a.y - oy) * s);
+        if (r.segs.length === 1) m.lineTo((b.x - ox) * s, (b.y - oy) * s);
+        else r.segs.forEach(function (q) { m.lineTo((q.x2 - ox) * s, (q.y2 - oy) * s); });
         m.stroke();
       });
       g.nodes.forEach(function (n) {
@@ -1135,7 +1148,7 @@
       renameNode: renameNode, connect: connect, remove: removeSelection, select: select, selection: selection,
       selectAll: selectAll, copy: copy, paste: paste, duplicate: duplicate, undo: undo, redo: redo,
       canUndo: function () { return hist.canUndo(); }, canRedo: function () { return hist.canRedo(); },
-      fitView: fitView, zoomBy: zoomBy, autoLayout: autoLayout, nodeRect: nodeRect,
+      fitView: fitView, zoomBy: zoomBy, autoLayout: autoLayout, layout: layoutFor, nodeRect: nodeRect,
       view: function () { return C.clone(view); },
       setView: function (v) {
         fitted = false;

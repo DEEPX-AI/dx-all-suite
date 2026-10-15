@@ -168,3 +168,69 @@ eq(pos(C.distributeNodes(g, ['a', 'b', 'c', 'd'], 'x')), {a: [0, 0], b: [200, 40
 eq(pos(C.distributeNodes(g, ['a', 'b', 'c', 'd'], 'y')), {a: [0, 0], b: [100, 140], c: [600, 400], d: [200, 260]}, 'y');
 eq(pos(C.distributeNodes(g, ['a', 'b'], 'x')), pos(g), 'two nodes have nothing to distribute');
 """)
+
+
+_CHAIN = r"""
+const chain = ids => ({nodes: ids.map(id => ({id: id, x: 0, y: 0})),
+                       edges: ids.slice(1).map((id, i) => ({id: ids[i] + '->' + id, from: ids[i], to: id}))});
+const INSETS = [{top: 60, right: 24, bottom: 140, left: 24}, {top: 60, right: 180, bottom: 24, left: 24}];
+const fitZoom = (L, w, h) => Math.max.apply(null, INSETS.map(i => C.fitTransform(L.nodes, w, h, i, L.edges).zoom));
+const inside = (n, p) => p.x > n.x + 2 && p.x < n.x + C.NODE_W - 2 && p.y > n.y + 2 && p.y < n.y + C.NODE_H - 2;
+const samples = (L, e) => {
+  const m = C.nodeMap(L.nodes), a = C.outPort(m[e.from]), b = C.inPort(m[e.to]), out = [];
+  C.edgeRoute(a.x, a.y, b.x, b.y).segs.forEach(s => { for (let i = 0; i <= 20; i++) out.push(C.cubicPoint(s, i / 20)); });
+  return out;
+};
+const noEdgeCrossesANode = L => L.edges.forEach(e => samples(L, e).forEach(p => L.nodes.forEach(n =>
+  ok(!inside(n, p), e.id + ' crosses ' + n.id + ' at ' + JSON.stringify(p)))));
+"""
+
+
+def test_auto_layout_wraps_a_long_chain_into_rows_that_fit_the_canvas():
+    """A chain of five laid in one row is wider than a 714 x 558 canvas (about half size); given the canvas, the
+    layout wraps the ranks into rows, read left to right then top to bottom, and the wrapping edge runs in the lane
+    between the rows."""
+    _run(_CHAIN + r"""
+const g = chain(['cam', 'od', 'person', 'zone', 'alarm']);
+const flat = C.autoLayout(g);
+ok(fitZoom(flat, 714, 558) < 0.6, 'one row: ' + fitZoom(flat, 714, 558));
+for (const [w, h, least] of [[714, 558, 0.8], [678, 558, 0.8], [480, 558, 0.7]]) {
+  const L = C.autoLayout(g, {width: w, height: h, insets: INSETS});
+  const z = fitZoom(L, w, h);
+  ok(z >= least, w + 'x' + h + ': zoom ' + z);
+  const rows = {}; L.nodes.forEach(n => { rows[n.y] = true; });
+  ok(Object.keys(rows).length >= 2, 'wrapped into rows');
+  eq(L.nodes.slice().sort((a, b) => (a.y - b.y) || (a.x - b.x)).map(n => n.id), ['cam', 'od', 'person', 'zone', 'alarm']);
+  noEdgeCrossesANode(L);
+  const m = C.nodeMap(L.nodes);
+  L.edges.forEach(e => { const a = C.outPort(m[e.from]), b = C.inPort(m[e.to]);
+    if (b.x < a.x) ok(C.edgeRoute(a.x, a.y, b.x, b.y).segs.length > 1, e.id + ' wraps through the lane'); });
+}
+""")
+
+
+def test_auto_layout_keeps_a_chain_that_fits_in_one_row():
+    _run(_CHAIN + r"""
+const L = C.autoLayout(chain(['a', 'b', 'c']), {width: 714, height: 558, insets: INSETS});
+eq(L.nodes.map(n => [n.x, n.y]), [[40, 40], [320, 40], [600, 40]], 'three fit at full size: one row, as before');
+const tiny = C.autoLayout(chain(['a', 'b', 'c', 'd', 'e']), {width: 1, height: 1, insets: INSETS});
+eq(tiny.nodes.map(n => n.y), [40, 40, 40, 40, 40], 'a canvas not laid out yet (1 x 1) gives the plain layout');
+""")
+
+
+def test_a_backward_edge_between_rows_runs_through_the_lane():
+    """An edge whose input port is left of its output port, a row lower, leaves right, turns down into the lane above
+    the target, runs left and enters the target from the left; it is hit and labelled on the lane."""
+    _run(r"""
+const nodes = [{id: 'a', x: 400, y: 0}, {id: 'b', x: 0, y: 128}], edges = [{id: 'a->b', from: 'a', to: 'b'}];
+const r = C.edgeRoute(560, 28, 0, 156);
+ok(r.segs.length > 1, 'routed');
+const ys = []; r.segs.forEach(s => { for (let i = 0; i <= 10; i++) ys.push(C.cubicPoint(s, i / 10).y); });
+ok(Math.min.apply(null, ys) >= 28 - 0.01 && Math.max.apply(null, ys) <= 156 + 0.01, 'stays between the ports');
+eq(C.edgeMidpoint(nodes, edges[0]), {x: 280, y: 92}, 'the label sits in the middle of the lane');
+eq(C.hitEdge(nodes, edges, 280, 92).id, 'a->b'); eq(C.hitEdge(nodes, edges, 280, 40), null);
+eq(C.edgeRoute(160, 28, 300, 28).segs.length, 1, 'a forward edge is one curve');
+eq(C.edgeRoute(560, 28, 0, 60).segs.length, 1, 'no room between the nodes: the loop as before');
+const b = C.graphBounds(nodes, edges);
+ok(b.maxX > 560 && b.minX < 0, 'the turns count in the bounds a fit uses ' + JSON.stringify(b));
+""")

@@ -621,3 +621,35 @@ def test_the_drawing_dialog_keeps_the_input_path_case_and_live_shows_time_bars(u
     assert widths == ["98%", "2%"], "per-node time drawn as in Run once"
     page.click("#gc-live-stop")
     page.wait_for_selector("#gc-live-body .gc-ok")
+
+
+@pytest.mark.parametrize("width,height,least", [(1440, 900, 0.8), (1024, 768, 0.7)])
+def test_a_long_template_opens_wrapped_into_rows_at_a_readable_zoom(browser, server, width, height, least):
+    """zone_intrusion is a chain of five (cam -> od -> person -> zone -> alarm): in one row it is wider than the canvas
+    and opens at about half size; the layout wraps it into rows that fit the canvas's shape instead."""
+    fake = FakeApi()
+    ctx, page, errors = _page(browser, server, fake)
+    try:
+        page.set_viewport_size({"width": width, "height": height})
+        page.wait_for_timeout(300)
+        _open(page, "zone_intrusion")
+        got = page.evaluate("""() => { const cv = GraphComposer.canvas(), g = cv.getGraph();
+          const rows = {}; g.nodes.forEach(n => { rows[n.y] = (rows[n.y] || 0) + 1; });
+          const host = cv.element.getBoundingClientRect();
+          return {zoom: cv.view().zoom, rows: Object.keys(rows).length, w: host.width, h: host.height,
+                  order: g.nodes.slice().sort((a, b) => (a.y - b.y) || (a.x - b.x)).map(n => n.id)}; }""")
+        assert got["zoom"] >= least, got
+        assert got["rows"] >= 2, got
+        assert got["order"] == ["cam", "od", "person", "zone", "alarm"], "rows read left to right, top to bottom"
+        # A project with stored positions opens as it was saved: only a graph without them is laid out.
+        flat = page.evaluate("""() => { const g = GraphComposer.canvas().getGraph();
+          g.nodes.forEach((n, i) => { n.x = 40 + i * 280; n.y = 40; });
+          return JSON.stringify(GraphDoc.makeProject(g, {name: 'flat'}, null)); }""")
+        page.set_input_files("#gc-import-file", files=[{"name": "flat.json", "mimeType": "application/json",
+                                                         "buffer": flat.encode()}])
+        page.wait_for_function("() => GraphComposer.state().name === 'flat'")
+        kept = page.evaluate("GraphComposer.canvas().getGraph().nodes.map(n => [n.x, n.y])")
+        assert kept == [[40 + i * 280, 40] for i in range(5)], kept
+    finally:
+        ctx.close()
+    assert not errors, errors

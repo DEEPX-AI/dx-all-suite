@@ -67,6 +67,81 @@
     return best;
   }
 
+  /* An edge is drawn as a list of cubic segments {x1, y1, c1x, c1y, c2x, c2y, x2, y2}. A forward edge is one bezier.
+     A backward edge (its input port left of its output port) with room between the two nodes runs as a wrapped row
+     does: right out of the source, a turn into the lane above the lower node, left along the lane, and a turn into
+     the target from the left, so it passes between rows instead of across them. */
+  var LANE = 36, TURN = 24, TURN_R = 12, KAPPA = 0.5523;
+
+  function lineSeg(ax, ay, bx, by) {
+    return { x1: ax, y1: ay, c1x: ax + (bx - ax) / 3, c1y: ay + (by - ay) / 3,
+             c2x: ax + 2 * (bx - ax) / 3, c2y: ay + 2 * (by - ay) / 3, x2: bx, y2: by };
+  }
+
+  /* A quarter turn from (ax, ay) to (bx, by) about the corner (kx, ky). */
+  function turnSeg(ax, ay, kx, ky, bx, by) {
+    return { x1: ax, y1: ay, c1x: ax + KAPPA * (kx - ax), c1y: ay + KAPPA * (ky - ay),
+             c2x: bx + KAPPA * (kx - bx), c2y: by + KAPPA * (ky - by), x2: bx, y2: by };
+  }
+
+  /* The lane of a backward edge from the output port (x1, y1) to the input port (x2, y2), or null when it is drawn as
+     one bezier: in the gap between the two nodes, next to the lower one (the target when the edge goes down). */
+  function laneOf(x1, y1, x2, y2) {
+    if (x2 >= x1) return null;
+    var down = y2 > y1, gap = Math.abs(y2 - y1) - NODE_H;
+    if (gap < 24) return null;
+    var off = Math.min(LANE, gap / 2);
+    return down ? y2 - NODE_H / 2 - off : y1 - NODE_H / 2 - off;
+  }
+
+  function edgeRoute(x1, y1, x2, y2) {
+    var lane = laneOf(x1, y1, x2, y2);
+    if (lane === null) {
+      var c = controlOffset(x1, x2);
+      return { segs: [{ x1: x1, y1: y1, c1x: x1 + c, c1y: y1, c2x: x2 - c, c2y: y2, x2: x2, y2: y2 }],
+               mid: bezierPoint(x1, y1, x2, y2, 0.5) };
+    }
+    var xa = x1 + TURN, xb = x2 - TURN, s1 = lane > y1 ? 1 : -1, s2 = y2 > lane ? 1 : -1;
+    var r = Math.min(TURN_R, Math.abs(lane - y1) / 2, Math.abs(y2 - lane) / 2);
+    var segs = [
+      lineSeg(x1, y1, xa - r, y1),
+      turnSeg(xa - r, y1, xa, y1, xa, y1 + s1 * r),
+      lineSeg(xa, y1 + s1 * r, xa, lane - s1 * r),
+      turnSeg(xa, lane - s1 * r, xa, lane, xa - r, lane),
+      lineSeg(xa - r, lane, xb + r, lane),
+      turnSeg(xb + r, lane, xb, lane, xb, lane + s2 * r),
+      lineSeg(xb, lane + s2 * r, xb, y2 - s2 * r),
+      turnSeg(xb, y2 - s2 * r, xb, y2, xb + r, y2),
+      lineSeg(xb + r, y2, x2, y2)
+    ];
+    return { segs: segs, mid: { x: (x1 + x2) / 2, y: lane } };
+  }
+
+  function cubicPoint(s, t) {
+    var mt = 1 - t, a = mt * mt * mt, b = 3 * mt * mt * t, c = 3 * mt * t * t, d = t * t * t;
+    return { x: a * s.x1 + b * s.c1x + c * s.c2x + d * s.x2, y: a * s.y1 + b * s.c1y + c * s.c2y + d * s.y2 };
+  }
+
+  function distToSegmentSq(px, py, a, b) {
+    var dx = b.x - a.x, dy = b.y - a.y, l = dx * dx + dy * dy;
+    var t = l ? clamp(((px - a.x) * dx + (py - a.y) * dy) / l, 0, 1) : 0;
+    var x = a.x + t * dx - px, y = a.y + t * dy - py;
+    return x * x + y * y;
+  }
+
+  function distToRouteSq(px, py, route) {
+    var best = Infinity;
+    route.segs.forEach(function (s) {
+      var prev = cubicPoint(s, 0);
+      for (var i = 1; i <= 16; i++) {
+        var p = cubicPoint(s, i / 16);
+        best = Math.min(best, distToSegmentSq(px, py, prev, p));
+        prev = p;
+      }
+    });
+    return best;
+  }
+
   function edgeEnds(map, e) {
     var f = map[e.from], t = map[e.to];
     if (!f || !t) return null;
@@ -79,14 +154,14 @@
     for (var i = edges.length - 1; i >= 0; i--) {
       var p = edgeEnds(map, edges[i]);
       if (!p) continue;
-      if (distToBezierSq(x, y, p.x1, p.y1, p.x2, p.y2) < th * th) return edges[i];
+      if (distToRouteSq(x, y, edgeRoute(p.x1, p.y1, p.x2, p.y2)) < th * th) return edges[i];
     }
     return null;
   }
 
   function edgeMidpoint(nodes, e) {
     var p = edgeEnds(nodeMap(nodes), e);
-    return p ? bezierPoint(p.x1, p.y1, p.x2, p.y2, 0.5) : null;
+    return p ? edgeRoute(p.x1, p.y1, p.x2, p.y2).mid : null;
   }
 
   /* True when adding from->to would close a cycle: `from` is already reachable from `to`. */
@@ -119,11 +194,24 @@
     return b;
   }
 
+  /* bounds() of the nodes widened by the turns of the edges routed through a lane, which reach past the nodes. */
+  function graphBounds(nodes, edges) {
+    var b = bounds(nodes), map = nodeMap(nodes);
+    if (!b) return b;
+    (edges || []).forEach(function (e) {
+      var p = edgeEnds(map, e);
+      if (!p || laneOf(p.x1, p.y1, p.x2, p.y2) === null) return;
+      b.maxX = Math.max(b.maxX, p.x1 + TURN); b.minX = Math.min(b.minX, p.x2 - TURN);
+    });
+    return b;
+  }
+
   /* The view {zoom, offsetX, offsetY} that shows every node inside a w x h viewport, centred in what is left after
      `pad`: px on every side, or {top, right, bottom, left} so overlays (a toolbar, a minimap) stay clear. Fitting never
-     zooms past FIT_MAX_ZOOM, so a graph of one or two nodes keeps the size the cards are drawn for. */
-  function fitTransform(nodes, w, h, pad) {
-    var p = pad == null ? 40 : pad, b = bounds(nodes);
+     zooms past FIT_MAX_ZOOM, so a graph of one or two nodes keeps the size the cards are drawn for. With `edges`, the
+     turns of edges routed through a lane count too (graphBounds). */
+  function fitTransform(nodes, w, h, pad, edges) {
+    var p = pad == null ? 40 : pad, b = edges ? graphBounds(nodes, edges) : bounds(nodes);
     var ins = typeof p === 'number' ? { top: p, right: p, bottom: p, left: p } : p;
     if (!b || w <= 0 || h <= 0) return { zoom: 1, offsetX: 0, offsetY: 0 };
     var bw = b.maxX - b.minX, bh = b.maxY - b.minY;
@@ -245,7 +333,14 @@
     return { graph: out, ids: ids };
   }
 
-  /* Layered layout: a node's column is its longest distance from a node without inputs. */
+  /* Layered layout: a node's rank is its longest distance from a node without inputs, and each rank is a column.
+     With the canvas size (opts.width, opts.height, and opts.insets: the fitTransform paddings the canvas tries), a
+     graph with more ranks than fit across is wrapped: the ranks are laid in rows of k columns, read left to right then
+     top to bottom, with a lane between rows for the edges that wrap (edgeRoute). k is the widest row count whose fitted
+     zoom is close to the best one (at least WRAP_KEEP of it, the best counted up to 100 %), so a graph that already
+     fits stays in one row. Without a usable size the ranks stay in one row. g is not changed. */
+  var WRAP_KEEP = 0.85, BAND_GAP = 64;
+
   function autoLayout(g, opts) {
     var o = opts || {}, colW = o.colW || 280, rowH = o.rowH || 100, x0 = o.x0 || 40, y0 = o.y0 || 40;
     var out = clone(g), depth = {}, incoming = {};
@@ -262,12 +357,42 @@
         if (incoming[e.to] === 0) queue.push(e.to);
       });
     }
-    var cols = {};
-    out.nodes.forEach(function (n) { (cols[depth[n.id]] = cols[depth[n.id]] || []).push(n); });
+    var cols = {}, ranks = 0;
+    out.nodes.forEach(function (n) {
+      (cols[depth[n.id]] = cols[depth[n.id]] || []).push(n);
+      ranks = Math.max(ranks, depth[n.id] + 1);
+    });
     Object.keys(cols).forEach(function (d) {
       cols[d].sort(function (a, b) { return (a.y - b.y) || (a.id < b.id ? -1 : 1); });
-      cols[d].forEach(function (n, i) { n.x = x0 + Number(d) * colW; n.y = y0 + i * rowH; });
     });
+
+    function place(k) {
+      var top = y0, bandTop = [];
+      for (var b = 0; b * k < ranks; b++) {
+        var tall = 1;
+        for (var d = b * k; d < Math.min(ranks, (b + 1) * k); d++) tall = Math.max(tall, (cols[d] || []).length);
+        bandTop.push(top);
+        top += (tall - 1) * rowH + NODE_H + BAND_GAP;
+      }
+      Object.keys(cols).forEach(function (d) {
+        var r = Number(d), band = Math.floor(r / k);
+        cols[d].forEach(function (n, i) { n.x = x0 + (r - band * k) * colW; n.y = bandTop[band] + i * rowH; });
+      });
+    }
+
+    var w = Number(o.width) || 0, h = Number(o.height) || 0, insets = o.insets && o.insets.length ? o.insets : [40];
+    if (ranks < 2 || w < NODE_W * 2 || h < NODE_H * 2) { place(Math.max(1, ranks)); return out; }
+    var zooms = [], best = 0;
+    for (var k = ranks; k >= 1; k--) {
+      place(k);
+      var z = 0;
+      insets.forEach(function (ins) { z = Math.max(z, fitTransform(out.nodes, w, h, ins, out.edges).zoom); });
+      zooms[k] = z;
+      best = Math.max(best, z);
+    }
+    var want = Math.min(best, 1) * WRAP_KEEP, pick = 1;
+    for (var k2 = ranks; k2 >= 1; k2--) { if (zooms[k2] >= want - 1e-9) { pick = k2; break; } }
+    place(pick);
     return out;
   }
 
@@ -326,6 +451,7 @@
     MIN_ZOOM: MIN_ZOOM, MAX_ZOOM: MAX_ZOOM, FIT_MAX_ZOOM: FIT_MAX_ZOOM, ID_RE: ID_RE,
     snap: snap, clamp: clamp, clone: clone, edgeId: edgeId, nodeMap: nodeMap, outPort: outPort, inPort: inPort,
     hitNode: hitNode, hitPort: hitPort, controlOffset: controlOffset, bezierPoint: bezierPoint,
+    edgeRoute: edgeRoute, cubicPoint: cubicPoint, graphBounds: graphBounds,
     distToBezierSq: distToBezierSq, hitEdge: hitEdge, edgeMidpoint: edgeMidpoint, wouldCycle: wouldCycle,
     hasEdge: hasEdge, bounds: bounds, fitTransform: fitTransform, screenToWorld: screenToWorld,
     worldToScreen: worldToScreen, zoomAt: zoomAt, nodesInRect: nodesInRect, tabOrder: tabOrder,

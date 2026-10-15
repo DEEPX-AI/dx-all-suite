@@ -356,7 +356,7 @@ window.GraphComposer = (function () {
   function loadDoc(doc, info) {
     var g = doc.graph;
     g.nodes.forEach(function (n) { D.decorate(n, st.models, tr); });
-    var placed = doc.placed ? g : DXGraphCore.autoLayout(g);
+    var placed = doc.placed ? g : st.cv.layout(g);   // only a graph without stored positions is laid out
     placed.edges.forEach(function (e) { e.label = D.edgeLabel(e, tr); });
     st.cv.setGraph(placed, { fit: !doc.view });
     if (doc.view) st.cv.setView(doc.view);
