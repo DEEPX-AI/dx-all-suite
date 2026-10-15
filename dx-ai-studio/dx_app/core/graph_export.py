@@ -2,8 +2,9 @@
 
 dx_app's scripts/export_graph_project.py does the work, so Studio holds no C++ knowledge: it copies the engine and the
 factories of the graph's models, writes the user-logic stubs, CMakeLists.txt, main.cpp, setup.sh, run.sh and a README.
-This module prepares the graph the way a run does (the node "engine" key only when dx_app reads it, the run panel's
-input per source, inputs and galleries under the input roots), asks the exporter for a plan, and exports into
+This module prepares the graph the way a run does (the run panel's input per source, inputs and galleries under the
+input roots, never a run's upload; the node "engine" settings kept for the exported engine), asks the exporter for a
+plan, and exports into
 outputs/dx_app/graph/exports/<name>-<stamp>/: the project folder and its zip. The newest KEEP exports are kept.
 
     POST /api/graph/export/plan {graph, name?, inputs?}                  plan(): what an export holds, its size
@@ -25,8 +26,7 @@ import time
 import zipfile
 from pathlib import Path
 
-from dx_app.core import config, graph_cli, graph_run
-from dx_app.core.graph_validate import engine_graph
+from dx_app.core import config, graph_cli, graph_live, graph_run
 
 EXPORTER = Path("scripts") / "export_graph_project.py"
 SCHEMA = "export_graph_project 1"
@@ -61,7 +61,7 @@ def available() -> bool:
                            cwd=str(config.DX_APP_ROOT))
         ok = r.returncode == 0 and r.stdout.strip() == SCHEMA
     except (OSError, subprocess.SubprocessError):
-        ok = False
+        return False        # a busy host or a passing error: not remembered, the next call asks again
     _probe.update(key=key, value=ok)
     return ok
 
@@ -90,7 +90,7 @@ def check_name(name) -> str:
 
 
 def prepare(graph: dict, inputs=None) -> dict:
-    """The graph an export writes: the "engine" key only when dx_app reads it, each source reading the run panel's
+    """The graph an export writes: the node "engine" settings kept, each source reading the run panel's
     input for it (a sample path; an upload is not exported) or its own "uri", a file made absolute once it is found
     under the input roots, a camera or a stream kept as it is."""
     if inputs is not None and not isinstance(inputs, dict):
@@ -98,7 +98,9 @@ def prepare(graph: dict, inputs=None) -> dict:
     problem = graph_run.gallery_problem(graph)
     if problem:
         raise Refused("gallery_outside_roots", problem[1])
-    out = engine_graph(graph, graph_cli.capabilities())
+    # The node "engine" settings stay whatever the local graph binary reads: the project is built from this dx_app's
+    # sources, which have the exporter and so read them.
+    out = json.loads(json.dumps(graph))
     for n in out.get("nodes") or []:
         if not isinstance(n, dict) or n.get("type") != "source":
             continue
@@ -109,11 +111,20 @@ def prepare(graph: dict, inputs=None) -> dict:
             n["uri"] = uri
             continue
         try:
-            n["uri"] = str(graph_run._resolve_uri(uri))
+            found = graph_run._resolve_uri(uri)
         except ValueError:
             raise Refused("invalid_input", f"source {n.get('id')!r}: {uri} is not an image or a video under the "
                                            "dx_app, sample, assets or outputs folders")
+        if any(_under(found, d) for d in (graph_run.runs_dir(), graph_live.live_dir())):
+            raise Refused("invalid_input", f"source {n.get('id')!r}: {uri} is an upload kept by a run; an upload is "
+                                           "not exported (pick a sample or keep the graph's own input)")
+        n["uri"] = str(found)
     return out
+
+
+def _under(path: Path, folder: Path) -> bool:
+    real, base = Path(path).resolve(), Path(folder).resolve()
+    return real == base or base in real.parents
 
 
 def _run(args: list, timeout: float = TIMEOUT_S) -> tuple:
@@ -192,7 +203,6 @@ def export(graph: dict, name, include_models: bool = False, inputs=None) -> tupl
                                                     f"and its zip) and the disk has {free / 1048576:.0f} MB", 507)
             body.update(need_bytes=need, free_bytes=free)
             return body, status
-        _prune(KEEP - 1)
         base = exports_dir() / f"{name}-{time.strftime('%Y%m%d-%H%M%S')}"
         folder, k = base, 2
         while folder.exists():
@@ -206,11 +216,12 @@ def export(graph: dict, name, include_models: bool = False, inputs=None) -> tupl
         _zip(folder / name, zip_path, name)
         body.update(folder=str(folder / name), zip_bytes=zip_path.stat().st_size,
                     zip_url="/outputs/" + zip_path.relative_to(Path(config.OUTPUTS_DIR)).as_posix())
+        _prune(KEEP, keep_too=folder)          # only once this export is whole: a failed one costs no old export
         return body, 200
-    except OSError as e:
+    except Exception as e:                     # anything after the folder is made: nothing half-written stays
         if folder is not None:
             shutil.rmtree(folder, ignore_errors=True)
-        return _fail("export_failed", str(e), 500)
+        return _fail("export_failed", str(e) or type(e).__name__, 500)
     finally:
         if path is not None:
             path.unlink(missing_ok=True)
@@ -230,8 +241,9 @@ def _zip(src: Path, zip_path: Path, root: str) -> None:
     part.replace(zip_path)
 
 
-def _prune(keep: int) -> None:
-    """Keep the newest `keep` export folders."""
-    dirs = sorted((p for p in exports_dir().iterdir() if p.is_dir()), key=lambda p: p.stat().st_mtime, reverse=True)
-    for p in dirs[max(keep, 0):]:
+def _prune(keep: int, keep_too: Path | None = None) -> None:
+    """Keep the newest `keep` export folders (`keep_too`, the export just made, counts as one and always stays)."""
+    dirs = sorted((p for p in exports_dir().iterdir() if p.is_dir() and p != keep_too),
+                  key=lambda p: p.stat().st_mtime, reverse=True)
+    for p in dirs[max(keep - (1 if keep_too is not None else 0), 0):]:
         shutil.rmtree(p, ignore_errors=True)

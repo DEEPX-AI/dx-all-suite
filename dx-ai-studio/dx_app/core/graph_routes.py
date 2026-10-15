@@ -15,10 +15,10 @@ NPU work and the catalog lists local model files.
     POST /api/graph/live/start {graph, variant, inputs, max_inflight, draw}
     GET  /api/graph/live/poll?id=[&events_after=N]   POST /api/graph/live/stop {id}
     POST /api/graph/gallery/build {folder, model, name?}   a gallery .bin for the gallery op (graph_gallery.py)
+    GET  /api/graph/gallery/poll?id=   POST /api/graph/gallery/stop {id}
     POST /api/graph/export/plan {graph, name?, inputs?}    what a C++ project export holds (graph_export.py)
     POST /api/graph/export {graph, name, include_models?, inputs?}   the project folder and its zip (models: only when
                                                                      include_models is true)
-    GET  /api/graph/gallery/poll?id=   POST /api/graph/gallery/stop {id}
     GET  /api/graph/projects   GET /api/graph/project?id=[&version=]   GET /api/graph/project/versions?id=
     POST /api/graph/project/save {id?, project}   POST /api/graph/project/delete {id}
 

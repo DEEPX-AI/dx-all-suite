@@ -16,7 +16,7 @@ from pathlib import Path
 
 import pytest
 
-from dx_app.core import config, graph_cli, graph_export
+from dx_app.core import config, graph_cli, graph_export, graph_run
 
 FIX = Path(__file__).resolve().parent / "fixtures" / "graph"
 FAKE_EXPORTER = '''\
@@ -210,3 +210,52 @@ def test_only_the_newest_exports_are_kept(fake, tmp_path):
     kept = sorted(p.name for p in d.iterdir())
     assert len(kept) == graph_export.KEEP and Path(body["folder"]).parent.name in kept
     assert "old-0" not in kept and "old-5" in kept
+
+
+# Review fixes (Phase 3 M1)
+
+def test_a_run_folders_upload_is_never_exported(fake, tmp_path):
+    from dx_app.core import graph_live
+    for folder in (graph_run.runs_dir() / "job1", graph_live.live_dir() / "job2"):
+        folder.mkdir(parents=True, exist_ok=True)
+        upload = folder / "input_cam.jpg"
+        upload.write_bytes(b"\xff\xd8\xff\xe0 an upload")
+        with pytest.raises(graph_export.Refused) as e:
+            graph_export.prepare(GRAPH, {"cam": str(upload)})
+        assert e.value.key == "invalid_input" and "upload" in str(e.value)
+
+
+def test_the_engine_settings_go_into_the_export_whatever_the_local_binary_reads(fake, monkeypatch):
+    monkeypatch.setattr(graph_cli, "capabilities", lambda: dict(graph_cli.no_capabilities(), engine_key=False))
+    assert graph_export.prepare(GRAPH)["nodes"][1]["engine"] == {"buffers": 2}
+
+
+def test_a_probe_that_fails_by_chance_is_asked_again(fake, monkeypatch):
+    real = graph_export.subprocess.run
+    calls = []
+
+    def flaky(*a, **k):
+        calls.append(1)
+        if len(calls) == 1:
+            raise graph_export.subprocess.TimeoutExpired(a[0], 30)
+        return real(*a, **k)
+    monkeypatch.setattr(graph_export.subprocess, "run", flaky)
+    assert graph_export.available() is False
+    assert graph_export.available() is True and len(calls) == 2
+
+
+def test_any_failure_after_the_folder_is_made_removes_it_and_keeps_the_old_exports(fake, monkeypatch):
+    d = graph_export.exports_dir()
+    for i in range(graph_export.KEEP):
+        old = d / "old-{}".format(i)
+        old.mkdir()
+        os.utime(old, (1000 + i, 1000 + i))
+
+    def broken(*a, **k):
+        raise RuntimeError("zip broke")
+    monkeypatch.setattr(graph_export, "_zip", broken)
+    body, code = graph_export.export(GRAPH, "user-zone")
+    assert (code, body["error_key"]) == (500, "export_failed") and "zip broke" in body["error"]
+    assert sorted(p.name for p in d.iterdir()) == ["old-{}".format(i) for i in range(graph_export.KEEP)]
+    assert graph_export._lock.acquire(blocking=False)
+    graph_export._lock.release()
