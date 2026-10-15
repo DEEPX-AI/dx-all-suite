@@ -17,7 +17,7 @@ The module opens on a set of pages (top tabs):
   Python, Sync or Async).
 - **Benchmark** / **A/B Compare** — measure a model’s throughput and compare models side by side.
 - **ModelZoo** — download additional models into the app.
-- **Graph Composer** — connect several models into one pipeline, check it, see its NPU memory, run it once and keep it as a versioned project.
+- **Graph Composer** — connect several models and logic blocks (zones, lines, counts, conditions) into one pipeline, check it, see its NPU memory, run it once or Live with its events, and keep it as a versioned project.
 - **Lab** — Add Model, Create Task, Experiment and Safety Center.
 - **Outputs** — browse and manage saved inference results.
 - **Reference** — SDK documentation.

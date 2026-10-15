@@ -33,6 +33,14 @@ The module opens on a set of pages (top tabs):
   memory the models need, with ways to fit (share an engine, fewer buffers). **Run once** on an image or a video
   shows progress, FPS, the time each node takes, the rendered result and each node's results. Projects keep every
   saved version (Ctrl+S) and export / import as JSON. Keyboard: Tab between nodes, arrows to move, Delete, Ctrl+Z/Y.  
+  **Logic blocks** decide on what the models found: Filter, Zone, Line crossing, Count, Dwell, Condition → Event,
+  Gallery match and User logic (a pass-through here, a function stub in an exported project), as the dx_app build
+  lists them. Zones and lines are drawn on the first frame of the input (**Edit on the frame…**: drag points, add
+  zones, flip a line's direction; keyboard and Ctrl+Z work there too). **Templates** open ready scenarios — restricted
+  zone, line counting, PPE check, loitering, people count — with a result picture. A run lists the **events** the
+  blocks fire (filter by node, event, track id, time; a row shows that moment of the result video; download as JSONL)
+  and counts them on the nodes. **Live** runs the graph on a camera, an RTSP stream or a looping video until stopped,
+  with the rendered view, FPS, time per node and events as they fire; one Live at a time, and leaving the page stops it.  
 - **Lab** — advanced tools, each with a change preview before anything is written:  
     - **Add Model** — copies an existing example of a category (**Start from**) under a new name,
       in C++, Python or both. Run the Python copy with your own model:
