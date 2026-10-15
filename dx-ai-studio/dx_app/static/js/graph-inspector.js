@@ -252,14 +252,27 @@ window.GraphInspector = (function () {
     });
   }
 
-  /* "count" and the numbers the blocks feeding a condition write: what its "value" can name. */
-  function valueSuggestions(c, n) {
-    var out = ['count'], g = c.canvas().getGraph();
+  /* The values a text param can take, from its inputs: dx_app's values_by_input names them per input shape
+     ("values", or "values_from": "numbers" for the numbers a logic block writes); without it, "count" and those
+     numbers. */
+  function valueSuggestions(c, n, p) {
+    var out = [], g = c.canvas().getGraph(), rows = (p && p.values_by_input) || null;
+    function add(k) { if (out.indexOf(k) === -1) out.push(k); }
+    if (!rows) add('count');
     g.edges.forEach(function (e) {
       if (e.to !== n.id) return;
       var from = c.nodeOf(e.from), spec = from && from.kind === 'logic' && (c.state.ops || {})[(from.data || {}).op];
-      ((spec && spec.numbers) || []).forEach(function (k) { if (out.indexOf(k) === -1) out.push(k); });
+      var numbers = (spec && spec.numbers) || [];
+      if (!rows) { numbers.forEach(add); return; }
+      var shape = from ? c.D.outputOf(from, c.state.models, c.state.ops, g) : '';
+      var hit = rows.filter(function (r) { return r.shape === shape; });
+      if (!hit.length) { add('count'); return; }
+      hit.forEach(function (r) {
+        (r.values || []).forEach(add);
+        if (r.values_from === 'numbers') numbers.forEach(add);
+      });
     });
+    if (!out.length) add('count');
     return out;
   }
 
@@ -283,10 +296,18 @@ window.GraphInspector = (function () {
       var opts = (p.required ? [] : [{ value: '', label: p.default !== undefined && p.default !== ''
         ? c.fmt(T('Default ({value})'), { value: p.default }) : T('Default') }])
         .concat((p.choices || []).map(function (x) { return { value: x, label: x }; }));
-      return field(c, label, selectInput(c, opts, v == null ? '' : v, function (x) { setParam(c, n.id, p.name, x || null); }), help);
+      /* A param that "equals" this one (the user op's output equals its input) follows it in the same step. */
+      var followers = (((c.state.ops || {})[(n.data || {}).op] || {}).params || [])
+        .filter(function (q) { return q.equals === p.name; }).map(function (q) { return q.name; });
+      return field(c, label, selectInput(c, opts, v == null ? '' : v, function (x) {
+        setData(c, n.id, function (d) {
+          d.params = d.params || {};
+          [p.name].concat(followers).forEach(function (k) { if (x) d.params[k] = x; else delete d.params[k]; });
+        });
+      }), help);
     }
     if (p.type === 'number') {
-      var attrs = { step: 'any' };
+      var attrs = { step: p.step != null ? String(p.step) : 'any' };
       if (p.min != null) attrs.min = String(p.min);
       if (p.max != null) attrs.max = String(p.max);
       if (p.default !== undefined) attrs.placeholder = String(p.default);
@@ -309,7 +330,7 @@ window.GraphInspector = (function () {
     var input = textInput(c, v == null ? '' : v, function (raw) { setParam(c, n.id, p.name, raw || null); }, attrs2);
     var wrap = field(c, label, input, help);
     if (attrs2.list) {
-      wrap.appendChild(c.h('datalist', { id: attrs2.list }, valueSuggestions(c, n).map(function (k) { return c.h('option', { value: k }); })));
+      wrap.appendChild(c.h('datalist', { id: attrs2.list }, valueSuggestions(c, n, p).map(function (k) { return c.h('option', { value: k }); })));
     }
     return wrap;
   }

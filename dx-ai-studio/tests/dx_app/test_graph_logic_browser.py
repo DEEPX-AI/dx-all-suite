@@ -262,6 +262,8 @@ def test_the_inspector_builds_the_form_from_list_ops_and_offers_tracking(ui):
     classes.fill("person, rider")
     classes.dispatch_event("change")
     assert _node(page, "person")["params"]["classes"] == ["person", "rider"]
+    step = page.get_attribute("#gc-inspector-body .gc-fg[data-param='min_score'] input", "step")
+    assert step == "0.01", "a number moves by the step --list-ops gives"
 
 
 def test_a_condition_suggests_the_values_its_input_writes(ui):
@@ -272,9 +274,29 @@ def test_a_condition_suggests_the_values_its_input_writes(ui):
     page.evaluate("GraphComposer.canvas().connect('line', 'condition')")
     page.evaluate("GraphComposer.canvas().select({nodes: ['condition']})")
     opts = page.eval_on_selector_all("#gc-inspector-body datalist option", "els => els.map(e => e.value)")
-    assert opts == ["count", "in", "out", "total"]
+    assert opts == ["in", "out", "total"], "a records input offers the numbers it writes (values_by_input)"
+    page.evaluate("""() => { const cv = GraphComposer.canvas();
+      const e = cv.getGraph().edges.find(x => x.from === 'line' && x.to === 'condition');
+      cv.select({edge: e.id}); cv.remove(); cv.connect('person', 'condition'); }""")
+    page.evaluate("GraphComposer.canvas().select({nodes: ['condition']})")
+    opts = page.eval_on_selector_all("#gc-inspector-body datalist option", "els => els.map(e => e.value)")
+    assert opts == ["count"], "a boxes input offers its count"
     assert page.get_attribute("#gc-inspector-body .gc-fg[data-param='value'] input", "placeholder") == "count"
     assert "Fires: condition" in page.inner_text("#gc-inspector-body"), "the event takes the node id by default"
+
+
+def test_a_user_block_s_output_follows_its_input(ui):
+    """--list-ops says the user op's "output" equals its "input": choosing the input sets both, in one undo step."""
+    page, _ = ui
+    _open(page, "line_counting")
+    page.evaluate("GraphComposer.canvas().select({nodes: []})")
+    page.click("[data-group='logic'] .gc-item:has-text('User logic') .gc-add")
+    uid = page.evaluate("GraphComposer.canvas().getGraph().nodes.find(n => n.data && n.data.op === 'user').id")
+    page.evaluate(f"GraphComposer.canvas().select({{nodes: ['{uid}']}})")
+    page.select_option("#gc-inspector-body .gc-fg[data-param='input'] select", "records")
+    assert {k: _node(page, uid)["params"][k] for k in ("input", "output")} == {"input": "records", "output": "records"}
+    page.evaluate("GraphComposer.canvas().undo()")
+    assert _node(page, uid)["params"]["output"] == _node(page, uid)["params"]["input"] == "boxes"
 
 
 def test_a_zone_is_edited_on_the_frame_with_mouse_keyboard_and_undo(ui):
