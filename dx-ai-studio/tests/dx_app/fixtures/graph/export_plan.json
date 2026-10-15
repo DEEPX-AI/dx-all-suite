@@ -1,0 +1,44 @@
+{
+ "ok": true,
+ "schema": 1,
+ "name": "user-zone",
+ "binary": "user_zone",
+ "graph": "user-zone",
+ "dry_run": true,
+ "out": null,
+ "include_models": true,
+ "models": [
+  {
+   "model": "yolov8-n_640x640",
+   "file": "yolov8-n_640x640.dxnn",
+   "bytes": 8080199,
+   "present": true,
+   "url": "https://sdk.deepx.ai/modelzoo/q-lite-dxnn/2_5_0/yolov8-n_640x640.dxnn"
+  }
+ ],
+ "user_logic": [
+  {
+   "name": "tag_people",
+   "input": "boxes",
+   "nodes": [
+    "tag"
+   ],
+   "files": [
+    "user_logic/tag_people.hpp",
+    "user_logic/tag_people.cpp"
+   ]
+  }
+ ],
+ "inputs": [
+  {
+   "source": "cam",
+   "uri": "inputs/sample_people.jpg",
+   "copied": true
+  }
+ ],
+ "warnings": [],
+ "source_bytes": 2082713,
+ "model_bytes": 8080199,
+ "input_bytes": 487061,
+ "bytes": 10649973
+}
