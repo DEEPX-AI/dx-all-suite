@@ -340,6 +340,128 @@ def compile_status(profile: str, region: str, stack: str, prefix: str) -> dict:
     }
 
 
+MAX_LOG_LINES = 2000
+# While dxcom runs the workflow loops Wait → Check → Evaluate every 30 seconds: one row for
+# CheckCommandStatus with a count, and the loop's two bookkeeping states are not shown.
+_POLL_STATE = "CheckCommandStatus"
+_HIDDEN_STATES = {"WaitForCompletion", "EvaluateCommandResult"}
+_ANSI = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]")
+_PROGRESS = re.compile(r"^\s*([^:|]{1,60}):\s*\d{1,3}%\|")
+
+
+def _history_steps(events) -> tuple[list[dict], str | None, str | None, str | None]:
+    """(steps, instance id, command id, log group) from a Step Functions execution history."""
+    steps, instance, command, group = [], None, None, None
+    for e in events:
+        typ, t = e["type"], e["timestamp"].isoformat()
+        if typ.endswith("StateEntered"):
+            name = e["stateEnteredEventDetails"]["name"]
+            if name in _HIDDEN_STATES:
+                continue
+            poll = next((s for s in steps if s["name"] == name), None) if name == _POLL_STATE else None
+            if poll:
+                poll["count"] += 1
+            else:
+                steps.append({"time": t, "name": name, "status": "ok", "detail": "", "count": 1})
+        elif typ == "ExecutionSucceeded" and steps and steps[-1]["name"] == "WorkflowComplete":
+            continue  # the template's own success state already says so
+        elif typ in ("ExecutionStarted", "ExecutionSucceeded"):
+            steps.append({"time": t, "name": typ, "status": "ok", "detail": "", "count": 1})
+        elif typ in ("TaskFailed", "ExecutionFailed", "ExecutionTimedOut", "ExecutionAborted"):
+            d = next((v for k, v in e.items() if k.endswith("EventDetails")), {}) or {}
+            detail = " — ".join(x for x in (d.get("error", ""), d.get("cause", "")[:300]) if x)
+            steps.append({"time": t, "name": typ, "status": "failed", "detail": detail, "count": 1})
+        elif typ == "TaskSucceeded":
+            d = e["taskSucceededEventDetails"]
+            try:
+                out = json.loads(d.get("output") or "{}")
+            except ValueError:
+                continue
+            if d.get("resource") == "runInstances" and out.get("Instances"):
+                instance = out["Instances"][0].get("InstanceId")
+                if steps:
+                    steps[-1]["detail"] = instance or ""
+            elif d.get("resource") == "sendCommand" and out.get("Command"):
+                command = out["Command"].get("CommandId")
+                group = (out["Command"].get("CloudWatchOutputConfig") or {}).get("CloudWatchLogGroupName")
+    return steps, instance, command, group
+
+
+def _stream_lines(logs, group: str, stream: str, kind: str) -> list[dict]:
+    lines, token = [], None
+    while True:
+        kwargs = {"logGroupName": group, "logStreamName": stream, "startFromHead": True, "limit": 1000}
+        if token:
+            kwargs["nextToken"] = token
+        try:
+            resp = _call(logs.get_log_events, **kwargs)
+        except AwsError as exc:
+            if exc.message.startswith("ResourceNotFoundException"):
+                return lines  # dxcom has not written to this stream yet
+            raise
+        for ev in resp.get("events", []):
+            for text in ev["message"].rstrip("\n").split("\n"):
+                lines.append({"ts": ev["timestamp"], "stream": kind, "text": text})
+        if not resp.get("events") or resp.get("nextForwardToken") == token:
+            return lines
+        token = resp.get("nextForwardToken")
+
+
+def _tidy_lines(lines: list[dict]) -> list[dict]:
+    """Drop terminal control codes, and keep only the newest line of each tqdm progress bar."""
+    out = []
+    for line in lines:
+        text = _ANSI.sub("", line["text"]).strip()
+        if not text:
+            continue
+        bar = _PROGRESS.match(text)
+        if bar and out and out[-1].get("_bar") == bar.group(1):
+            out[-1] = {**line, "text": text, "_bar": bar.group(1)}
+        else:
+            out.append({**line, "text": text, "_bar": bar.group(1) if bar else None})
+    return [{k: v for k, v in l.items() if k != "_bar"} for l in out]
+
+
+def compile_log(profile: str, region: str, stack: str, prefix: str) -> dict:
+    """The run's workflow steps (Step Functions history) and dxcom's output (CloudWatch Logs)."""
+    prefix = validate_prefix(prefix)
+    _boto3()
+    _check(profile, region, stack)
+    outputs = _outputs(profile, region, stack)
+    sm_arn = outputs.get("StateMachineArn")
+    execution = _execution(profile, region, sm_arn, prefix) if sm_arn else None
+    empty = {"execution": execution, "steps": [], "lines": [], "instance_id": None, "command_id": None}
+    if execution is None:
+        return empty
+
+    sfn = _client("stepfunctions", profile, region)
+
+    def _events():
+        events, token = [], None
+        while True:
+            kwargs = {"executionArn": execution["arn"], "maxResults": 1000}
+            if token:
+                kwargs["nextToken"] = token
+            resp = sfn.get_execution_history(**kwargs)
+            events += resp["events"]
+            token = resp.get("nextToken")
+            if not token:
+                return events
+
+    steps, instance, command, group = _history_steps(_call(_events))
+    lines = []
+    if instance and command:
+        group = group or outputs.get("CompilerExecutionLogGroupName") or f"/dx-compiler/{stack}/execution"
+        logs = _client("logs", profile, region)
+        for kind in ("stdout", "stderr"):
+            lines += _stream_lines(logs, group, f"{command}/{instance}/CompileModel/{kind}", kind)
+        lines.sort(key=lambda l: l["ts"])  # stable: lines of one event keep their order
+        lines = _tidy_lines(lines)
+        lines = [{"time": datetime.datetime.fromtimestamp(l["ts"] / 1000, datetime.timezone.utc).isoformat(),
+                  "stream": l["stream"], "text": l["text"]} for l in lines[-MAX_LOG_LINES:]]
+    return {**empty, "steps": steps, "lines": lines, "instance_id": instance, "command_id": command}
+
+
 def open_dxnn(profile: str, region: str, stack: str, prefix: str) -> tuple[str, int, object]:
     """(file name, size, streaming body) of the compiled .dxnn — read it with body.iter_chunks()."""
     prefix = validate_prefix(prefix)

@@ -124,3 +124,14 @@
   .edge-cmd{flex-wrap:wrap;justify-content:flex-end}
   .edge-cmd pre{flex-basis:100%}
 }
+/* Compile log: workflow steps, then dxcom's own output (stderr tinted) */
+.edge-log{margin-top:var(--sp-3);border-top:1px solid var(--border-subtle);padding-top:var(--sp-3)}
+.edge-log summary{cursor:pointer;font-weight:var(--fw-semibold);color:var(--text-primary)}
+.edge-log-steps{list-style:none;margin:var(--sp-2) 0 0;padding:0;display:grid;gap:var(--sp-1);font-size:var(--fs-sm)}
+.edge-log-steps li{display:flex;flex-wrap:wrap;gap:var(--sp-2);align-items:baseline;color:var(--text-secondary)}
+.edge-log-steps time{font-family:var(--mono);font-size:var(--fs-xs);color:var(--text-muted)}
+.edge-log-steps .is-failed{color:var(--status-error)}
+.edge-log-steps .is-last{color:var(--text-primary);font-weight:var(--fw-semibold)}
+.edge-log-out{margin:var(--sp-3) 0 0;padding:var(--sp-3);max-height:360px;overflow:auto;font-family:var(--mono);font-size:var(--fs-xs);line-height:1.5;background:var(--surface-sunken);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);white-space:pre-wrap;overflow-wrap:anywhere}
+.edge-log-out:empty{display:none}
+.edge-log-out .is-err{color:var(--status-warn)}

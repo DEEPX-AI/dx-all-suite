@@ -441,11 +441,79 @@
     updateSteps();
   }
 
+  // Step Functions state names → what the user sees; unknown states show as-is.
+  var LOG_STEPS = {
+    ExecutionStarted: 'Workflow started',
+    StartEC2Instance: 'Start the compiler EC2 instance',
+    SaveInstanceId: 'Record the instance ID',
+    WaitForInstanceReady: 'Wait for the instance to boot',
+    RunCompilationCommand: 'Send the compile command (SSM)',
+    CheckCommandStatus: 'dxcom running — status checks',
+    TerminateInstanceAfterSuccess: 'Terminate the instance',
+    TerminateInstanceAfterFailure: 'Terminate the instance',
+    WorkflowComplete: 'Workflow complete',
+    ExecutionSucceeded: 'Workflow complete',
+    WorkflowFailed: 'Workflow failed',
+    WorkflowFailedBeforeInstance: 'Workflow failed',
+    TaskFailed: 'Task failed',
+    ExecutionFailed: 'Workflow failed',
+    ExecutionTimedOut: 'Workflow failed',
+    ExecutionAborted: 'Workflow failed'
+  };
+  var LOG_POLL_MS = 5000;
+
+  function renderLog(kind, log) {
+    state[kind].lastLog = log;
+    var steps = $k('edgeLogSteps', kind);
+    steps.replaceChildren();
+    log.steps.forEach(function (st, i) {
+      var li = el('li', st.status === 'failed' ? 'is-failed' : (i === log.steps.length - 1 ? 'is-last' : null));
+      var time = el('time', null, new Date(st.time).toLocaleTimeString());
+      time.dateTime = st.time;
+      li.appendChild(time);
+      li.appendChild(el('span', null, LOG_STEPS[st.name] ? T(LOG_STEPS[st.name]) : st.name));
+      if (st.count > 1) li.appendChild(el('span', 'edge-dim', '×' + st.count));
+      if (st.detail) li.appendChild(el('code', null, st.detail));
+      steps.appendChild(li);
+    });
+    if (!log.steps.length) steps.appendChild(el('li', 'edge-dim', T('Waiting for the compile workflow to start…')));
+    var out = $k('edgeLogOut', kind);
+    var atEnd = out.scrollTop + out.clientHeight >= out.scrollHeight - 8;
+    out.replaceChildren();
+    log.lines.forEach(function (line) {
+      out.appendChild(el('span', line.stream === 'stderr' ? 'is-err' : null, line.text + '\n'));
+    });
+    if (atEnd) out.scrollTop = out.scrollHeight;
+    $k('edgeLogMeta', kind).textContent = log.instance_id ? log.instance_id : '';
+  }
+
+  function pollLog(kind) {
+    var s = state[kind];
+    clearTimeout(s.logTimer);
+    if (!s.job) return;
+    var job = s.job;
+    var running = true;
+    api('api/aws/compile/log?' + jobQuery(job)).then(function (log) {
+      if (s.job !== job) return;
+      renderLog(kind, log);
+      // The .dxnn lands before the workflow terminates its instance; keep reading until the run ends.
+      running = !log.execution || log.execution.status === 'RUNNING';
+    }).catch(function () { /* the status line already reports AWS errors */ }).then(function () {
+      var st = s.lastStatus && s.lastStatus.state;
+      if (s.job === job && (!st || st === 'pending' || st === 'running' || running)) {
+        s.logTimer = setTimeout(function () { pollLog(kind); }, LOG_POLL_MS);
+      }
+    });
+  }
+
   function poll(kind) {
     var s = state[kind];
     clearTimeout(s.pollTimer);
     api('api/aws/compile/status?' + jobQuery(s.job)).then(function (st) {
+      var wasActive = !s.lastStatus || s.lastStatus.state === 'pending' || s.lastStatus.state === 'running';
       render(kind, st);
+      // One last log read when the run ends, so the final lines and steps are shown.
+      if (wasActive && (st.state === 'succeeded' || st.state === 'failed')) pollLog(kind);
       if (st.state === 'pending' || st.state === 'running') s.pollTimer = setTimeout(function () { poll(kind); }, POLL_MS);
     }).catch(function (e) {
       setMsg(kind, e.message, true);
@@ -474,8 +542,12 @@
     setMsg(kind, T('Uploading…'));
     api('api/aws/compile', { method: 'POST', body: body }).then(function (res) {
       state[kind].job = { profile: f.profile, region: res.region, stack: res.stack, prefix: res.prefix };
+      state[kind].lastStatus = null;
       $k('edgeJobPrefix', kind).textContent = res.prefix;
+      $k('edgeLogSteps', kind).replaceChildren();
+      $k('edgeLogOut', kind).replaceChildren();
       poll(kind);
+      pollLog(kind);
     }).catch(function (e) {
       setMsg(kind, e.message, true);
     }).finally(function () {
@@ -704,6 +776,7 @@
     KINDS.forEach(function (k) {
       var lastStatus = state[k].lastStatus;
       if (lastStatus) render(k, lastStatus);
+      if (state[k].lastLog) renderLog(k, state[k].lastLog);
       if (lastSubs) renderSubs(k);
       if (lastStacks) renderStacks(k);
     });

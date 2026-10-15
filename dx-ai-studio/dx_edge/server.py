@@ -73,6 +73,8 @@ class DXEdgeHandler(DXBaseHandler):
                 if path == "/api/aws/stacks/progress":
                     q = self._query()
                     return self.send_json(st.stack_progress(q["profile"], q["region"], q["name"]))
+                if path == "/api/aws/compile/log":
+                    return self.send_json(ac.compile_log(*self._job_args(self._query())))
                 if path == "/api/aws/compile/status":
                     return self.send_json(ac.compile_status(*self._job_args(self._query())))
                 if path == "/api/aws/compile/download":

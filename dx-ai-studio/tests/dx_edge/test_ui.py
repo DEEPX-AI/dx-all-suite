@@ -156,3 +156,12 @@ def test_region_is_a_picker_not_free_text():
     assert not re.search(r'<input[^>]*id="edgeRegion"', html)
     js = (APP / "static/js/edge.js").read_text(encoding="utf-8")
     assert "api/aws/regions" in js
+
+
+def test_both_tabs_show_the_compile_log():
+    html = (APP / "templates/index.html").read_text(encoding="utf-8")
+    for kind in ("compiler", "greengrass"):
+        assert f'id="edgeLog-{kind}"' in html
+        assert f'id="edgeLogSteps-{kind}"' in html and f'id="edgeLogOut-{kind}"' in html
+    js = (APP / "static/js/edge.js").read_text(encoding="utf-8")
+    assert "api/aws/compile/log" in js

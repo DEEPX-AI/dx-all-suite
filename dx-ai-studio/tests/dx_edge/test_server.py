@@ -89,6 +89,21 @@ def test_regions_endpoint(base, monkeypatch):
     assert code == 200
     assert json.loads(body)["regions"] == [{"code": "ap-northeast-2", "name": "dev"}]
 
+def test_compile_log_endpoint(base, monkeypatch):
+    from dx_edge.core import aws_compile as ac
+
+    seen = {}
+
+    def fake(profile, region, stack, prefix):
+        seen.update(profile=profile, region=region, stack=stack, prefix=prefix)
+        return {"execution": None, "steps": [], "lines": [], "instance_id": None, "command_id": None}
+
+    monkeypatch.setattr(ac, "compile_log", fake)
+    code, _, body = _get(base + "/api/aws/compile/log?profile=dev&region=ap-northeast-2&stack=s1"
+                         "&prefix=models/m-20261015-141012/")
+    assert code == 200 and json.loads(body)["lines"] == []
+    assert seen == {"profile": "dev", "region": "ap-northeast-2", "stack": "s1", "prefix": "models/m-20261015-141012/"}
+
 def test_heartbeat(base):
     code, _, body = _get(base + "/api/hb")
     assert code == 200 and json.loads(body) == {"ok": True}

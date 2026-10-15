@@ -65,7 +65,7 @@ def aws(monkeypatch, tmp_path):
             aws_access_key_id=FAKE_KEY_ID,
             aws_secret_access_key=FAKE_SECRET,
         )
-        for svc in ("cloudformation", "s3", "stepfunctions", "sts", "ec2")
+        for svc in ("cloudformation", "s3", "stepfunctions", "sts", "ec2", "logs")
     }
     stubs = {svc: Stubber(c) for svc, c in clients.items()}
     calls = []
@@ -486,3 +486,130 @@ def test_no_credentials_error_message_has_no_secret(monkeypatch, aws):
         ac.list_stacks("", REGION)
     assert exc.value.status == 401
     assert "credentials" in exc.value.message.lower()
+
+
+# ── compile log (workflow steps + dxcom output) ─────────────────────────────
+
+LOG_GROUP = f"/dx-compiler/{STACK}/execution"
+INSTANCE = "i-0123456789abcdef0"
+COMMAND = "c60b347d-fb00-4f76-b824-7a12833c6f06"
+
+
+def _ev(i, typ, sec, **details):
+    return {"id": i, "type": typ, "timestamp": NOW + datetime.timedelta(seconds=60 + sec), **details}
+
+
+def _history(stubs, events):
+    stubs["stepfunctions"].add_response("get_execution_history", {"events": events},
+                                        {"executionArn": EXEC_ARN, "maxResults": ANY})
+
+
+def _stream(stubs, kind, events):
+    stubs["logs"].add_response(
+        "get_log_events", {"events": events, "nextForwardToken": "f/1", "nextBackwardToken": "b/1"},
+        {"logGroupName": LOG_GROUP, "logStreamName": f"{COMMAND}/{INSTANCE}/CompileModel/{kind}",
+         "startFromHead": True, "limit": ANY})
+    stubs["logs"].add_response(
+        "get_log_events", {"events": [], "nextForwardToken": "f/1", "nextBackwardToken": "b/1"},
+        {"logGroupName": LOG_GROUP, "logStreamName": f"{COMMAND}/{INSTANCE}/CompileModel/{kind}",
+         "startFromHead": True, "limit": ANY, "nextToken": "f/1"})
+
+
+def _entered(i, name, sec):
+    return _ev(i, "TaskStateEntered", sec, stateEnteredEventDetails={"name": name})
+
+
+def test_compile_log_has_the_workflow_steps_and_the_dxcom_output(aws):
+    stubs, _ = aws
+    _describe(stubs, outputs=[{"OutputKey": "ModelBucketName", "OutputValue": BUCKET},
+                              {"OutputKey": "StateMachineArn", "OutputValue": SM_ARN},
+                              {"OutputKey": "CompilerExecutionLogGroupName", "OutputValue": LOG_GROUP}])
+    _executions(stubs, "RUNNING")
+    _history(stubs, [
+        _ev(1, "ExecutionStarted", 0, executionStartedEventDetails={"input": "{}"}),
+        _entered(2, "StartEC2Instance", 0),
+        _ev(3, "TaskSucceeded", 2, taskSucceededEventDetails={
+            "resourceType": "aws-sdk:ec2", "resource": "runInstances",
+            "output": json.dumps({"Instances": [{"InstanceId": INSTANCE}]})}),
+        _entered(4, "RunCompilationCommand", 62),
+        _ev(5, "TaskSucceeded", 62, taskSucceededEventDetails={
+            "resourceType": "aws-sdk:ssm", "resource": "sendCommand",
+            "output": json.dumps({"Command": {"CommandId": COMMAND}})}),
+        _entered(6, "CheckCommandStatus", 92),
+        _entered(7, "CheckCommandStatus", 122),
+        _entered(8, "CheckCommandStatus", 152),
+    ])
+    ms = int((NOW + datetime.timedelta(seconds=100)).timestamp() * 1000)
+    _stream(stubs, "stdout", [{"timestamp": ms, "message": "Compiling...\nlayer 1/3"},
+                              {"timestamp": ms + 2000, "message": "done"}])
+    _stream(stubs, "stderr", [{"timestamp": ms + 1000, "message": "WARN calib"}])
+
+    log = ac.compile_log("dev", REGION, STACK, PREFIX)
+    assert log["instance_id"] == INSTANCE and log["command_id"] == COMMAND
+    assert [s["name"] for s in log["steps"]] == ["ExecutionStarted", "StartEC2Instance",
+                                                 "RunCompilationCommand", "CheckCommandStatus"]
+    assert log["steps"][-1]["count"] == 3  # the 30-second poll loop is one row
+    assert [(l["stream"], l["text"]) for l in log["lines"]] == [
+        ("stdout", "Compiling..."), ("stdout", "layer 1/3"), ("stderr", "WARN calib"), ("stdout", "done")]
+
+
+def test_compile_log_before_the_workflow_starts_is_empty(aws):
+    stubs, _ = aws
+    _describe(stubs)
+    _executions(stubs, None)
+    log = ac.compile_log("dev", REGION, STACK, PREFIX)
+    assert log == {"execution": None, "steps": [], "lines": [], "instance_id": None, "command_id": None}
+
+
+def test_compile_log_reports_a_failed_task_cause(aws):
+    stubs, _ = aws
+    _describe(stubs)
+    _executions(stubs, "FAILED")
+    _history(stubs, [
+        _entered(1, "StartEC2Instance", 0),
+        _ev(2, "TaskFailed", 1, taskFailedEventDetails={"resourceType": "aws-sdk:ec2", "resource": "runInstances",
+                                                       "error": "EC2.InsufficientInstanceCapacity",
+                                                       "cause": "No capacity"}),
+        _ev(3, "ExecutionFailed", 2, executionFailedEventDetails={"error": "States.TaskFailed"}),
+    ])
+    log = ac.compile_log("dev", REGION, STACK, PREFIX)
+    failed = [s for s in log["steps"] if s["status"] == "failed"]
+    assert failed and "No capacity" in failed[0]["detail"]
+    assert log["lines"] == []
+
+
+def test_compile_log_rejects_a_bad_prefix(aws):
+    with pytest.raises(ac.AwsError) as exc:
+        ac.compile_log("dev", REGION, STACK, "../etc/")
+    assert exc.value.status == 400
+
+
+def test_compile_log_keeps_one_row_for_the_poll_loop_and_hides_its_inner_states():
+    t = NOW
+    events = [{"id": i, "type": "TaskStateEntered" if n == "CheckCommandStatus" else
+               ("WaitStateEntered" if n == "WaitForCompletion" else "ChoiceStateEntered"),
+               "timestamp": t, "stateEnteredEventDetails": {"name": n}}
+              for i, n in enumerate(["WaitForCompletion", "CheckCommandStatus", "EvaluateCommandResult"] * 3)]
+    steps = ac._history_steps(events)[0]
+    assert [(s["name"], s["count"]) for s in steps] == [("CheckCommandStatus", 3)]
+
+
+def test_compile_log_strips_terminal_codes_and_keeps_only_the_latest_progress_bar():
+    raw = [
+        {"ts": 1, "stream": "stdout", "text": "DX-COM 2.3.0"},
+        {"ts": 2, "stream": "stdout", "text": "Calibration:  57%|█████▋    | 57/100 [02:44<02:07]\x1b[A\x1b[A"},
+        {"ts": 3, "stream": "stdout", "text": "Calibration:  58%|█████▊    | 58/100 [02:47<02:03]\x1b[A\x1b[A"},
+        {"ts": 4, "stream": "stdout", "text": "Optimizing:  10%|█         | 1/10"},
+        {"ts": 5, "stream": "stdout", "text": "Optimizing:  20%|██        | 2/10"},
+        {"ts": 6, "stream": "stdout", "text": "done"},
+    ]
+    assert [l["text"] for l in ac._tidy_lines(raw)] == [
+        "DX-COM 2.3.0", "Calibration:  58%|█████▊    | 58/100 [02:47<02:03]",
+        "Optimizing:  20%|██        | 2/10", "done"]
+
+
+def test_compile_log_shows_completion_once():
+    events = [{"id": 1, "type": "SucceedStateEntered", "timestamp": NOW,
+               "stateEnteredEventDetails": {"name": "WorkflowComplete"}},
+              {"id": 2, "type": "ExecutionSucceeded", "timestamp": NOW, "executionSucceededEventDetails": {}}]
+    assert [s["name"] for s in ac._history_steps(events)[0]] == ["WorkflowComplete"]
