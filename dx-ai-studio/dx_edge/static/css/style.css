@@ -20,3 +20,15 @@
 .edge-job .badge[data-state="succeeded"]{color:var(--status-ok)}
 .edge-job .badge[data-state="failed"]{color:var(--status-error)}
 .edge-links{display:flex;flex-wrap:wrap;gap:var(--sp-2);margin-top:var(--sp-3)}
+.edge-sub{margin:var(--sp-5) 0 var(--sp-2);font-size:var(--fs-base);color:var(--text-primary)}
+.edge-rows{list-style:none;margin:0;padding:0;display:grid;gap:var(--sp-2)}
+.edge-row{display:flex;flex-wrap:wrap;align-items:center;gap:var(--sp-2);padding:var(--sp-2) var(--sp-3);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);overflow-wrap:anywhere}
+.edge-row .btn{margin-left:auto;text-decoration:none}
+.edge-dim,.edge-empty{color:var(--text-secondary)}
+.edge-main .badge[data-state="ok"]{color:var(--status-ok)}
+.edge-main .badge[data-state="bad"]{color:var(--status-error)}
+.edge-main .badge[data-state="busy"]{color:var(--status-warn)}
+.edge-events{list-style:none;margin:var(--sp-2) 0 0;padding:0;font-family:var(--mono);font-size:var(--fs-xs);color:var(--text-secondary);overflow-wrap:anywhere}
+.edge-dialog{width:480px}
+.edge-dialog .edge-note + .edge-note{margin-top:var(--sp-2)}
+.edge-dialog .fg{margin-top:var(--sp-3)}

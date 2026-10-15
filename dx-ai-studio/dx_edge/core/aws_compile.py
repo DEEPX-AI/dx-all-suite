@@ -140,8 +140,33 @@ def _outputs(profile: str, region: str, stack: str) -> dict:
     return outputs
 
 
+def stack_row(s: dict) -> dict | None:
+    """A describe_stacks entry as the page shows it, or None when it is not a compiler stack.
+
+    Ready = complete with a ModelBucketName output. Stacks this page created (tag ManagedBy) are kept
+    in any state — in progress, or failed so they can still be deleted from here. Their outputs only
+    exist on success, so the bucket comes from the parameters.
+    """
+    outputs = {o["OutputKey"]: o["OutputValue"] for o in (s.get("Outputs") or [])}
+    params = {p["ParameterKey"]: p.get("ParameterValue") for p in (s.get("Parameters") or [])}
+    status = s.get("StackStatus", "")
+    ready = status in _READY and bool(outputs.get("ModelBucketName"))
+    ours = {"Key": "ManagedBy", "Value": "dx-ai-studio"} in (s.get("Tags") or [])
+    if not (ready or ours):
+        return None
+    return {
+        "name": s["StackName"],
+        "status": status,
+        "bucket": outputs.get("ModelBucketName") or params.get("ModelBucketName", ""),
+        "state_machine": bool(outputs.get("StateMachineArn")),
+        "created": s["CreationTime"].isoformat(),
+        "ready": ready,
+        "deletable": ready or not status.endswith("_IN_PROGRESS"),
+    }
+
+
 def list_stacks(profile: str, region: str) -> list[dict]:
-    """Ready stacks whose outputs carry ModelBucketName."""
+    """Compiler stacks: ready ones, plus those this page created in any state."""
     _boto3()
     _check(profile, region)
 
@@ -149,17 +174,7 @@ def list_stacks(profile: str, region: str) -> list[dict]:
         cf = _client("cloudformation", profile, region)
         return [s for page in cf.get_paginator("describe_stacks").paginate() for s in page["Stacks"]]
 
-    found = []
-    for s in _call(_all):
-        outputs = {o["OutputKey"]: o["OutputValue"] for o in (s.get("Outputs") or [])}
-        if s.get("StackStatus") in _READY and outputs.get("ModelBucketName"):
-            found.append({
-                "name": s["StackName"],
-                "status": s["StackStatus"],
-                "bucket": outputs["ModelBucketName"],
-                "state_machine": bool(outputs.get("StateMachineArn")),
-            })
-    return found
+    return [row for row in map(stack_row, _call(_all)) if row]
 
 
 def start_compile(*, profile: str, region: str, stack: str, onnx_name: str, onnx_data: bytes,

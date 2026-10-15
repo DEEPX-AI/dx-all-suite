@@ -3,13 +3,15 @@
 
 DEEPX on AWS: the AWS Marketplace entry points (DEEPX Compiler Solution, DEEPX Greengrass
 Solution) and a cloud ONNX → DXNN compile through a deployed DEEPX Compiler stack.
-The AWS work lives in dx_edge/core/aws_compile.py; this file only routes.
+The AWS work lives in dx_edge/core/aws_compile.py (compile) and aws_stack.py (stack setup);
+this file only routes.
 """
 from pathlib import Path
 
 from shared.dx_server import DXBaseHandler, DXServer, RequestBodyError
 from shared.shell import ShellSpec
 from dx_edge.core import aws_compile as ac
+from dx_edge.core import aws_stack as st
 
 DEFAULT_PORT = 8100
 STATIC_DIR = Path(__file__).resolve().parent / "static"
@@ -41,7 +43,7 @@ class DXEdgeHandler(DXBaseHandler):
                 src.get("prefix", ""))
 
     def _query(self) -> dict:
-        return {k: self.read_query_param(k) for k in ("profile", "region", "stack", "prefix")}
+        return {k: self.read_query_param(k) for k in ("profile", "region", "stack", "prefix", "name")}
 
     def route(self):
         if self.route_common():
@@ -56,6 +58,12 @@ class DXEdgeHandler(DXBaseHandler):
                 if path == "/api/aws/stacks":
                     q = self._query()
                     return self.send_json({"stacks": ac.list_stacks(q["profile"], q["region"])})
+                if path == "/api/aws/subscription":
+                    q = self._query()
+                    return self.send_json({"templates": st.subscription(q["profile"], q["region"])})
+                if path == "/api/aws/stacks/progress":
+                    q = self._query()
+                    return self.send_json(st.stack_progress(q["profile"], q["region"], q["name"]))
                 if path == "/api/aws/compile/status":
                     return self.send_json(ac.compile_status(*self._job_args(self._query())))
                 if path == "/api/aws/compile/download":
@@ -63,6 +71,14 @@ class DXEdgeHandler(DXBaseHandler):
             elif self.command == "POST":
                 if path == "/api/aws/compile":
                     return self._start_compile()
+                if path == "/api/aws/stacks":
+                    b = self.read_json_body()
+                    return self.send_json(st.create_stack(b.get("profile", ""), b.get("region", ""),
+                                                          b.get("template", ""), b.get("name", "")))
+                if path == "/api/aws/stacks/delete":
+                    b = self.read_json_body()
+                    return self.send_json(st.delete_stack(b.get("profile", ""), b.get("region", ""),
+                                                          b.get("name", ""), b.get("confirm", "")))
                 if path == "/api/aws/compile/save":
                     out = ac.save_dxnn(*self._job_args(self.read_json_body()), _models_dir())
                     return self.send_json({"path": str(out)})

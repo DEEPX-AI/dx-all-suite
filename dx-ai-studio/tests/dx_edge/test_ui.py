@@ -59,3 +59,17 @@ def test_no_access_key_field_on_the_page():
     html = (APP / "templates/index.html").read_text(encoding="utf-8").lower()
     for word in ("access key id", "secret", 'type="password"'):
         assert word not in html
+
+
+def test_stack_setup_card_sits_above_the_compile_form():
+    html = (APP / "templates/index.html").read_text(encoding="utf-8")
+    assert 'id="edgeSetup"' in html
+    assert html.index('id="edgeSetup"') < html.index('id="edgeCompileForm"')
+    assert "<dialog" in html and 'id="edgeDeleteDialog"' in html
+
+
+def test_no_native_browser_dialogs():
+    js = (APP / "static/js/edge.js").read_text(encoding="utf-8")
+    for fn in ("confirm(", "alert(", "prompt("):
+        assert not re.search(r"(?<![\w.])" + re.escape(fn), js), fn
+        assert "window." + fn not in js

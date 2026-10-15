@@ -189,3 +189,70 @@ def test_launcher_serves_dx_cloud_under_cloud_path():
     assert '"dx_edge": "/cloud/"' in launcher
     assert '("/cloud", "dx_edge", False)' in launcher
     assert "edge: '/cloud/'" in (root / "launcher/static/launcher-state.js").read_text(encoding="utf-8")
+
+
+# ── stack setup (subscription, create, progress, delete) ───────────────────
+
+def test_subscription_endpoint(base, monkeypatch):
+    from dx_edge.core import aws_stack as st
+
+    monkeypatch.setattr(st, "subscription", lambda p, r: [{"id": "compiler", "subscribed": True}])
+    code, _, body = _get(base + "/api/aws/subscription?profile=dev&region=ap-northeast-2")
+    assert code == 200
+    assert json.loads(body)["templates"][0]["subscribed"] is True
+
+
+def test_create_stack_hands_the_body_to_the_core(base, monkeypatch):
+    from dx_edge.core import aws_stack as st
+
+    seen = {}
+
+    def fake(profile, region, template, name):
+        seen.update(profile=profile, region=region, template=template, name=name)
+        return {"name": name, "bucket": "b", "template": template}
+
+    monkeypatch.setattr(st, "create_stack", fake)
+    payload = json.dumps({"profile": "dev", "region": "ap-northeast-2", "template": "compiler",
+                          "name": "dx-cloud-1", "bucket": "attacker"}).encode()
+    code, resp = _post(base + "/api/aws/stacks", payload, "application/json")
+    assert code == 200, resp
+    assert seen == {"profile": "dev", "region": "ap-northeast-2", "template": "compiler", "name": "dx-cloud-1"}
+
+
+def test_stack_progress_endpoint(base, monkeypatch):
+    from dx_edge.core import aws_stack as st
+
+    monkeypatch.setattr(st, "stack_progress",
+                        lambda p, r, n: {"name": n, "status": "CREATE_IN_PROGRESS", "events": []})
+    code, _, body = _get(base + "/api/aws/stacks/progress?region=ap-northeast-2&name=dx-cloud-1")
+    assert code == 200
+    assert json.loads(body)["name"] == "dx-cloud-1"
+
+
+def test_delete_stack_passes_the_typed_confirmation(base, monkeypatch):
+    from dx_edge.core import aws_stack as st
+
+    seen = {}
+
+    def fake(profile, region, name, confirm):
+        seen.update(name=name, confirm=confirm)
+        raise ac.AwsError(400, "Type the stack name to confirm")
+
+    monkeypatch.setattr(st, "delete_stack", fake)
+    payload = json.dumps({"region": "ap-northeast-2", "name": "s", "confirm": "x"}).encode()
+    code, resp = _post(base + "/api/aws/stacks/delete", payload, "application/json")
+    assert code == 400
+    assert "confirm" in json.loads(resp)["error"]
+    assert seen == {"name": "s", "confirm": "x"}
+
+
+@pytest.mark.parametrize("path,fn", [("/api/aws/stacks", "create_stack"),
+                                     ("/api/aws/stacks/delete", "delete_stack")])
+def test_stack_posts_cross_origin_are_refused(base, monkeypatch, path, fn):
+    from dx_edge.core import aws_stack as st
+
+    monkeypatch.setattr(st, fn, lambda *a: pytest.fail("must not run"))
+    payload = json.dumps({"region": "ap-northeast-2", "name": "s", "confirm": "s",
+                          "template": "compiler"}).encode()
+    code, _ = _post(base + path, payload, "application/json", {"Origin": "http://evil.example"})
+    assert code == 403

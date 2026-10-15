@@ -1,12 +1,18 @@
-/* DX Cloud — Cloud Compile panel. Talks to dx_edge/server.py; AWS calls happen server-side only. */
+/* DX Cloud — stack setup and Cloud Compile panels. Talks to dx_edge/server.py; AWS calls happen server-side only. */
 (function () {
   'use strict';
 
   var POLL_MS = 15000;
+  var STACK_POLL_MS = 10000;
   var $ = function (id) { return document.getElementById(id); };
   var job = null;
   var lastStatus = null;
   var pollTimer = null;
+  var lastSubs = null;
+  var lastStacks = null;
+  var lastProgress = null;
+  var stackJob = null;
+  var stackTimer = null;
 
   function api(path, opts) {
     // Relative, so it works standalone (/) and behind the launcher proxy (/cloud/).
@@ -52,12 +58,14 @@
       missing.hidden = st.boto3;
       $('edgeStart').disabled = !st.boto3;
       $('edgeStacksReload').disabled = !st.boto3;
+      $('edgeDeploy').disabled = !st.boto3;
+      $('edgeSetupReload').disabled = !st.boto3;
       if (!st.boto3) {
         missing.textContent = T('boto3 is not installed. Install it to compile in the cloud:') + ' ' + st.install_hint;
         return;
       }
       if (st.error) { setMsg(st.error, true); return; }
-      return loadStacks();
+      return loadSetup();
     }).catch(function (e) { setMsg(e.message, true); });
   }
 
@@ -66,11 +74,193 @@
     var sel = $('edgeStack');
     return api('api/aws/stacks?' + qs({ profile: f.profile, region: f.region })).then(function (res) {
       sel.replaceChildren();
-      res.stacks.forEach(function (s) { sel.appendChild(option(s.name, s.name + ' (' + s.bucket + ')')); });
-      if (!res.stacks.length) sel.appendChild(option('', T('No compiler stack found in this region')));
+      var ready = res.stacks.filter(function (s) { return s.ready; });
+      ready.forEach(function (s) { sel.appendChild(option(s.name, s.name + ' (' + s.bucket + ')')); });
+      if (!ready.length) sel.appendChild(option('', T('No compiler stack found in this region')));
+      renderStackList(res.stacks);
     }).catch(function (e) {
       sel.replaceChildren();
       setMsg(e.message, true);
+    });
+  }
+
+  // ── Stack setup ────────────────────────────────────────────────────────
+
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+
+  function setStackMsg(text, isError) {
+    $('edgeStackJob').hidden = false;
+    var m = $('edgeStackMsg');
+    m.textContent = text;
+    m.classList.toggle('is-error', !!isError);
+  }
+
+  function loadSetup() {
+    loadSubscription();
+    return loadStacks();
+  }
+
+  function loadSubscription() {
+    var f = form();
+    return api('api/aws/subscription?' + qs({ profile: f.profile, region: f.region })).then(function (res) {
+      renderSubs(res.templates);
+    }).catch(function (e) {
+      $('edgeSubs').replaceChildren();
+      setStackMsg(e.message, true);
+    });
+  }
+
+  function renderSubs(rows) {
+    lastSubs = rows;
+    var list = $('edgeSubs');
+    var sel = $('edgeTemplate');
+    var chosen = sel.value;
+    list.replaceChildren();
+    sel.replaceChildren();
+    rows.forEach(function (r) {
+      var li = el('li', 'edge-row');
+      li.appendChild(el('strong', null, r.label));
+      var badge = el('span', 'badge', r.subscribed ? T('Subscribed') : T('Not subscribed'));
+      badge.dataset.state = r.subscribed ? 'ok' : 'bad';
+      li.appendChild(badge);
+      if (r.ami_id) li.appendChild(el('code', null, r.ami_id));
+      li.appendChild(link(r.marketplace, r.subscribed ? T('Open Marketplace listing') : T('Subscribe on Marketplace')));
+      list.appendChild(li);
+      var o = option(r.id, r.label + (r.subscribed ? '' : ' — ' + T('Not subscribed')));
+      o.disabled = !r.subscribed;
+      sel.appendChild(o);
+    });
+    if (chosen) sel.value = chosen;
+    if (sel.selectedOptions.length && sel.selectedOptions[0].disabled) {
+      var first = rows.filter(function (r) { return r.subscribed; })[0];
+      sel.value = first ? first.id : '';
+    }
+  }
+
+  function renderStackList(stacks) {
+    lastStacks = stacks;
+    var list = $('edgeStackList');
+    list.replaceChildren();
+    if (!stacks.length) list.appendChild(el('li', 'edge-row edge-empty', T('No compiler stack found in this region')));
+    stacks.forEach(function (s) {
+      var li = el('li', 'edge-row');
+      li.appendChild(el('strong', null, s.name));
+      var badge = el('span', 'badge', s.status);
+      badge.dataset.state = s.ready ? 'ok' : (s.deletable ? 'bad' : 'busy');
+      li.appendChild(badge);
+      if (s.bucket) li.appendChild(el('code', null, s.bucket));
+      li.appendChild(el('span', 'edge-dim', T('Created') + ' ' + new Date(s.created).toLocaleString()));
+      if (s.deletable) {
+        var del = el('button', 'btn btn-sm btn-danger', T('Delete'));
+        del.type = 'button';
+        del.addEventListener('click', function () { openDelete(s.name); });
+        li.appendChild(del);
+      }
+      list.appendChild(li);
+    });
+  }
+
+  function newStackName() {
+    var d = new Date();
+    var p = function (n) { return String(n).padStart(2, '0'); };
+    return 'dx-cloud-' + p(d.getFullYear() % 100) + p(d.getMonth() + 1) + p(d.getDate()) +
+      p(d.getHours()) + p(d.getMinutes()) + p(d.getSeconds());
+  }
+
+  function renderProgress(pr) {
+    lastProgress = pr;
+    var badge = $('edgeStackState');
+    badge.textContent = pr.status;
+    badge.dataset.state = /_COMPLETE$/.test(pr.status) && !/ROLLBACK/.test(pr.status) ? 'ok'
+      : /FAILED|ROLLBACK/.test(pr.status) ? 'bad' : 'busy';
+    $('edgeStackJobName').textContent = pr.name;
+    $('edgeStackJob').hidden = false;
+    var ev = $('edgeStackEvents');
+    ev.replaceChildren();
+    pr.events.forEach(function (e) {
+      ev.appendChild(el('li', null, new Date(e.time).toLocaleTimeString() + '  ' + e.resource + '  ' +
+        e.status + (e.reason ? ' — ' + e.reason : '')));
+    });
+  }
+
+  function pollStack() {
+    clearTimeout(stackTimer);
+    api('api/aws/stacks/progress?' + qs(stackJob)).then(function (pr) {
+      renderProgress(pr);
+      if (/(_COMPLETE|_FAILED)$/.test(pr.status)) {
+        setStackMsg(/ROLLBACK|FAILED/.test(pr.status) ? T('The stack did not finish — see the events above.') : T('Done.'),
+          /ROLLBACK|FAILED/.test(pr.status));
+        loadStacks();
+      } else {
+        stackTimer = setTimeout(pollStack, STACK_POLL_MS);
+      }
+    }).catch(function (e) {
+      setStackMsg(e.message, true);
+      stackTimer = setTimeout(pollStack, STACK_POLL_MS);
+    });
+  }
+
+  function trackStack(name, msg) {
+    var f = form();
+    stackJob = { profile: f.profile, region: f.region, name: name };
+    $('edgeStackEvents').replaceChildren();
+    setStackMsg(msg);
+    pollStack();
+  }
+
+  function deploy(ev) {
+    ev.preventDefault();
+    var f = form();
+    var name = $('edgeStackName').value.trim();
+    var template = $('edgeTemplate').value;
+    if (!template || !name) return setStackMsg(T('Choose a subscribed template and a stack name first'), true);
+    $('edgeDeploy').disabled = true;
+    api('api/aws/stacks', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ profile: f.profile, region: f.region, template: template, name: name })
+    }).then(function (res) {
+      $('edgeStackName').value = newStackName();
+      trackStack(res.name, T('Creating the stack — this usually takes several minutes.') + ' ' + res.bucket);
+      loadStacks();
+    }).catch(function (e) {
+      setStackMsg(e.message, true);
+    }).finally(function () {
+      $('edgeDeploy').disabled = false;
+    });
+  }
+
+  function openDelete(name) {
+    $('edgeDeleteName').textContent = name;
+    $('edgeDeleteConfirm').value = '';
+    $('edgeDeleteOk').disabled = true;
+    $('edgeDeleteDialog').showModal();
+    $('edgeDeleteConfirm').focus();
+  }
+
+  function submitDelete(ev) {
+    ev.preventDefault();
+    var f = form();
+    var name = $('edgeDeleteName').textContent;
+    var typed = $('edgeDeleteConfirm').value;
+    if (typed !== name) return;
+    $('edgeDeleteOk').disabled = true;
+    api('api/aws/stacks/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ profile: f.profile, region: f.region, name: name, confirm: typed })
+    }).then(function (res) {
+      $('edgeDeleteDialog').close();
+      trackStack(res.name, T('Deleting the stack. The S3 model bucket is kept:') + ' ' + res.bucket);
+      loadStacks();
+    }).catch(function (e) {
+      $('edgeDeleteDialog').close();
+      setStackMsg(e.message, true);
     });
   }
 
@@ -170,8 +360,16 @@
 
   $('edgeCompileForm').addEventListener('submit', start);
   $('edgeStacksReload').addEventListener('click', loadStacks);
-  $('edgeProfile').addEventListener('change', loadStacks);
-  $('edgeRegion').addEventListener('change', loadStacks);
+  $('edgeProfile').addEventListener('change', loadSetup);
+  $('edgeRegion').addEventListener('change', loadSetup);
+  $('edgeSetupReload').addEventListener('click', loadSetup);
+  $('edgeDeployForm').addEventListener('submit', deploy);
+  $('edgeDeleteForm').addEventListener('submit', submitDelete);
+  $('edgeDeleteCancel').addEventListener('click', function () { $('edgeDeleteDialog').close(); });
+  $('edgeDeleteConfirm').addEventListener('input', function () {
+    $('edgeDeleteOk').disabled = this.value !== $('edgeDeleteName').textContent;
+  });
+  $('edgeStackName').value = newStackName();
   $('edgeSave').addEventListener('click', save);
   // Repaint the JS-written text when the language changes (data-i18n covers the markup).
   DXI18n.onLangChange(function () {
@@ -180,6 +378,8 @@
     var stack = $('edgeStack').options[0];
     if (stack && !stack.value) stack.textContent = T('No compiler stack found in this region');
     if (lastStatus) render(lastStatus);
+    if (lastSubs) renderSubs(lastSubs);
+    if (lastStacks) renderStackList(lastStacks);
   });
   loadStatus();
 })();

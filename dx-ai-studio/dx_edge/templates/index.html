@@ -55,15 +55,58 @@
     </div>
   </section>
 
+  <!-- Stack setup — Marketplace subscription and the DEEPX Compiler stacks of this account/region -->
+  <section class="edge-section" id="edgeSetup" aria-labelledby="edgeSetupTitle">
+    <h2 class="edge-section-title" id="edgeSetupTitle" data-i18n="Stack setup">Stack setup</h2>
+    <div class="card">
+      <p class="edge-note" data-i18n="Uses your AWS CLI credentials (aws configure or aws sso login). Studio never asks for or stores access keys.">Uses your AWS CLI credentials (aws configure or aws sso login). Studio never asks for or stores access keys.</p>
+      <p class="edge-alert" id="edgeBoto3Missing" hidden></p>
+      <div class="edge-form">
+        <div class="fg"><label for="edgeProfile" data-i18n="AWS profile">AWS profile</label><select id="edgeProfile"></select></div>
+        <div class="fg"><label for="edgeRegion" data-i18n="Region">Region</label><input type="text" id="edgeRegion" value="ap-northeast-2" spellcheck="false" autocomplete="off"></div>
+      </div>
+
+      <h3 class="edge-sub" data-i18n="Marketplace subscription">Marketplace subscription</h3>
+      <ul class="edge-rows" id="edgeSubs"></ul>
+
+      <h3 class="edge-sub" data-i18n="Compiler stacks">Compiler stacks</h3>
+      <ul class="edge-rows" id="edgeStackList"></ul>
+
+      <form id="edgeDeployForm" class="edge-form">
+        <div class="fg edge-stack-row"><label for="edgeTemplate" data-i18n="Template">Template</label><select id="edgeTemplate"></select></div>
+        <div class="fg"><label for="edgeStackName" data-i18n="New stack name">New stack name</label><input type="text" id="edgeStackName" spellcheck="false" autocomplete="off" maxlength="128"></div>
+        <div class="edge-actions">
+          <button type="submit" class="btn btn-primary" id="edgeDeploy"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#cloud"></use></svg> <span data-i18n="Deploy stack">Deploy stack</span></button>
+          <button type="button" class="btn btn-ghost" id="edgeSetupReload"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#refresh"></use></svg> <span data-i18n="Refresh">Refresh</span></button>
+        </div>
+      </form>
+
+      <div class="edge-job" id="edgeStackJob" hidden>
+        <p class="edge-job-line"><span class="badge" id="edgeStackState"></span> <code id="edgeStackJobName"></code></p>
+        <p class="edge-job-msg" id="edgeStackMsg" aria-live="polite"></p>
+        <ul class="edge-events" id="edgeStackEvents"></ul>
+      </div>
+    </div>
+
+    <dialog class="modal-overlay" id="edgeDeleteDialog" aria-labelledby="edgeDeleteTitle">
+      <form class="modal edge-dialog" id="edgeDeleteForm">
+        <h2 id="edgeDeleteTitle" data-i18n="Delete stack">Delete stack</h2>
+        <p class="edge-note" data-i18n="This deletes the CloudFormation stack and its compiler resources. The S3 model bucket is kept (DeletionPolicy: Retain) and stays in your account until you remove it.">This deletes the CloudFormation stack and its compiler resources. The S3 model bucket is kept (DeletionPolicy: Retain) and stays in your account until you remove it.</p>
+        <p class="edge-note"><span data-i18n="Type the stack name to confirm:">Type the stack name to confirm:</span> <code id="edgeDeleteName"></code></p>
+        <div class="fg"><label for="edgeDeleteConfirm" data-i18n="Stack name">Stack name</label><input type="text" id="edgeDeleteConfirm" spellcheck="false" autocomplete="off"></div>
+        <div class="edge-actions">
+          <button type="button" class="btn btn-ghost" id="edgeDeleteCancel" data-i18n="Cancel">Cancel</button>
+          <button type="submit" class="btn btn-danger" id="edgeDeleteOk" disabled><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#trash"></use></svg> <span data-i18n="Delete">Delete</span></button>
+        </div>
+      </form>
+    </dialog>
+  </section>
+
   <!-- Cloud Compile — through a deployed DEEPX Compiler stack -->
   <section class="edge-section" id="cloudCompile" aria-labelledby="edgeCompileTitle">
     <h2 class="edge-section-title" id="edgeCompileTitle" data-i18n="Cloud Compile">Cloud Compile</h2>
     <div class="card">
-      <p class="edge-note" data-i18n="Uses your AWS CLI credentials (aws configure or aws sso login). Studio never asks for or stores access keys.">Uses your AWS CLI credentials (aws configure or aws sso login). Studio never asks for or stores access keys.</p>
-      <p class="edge-alert" id="edgeBoto3Missing" hidden></p>
       <form id="edgeCompileForm" class="edge-form">
-        <div class="fg"><label for="edgeProfile" data-i18n="AWS profile">AWS profile</label><select id="edgeProfile"></select></div>
-        <div class="fg"><label for="edgeRegion" data-i18n="Region">Region</label><input type="text" id="edgeRegion" value="ap-northeast-2" spellcheck="false" autocomplete="off"></div>
         <div class="fg edge-stack-row">
           <label for="edgeStack" data-i18n="Compiler stack">Compiler stack</label>
           <div class="edge-inline">

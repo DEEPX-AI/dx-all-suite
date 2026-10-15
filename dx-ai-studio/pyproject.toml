@@ -32,7 +32,7 @@ packages = [
 ]
 
 [tool.setuptools.package-data]
-"*" = ["templates/*", "templates/**/*", "static/**/*", "knowledge/*.md", "*.json"]
+"*" = ["templates/*", "templates/**/*", "static/**/*", "knowledge/*.md", "*.json", "cfn/*.json"]
 
 # pytest configuration lives in pytest.ini (single source of truth).
 # pytest.ini takes precedence over pyproject.toml, so a [tool.pytest.ini_options]
