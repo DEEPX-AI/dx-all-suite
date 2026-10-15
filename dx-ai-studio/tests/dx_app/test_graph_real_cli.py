@@ -76,3 +76,79 @@ def test_run_once_on_the_npu(tmp_path, monkeypatch):
     assert r["ok"] is True, r["log_tail"]
     assert r["frames"] == 1 and r["outputs"] and r["nodes"]["od"]["shape"] == "boxes"
     assert r["nodes"]["attr"]["crops_total"] >= 1
+
+
+from dx_app.core import graph_live, graph_ops  # noqa: E402
+
+
+def test_the_real_logic_blocks_are_listed():
+    graph_ops._cache.update(key=None, value=None)
+    r = graph_ops.list_ops(refresh=True)
+    if r["error"] == "list_ops_unsupported":
+        pytest.skip("this dx_app build has no --list-ops yet")
+    assert r["error"] is None
+    assert [o["op"] for o in r["ops"]][:8] == ["filter", "zone", "line", "count", "dwell", "condition", "gallery", "user"]
+    zone = {p["name"]: p for p in r["ops"][1]["params"]}
+    assert zone["polygon"]["type"] == "polygon" and zone["polygon"]["required"] is True
+
+
+def test_every_logic_template_checks_clean():
+    templates = [e for e in graph_catalog.examples() if e["logic"]]
+    if not templates:
+        pytest.skip("this dx_app has no logic samples yet")
+    assert len(templates) == 6
+    for ex in templates:
+        r = graph_validate.validate(ex["graph"])
+        assert r["errors"] == [], (ex["id"], r["errors"])
+
+
+@pytest.mark.skipif(os.environ.get("DX_GRAPH_NPU") != "1", reason="runs on the NPU; set DX_GRAPH_NPU=1")
+def test_a_logic_template_runs_once_with_events_on_the_npu(tmp_path, monkeypatch):
+    """zone_intrusion on its own sample_people.jpg: people enter the zone, then the alarm fires once for all of them
+    (track_id: the one track, or -1 for several; the ids in data.track_ids)."""
+    monkeypatch.setattr(config, "OUTPUTS_DIR", tmp_path)
+    graph_run._jobs.clear()
+    ex = {e["id"]: e for e in graph_catalog.examples()}["zone_intrusion"]
+    body, code = graph_run.start(ex["graph"])
+    assert code == 200, body
+    end = time.time() + 120
+    while time.time() < end and not graph_run.poll(body["job_id"])["has_result"]:
+        time.sleep(0.5)
+    r = graph_run.result(body["job_id"])
+    assert r["ok"] is True, r["log_tail"]
+    pairs = [(e["node"], e["event"]) for e in r["events"]]
+    assert pairs and set(pairs[:-1]) == {("zone", "enter")} and pairs[-1] == ("alarm", "intrusion"), pairs
+    enters = [e["track_id"] for e in r["events"][:-1]]
+    alarm = r["events"][-1]
+    assert alarm["track_id"] == (enters[0] if len(enters) == 1 else -1), alarm
+    assert alarm["data"]["track_ids"] == ",".join(str(t) for t in enters), alarm
+    assert r["events_url"] and r["event_counts"]["zone"]["enter"] == len(pairs) - 1
+    assert r["nodes"]["alarm"]["last_records"][0]["numbers"]["value"] >= 1
+
+
+@pytest.mark.skipif(os.environ.get("DX_GRAPH_NPU") != "1", reason="runs on the NPU; set DX_GRAPH_NPU=1")
+def test_a_logic_template_runs_live_on_a_looping_video(tmp_path, monkeypatch):
+    if graph_live._deps_missing():
+        pytest.skip("Live needs " + ", ".join(graph_live._deps_missing()))
+    monkeypatch.setattr(config, "OUTPUTS_DIR", tmp_path)
+    ex = {e["id"]: e for e in graph_catalog.examples()}["zone_intrusion"]
+    body, code = graph_live.start(ex["graph"], inputs={"cam": "assets/videos/dance-group.mov"})
+    assert code == 200, body
+    try:
+        end, p = time.time() + 60, {}
+        while time.time() < end:
+            p = graph_live.poll(body["job_id"])
+            if p.get("frames", 0) >= 30 or not p.get("running"):
+                break
+            time.sleep(1)
+        assert p["running"] and p["frames"] >= 30 and p["fps"], p
+        assert p["event_total"] >= 1, "events reach the poll while it runs"
+        frame = graph_live.frame(body["job_id"])
+        assert frame and frame[:2] == b"\xff\xd8", "a JPEG of the runner's window"
+    finally:
+        graph_live.stop(body["job_id"])
+    end = time.time() + 15
+    while time.time() < end and graph_live.poll(body["job_id"]).get("running"):
+        time.sleep(0.5)
+    p = graph_live.poll(body["job_id"])
+    assert p["running"] is False and p["stopped_by"] == "user" and p["errors"] == [], p
