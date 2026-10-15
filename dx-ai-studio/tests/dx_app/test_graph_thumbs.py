@@ -2,6 +2,9 @@
 from __future__ import annotations
 
 import io
+import json
+import shutil
+from pathlib import Path
 
 import pytest
 
@@ -75,3 +78,79 @@ def test_past_four_sources_the_first_four_are_shown():
     pics = [_png(64, 36, (200, 30, 30))] * 4 + [_png(64, 36, (30, 200, 30))]
     out = Image.open(io.BytesIO(thumbs.tile(pics)))
     assert out.getpixel((280, 140))[0] > 150
+
+
+LAYERS = Path(__file__).resolve().parent / "fixtures" / "graph" / "layers"
+
+
+def _run_result(outputs_dir):
+    """A finished image run of two sources with --output-layers, as graph_run.result gives it."""
+    d = outputs_dir / "graph" / "runs" / "r1"
+    (d / "layers").mkdir(parents=True)
+    u = "/outputs/graph/runs/r1/"
+    rows = []
+    for s in ("cam1", "cam2"):
+        shutil.copy(LAYERS / "base.png", d / f"result_{s}.jpg")       # Pillow reads it by content
+        shutil.copy(LAYERS / "base.png", d / "layers" / f"{s}_base.png")
+        shutil.copy(LAYERS / "layer.png", d / "layers" / f"{s}_od.png")
+        shutil.copy(LAYERS / "layer.png", d / "layers" / f"{s}_events.png")
+        rows.append({"url": u + f"result_{s}.jpg", "kind": "image", "name": f"result_{s}.jpg", "stream": s,
+                     "layers": {"base": u + f"layers/{s}_base.png", "width": 16, "height": 12, "layers": [
+                         {"node": "od", "model": "yolov8-n_640x640", "url": u + f"layers/{s}_od.png"},
+                         {"panel": "events", "url": u + f"layers/{s}_events.png"}]}})
+    return {"ok": True, "exit_code": 0, "run_id": "r1", "outputs": rows, "frames": 2, "error_frames": 0,
+            "fps": None, "avg_fps": None, "node_ms": {"od": 12.5}, "nodes": {"od": {"shape": "boxes"}},
+            "errors": [], "log_tail": "a log", "elapsed": 1.2,
+            "events": [{"seq": 1, "frame": 0, "time": 0, "stream": "cam2", "node": "crowded", "event": "crowded",
+                        "track_id": -1, "data": {"value": 15, "threshold": 5}}],
+            "event_total": 1, "event_counts": {"crowded": {"crowded": 1}}, "events_truncated": False,
+            "events_url": u + "events.jsonl", "events_partial": False}
+
+
+def test_the_tutorial_preview_is_the_run_with_its_pictures_beside_it(tmp_path):
+    outputs, out = tmp_path / "outputs", tmp_path / "graph-tutorial"
+    doc = thumbs.write_preview(_run_result(outputs), outputs, out, url="/static/img/graph-tutorial/")
+    assert json.loads((out / "preview.json").read_text(encoding="utf-8")) == doc
+    assert doc["preview"] is True and doc["run_id"] is None and doc["events_url"] is None and "log_tail" not in doc
+    assert [o["stream"] for o in doc["outputs"]] == ["cam1", "cam2"]
+    assert doc["events"][0]["event"] == "crowded" and doc["node_ms"] == {"od": 12.5} and doc["event_total"] == 1
+    cam2 = doc["outputs"][1]
+    assert cam2["url"] == "/static/img/graph-tutorial/cam2.jpg" and cam2["kind"] == "image"
+    assert cam2["layers"]["base"] == "/static/img/graph-tutorial/cam2_base.jpg"
+    assert cam2["layers"]["layers"] == [
+        {"node": "od", "model": "yolov8-n_640x640", "url": "/static/img/graph-tutorial/cam2_od.png"},
+        {"panel": "events", "url": "/static/img/graph-tutorial/cam2_panel-events.png"}]
+    for o in doc["outputs"]:
+        for u in [o["url"], o["layers"]["base"]] + [l["url"] for l in o["layers"]["layers"]]:
+            assert (out / u.rsplit("/", 1)[1]).is_file(), u
+    assert Image.open(out / "cam2_od.png").mode == "RGBA"
+
+
+def test_the_preview_pictures_are_scaled_to_the_preview_width(tmp_path):
+    outputs = tmp_path / "outputs"
+    r = _run_result(outputs)
+    d = outputs / "graph" / "runs" / "r1" / "layers"
+    Image.new("RGB", (1920, 1080), (9, 9, 9)).save(d / "cam1_base.png")
+    Image.new("RGBA", (1920, 1080), (0, 0, 0, 0)).save(d / "cam1_od.png")
+    doc = thumbs.write_preview(r, outputs, tmp_path / "p")
+    cam1 = doc["outputs"][0]["layers"]
+    assert (cam1["width"], cam1["height"]) == (640, 360)
+    assert Image.open(tmp_path / "p" / "cam1_od.png").size == (640, 360)
+    assert Image.open(tmp_path / "p" / "cam1_panel-events.png").size == (640, 360), "every layer fits its base"
+
+
+def test_a_preview_needs_image_results_with_layers(tmp_path):
+    outputs = tmp_path / "outputs"
+    r = _run_result(outputs)
+    del r["outputs"][0]["layers"]
+    with pytest.raises(ValueError, match="layers"):
+        thumbs.write_preview(r, outputs, tmp_path / "p")
+
+
+def test_writing_a_preview_replaces_only_its_own_files(tmp_path):
+    outputs, out = tmp_path / "outputs", tmp_path / "p"
+    out.mkdir()
+    (out / "old_cam9.jpg").write_bytes(b"x")
+    (out / "notes.txt").write_text("keep")
+    thumbs.write_preview(_run_result(outputs), outputs, out)
+    assert not (out / "old_cam9.jpg").exists() and (out / "notes.txt").read_text() == "keep"
