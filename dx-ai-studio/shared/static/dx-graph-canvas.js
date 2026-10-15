@@ -255,7 +255,7 @@
     }
 
     function renameNode(oldId, newId) {
-      if (!C.ID_RE.test(newId) || C.nodeMap(g.nodes)[newId] || !C.nodeMap(g.nodes)[oldId]) return false;
+      if (!C.validId(newId) || C.nodeMap(g.nodes)[newId] || !C.nodeMap(g.nodes)[oldId]) return false;
       g = C.renameNode(g, oldId, newId);
       sel.nodes = sel.nodes.map(function (id) { return id === oldId ? newId : id; });
       if (focusId === oldId) focusId = newId;

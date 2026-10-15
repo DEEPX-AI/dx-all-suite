@@ -931,3 +931,19 @@ def test_live_draws_the_nodes_picked_before_it_starts(ui):
     page.click("#gc-live-start")
     page.wait_for_function("() => GraphLive.running()")
     assert "draw" not in [b for path, b in fake.posted if path == "live/start"][-1], "every node: no --draw"
+
+
+@pytest.mark.parametrize("reserved", ["base", "events"])
+def test_a_node_cannot_be_named_after_a_layer_file(ui, reserved):
+    """dx_app's --output-layers writes <frame>_base.png and <frame>_events.png; --check refuses nodes with those ids."""
+    page, _ = ui
+    _open(page, "zone_intrusion")
+    page.evaluate("window.__toasts = []; const t = window.toast; window.toast = (m, k, o) => { __toasts.push([m, k]); return t(m, k, o); }")
+    page.evaluate("GraphComposer.canvas().select({nodes: ['zone']})")
+    name = page.locator("#gc-inspector-body .gc-fg:has(label:text-is('Node name')) input")
+    name.fill(reserved)
+    name.dispatch_event("change")
+    toasts = page.evaluate("window.__toasts")
+    assert any("reserved" in (m or "") and k == "warn" for m, k in toasts), toasts
+    assert "zone" in [n["id"] for n in _engine(page)["nodes"]] and reserved not in [n["id"] for n in _engine(page)["nodes"]]
+    assert page.evaluate(f"GraphComposer.canvas().renameNode('zone', '{reserved}')") is False

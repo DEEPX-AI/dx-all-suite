@@ -3241,6 +3241,13 @@ window._DX_I18N_DICT = {
     'zh-CN': '仅对此节点覆盖模型的 config.json。class_names 等列表用逗号分隔。', 'zh-TW': '僅對此節點覆寫模型的 config.json。class_names 等清單以逗號分隔。',
     es: 'Sustituye el config.json del modelo solo en este nodo. Las listas como class_names van separadas por comas.',
   },
+  '"base" and "events" are reserved: dx_app names its layer files after them. Pick another name.': {
+    ko: '"base"와 "events"는 예약된 이름입니다. dx_app이 레이어 파일 이름에 사용합니다. 다른 이름을 고르세요.',
+    ja: '"base" と "events" は予約済みの名前です。dx_app がレイヤーファイルの名前に使います。別の名前を選んでください。',
+    'zh-CN': '"base" 和 "events" 是保留名称，dx_app 用它们命名图层文件。请换一个名称。',
+    'zh-TW': '"base" 和 "events" 是保留名稱，dx_app 用它們命名圖層檔案。請換一個名稱。',
+    es: '"base" y "events" están reservados: dx_app nombra con ellos sus archivos de capa. Elija otro nombre.',
+  },
   'Use letters, digits, _ or -, starting with a letter.': {
     ko: '영문자, 숫자, _ 또는 -만 쓰고 영문자로 시작하세요.', ja: '英字、数字、_ または - を使い、英字で始めてください。',
     'zh-CN': '请使用字母、数字、_ 或 -，并以字母开头。', 'zh-TW': '請使用字母、數字、_ 或 -，並以字母開頭。',

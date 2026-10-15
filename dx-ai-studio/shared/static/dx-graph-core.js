@@ -9,6 +9,11 @@
   var NODE_W = 160, NODE_H = 56, PORT_R = 6, PORT_HIT = 12, GRID = 20, HISTORY_MAX = 50;
   var MIN_ZOOM = 0.3, MAX_ZOOM = 3, FIT_MAX_ZOOM = 1.25;
   var ID_RE = /^[A-Za-z][A-Za-z0-9_-]{0,31}$/;
+  /* dx_app's --output-layers names a frame's files <frame>_<node id>.png beside <frame>_base.png (the clean frame) and
+     <frame>_events.png (the event panel); its --check refuses nodes with those ids. */
+  var RESERVED_IDS = ['base', 'events'];
+
+  function validId(id) { return ID_RE.test(id) && RESERVED_IDS.indexOf(id) === -1; }
 
   function snap(v) { return Math.round(v / GRID) * GRID; }
   function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
@@ -270,7 +275,7 @@
 
   function uniqueId(base, taken) {
     var b = sanitizeId(base), set = {};
-    (taken || []).forEach(function (t) { set[t] = true; });
+    (taken || []).concat(RESERVED_IDS).forEach(function (t) { set[t] = true; });
     if (!set[b]) return b;
     for (var i = 2; ; i++) {
       var c = b.slice(0, 32 - String(i).length - 1) + '_' + i;
@@ -451,6 +456,7 @@
   root.DXGraphCore = {
     NODE_W: NODE_W, NODE_H: NODE_H, PORT_R: PORT_R, PORT_HIT: PORT_HIT, GRID: GRID, HISTORY_MAX: HISTORY_MAX,
     MIN_ZOOM: MIN_ZOOM, MAX_ZOOM: MAX_ZOOM, FIT_MAX_ZOOM: FIT_MAX_ZOOM, ID_RE: ID_RE,
+    RESERVED_IDS: RESERVED_IDS, validId: validId,
     snap: snap, clamp: clamp, clone: clone, edgeId: edgeId, nodeMap: nodeMap, outPort: outPort, inPort: inPort,
     hitNode: hitNode, hitPort: hitPort, controlOffset: controlOffset, bezierPoint: bezierPoint,
     edgeRoute: edgeRoute, cubicPoint: cubicPoint, graphBounds: graphBounds,

@@ -250,3 +250,18 @@ eq(C.edgeRoute(560, 28, 0, 60).segs.length, 1, 'no room between the nodes: the l
 const b = C.graphBounds(nodes, edges);
 ok(b.maxX > 560 && b.minX < 0, 'the turns count in the bounds a fit uses ' + JSON.stringify(b));
 """)
+
+
+def test_the_layer_file_names_are_not_node_ids():
+    """dx_app's --output-layers writes <frame>_base.png and <frame>_events.png beside one <frame>_<node id>.png per
+    node, and its --check refuses a node called "base" or "events": the composer never gives or accepts those."""
+    _run(r"""
+ok(C.validId('od') && C.validId('base_od') && C.validId('Events2'), 'other ids are fine');
+ok(!C.validId('base') && !C.validId('events'), 'reserved');
+ok(!C.validId('2od') && !C.validId('a b'), 'the id rules still hold');
+eq(C.RESERVED_IDS, ['base', 'events']);
+eq(C.uniqueId('base', []), 'base_2'); eq(C.uniqueId('events', ['events_2']), 'events_3');
+const clip = C.copySelection({nodes: [{id: 'base', x: 0, y: 0}], edges: []}, ['base']);
+const pasted = C.pasteClip({nodes: [], edges: []}, clip, 20);
+ok(pasted.graph.nodes.every(n => C.validId(n.id)), 'a pasted node gets a usable id: ' + JSON.stringify(pasted.graph.nodes));
+""")

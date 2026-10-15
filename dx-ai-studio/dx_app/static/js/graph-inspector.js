@@ -143,6 +143,7 @@ window.GraphInspector = (function () {
     var input = textInput(c, n.id, function (v, el) {
       if (v === n.id) return;
       if (!DXGraphCore.ID_RE.test(v)) { c.notify(T('Use letters, digits, _ or -, starting with a letter.'), 'warn'); el.value = n.id; return; }
+      if (!DXGraphCore.validId(v)) { c.notify(T('"base" and "events" are reserved: dx_app names its layer files after them. Pick another name.'), 'warn'); el.value = n.id; return; }
       if (!c.canvas().renameNode(n.id, v)) { c.notify(T('Another node already has this name.'), 'warn'); el.value = n.id; }
     }, { maxlength: '32' });
     return field(c, T('Node name'), input);
