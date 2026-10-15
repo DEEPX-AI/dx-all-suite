@@ -195,14 +195,16 @@ artifacts/cpp_example/
 - Python 템플릿: Postprocessor, Visualizer 모듈
 
 ### Graph Composer 탭
-- 여러 model을 하나의 graph로 연결한다: source, task별 model (설치 상태 표시, 없으면 Download), CPU op (headpose, volume), dx_app 예제 graph 13개.
+- 여러 model을 하나의 graph로 연결한다: source, task별 model (설치 상태 표시, 없으면 Download), CPU op (headpose, volume), dx_app 예제 graph.
 - 편집할 때마다 dx_app `multi_model_graph_sync --check` 가 graph를 검사하고, 오류는 해당 node / edge 에 표시된다.
 - NPU memory bar: model마다 `parse_model` 의 Total 을 더한 값과 장치 여유 메모리. 넘치면 engine 공유, buffer 수 줄이기를 제안한다.
 - Run once: 이미지 / 비디오 입력, Sync / Async, 진행률, FPS, node별 시간, 결과 이미지, node별 결과, event 목록.
 - Logic 블록 (`"type": "logic", "op"`, dx_app `--list-ops --json` 이 목록과 parameter schema 를 준다): filter, zone, line, count, dwell, condition (→ event), gallery, user (Studio 에서는 pass-through, export 하면 function stub). model 결과는 `"carry": "result"` edge 로 받고, zone / filter 가 넘기는 boxes 는 다른 model 에 ROI edge 로 이어진다. line / dwell 은 tracking 이 켜진 detector 가 필요하다.
 - 구역 / 선: Inspector 의 "프레임 위에서 편집…" 이 입력의 첫 프레임 위에 그린다 (점 끌기, 변 가운데 점으로 추가, 구역 여러 개, 선 방향 뒤집기, 키보드 [ ] / 화살표 / Insert / Delete, Ctrl+Z 는 canvas 기록과 같다). 좌표는 기본으로 frame 대비 0..1 (normalized).
 - Event: dx_app 이 stdout 에 `[EVENT] {json}` 을, `--events <file.jsonl>` 에 같은 객체를 한 줄씩 쓴다 (`frame, time, stream, node, event, track_id, data`). 실행 패널에서 node / event / track ID / 시간으로 거르고, 행을 누르면 결과 비디오가 그 시점으로 이동하며, JSONL 로 내려받는다. node 에는 event 수가 표시된다.
-- Template: Logic 블록이 들어간 dx_app 예제 graph (출입 금지 구역, 선 통과 계수, 보호구 확인, 배회 감지, 인원 계수) 를 결과 그림과 함께 연다.
+- Template: Logic 블록이 들어간 dx_app 예제 graph 9개를 NPU 실제 실행 결과 그림과 함께 연다. 이름과 설명은 화면 언어로 나온다: 출입 금지 구역 침입, 선 통과 계수, 보호구 확인, 배회 감지, 구역별 인원 계수, 등록된 인물 확인 (Gallery), 운전자 주의 상태 (headpose 의 yaw / pitch 로 looking_away, head_down event), 다중 카메라 인원 계수 (source 2개, camera 마다 count, 5명 이상이면 crowded event), 화물 부피 경보 (volume 의 volume_proxy 합이 100 을 넘으면 load_high event). 엔진 예제 13개도 화면 언어로 이름과 설명이 나온다.
+- 결과: source 마다 한 칸 (2개는 나란히, 3-4개는 2x2), node 마다 layer 체크 상자. 멈춘 결과 비디오는 "이 프레임의 레이어" 로 그 frame 을 한 번 더 실행한다.
+- Tutorial: Tutorial → Graph Composer 가 palette, Template, canvas, Inspector, Logic 블록, 구역 / 선 그리기, 검사와 NPU memory, Run once, 결과, event, Live, C++ project export, project 를 차례로 보여 준다. 결과와 event 단계는 기록해 둔 실행 결과를 보여 줄 뿐 NPU 를 쓰지 않고, 저장하지 않은 graph 는 바꾸지 않는다.
 - Live: camera, RTSP, 반복 재생 비디오로 멈출 때까지 실행 (`--display`, 비디오는 `--loop`). Run 페이지 Live 와 같은 Xvfb 화면 경로 (별도 slot), 화면 / FPS / node별 시간 / event. 한 번에 하나, run once 나 Run 페이지 Live 와 동시에 돌지 않고, 페이지를 떠나면 멈춘다.
 - Project: Studio workspace (`outputs/dx_app/graph/projects/`) 에 저장하고, 저장할 때마다 version 이 남는다. JSON export / import.
 - C++ project export: 상단의 "C++ 프로젝트 내보내기" 가 dx_app `scripts/export_graph_project.py` 로 graph 를 독립 CMake 프로젝트로 만든다 (`CMakeLists.txt`, `main.cpp`, `graph.json`, 사용한 model 의 factory 만 담은 engine, `models/`, `user_logic/<name>.{hpp,cpp}` stub, `setup.sh`, `run.sh`, `README.md`). 사용자 Logic 블록은 C++ class stub 이 되고 채우기 전에는 pass-through. 필요한 것은 DEEPX runtime (dx_rt), CMake, C++17 compiler, OpenCV 4 뿐이다. model 파일은 기본으로 빠지고 ("모델 파일 포함" 을 고르면 들어감, 모든 model 이 설치돼 있을 때만 가능), 빠진 model 은 `./setup.sh` 가 Model Zoo 에서 내려받는다. `./setup.sh` 가 빌드, `./run.sh` 가 `results/` 에 결과 이미지·`events.jsonl`·`report.json` 을 쓴다. 결과는 `outputs/dx_app/graph/exports/` (최근 5개) 와 zip.

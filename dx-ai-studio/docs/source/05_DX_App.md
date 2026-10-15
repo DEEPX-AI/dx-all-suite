@@ -28,7 +28,7 @@ The module opens on a set of pages (top tabs):
 - **ModelZoo** — browse and download additional models into the app (public or air-gapped
   source, Q-Lite / Q-Pro variants, batch cart).  
 - **Graph Composer** — connect several models into one pipeline on a canvas: a source, models by task (installed
-  ones marked, Download for the rest), the CPU ops `headpose` and `volume`, and the 13 example graphs dx_app ships.
+  ones marked, Download for the rest), the CPU ops `headpose` and `volume`, and the example graphs dx_app ships.
   dx_app checks the graph after every change and pins each problem to its node or connection; a bar shows the NPU
   memory the models need, with ways to fit (share an engine, fewer buffers). **Run once** on an image or a video
   shows progress, FPS, the time each node takes, the rendered result and each node's results. Projects keep every
@@ -36,8 +36,10 @@ The module opens on a set of pages (top tabs):
   **Logic blocks** decide on what the models found: Filter, Zone, Line crossing, Count, Dwell, Condition → Event,
   Gallery match and User logic (a pass-through here, a function stub in an exported project), as the dx_app build
   lists them. Zones and lines are drawn on the first frame of the input (**Edit on the frame…**: drag points, add
-  zones, flip a line's direction; keyboard and Ctrl+Z work there too). **Templates** open ready scenarios — restricted
-  zone, line counting, PPE check, loitering, people count — with a result picture. A run lists the **events** the
+  zones, flip a line's direction; keyboard and Ctrl+Z work there too). **Templates** open ready scenarios,
+  named in your language, each with the picture of a real NPU run: restricted-zone intrusion, line counting, PPE
+  check, loitering, people count per zone, known person, driver attention (head pose), multi-camera people count and
+  logistics volume alert. The engine examples carry a name and a description in your language too. A run lists the **events** the
   blocks fire (filter by node, event, track id, time; a row shows that moment of the result video; download as JSONL)
   and counts them on the nodes. **Live** runs the graph on a camera, an RTSP stream or a looping video until stopped,
   with the rendered view, FPS, time per node and events as they fire; one Live at a time, and leaving the page stops it.  
@@ -48,6 +50,9 @@ The module opens on a set of pages (top tabs):
   `user_logic/` that passes data through until you fill it in. The project builds and runs anywhere the DEEPX runtime
   is installed and gives the same events; it is kept under `outputs/dx_app/graph/exports/` (the newest five) and
   offered as a zip.  
+  With several sources the result is a grid, one cell per source; **Layers** show or hide each node's drawing in
+  every cell. The **Graph Composer tutorial** (Tutorial → Graph Composer) walks through all of the above; its results
+  and events steps show a recorded run, so the tour never starts the NPU or replaces unsaved work.  
 - **Lab** — advanced tools, each with a change preview before anything is written:  
     - **Add Model** — copies an existing example of a category (**Start from**) under a new name,
       in C++, Python or both. Run the Python copy with your own model:

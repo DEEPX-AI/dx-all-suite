@@ -29,6 +29,9 @@ Changes since the v0.1.0 beta manual. The version number and date are set at rel
 - DX App: the per-model example layout, **Run Demo** (26 demos on a shared stage), live
   Continuous runs with exact FPS, faster async runs (`DXRT_DYNAMIC_CPU_THREAD`), Model Zoo
   inference that runs each model's own example, and runner errors reported as errors.
+- DX App: **Graph Composer** replaces the Lab composer: several models and logic blocks in one graph, checked as you
+  edit, run once or Live with events, exported as a standalone C++ project; nine scenario templates with real NPU
+  results, every template and example named in six languages, and a guided tour.
 - DX Stream: Demo Launcher on the same stage with WebRTC or remote MJPEG playback; Setup as a
   step list; launches work on a board whose Stream contracts validate.
 - Model Zoo: nearly 500 models from the internal publish page, with real result images.

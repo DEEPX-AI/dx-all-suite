@@ -17,7 +17,7 @@ The module opens on a set of pages (top tabs):
   Python, Sync or Async).
 - **Benchmark** / **A/B Compare** — measure a model’s throughput and compare models side by side.
 - **ModelZoo** — download additional models into the app.
-- **Graph Composer** — connect several models and logic blocks (zones, lines, counts, conditions) into one pipeline, check it, see its NPU memory, run it once or Live with its events, keep it as a versioned project, and export it as a standalone C++ project with stubs for your own logic.
+- **Graph Composer** — connect several models and logic blocks (zones, lines, counts, conditions) into one pipeline, check it, see its NPU memory, run it once or Live with its events, keep it as a versioned project, and export it as a standalone C++ project with stubs for your own logic. Templates carry a scenario name in your language and a picture of a real NPU run; Tutorial → Graph Composer walks through every part.
 - **Lab** — Add Model, Create Task, Experiment and Safety Center.
 - **Outputs** — browse and manage saved inference results.
 - **Reference** — SDK documentation.
