@@ -475,3 +475,104 @@ def test_multi_slot_camera_streams_go_in_as_urls(tmp_path, monkeypatch):
     cmd = _live_cmd(tmp_path, monkeypatch, input_type="camera", camera_id=0, n_total_slots=2, slot_idx=1)
     url = next(a for a in cmd if a.startswith("udp://"))
     assert cmd[cmd.index(url) - 1] == "-r"
+
+
+@pytest.fixture()
+def graph_live_display(monkeypatch):
+    """A 320x180 Xvfb standing in for the graph Live's slot (graph_live.SLOT), no window on it yet."""
+    import os
+    if not shutil.which("Xvfb"):
+        pytest.skip("Xvfb not installed")
+    if camera._xlib() is None:
+        pytest.skip("libX11 not available")
+    from dx_app.core import graph_live
+    display = ":189"
+    proc = subprocess.Popen(["Xvfb", display, "-screen", "0", "320x180x24", "-nolisten", "tcp"],
+                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    try:
+        for _ in range(50):
+            if os.path.exists("/tmp/.X11-unix/X189"):
+                break
+            time.sleep(0.1)
+        else:
+            pytest.skip("Xvfb did not come up")
+        monkeypatch.setattr(camera, "_XVFB_BASE", 189 - graph_live.SLOT)
+        monkeypatch.setattr(camera, "_XVFB_RES", "320x180x24")
+        camera._live_view.pop(graph_live.SLOT, None)
+        yield display, graph_live.SLOT
+    finally:
+        camera._live_view.pop(graph_live.SLOT, None)
+        proc.terminate()
+        proc.wait(timeout=5)
+
+
+def _named_window(x, d, name, w, h, colour):
+    win = x.XCreateSimpleWindow(d, x.XDefaultRootWindow(d), 0, 0, w, h, 0, 0, colour)
+    x.XStoreName.argtypes = [__import__("ctypes").c_void_p, __import__("ctypes").c_ulong, __import__("ctypes").c_char_p]
+    x.XStoreName(d, win, name.encode())
+    x.XMapWindow(d, win)
+    x.XSync(d, 0)
+    return win
+
+
+def _size(x, d, win):
+    import ctypes
+    root, gx, gy = ctypes.c_ulong(), ctypes.c_int(), ctypes.c_int()
+    gw, gh, bw, depth = ctypes.c_uint(), ctypes.c_uint(), ctypes.c_uint(), ctypes.c_uint()
+    x.XGetGeometry(d, win, ctypes.byref(root), ctypes.byref(gx), ctypes.byref(gy), ctypes.byref(gw), ctypes.byref(gh),
+                   ctypes.byref(bw), ctypes.byref(depth))
+    return gw.value, gh.value
+
+
+def test_the_graph_live_window_fills_the_frame_from_its_first_frame(graph_live_display):
+    """dx_app's graph CLI opens its window ("multi_model_graph", cv::WINDOW_NORMAL) at Qt's default size and reads no
+    DXAPP_SCREEN_W/H. Until it exists the stream has no frame (not a black one); the grab that fits it gives none
+    either (it shows the small window), and the next one is the window filling the frame."""
+    display, slot = graph_live_display
+    assert camera.capture_live_frame(slot) is None, "no window yet: nothing to show"
+    x = camera._xlib()
+    d = x.XOpenDisplay(display.encode())
+    try:
+        # Qt makes unmapped helper windows before the one it shows; they are not the picture
+        hidden = x.XCreateSimpleWindow(d, x.XDefaultRootWindow(d), 0, 0, 1, 1, 0, 0, 0)
+        x.XSync(d, 0)
+        assert camera.capture_live_frame(slot) is None, "an unmapped window is not the runner's window"
+        _named_window(x, d, "multi_model_graph", 100, 75, 0x2060A0)
+        time.sleep(0.2)
+        assert camera.capture_live_frame(slot) is None, "the grab that fits the window shows it small: skipped"
+        time.sleep(0.2)
+        jpg = camera.capture_live_frame(slot)
+        assert jpg is not None
+        img = Image.open(__import__("io").BytesIO(jpg)).convert("RGB")
+        w, h = img.size
+        for px in ((2, 2), (w - 3, 2), (2, h - 3), (w - 3, h - 3), (w // 2, h // 2)):
+            r, g, b = img.getpixel(px)
+            assert abs(r - 0x20) < 24 and abs(g - 0x60) < 24 and abs(b - 0xA0) < 24, (px, (r, g, b))
+        assert _size(x, d, hidden) == (1, 1), "hidden windows are left as they are"
+    finally:
+        x.XCloseDisplay(d)
+
+
+def test_a_window_resized_later_is_fitted_again_within_a_second(graph_live_display):
+    """The several-source grid window can change its size after the first frames; the next fit (at most a second
+    later) brings it back and the stream skips the grab that shows it small."""
+    display, slot = graph_live_display
+    x = camera._xlib()
+    d = x.XOpenDisplay(display.encode())
+    try:
+        win = _named_window(x, d, "multi_model_graph", 320, 180, 0x2060A0)
+        time.sleep(0.2)
+        camera.capture_live_frame(slot)
+        time.sleep(0.1)
+        assert camera.capture_live_frame(slot) is not None
+        x.XMoveResizeWindow(d, win, 0, 0, 120, 90)
+        x.XSync(d, 0)
+        end, got = time.time() + 2.5, None
+        while time.time() < end:
+            got = camera.capture_live_frame(slot)
+            time.sleep(0.08)
+        img = Image.open(__import__("io").BytesIO(got)).convert("RGB")
+        r, g, b = img.getpixel((img.size[0] - 3, img.size[1] - 3))
+        assert abs(b - 0xA0) < 24, "the corner is the window again, not the black screen"
+    finally:
+        x.XCloseDisplay(d)

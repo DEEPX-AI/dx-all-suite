@@ -196,7 +196,9 @@ _LIVE_FRAME_MAX = (960, 540)
 _QT_CHROME = (239, 239, 239)
 _FIT_EVERY_S = 1.0
 _BOX_EVERY_S = 2.0
-_live_view = {}              # slot_idx -> {"fit_at": t, "box": (..)|None, "box_at": t}
+_SETTLE_S = 1.0              # after a fit, the window's content is measured again on every grab for this long
+# slot_idx -> {"fit_at": t, "fitted": windows at screen size, "settle_until": t, "box": (..)|None, "box_at": t}
+_live_view = {}
 _XLIB = None
 
 
@@ -213,6 +215,26 @@ def _load_lib(soname, short):
         return ctypes.cdll.LoadLibrary(name) if name else None
     except OSError:
         return None
+
+
+def _window_attributes_type():
+    import ctypes
+    c = ctypes
+
+    class XWindowAttributes(c.Structure):
+        """Xlib.h's XWindowAttributes (map_state tells a shown window from Qt's unmapped helper windows)."""
+        _fields_ = [("x", c.c_int), ("y", c.c_int), ("width", c.c_int), ("height", c.c_int),
+                    ("border_width", c.c_int), ("depth", c.c_int), ("visual", c.c_void_p), ("root", c.c_ulong),
+                    ("class_", c.c_int), ("bit_gravity", c.c_int), ("win_gravity", c.c_int),
+                    ("backing_store", c.c_int), ("backing_planes", c.c_ulong), ("backing_pixel", c.c_ulong),
+                    ("save_under", c.c_int), ("colormap", c.c_ulong), ("map_installed", c.c_int),
+                    ("map_state", c.c_int), ("all_event_masks", c.c_long), ("your_event_mask", c.c_long),
+                    ("do_not_propagate_mask", c.c_long), ("override_redirect", c.c_int), ("screen", c.c_void_p)]
+    return XWindowAttributes
+
+
+_XWindowAttributes = _window_attributes_type()
+_IS_VIEWABLE = 2
 
 
 def _xlib():
@@ -233,6 +255,7 @@ def _xlib():
     x.XGetGeometry.argtypes = [P, W, ctypes.POINTER(W), ctypes.POINTER(I), ctypes.POINTER(I),
                                ctypes.POINTER(U), ctypes.POINTER(U), ctypes.POINTER(U), ctypes.POINTER(U)]
     x.XMoveResizeWindow.argtypes = [P, W, I, I, U, U]
+    x.XGetWindowAttributes.argtypes = [P, W, ctypes.POINTER(_XWindowAttributes)]
     x.XCreateSimpleWindow.restype = W
     x.XCreateSimpleWindow.argtypes = [P, W, I, I, U, U, U, W, W]
     x.XMapWindow.argtypes = [P, W]
@@ -352,36 +375,46 @@ def _grab_screen(display):
 
 def _fit_windows(display, width, height):
     """Move the display's top-level windows to (0, 0, width, height). Returns how many windows have that size."""
+    return _fit_windows_ex(display, width, height)[0]
+
+
+def _fit_windows_ex(display, width, height):
+    """_fit_windows, as (windows fitted, of them moved or resized just now); (None, 0) when the display cannot be
+    asked (no libX11, display gone). Only shown (viewable) windows count: Qt makes unmapped helper windows first."""
     import ctypes
     x = _xlib()
     if x is None:
-        return 0
+        return None, 0
     d = x.XOpenDisplay(display.encode())
     if not d:
-        return 0
-    fitted = 0
+        return None, 0
+    fitted = resized = 0
     try:
         root, parent = ctypes.c_ulong(), ctypes.c_ulong()
         children, n = ctypes.POINTER(ctypes.c_ulong)(), ctypes.c_uint()
         if not x.XQueryTree(d, x.XDefaultRootWindow(d), ctypes.byref(root), ctypes.byref(parent),
                             ctypes.byref(children), ctypes.byref(n)):
-            return 0
+            return None, 0
         wins = [children[i] for i in range(n.value)]
         if n.value:
             x.XFree(children)
         gx, gy = ctypes.c_int(), ctypes.c_int()
         gw, gh, bw, depth = ctypes.c_uint(), ctypes.c_uint(), ctypes.c_uint(), ctypes.c_uint()
+        attrs = _XWindowAttributes()
         for w in wins:
+            if not x.XGetWindowAttributes(d, w, ctypes.byref(attrs)) or attrs.map_state != _IS_VIEWABLE:
+                continue
             if not x.XGetGeometry(d, w, ctypes.byref(root), ctypes.byref(gx), ctypes.byref(gy),
                                   ctypes.byref(gw), ctypes.byref(gh), ctypes.byref(bw), ctypes.byref(depth)):
                 continue
             if (gx.value, gy.value, gw.value, gh.value) != (0, 0, width, height):
                 x.XMoveResizeWindow(d, w, 0, 0, width, height)
+                resized += 1
             fitted += 1
         x.XFlush(d)
     finally:
         x.XCloseDisplay(d)
-    return fitted
+    return fitted, resized
 
 
 def _is_chrome(px):
@@ -452,17 +485,29 @@ def capture_live_frame(slot_idx=0):
         old_display = os.environ.get("DISPLAY")
         os.environ["DISPLAY"] = display
         try:
-            view = _live_view.setdefault(slot_idx, {"fit_at": 0.0, "box": None, "box_at": 0.0})
+            view = _live_view.setdefault(slot_idx, {"fit_at": 0.0, "fitted": 0, "settle_until": 0.0, "box": None,
+                                                    "box_at": 0.0})
             now = time.time()
-            if now - view["fit_at"] >= _FIT_EVERY_S:
+            # Until the runner's window exists it is looked for on every grab (dx_app's graph CLI opens it at Qt's
+            # default size and reads no DXAPP_SCREEN_W/H), then once a second (a window can change its size later).
+            if not view["fitted"] or now - view["fit_at"] >= _FIT_EVERY_S:
                 view["fit_at"] = now
                 w, h = (int(v) for v in _XVFB_RES.split("x")[:2])
-                _fit_windows(display, w, h)
+                fitted, resized = _fit_windows_ex(display, w, h)
+                if fitted is not None:
+                    view["fitted"] = fitted
+                    if not fitted:
+                        return None             # no window yet: no frame rather than a black one
+                    if resized:
+                        # this grab would show the window small; measure its content again once it is redrawn
+                        view.update(box=None, box_at=0.0, settle_until=now + _SETTLE_S)
+                        return None
             pil = _grab_screen(display)
             if pil is None:
                 return None
-            # The first grab right after stretching still shows the small window; if no video area was found, look again soon
-            if now - view["box_at"] >= (_BOX_EVERY_S if view["box"] else 0.5):
+            # Right after a fit Qt redraws the picture at the new size; until it settles, measure on every grab
+            settling = now < view["settle_until"]
+            if settling or now - view["box_at"] >= (_BOX_EVERY_S if view["box"] else 0.5):
                 view["box_at"] = now
                 view["box"] = _content_box(pil)
             return _frame_jpeg(pil, view["box"] or (0, 0, pil.width, pil.height))
