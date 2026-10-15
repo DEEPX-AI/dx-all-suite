@@ -1,4 +1,4 @@
-"""DX Edge server — the page, and the HTTP layer of the cloud compile API.
+"""DX Cloud server — the page, and the HTTP layer of the cloud compile API.
 
 AWS itself is replaced: the core functions are monkeypatched (their AWS behaviour is covered with
 botocore Stubber in test_aws_compile.py), so these tests pin routing, validation hand-off and the

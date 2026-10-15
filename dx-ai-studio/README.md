@@ -110,7 +110,7 @@ inference.
 | **DX Benchmark** | Browse and compare NPU throughput / latency / multi-stream results. → [guide](dx_benchmark/README.md) |
 | **DX Monitor** | Live NPU + system telemetry (temperature, clock, utilization, versions). → [guide](dx_monitor/README.md) |
 | **DX Agent Dev** | Describe an NPU app in natural language and have a coding agent build it. → [guide](dx_agent_dev/README.md) |
-| **DX Edge** | DEEPX on AWS Marketplace, and cloud ONNX → `.dxnn` compile on your DEEPX Compiler stack (optional `boto3`). → [guide](dx_edge/README.md) |
+| **DX Cloud** | DEEPX on AWS Marketplace, and cloud ONNX → `.dxnn` compile on your DEEPX Compiler stack (optional `boto3`). → [guide](dx_edge/README.md) |
 
 From the **hub** you can also open the **SDK Library** (DEEPX docs & brochures in-app),
 **About DEEPX**, switch **language** (6 locales), and jump to the DEEPX store.

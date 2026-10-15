@@ -13,7 +13,7 @@ requires-python = ">=3.8"
 dependencies = []
 
 [project.optional-dependencies]
-# DX Edge cloud compile talks to AWS through boto3. Optional: without it the DX Edge page still
+# DX Cloud compile talks to AWS through boto3. Optional: without it the DX Cloud page still
 # loads and shows an install hint; nothing else in the studio needs it.
 aws = ["boto3"]
 

@@ -1,4 +1,4 @@
-"""DX Edge cloud compile — core logic against stubbed AWS (botocore Stubber, no network).
+"""DX Cloud compile — core logic against stubbed AWS (botocore Stubber, no network).
 
 The flow under test is the DEEPX Compiler Solution stack's: upload <model>.onnx and <model>.json
 to the same prefix of the stack's ModelBucketName, a Lambda starts the Step Functions workflow,

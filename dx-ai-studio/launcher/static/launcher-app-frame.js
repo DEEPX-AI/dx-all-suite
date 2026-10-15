@@ -874,7 +874,7 @@
     benchmark: 'Benchmark',
     dx_monitor: 'Monitor',
     agent: 'Agent Dev',
-    edge: 'Edge',
+    edge: 'Cloud',
     'sdk-library': 'SDK Library',
     about: 'About',
   };
@@ -901,7 +901,7 @@
     benchmark: { en: 'Benchmark', ko: 'Benchmark', ja: 'ベンチマーク', 'zh-CN': 'Benchmark', 'zh-TW': 'Benchmark', es: 'Benchmark' },
     dx_monitor: { en: 'Monitor', ko: 'Monitor', ja: 'モニター', 'zh-CN': '监控', 'zh-TW': '監控', es: 'Monitor' },
     agent: { en: 'Agent Dev', ko: 'Agent Dev', ja: 'Agent Dev', 'zh-CN': 'Agent Dev', 'zh-TW': 'Agent Dev', es: 'Agent Dev' },
-    edge: { en: 'Edge', ko: 'Edge', ja: 'Edge', 'zh-CN': 'Edge', 'zh-TW': 'Edge', es: 'Edge' },
+    edge: { en: 'Cloud', ko: 'Cloud', ja: 'Cloud', 'zh-CN': 'Cloud', 'zh-TW': 'Cloud', es: 'Cloud' },
     'sdk-library': { en: 'SDK Library', ko: 'SDK 라이브러리', ja: 'SDK ライブラリ', 'zh-CN': 'SDK 库', 'zh-TW': 'SDK 庫', es: 'Biblioteca SDK' },
     about: { en: 'About DEEPX', ko: 'DEEPX 소개', ja: 'DEEPXについて', 'zh-CN': '关于 DEEPX', 'zh-TW': '關於 DEEPX', es: 'Acerca de DEEPX' },
   };
@@ -914,7 +914,7 @@
     benchmark: { en: 'DX Benchmark', ko: 'DX Benchmark', ja: 'DX Benchmark', 'zh-CN': 'DX Benchmark', 'zh-TW': 'DX Benchmark', es: 'DX Benchmark' },
     dx_monitor: { en: 'DX Monitor', ko: 'DX Monitor', ja: 'DX Monitor', 'zh-CN': 'DX Monitor', 'zh-TW': 'DX Monitor', es: 'DX Monitor' },
     agent: { en: 'DX Agent Dev', ko: 'DX Agent Dev', ja: 'DX Agent Dev', 'zh-CN': 'DX Agent Dev', 'zh-TW': 'DX Agent Dev', es: 'DX Agent Dev' },
-    edge: { en: 'DX Edge', ko: 'DX Edge', ja: 'DX Edge', 'zh-CN': 'DX Edge', 'zh-TW': 'DX Edge', es: 'DX Edge' },
+    edge: { en: 'DX Cloud', ko: 'DX Cloud', ja: 'DX Cloud', 'zh-CN': 'DX Cloud', 'zh-TW': 'DX Cloud', es: 'DX Cloud' },
     'sdk-library': MODULE_LABEL_MATRIX['sdk-library'],
     about: MODULE_LABEL_MATRIX.about,
   };
@@ -965,7 +965,7 @@
     statusLabelBenchmark: 'Benchmark',
     statusLabelMonitor: 'Monitor',
     statusLabelAgent: 'Agent',
-    statusLabelEdge: 'Edge',
+    statusLabelEdge: 'Cloud',
   };
   var STATUS_DOT_CONFIG = [
     { labelId: 'statusLabelApp', label: STATUS_DOT_LABELS.statusLabelApp },
@@ -1305,7 +1305,7 @@
       app: 'DX App', stream: 'DX Stream',
       zoo: 'DX Model Zoo', compiler: 'DX Compiler', planner: 'DX EdgeGuide',
       benchmark: 'DX Benchmark', dx_monitor: 'DX Monitor',
-      agent: 'DX Agent Dev', edge: 'DX Edge'
+      agent: 'DX Agent Dev', edge: 'DX Cloud'
     };
     return names[appKey] || appKey;
   }

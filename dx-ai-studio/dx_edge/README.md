@@ -1,4 +1,4 @@
-# DX Edge
+# DX Cloud
 
 DEEPX on AWS: links to the two AWS Marketplace products (DEEPX Compiler Solution, DEEPX
 Greengrass Solution) and **Cloud Compile** — ONNX → `.dxnn` on a DEEPX Compiler

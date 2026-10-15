@@ -1,4 +1,4 @@
-/* DX Edge — Cloud Compile panel. Talks to dx_edge/server.py; AWS calls happen server-side only. */
+/* DX Cloud — Cloud Compile panel. Talks to dx_edge/server.py; AWS calls happen server-side only. */
 (function () {
   'use strict';
 

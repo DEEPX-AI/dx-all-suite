@@ -121,7 +121,7 @@ _DISPLAY_NAME_TO_CANONICAL = {
     "DX Benchmark": "dx_benchmark",
     "DX Monitor": "dx_monitor",
     "DX Agent Dev": "dx_agent_dev",
-    "DX Edge": "dx_edge",
+    "DX Cloud": "dx_edge",
 }
 
 _CANONICAL_TO_DISPLAY_NAME = {v: k for k, v in _DISPLAY_NAME_TO_CANONICAL.items()}
@@ -1922,7 +1922,7 @@ def main():
         "DX Benchmark": BENCHMARK_PORT,
         "DX Monitor": MONITOR_PORT,
         "DX Agent Dev": AGENT_PORT,
-        "DX Edge": EDGE_PORT,
+        "DX Cloud": EDGE_PORT,
     }
 
     from .boot_animation import show_logo, show_boot_progress, show_system_check, show_completion_banner
@@ -2016,7 +2016,7 @@ def main():
         ("DX Benchmark", BENCHMARK_DIR, "dx_benchmark"),
         ("DX Monitor",   MONITOR_DIR,   "dx_monitor"),
         ("DX Agent Dev", AGENT_DIR,     "dx_agent_dev"),
-        ("DX Edge",      EDGE_DIR,      "dx_edge"),
+        ("DX Cloud",      EDGE_DIR,      "dx_edge"),
     ]
     for _name, _dir, _sid in _SUBS:
         start_sub_server(_name, _dir, server_id=_sid)

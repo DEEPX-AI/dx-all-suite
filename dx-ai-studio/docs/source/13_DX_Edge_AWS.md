@@ -1,4 +1,4 @@
-# DX Edge (AWS)
+# DX Cloud (AWS)
 
 DEEPX on AWS from inside the studio: the two AWS Marketplace products, and a **Cloud
 Compile** panel that turns an `.onnx` model into a `.dxnn` on a DEEPX Compiler stack you
@@ -21,7 +21,7 @@ The full walkthrough — stack parameters, ZTP checks, cost and cleanup — is i
 
 ## Cloud Compile
 
-Step 1. Pick an **AWS profile** and a **region** (default `ap-northeast-2`). DX Edge uses the
+Step 1. Pick an **AWS profile** and a **region** (default `ap-northeast-2`). DX Cloud uses the
    AWS CLI credentials on this machine (`aws configure` or `aws sso login`); it never asks
    for, stores or returns access keys.  
 

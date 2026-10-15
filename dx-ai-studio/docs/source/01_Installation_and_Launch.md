@@ -105,7 +105,7 @@ See **[The Hub](02_The_Hub.md)** for details on all nine tools and navigation.
 **🚀 Development:**
 
 - **[Agent Dev](10_DX_Agent_Dev.md)** — Generate NPU apps from natural language
-- **[DX Edge](13_DX_Edge_AWS.md)** — Compile on AWS and deploy to edge devices
+- **[DX Cloud](13_DX_Edge_AWS.md)** — Compile on AWS and deploy to edge devices
 
 **📚 Reference:**
 

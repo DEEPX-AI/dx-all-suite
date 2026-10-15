@@ -31,7 +31,7 @@ BRAND_TERMS = {
     "DX Benchmark",
     "DX Monitor",
     "DX Agent Dev",
-    "DX Edge",
+    "DX Cloud",
     "DX All Suite",
     "DX Runtime",
     "DX Firmware",

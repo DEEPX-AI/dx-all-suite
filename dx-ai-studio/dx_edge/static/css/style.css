@@ -1,4 +1,4 @@
-/* DX Edge – module-local layout (shared foundation loaded via HTML) */
+/* DX Cloud – module-local layout (shared foundation loaded via HTML) */
 .edge-main{max-width:1100px;margin:0 auto;padding:var(--sp-5) var(--sp-4) var(--sp-7)}
 .edge-section + .edge-section{margin-top:var(--sp-6)}
 .edge-section-title{margin:0 0 var(--sp-3);font-size:var(--fs-lg);color:var(--text-primary)}

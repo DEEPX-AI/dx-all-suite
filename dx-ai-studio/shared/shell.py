@@ -31,8 +31,8 @@ MODULES: tuple[Module, ...] = (
     Module("bench", "DX Benchmark", "bench", "/benchmark/"),
     Module("monitor", "DX Monitor", "monitor", "/dx_monitor/"),
     Module("agent", "DX Agent Dev", "agent", "/agent/"),
-    # "edge" is taken by DX EdgeGuide (dx_planner), so DX Edge is "cloud" here.
-    Module("cloud", "DX Edge", "cloud", "/edge/"),
+    # "edge" is taken by DX EdgeGuide (dx_planner), so DX Cloud is "cloud" here.
+    Module("cloud", "DX Cloud", "cloud", "/edge/"),
 )
 
 _BY_KEY = {m.key: m for m in MODULES}

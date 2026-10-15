@@ -51,7 +51,7 @@ COMMON_RULES: list[tuple[list[str], dict[str, str]]] = [
                   "- **DX Monitor** — NPU · 시스템 실시간 상태\n"
                   "- **DX EdgeGuide** — 작업에 맞는 보드 · 호스트 추천\n"
                   "- **DX Agent Dev** — 자연어로 NPU 앱 만들기\n"
-                  "- **DX Edge** — AWS 클라우드 컴파일과 엣지 배포",
+                  "- **DX Cloud** — AWS 클라우드 컴파일과 엣지 배포",
             "en": "**DX AI Studio** key features:\n"
                   "- **DX App** — real-time NPU inference, demos, model comparison\n"
                   "- **DX Stream** — GStreamer video pipelines and demos\n"
@@ -61,7 +61,7 @@ COMMON_RULES: list[tuple[list[str], dict[str, str]]] = [
                   "- **DX Monitor** — live NPU and system status\n"
                   "- **DX EdgeGuide** — board and host recommendation for a workload\n"
                   "- **DX Agent Dev** — build NPU apps in natural language\n"
-                  "- **DX Edge** — AWS cloud compile and edge deployment",
+                  "- **DX Cloud** — AWS cloud compile and edge deployment",
             "ja": "**DX AI Studio** の主な機能:\n"
                   "- **DX App** — NPU リアルタイム推論、デモ実行、モデル比較\n"
                   "- **DX Stream** — GStreamer 映像パイプラインとデモ\n"
@@ -71,7 +71,7 @@ COMMON_RULES: list[tuple[list[str], dict[str, str]]] = [
                   "- **DX Monitor** — NPU とシステムのリアルタイム状態\n"
                   "- **DX EdgeGuide** — ワークロードに合うボードとホストの推奨\n"
                   "- **DX Agent Dev** — 自然言語で NPU アプリを作成\n"
-                  "- **DX Edge** — AWS クラウドコンパイルとエッジデプロイ",
+                  "- **DX Cloud** — AWS クラウドコンパイルとエッジデプロイ",
             "zh-CN": "**DX AI Studio** 主要功能:\n"
                      "- **DX App** — NPU 实时推理、演示运行、模型对比\n"
                      "- **DX Stream** — GStreamer 视频管道与演示\n"
@@ -81,7 +81,7 @@ COMMON_RULES: list[tuple[list[str], dict[str, str]]] = [
                      "- **DX Monitor** — NPU 与系统实时状态\n"
                      "- **DX EdgeGuide** — 按工作负载推荐开发板与主机\n"
                      "- **DX Agent Dev** — 用自然语言构建 NPU 应用\n"
-                     "- **DX Edge** — AWS 云端编译与边缘部署",
+                     "- **DX Cloud** — AWS 云端编译与边缘部署",
             "zh-TW": "**DX AI Studio** 主要功能:\n"
                      "- **DX App** — NPU 即時推論、示範執行、模型比較\n"
                      "- **DX Stream** — GStreamer 影像管線與示範\n"
@@ -91,7 +91,7 @@ COMMON_RULES: list[tuple[list[str], dict[str, str]]] = [
                      "- **DX Monitor** — NPU 與系統即時狀態\n"
                      "- **DX EdgeGuide** — 依工作負載推薦開發板與主機\n"
                      "- **DX Agent Dev** — 用自然語言建立 NPU 應用程式\n"
-                     "- **DX Edge** — AWS 雲端編譯與邊緣部署",
+                     "- **DX Cloud** — AWS 雲端編譯與邊緣部署",
             "es": "Funciones principales de **DX AI Studio**:\n"
                   "- **DX App** — inferencia NPU en tiempo real, demos y comparación de modelos\n"
                   "- **DX Stream** — pipelines de video GStreamer y demos\n"
@@ -101,7 +101,7 @@ COMMON_RULES: list[tuple[list[str], dict[str, str]]] = [
                   "- **DX Monitor** — estado en vivo de la NPU y del sistema\n"
                   "- **DX EdgeGuide** — recomendación de placa y host para una carga de trabajo\n"
                   "- **DX Agent Dev** — cree apps para NPU en lenguaje natural\n"
-                  "- **DX Edge** — compilación en AWS y despliegue edge",
+                  "- **DX Cloud** — compilación en AWS y despliegue edge",
         },
     ),
 ]

@@ -1,4 +1,4 @@
-"""DX Edge page — every visible string is translated, and JS-written text repaints on a language change.
+"""DX Cloud page — every visible string is translated, and JS-written text repaints on a language change.
 
 Static contracts (source text only, no browser).
 """

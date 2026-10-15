@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""DX Edge web server — port 8100.
+"""DX Cloud web server — port 8100.
 
 DEEPX on AWS: the AWS Marketplace entry points (DEEPX Compiler Solution, DEEPX Greengrass
 Solution) and a cloud ONNX → DXNN compile through a deployed DEEPX Compiler stack.
@@ -14,7 +14,7 @@ from dx_edge.core import aws_compile as ac
 DEFAULT_PORT = 8100
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 TEMPLATES_DIR = Path(__file__).resolve().parent / "templates"
-SERVER_NAME = "DX Edge"
+SERVER_NAME = "DX Cloud"
 
 # A single screen, so there is no tab row — the template root carries .dx-shell--no-tabs.
 DX_EDGE_SHELL = ShellSpec(module_key="cloud")
@@ -27,7 +27,7 @@ def _models_dir():
 
 
 class DXEdgeHandler(DXBaseHandler):
-    """DX Edge HTTP request handler."""
+    """DX Cloud HTTP request handler."""
 
     server_name = SERVER_NAME
     static_dir = STATIC_DIR

@@ -44,7 +44,7 @@ def test_launcher_state_registers_exact_nine_release_modules():
 
     html = read("launcher/static/index.html")
     for name in ("App", "Stream", "Model Zoo", "Compiler",
-                 "EdgeGuide", "Benchmark", "Monitor", "Agent Dev", "Edge"):
+                 "EdgeGuide", "Benchmark", "Monitor", "Agent Dev", "Cloud"):
         assert ">" + name + "<" in html, f"{name} is missing from the home's list"
     assert "DX Sandbox" not in html
 
@@ -133,5 +133,5 @@ def test_the_offline_assistant_does_not_offer_the_excluded_sandbox():
     help_rule = COMMON_RULES[1][1]
     for lang, text in help_rule.items():
         for module in ("DX App", "DX Stream", "DX Model Zoo", "DX Compiler", "DX Benchmark", "DX Monitor",
-                       "DX EdgeGuide", "DX Agent Dev", "DX Edge"):
+                       "DX EdgeGuide", "DX Agent Dev", "DX Cloud"):
             assert module in text, f"{lang}: {module} 이 도움말에 없다"
