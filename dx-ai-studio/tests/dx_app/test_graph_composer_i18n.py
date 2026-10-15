@@ -213,7 +213,35 @@ def test_the_font_subsets_draw_every_glyph_of_the_logic_texts(op_texts):
 # Error keys of the graph routes that the page shows through the dictionary (translatedError: the key's text, then the
 # server's English message), not through a sentence of its own in graph-run.js / graph-live.js / graph-inspector.js.
 DICTIONARY_ERROR_KEYS = ("invalid_stream", "gallery_exists", "gallery_outside_roots", "frame_too_large",
-                         "gallery_busy", "invalid_folder", "invalid_slot")
+                         "gallery_busy", "invalid_folder", "invalid_slot",
+                         # Phase 3: the export's refusals (graph_export.py and dx_app's exporter)
+                         "export_busy", "export_name_invalid", "export_failed", "model_file_missing",
+                         "model_unknown", "model_not_ready", "user_name_invalid", "user_kind_invalid",
+                         "user_kind_conflict", "input_missing", "gallery_missing", "graph_unreadable",
+                         "invalid_input", "path_leak")
+
+# Phase 3: the strings graph-export.js and the export button show (graph-export.js is checked by
+# test_every_composer_string_covers_every_language as soon as it exists, Task 7).
+EXPORT_STRINGS = ("Export C++ project", "Project folder name",
+                  "Letters, digits, _ and -, starting with a letter (at most 48).",
+                  "Include the model files ({size})",
+                  "Without them, setup.sh downloads the models from the DEEPX Model Zoo.",
+                  "User logic stubs to fill in", "for node {nodes} (input: {kind})",
+                  "The project holds the graph, the engine with only these models, a main.cpp, setup.sh, run.sh and a "
+                  "README. It builds and runs anywhere the DEEPX runtime is installed.",
+                  "Exporting…", "Exported to {folder}", "Download .zip ({size})", "Build and run it:",
+                  "This dx_app build cannot export projects. Update dx_app to use it.",
+                  "Not enough disk space: the export needs {need} and {free} is free.", "The export failed.",
+                  "Reading what the export will hold…", "No User logic block: the project runs the graph as it is.",
+                  "Export needs a graph without problems and a dx_app that can export projects.", "Close")
+
+
+@pytest.mark.parametrize("key", EXPORT_STRINGS)
+def test_the_export_strings_read_in_every_language(key):
+    entry = dict_entry(key)
+    lacking = [lang for lang in TARGET_LANGS if f"{lang}:" not in entry and f"'{lang}':" not in entry]
+    assert entry and not lacking, (key, lacking)
+    assert not [w for w in _P2_HANGUL_SPELLINGS if w in _ko(entry)], _ko(entry)
 
 
 @pytest.mark.parametrize("key", DICTIONARY_ERROR_KEYS)
