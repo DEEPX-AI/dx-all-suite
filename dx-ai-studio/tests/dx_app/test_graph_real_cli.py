@@ -143,7 +143,11 @@ def test_a_logic_template_runs_live_on_a_looping_video(tmp_path, monkeypatch):
             time.sleep(1)
         assert p["running"] and p["frames"] >= 30 and p["fps"], p
         assert p["event_total"] >= 1, "events reach the poll while it runs"
-        frame = graph_live.frame(body["job_id"])
+        # The first grab fits the runner's window to the screen and gives none (it would show the window small)
+        end, frame = time.time() + 5, None
+        while time.time() < end and not frame:
+            frame = graph_live.frame(body["job_id"])
+            time.sleep(0.1)
         assert frame and frame[:2] == b"\xff\xd8", "a JPEG of the runner's window"
     finally:
         graph_live.stop(body["job_id"])
