@@ -4484,6 +4484,11 @@ window._DX_I18N_DICT = {
     es: 'Ranura de en vivo no válida',
   },
   // error keys of the graph run, frame and Live routes (graph_run.py, graph_frame.py, graph_live.py, graph_ops.py)
+  'invalid_stream': {
+    ko: 'stream은 그래프의 소스 중 하나여야 합니다', ja: 'ストリームはグラフのソースのいずれかである必要があります',
+    'zh-CN': '视频流必须是图中的某个输入源', 'zh-TW': '串流必須是圖中的某個輸入來源',
+    es: 'La transmisión debe ser una de las fuentes del grafo',
+  },
   'no_source': {
     ko: '그래프에 소스가 없습니다', ja: 'グラフにソースがありません',
     'zh-CN': '图中没有输入源', 'zh-TW': '圖中沒有輸入來源',

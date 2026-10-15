@@ -611,3 +611,33 @@ def test_a_run_remembers_its_graph_and_inputs_for_a_later_frame(studio, monkeypa
     saved = json.loads((config.OUTPUTS_DIR / "graph" / "runs" / jid / "run.json").read_text())
     assert saved["graph"] == FANOUT and saved["variant"] == "async"
     assert saved["inputs"]["cam"].endswith(f"{jid}/input_cam.png")
+
+
+def test_a_result_that_cannot_be_read_still_ends_the_run(studio, monkeypatch):
+    """Whatever goes wrong reading the result, the run ends with a failed result: `Layers for this frame` waits for
+    it (graph_run.wait) and would otherwise hold a server thread for good."""
+    graph_fakes.install(studio, monkeypatch, RUNNER)
+
+    def broken(*a, **k):
+        raise RuntimeError("report unreadable")
+    monkeypatch.setattr(graph_run, "summarize_report", broken)
+    body, _ = graph_run.start(GRAPH)
+    p = _wait(body["job_id"])
+    assert p["running"] is False
+    r = graph_run.result(body["job_id"])
+    assert r["ok"] is False and r["exit_code"] == 0 and r["run_id"] == body["job_id"]
+    assert r["errors"][0]["code"] == "RESULT_UNREADABLE" and "report unreadable" in r["errors"][0]["what"]
+
+
+def test_wait_gives_up_once_the_stop_has_had_its_time(studio, monkeypatch):
+    """A run whose result never comes (its waiter died) does not block wait() past timeout + stop grace + margin."""
+    graph_fakes.install(studio, monkeypatch, RUNNER)
+    monkeypatch.setenv("SLEEP", "30")
+    monkeypatch.setattr(graph_run, "_wait", lambda job: None)          # nobody will ever set the result
+    monkeypatch.setattr(graph_run, "_STOP_GRACE", 0.3)
+    monkeypatch.setattr(graph_run, "_WAIT_MARGIN", 0.3)
+    body, _ = graph_run.start(GRAPH)
+    t0 = time.time()
+    r = graph_run.wait(body["job_id"], 0.2)
+    assert time.time() - t0 < 3, "bounded"
+    assert r["ok"] is False and r["errors"][0]["code"] == "RESULT_TIMEOUT", r

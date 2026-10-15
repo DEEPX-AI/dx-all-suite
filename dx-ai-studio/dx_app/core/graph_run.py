@@ -43,6 +43,7 @@ from dx_app.core.graph_validate import engine_graph, parse_errors
 
 _JOB_TTL = 600.0
 _STOP_GRACE = 5.0
+_WAIT_MARGIN = 10.0                  # wait(): past timeout + _STOP_GRACE, how long a stopped run may take to report
 _MAX_RUN_SECONDS = float(os.environ.get("DX_GRAPH_RUN_MAX_SECONDS") or 600)
 _MAX_LOG_BYTES = 8 * 1024 * 1024
 _POLL_READ_BYTES = 256 * 1024       # of the log per poll, from where the last poll stopped
@@ -526,6 +527,25 @@ def _wait(job: dict) -> None:
             job["stop_reason"] = reason
             threading.Thread(target=_terminate, args=(proc,), daemon=True).start()
     npu_jobs.release(job["id"])
+    result = None
+    try:
+        result = _result_of(job, code, log_path)
+    except Exception as e:                      # graph_frame.inspect waits for a result: there is always one
+        result = {"ok": False, "exit_code": code, "run_id": job["id"], "outputs": [], "frames": 0, "error_frames": 0,
+                  "fps": None, "avg_fps": None, "node_ms": {}, "nodes": {}, "log_tail": "",
+                  "elapsed": round(time.time() - job["start"], 1), "events": [], "event_total": 0,
+                  "event_counts": {}, "events_truncated": False, "events_url": None, "events_partial": False,
+                  "errors": [{"code": "RESULT_UNREADABLE", "where": "graph", "node": None, "edge": None,
+                              "what": f"the run ended, but its result could not be read: {e}",
+                              "how": "run the graph again; the run folder's run.log has the runner's output"}]}
+    finally:
+        with _lock:
+            job["result"] = result or {"ok": False, "exit_code": code, "run_id": job["id"], "errors": []}
+            job["touched"] = time.time()
+
+
+def _result_of(job: dict, code, log_path: Path) -> dict:
+    """The result of a run that has exited: its outputs, report, last progress, errors and events."""
     job["log"].close()
     d = job["dir"]
     log = _read_tail(log_path, _RESULT_LOG_BYTES)
@@ -547,9 +567,7 @@ def _wait(job: dict) -> None:
               "node_ms": report["node_ms"] or last.get("node_ms") or {}, "nodes": report["nodes"],
               "errors": errors, "log_tail": log[-4000:], "elapsed": round(time.time() - job["start"], 1),
               **events_of(d, log, log_cut)}
-    with _lock:
-        job["result"] = result
-        job["touched"] = time.time()
+    return result
 
 
 def poll(job_id: str, events_after=0) -> dict:
@@ -610,15 +628,24 @@ def result(job_id: str) -> dict:
 
 def wait(job_id: str, timeout: float) -> dict:
     """Block until a run ends and hand out its result, as result() does (graph_frame.inspect). A run still going
-    after `timeout` seconds is stopped (SIGTERM, then SIGKILL) and its result handed out once it has ended."""
-    end, stopped = time.time() + timeout, False
+    after `timeout` seconds is stopped (SIGTERM, then SIGKILL) and its result handed out once it has ended. Bounded:
+    with no result timeout + _STOP_GRACE + _WAIT_MARGIN seconds in, a failed result (RESULT_TIMEOUT) is returned."""
+    start = time.time()
+    end, give_up, stopped = start + timeout, start + timeout + _STOP_GRACE + _WAIT_MARGIN, False
     while True:
         r = result(job_id)
         if not r.get("running"):
             return r
-        if not stopped and time.time() > end:
+        now = time.time()
+        if not stopped and now > end:
             stop(job_id)
             stopped = True
+        if now > give_up:
+            return {"ok": False, "exit_code": None, "run_id": job_id, "outputs": [], "log_tail": "",
+                    "errors": [{"code": "RESULT_TIMEOUT", "where": "graph", "node": None, "edge": None,
+                                "what": f"the run gave no result {timeout + _STOP_GRACE + _WAIT_MARGIN:g} s after "
+                                        "it started and was given up",
+                                "how": "try again; if it happens again, restart Studio"}]}
         time.sleep(0.05)
 
 
