@@ -97,7 +97,7 @@ def test_every_logic_template_checks_clean():
     templates = [e for e in graph_catalog.examples() if e["logic"]]
     if not templates:
         pytest.skip("this dx_app has no logic samples yet")
-    assert len(templates) == 6
+    assert len(templates) == 9
     for ex in templates:
         r = graph_validate.validate(ex["graph"])
         assert r["errors"] == [], (ex["id"], r["errors"])

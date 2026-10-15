@@ -109,12 +109,16 @@ def test_examples_are_the_sample_graphs(tmp_path, monkeypatch):
     assert (ex["nodes"], ex["edges"]) == (3, 2) and ex["graph"] == g
 
 
-def test_the_installed_dx_app_ships_nineteen_examples():
+def test_the_installed_dx_app_ships_twenty_two_examples():
     d = config.DX_APP_ROOT / "src" / "cpp_example" / "multi_model_graph"
     if not d.is_dir():
         pytest.skip("dx_app is not checked out next to the studio")
-    names = {e["name"] for e in graph_catalog.examples()}
-    assert len(names) == 19 and "person-attributes" in names and "zone-intrusion" in names
+    ex = {e["id"]: e for e in graph_catalog.examples()}
+    assert len(ex) == 22 and ex["cascade_od_attr"]["name"] == "person-attributes"
+    assert sum(e["logic"] for e in ex.values()) == 9
+    assert ex["driver_attention"]["ops"] == ["condition"] and ex["driver_attention"]["models"] == ["scrfd-500m_640x640"]
+    assert ex["multistream_people_count"]["ops"] == ["condition", "count"]
+    assert ex["logistics_volume_alert"]["ops"] == ["condition"] and len(ex["logistics_volume_alert"]["models"]) == 3
 
 
 def test_the_listing_maps_names_and_aliases_to_their_files():
