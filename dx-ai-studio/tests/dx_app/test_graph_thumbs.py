@@ -40,3 +40,38 @@ def test_every_example_whose_models_are_installed_is_run_and_the_rest_named():
     assert skipped == [("dms_headpose", ["headpose", "scrfd_500m"])]
     run, skipped = thumbs.plan(examples, installed={"yolov8-n_640x640"}, only=["zone_intrusion"])
     assert [e["id"] for e in run] == ["zone_intrusion"] and skipped == []
+
+
+def _png(w, h, rgb):
+    buf = io.BytesIO()
+    Image.new("RGB", (w, h), rgb).save(buf, format="PNG")
+    return buf.getvalue()
+
+
+def test_one_result_is_the_plain_thumbnail():
+    one = _png(640, 360, (200, 30, 30))
+    assert thumbs.tile([one]) == thumbs.make_thumb(one)
+
+
+def test_two_sources_sit_side_by_side_like_the_results_view():
+    out = Image.open(io.BytesIO(thumbs.tile([_png(640, 640, (200, 30, 30)), _png(1920, 1080, (30, 30, 200))])))
+    assert out.format == "JPEG" and out.size == (320, 180)
+    left, right = out.getpixel((40, 90)), out.getpixel((280, 90))
+    assert left[0] > 150 and left[2] < 80, left
+    assert right[2] > 150 and right[0] < 80, right
+
+
+def test_three_or_four_sources_make_a_two_by_two_grid():
+    colours = [(200, 30, 30), (30, 200, 30), (30, 30, 200)]
+    out = Image.open(io.BytesIO(thumbs.tile([_png(320, 180, c) for c in colours])))
+    assert out.size == (320, 180)
+    assert out.getpixel((40, 40))[0] > 150       # top left: the first source
+    assert out.getpixel((280, 40))[1] > 150      # top right: the second
+    assert out.getpixel((40, 140))[2] > 150      # bottom left: the third
+    assert max(out.getpixel((280, 140))) < 60    # bottom right: empty
+
+
+def test_past_four_sources_the_first_four_are_shown():
+    pics = [_png(64, 36, (200, 30, 30))] * 4 + [_png(64, 36, (30, 200, 30))]
+    out = Image.open(io.BytesIO(thumbs.tile(pics)))
+    assert out.getpixel((280, 140))[0] > 150

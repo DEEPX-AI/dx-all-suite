@@ -3,8 +3,9 @@ the engine examples).
 
 Runs each example whose models are installed once on the NPU through dx_app/core/graph_run.py (the real graph
 binary, the graph's own sample input, one frame) and writes its rendered result, cropped to 16:9 and scaled to
-320x180, to dx_app/static/img/graph-examples/<id>.jpg; an example with a model missing is named and left out. The
-palette shows it (graph_catalog._thumb) unless dx_app ships its own <id>.jpg next to the graph.
+320x180, to dx_app/static/img/graph-examples/<id>.jpg; an example with a model missing is named and left out. A
+run of several sources becomes a grid, one cell per source, as the results view lays them out. The palette shows it
+(graph_catalog._thumb) unless dx_app ships its own <id>.jpg next to the graph.
 
     .venv/bin/python -m scripts.build_graph_thumbs [--only <id> ...]
 
@@ -20,6 +21,8 @@ from pathlib import Path
 
 SIZE = (320, 180)
 QUALITY = 80
+GAP = 2                       # px between the cells of a grid thumbnail
+BACKDROP = (16, 16, 16)       # an empty cell of a 2x2 grid
 
 
 def make_thumb(data: bytes, size=SIZE) -> bytes:
@@ -30,6 +33,27 @@ def make_thumb(data: bytes, size=SIZE) -> bytes:
     out = io.BytesIO()
     ImageOps.fit(img.convert("RGB"), size, Image.Resampling.LANCZOS).save(out, format="JPEG", quality=QUALITY,
                                                                           optimize=True)
+    return out.getvalue()
+
+
+def tile(pictures: list, size=SIZE) -> bytes:
+    """A thumbnail of a run's results laid out as the results view lays out its cells (graph-results.js): one
+    picture fills it, two sit side by side, three or four make a 2x2 grid; past four, the first four. Each cell is
+    its picture cropped around its centre."""
+    from PIL import Image, ImageOps
+    pics = list(pictures)[:4]
+    if len(pics) == 1:
+        return make_thumb(pics[0], size)
+    cols, rows = (2, 1) if len(pics) == 2 else (2, 2)
+    w, h = (size[0] - GAP * (cols - 1)) // cols, (size[1] - GAP * (rows - 1)) // rows
+    canvas = Image.new("RGB", size, BACKDROP)
+    for i, data in enumerate(pics):
+        img = Image.open(io.BytesIO(data))
+        img.load()
+        cell = ImageOps.fit(img.convert("RGB"), (w, h), Image.Resampling.LANCZOS)
+        canvas.paste(cell, ((i % cols) * (w + GAP), (i // cols) * (h + GAP)))
+    out = io.BytesIO()
+    canvas.save(out, format="JPEG", quality=QUALITY, optimize=True)
     return out.getvalue()
 
 
@@ -89,9 +113,9 @@ def main(argv=None) -> int:
             failed += 1
             print(f"FAIL {ex['id']}: {(r.get('errors') or [{}])[0]}")
             continue
-        src = Path(config.OUTPUTS_DIR) / outputs[0]["url"][len("/outputs/"):]
+        pictures = [result_picture(Path(config.OUTPUTS_DIR) / o["url"][len("/outputs/"):]) for o in outputs]
         dst = out_dir / f"{ex['id']}.jpg"
-        dst.write_bytes(make_thumb(result_picture(src)))
+        dst.write_bytes(tile(pictures))
         print(f"ok   {ex['id']}: {dst.relative_to(Path(__file__).resolve().parents[1])} ({dst.stat().st_size} bytes)")
     return 1 if failed else 0
 
