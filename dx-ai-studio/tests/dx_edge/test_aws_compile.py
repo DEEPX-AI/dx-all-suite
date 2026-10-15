@@ -65,7 +65,7 @@ def aws(monkeypatch, tmp_path):
             aws_access_key_id=FAKE_KEY_ID,
             aws_secret_access_key=FAKE_SECRET,
         )
-        for svc in ("cloudformation", "s3", "stepfunctions", "sts")
+        for svc in ("cloudformation", "s3", "stepfunctions", "sts", "ec2")
     }
     stubs = {svc: Stubber(c) for svc, c in clients.items()}
     calls = []
@@ -96,7 +96,7 @@ def _describe(stubs, stack=STACK, outputs=None):
 def test_status_lists_profiles_and_default_region(aws):
     st = ac.status()
     assert st["boto3"] is True
-    assert st["default_region"] == "ap-northeast-2"
+    assert st["default_region"] == "us-east-1"  # the default profile's region in the fixture config
     assert set(st["profiles"]) == {"default", "dev"}
 
 
@@ -142,6 +142,36 @@ def test_identity_unknown_profile_is_400(aws):
         ac.identity("nope", REGION)
     assert exc.value.status == 400
 
+
+# ── regions (Region picker) ─────────────────────────────────────────────────
+
+def test_regions_are_the_accounts_enabled_regions_with_names(aws):
+    stubs, calls = aws
+    stubs["ec2"].add_response("describe_regions", {"Regions": [
+        {"RegionName": "us-east-1"}, {"RegionName": "ap-northeast-2"}, {"RegionName": "xx-test-9"}]}, {})
+    out = ac.regions("dev")
+    assert out["regions"] == [
+        {"code": "ap-northeast-2", "name": "Asia Pacific (Seoul)"},
+        {"code": "us-east-1", "name": "US East (N. Virginia)"},
+        {"code": "xx-test-9", "name": ""},
+    ]
+    assert out["source"] == "account"
+    assert calls == [("ec2", "dev", ac.DEFAULT_REGION)]
+
+
+def test_regions_fall_back_to_the_known_list_when_aws_cannot_answer(aws):
+    stubs, _ = aws
+    stubs["ec2"].add_client_error("describe_regions", "UnauthorizedOperation", "no")
+    out = ac.regions("")
+    assert out["source"] == "builtin"
+    codes = [r["code"] for r in out["regions"]]
+    assert "ap-northeast-2" in codes and "us-east-1" in codes and codes == sorted(codes)
+
+
+def test_status_default_region_follows_the_profile_config(aws):
+    # the fixture's ~/.aws/config: default → us-east-1, profile dev → ap-northeast-2
+    assert ac.status()["default_region"] == "us-east-1"
+    assert ac.status("dev")["default_region"] == "ap-northeast-2"
 
 # ── stack discovery ─────────────────────────────────────────────────────────
 

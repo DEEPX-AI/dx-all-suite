@@ -19,7 +19,7 @@
  "guides": [
   {
    "id": "compiler",
-   "name": "AWS Compiler",
+   "name": "DEEPX Compiler Solution",
    "title": "DEEPX Compiler Solution",
    "intro": "Compile an ONNX model into the DXNN format for DEEPX NPUs on AWS — interactively on an Amazon EC2 instance, or automatically with a CloudFormation stack that compiles every model you upload to Amazon S3. Both paths use the same compiler and calibration dataset, so the result is identical.",
    "sections": [
@@ -345,7 +345,7 @@
   },
   {
    "id": "greengrass",
-   "name": "AWS Greengrass",
+   "name": "DEEPX Greengrass Solution",
    "title": "DEEPX Greengrass Solution",
    "intro": "One CloudFormation stack provides the cloud compile pipeline and deploys the DEEPX runtime (NPU driver, firmware, dx_rt and dx_stream) over the air to every Greengrass core device in a Thing Group.",
    "sections": [
@@ -394,7 +394,7 @@
        "items": [
         "In AWS Marketplace, search for [DEEPX Greengrass Solution](https://aws.amazon.com/marketplace/pp/prodview-732s46qfzuh34), select it and subscribe.",
         "Choose the AWS Region to deploy in and choose **Launch with CloudFormation**.",
-        "Need compilation only, without device deployment? Use the AWS Compiler guide instead."
+        "Need compilation only, without device deployment? Use the DEEPX Compiler Solution guide instead."
        ],
        "image": {
         "src": "gg-marketplace.png",

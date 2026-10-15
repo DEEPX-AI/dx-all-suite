@@ -7,12 +7,12 @@ have already deployed — no local `dxcom` needed. Open it from the hub tile or 
 
 ## AWS Marketplace
 
-- **AWS Compiler** — the [DEEPX Compiler Solution](https://aws.amazon.com/marketplace/pp/prodview-ev6ed5omu4ulo)
+- **DEEPX Compiler Solution** ([AWS Marketplace](https://aws.amazon.com/marketplace/pp/prodview-ev6ed5omu4ulo))
   runs `dxcom` on an Amazon EC2 instance. Deployed as a CloudFormation stack it becomes an
   event-driven pipeline: an `.onnx` and its `.json` uploaded to the stack's model bucket
   start a Lambda trigger → Step Functions → a compiler instance, which writes the `.dxnn`
   next to them and terminates.
-- **AWS Greengrass** — the [DEEPX Greengrass Solution](https://aws.amazon.com/marketplace/pp/prodview-732s46qfzuh34)
+- **DEEPX Greengrass Solution** ([AWS Marketplace](https://aws.amazon.com/marketplace/pp/prodview-732s46qfzuh34))
   deploys the NPU driver, firmware, `dx_rt` and `dx_stream` to every device in an IoT Thing
   Group (Zero-Touch Provisioning), with the same compile pipeline in its stack.
 

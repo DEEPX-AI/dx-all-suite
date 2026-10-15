@@ -42,7 +42,7 @@
     <div class="edge-grid">
       <article class="card edge-card">
         <div class="edge-card-head">
-          <h3><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#compiler"></use></svg> AWS Compiler</h3>
+          <h3><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#compiler"></use></svg> DEEPX Compiler Solution</h3>
           <span class="badge">EC2 · S3</span>
         </div>
         <p data-i18n="DEEPX Compiler Solution runs dxcom on an EC2 instance. Deployed as a CloudFormation stack, uploading an .onnx and its .json to the model bucket compiles a .dxnn next to them.">DEEPX Compiler Solution runs dxcom on an EC2 instance. Deployed as a CloudFormation stack, uploading an .onnx and its .json to the model bucket compiles a .dxnn next to them.</p>
@@ -53,7 +53,7 @@
       </article>
       <article class="card edge-card">
         <div class="edge-card-head">
-          <h3><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#cloud"></use></svg> AWS Greengrass</h3>
+          <h3><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#cloud"></use></svg> DEEPX Greengrass Solution</h3>
           <span class="badge">IoT Core · Greengrass</span>
         </div>
         <p data-i18n="DEEPX Greengrass Solution deploys the NPU driver, firmware, dx_rt and dx_stream to every device in a Thing Group, with the compile pipeline in the same stack.">DEEPX Greengrass Solution deploys the NPU driver, firmware, dx_rt and dx_stream to every device in a Thing Group, with the compile pipeline in the same stack.</p>
@@ -80,7 +80,7 @@
           <p class="edge-alert" id="edgeBoto3Missing" hidden></p>
           <div class="edge-form">
             <div class="fg"><label for="edgeProfile" data-i18n="AWS profile">AWS profile</label><select id="edgeProfile"></select></div>
-            <div class="fg"><label for="edgeRegion" data-i18n="Region">Region</label><input type="text" id="edgeRegion" value="ap-northeast-2" spellcheck="false" autocomplete="off"></div>
+            <div class="fg"><label for="edgeRegion" data-i18n="Region">Region</label><select id="edgeRegion"><option value="ap-northeast-2">ap-northeast-2 · Asia Pacific (Seoul)</option></select></div>
             <div class="edge-actions">
               <button type="button" class="btn btn-neutral" id="edgeCheck"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#refresh"></use></svg> <span data-i18n="Check connection">Check connection</span></button>
             </div>
@@ -144,8 +144,8 @@ Default output format [None]: json</code></pre>
 
   <!-- One tab per Marketplace product: steps 2-4 for its stacks and compile; Greengrass adds devices -->
   <div class="edge-tabs" role="tablist" aria-label="DX Cloud">
-    <button type="button" class="edge-tab" id="edgeTab-compiler" role="tab" aria-selected="true" aria-controls="edgePanel-compiler" tabindex="0"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#compiler"></use></svg> AWS Compiler</button>
-    <button type="button" class="edge-tab" id="edgeTab-greengrass" role="tab" aria-selected="false" aria-controls="edgePanel-greengrass" tabindex="-1"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#cloud"></use></svg> AWS Greengrass</button>
+    <button type="button" class="edge-tab" id="edgeTab-compiler" role="tab" aria-selected="true" aria-controls="edgePanel-compiler" tabindex="0"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#compiler"></use></svg> DEEPX Compiler Solution</button>
+    <button type="button" class="edge-tab" id="edgeTab-greengrass" role="tab" aria-selected="false" aria-controls="edgePanel-greengrass" tabindex="-1"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#cloud"></use></svg> DEEPX Greengrass Solution</button>
   </div>
   <div class="edge-panel" id="edgePanel-compiler" role="tabpanel" aria-labelledby="edgeTab-compiler" tabindex="0">
   <ol class="dx-steps-list edge-steps" start="2">

@@ -148,3 +148,11 @@ def test_compile_files_use_drop_zones_on_the_same_inputs():
         for part, accept in (("Onnx", ".onnx"), ("Json", ".json")):
             zone = html[html.index(f'id="edge{part}Drop-{kind}"'):]
             assert zone.index(f'<input type="file" id="edge{part}-{kind}" accept="{accept}') < zone.index("</div>")
+
+
+def test_region_is_a_picker_not_free_text():
+    html = (APP / "templates/index.html").read_text(encoding="utf-8")
+    assert re.search(r'<select[^>]*id="edgeRegion"', html)
+    assert not re.search(r'<input[^>]*id="edgeRegion"', html)
+    js = (APP / "static/js/edge.js").read_text(encoding="utf-8")
+    assert "api/aws/regions" in js

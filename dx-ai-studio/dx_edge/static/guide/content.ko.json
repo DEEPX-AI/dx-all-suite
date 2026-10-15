@@ -19,7 +19,7 @@
  "guides": [
   {
    "id": "compiler",
-   "name": "AWS Compiler",
+   "name": "DEEPX Compiler Solution",
    "title": "DEEPX Compiler Solution",
    "intro": "AWS에서 ONNX 모델을 DEEPX NPU용 DXNN 형식으로 컴파일합니다. Amazon EC2 인스턴스에서 대화형으로 직접 컴파일하거나, Amazon S3에 업로드한 모델을 자동으로 컴파일하는 CloudFormation 스택을 사용할 수 있습니다. 두 방식은 같은 컴파일러와 캘리브레이션 데이터셋을 사용하므로 결과가 같습니다.",
    "sections": [
@@ -345,7 +345,7 @@
   },
   {
    "id": "greengrass",
-   "name": "AWS Greengrass",
+   "name": "DEEPX Greengrass Solution",
    "title": "DEEPX Greengrass Solution",
    "intro": "CloudFormation 스택 하나로 클라우드 컴파일 파이프라인을 구성하고, Thing Group의 모든 Greengrass 코어 디바이스에 DEEPX 런타임(NPU 드라이버, 펌웨어, dx_rt, dx_stream)을 OTA로 배포합니다.",
    "sections": [
@@ -394,7 +394,7 @@
        "items": [
         "AWS Marketplace에서 [DEEPX Greengrass Solution](https://aws.amazon.com/marketplace/pp/prodview-732s46qfzuh34)을 검색해 선택하고 구독합니다.",
         "배포할 AWS Region을 선택하고 **Launch with CloudFormation**을 선택합니다.",
-        "디바이스 배포 없이 컴파일만 필요하다면 AWS Compiler 가이드를 사용하십시오."
+        "디바이스 배포 없이 컴파일만 필요하다면 DEEPX Compiler Solution 가이드를 사용하십시오."
        ],
        "image": {
         "src": "gg-marketplace.png",

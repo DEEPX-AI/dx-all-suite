@@ -19,7 +19,7 @@
  "guides": [
   {
    "id": "compiler",
-   "name": "AWS Compiler",
+   "name": "DEEPX Compiler Solution",
    "title": "DEEPX Compiler Solution",
    "intro": "在 AWS 上將 ONNX 模型編譯為 DEEPX NPU 使用的 DXNN 格式：可以在 Amazon EC2 執行個體上互動式編譯，也可以使用 CloudFormation Stack 自動編譯上傳到 Amazon S3 的每個模型。兩者使用相同的編譯器與校正資料集，結果完全相同。",
    "sections": [
@@ -345,7 +345,7 @@
   },
   {
    "id": "greengrass",
-   "name": "AWS Greengrass",
+   "name": "DEEPX Greengrass Solution",
    "title": "DEEPX Greengrass Solution",
    "intro": "一個 CloudFormation Stack 即可提供雲端編譯管線，並將 DEEPX 執行階段（NPU 驅動程式、韌體、dx_rt 與 dx_stream）透過 OTA 部署到 Thing Group 中的每台 Greengrass 核心裝置。",
    "sections": [
@@ -394,7 +394,7 @@
        "items": [
         "在 AWS Marketplace 中搜尋 [DEEPX Greengrass Solution](https://aws.amazon.com/marketplace/pp/prodview-732s46qfzuh34)，選取並訂閱。",
         "選擇要部署的 AWS Region，然後選擇 **Launch with CloudFormation**。",
-        "若只需要編譯、不需要部署到裝置，請改用 AWS Compiler 指南。"
+        "若只需要編譯、不需要部署到裝置，請改用 DEEPX Compiler Solution 指南。"
        ],
        "image": {
         "src": "gg-marketplace.png",

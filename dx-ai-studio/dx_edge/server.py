@@ -58,7 +58,9 @@ class DXEdgeHandler(DXBaseHandler):
                 if path == "/api/hb":
                     return self.send_json({"ok": True})
                 if path == "/api/aws/status":
-                    return self.send_json(ac.status())
+                    return self.send_json(ac.status(self.read_query_param("profile")))
+                if path == "/api/aws/regions":
+                    return self.send_json(ac.regions(self.read_query_param("profile")))
                 if path == "/api/aws/identity":
                     q = self._query()
                     return self.send_json(ac.identity(q["profile"], q["region"]))

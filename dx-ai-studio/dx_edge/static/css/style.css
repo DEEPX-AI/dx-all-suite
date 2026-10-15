@@ -62,7 +62,7 @@
 .edge-dialog{width:480px}
 .edge-dialog .edge-note + .edge-note{margin-top:var(--sp-2)}
 .edge-dialog .fg{margin-top:var(--sp-3)}
-/* AWS Compiler | AWS Greengrass tabs; they wrap rather than scroll on a phone */
+/* DEEPX Compiler Solution | DEEPX Greengrass Solution tabs; they wrap rather than scroll on a phone */
 .edge-tabs{display:flex;flex-wrap:wrap;gap:var(--sp-1);margin-bottom:var(--sp-2);border-bottom:1px solid var(--border-subtle)}
 .edge-tab{display:flex;align-items:center;gap:var(--sp-2);padding:var(--sp-2) var(--sp-4);font:inherit;font-size:var(--fs-base);color:var(--text-muted);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;transition:var(--transition)}
 .edge-tab:hover{color:var(--text-primary)}

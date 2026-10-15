@@ -80,13 +80,22 @@ def test_console_guide_page_is_served_and_linked_from_both_tabs(base):
     _, _, main = _get(base + "/")
     assert 'href="guide#compiler"' in main.decode() and 'href="guide#greengrass"' in main.decode()
 
+def test_regions_endpoint(base, monkeypatch):
+    from dx_edge.core import aws_compile as ac
+
+    monkeypatch.setattr(ac, "regions", lambda profile: {"regions": [{"code": "ap-northeast-2", "name": profile}],
+                                                         "source": "account"})
+    code, _, body = _get(base + "/api/aws/regions?profile=dev")
+    assert code == 200
+    assert json.loads(body)["regions"] == [{"code": "ap-northeast-2", "name": "dev"}]
+
 def test_heartbeat(base):
     code, _, body = _get(base + "/api/hb")
     assert code == 200 and json.loads(body) == {"ok": True}
 
 
 def test_status_endpoint(base, monkeypatch):
-    monkeypatch.setattr(ac, "status", lambda: {"boto3": True, "profiles": ["default"],
+    monkeypatch.setattr(ac, "status", lambda profile="": {"boto3": True, "profiles": ["default"],
                                                 "default_region": "ap-northeast-2"})
     code, _, body = _get(base + "/api/aws/status")
     assert code == 200

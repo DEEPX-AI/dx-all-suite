@@ -119,7 +119,41 @@ def _safe_stem(filename: str) -> str:
 
 # ── Public API ─────────────────────────────────────────────────────────────
 
-def status() -> dict:
+# Commercial regions and their console names; the picker's list when the account cannot be asked.
+REGION_NAMES = {
+    "af-south-1": "Africa (Cape Town)",
+    "ap-east-1": "Asia Pacific (Hong Kong)",
+    "ap-northeast-1": "Asia Pacific (Tokyo)",
+    "ap-northeast-2": "Asia Pacific (Seoul)",
+    "ap-northeast-3": "Asia Pacific (Osaka)",
+    "ap-south-1": "Asia Pacific (Mumbai)",
+    "ap-south-2": "Asia Pacific (Hyderabad)",
+    "ap-southeast-1": "Asia Pacific (Singapore)",
+    "ap-southeast-2": "Asia Pacific (Sydney)",
+    "ap-southeast-3": "Asia Pacific (Jakarta)",
+    "ap-southeast-4": "Asia Pacific (Melbourne)",
+    "ca-central-1": "Canada (Central)",
+    "eu-central-1": "Europe (Frankfurt)",
+    "eu-central-2": "Europe (Zurich)",
+    "eu-north-1": "Europe (Stockholm)",
+    "eu-south-1": "Europe (Milan)",
+    "eu-south-2": "Europe (Spain)",
+    "eu-west-1": "Europe (Ireland)",
+    "eu-west-2": "Europe (London)",
+    "eu-west-3": "Europe (Paris)",
+    "il-central-1": "Israel (Tel Aviv)",
+    "me-central-1": "Middle East (UAE)",
+    "me-south-1": "Middle East (Bahrain)",
+    "sa-east-1": "South America (São Paulo)",
+    "us-east-1": "US East (N. Virginia)",
+    "us-east-2": "US East (Ohio)",
+    "us-west-1": "US West (N. California)",
+    "us-west-2": "US West (Oregon)",
+}
+
+
+def status(profile: str = "") -> dict:
+    """boto3 present, configured profiles, and the region the picker starts on (the profile's own)."""
     try:
         profiles = _profiles()
     except AwsError as exc:
@@ -128,7 +162,25 @@ def status() -> dict:
                     "install_hint": INSTALL_HINT}
         return {"boto3": True, "profiles": [], "default_region": DEFAULT_REGION,
                 "error": exc.message}
-    return {"boto3": True, "profiles": profiles, "default_region": DEFAULT_REGION}
+    try:
+        region = _session(profile if profile in profiles else "").region_name or DEFAULT_REGION
+    except AwsError:
+        region = DEFAULT_REGION
+    return {"boto3": True, "profiles": profiles, "default_region": region}
+
+
+def regions(profile: str) -> dict:
+    """Regions enabled for the account (ec2 describe-regions); the known list if AWS cannot answer."""
+    _boto3()
+    _check(profile, DEFAULT_REGION)
+    try:
+        names = [r["RegionName"] for r in
+                 _call(_client("ec2", profile, DEFAULT_REGION).describe_regions)["Regions"]]
+        source = "account"
+    except AwsError:
+        names, source = list(REGION_NAMES), "builtin"
+    return {"regions": [{"code": c, "name": REGION_NAMES.get(c, "")} for c in sorted(names)],
+            "source": source}
 
 
 def identity(profile: str, region: str) -> dict:

@@ -1,4 +1,4 @@
-/* DX Cloud — step 1 (AWS connection) and AWS Compiler / AWS Greengrass tabs: subscription, stacks,
+/* DX Cloud — step 1 (AWS connection) and DEEPX Compiler Solution / DEEPX Greengrass Solution tabs: subscription, stacks,
    Cloud Compile, and Greengrass devices. The status chips and step states follow the loaded data.
    Both tabs share the same markup with a -<kind> id suffix, so every panel function takes the kind.
    Talks to dx_edge/server.py; AWS calls happen server-side only. */
@@ -22,6 +22,7 @@
   var script = null;
   var current = 'compiler';
   var ident = null; // null while checking, then {account, arn} or {error}
+  var regionPicked = false; // true once the user picks a region; until then it follows the profile
 
   function api(path, opts) {
     // Relative, so it works standalone (/) and behind the launcher proxy (/cloud/).
@@ -38,7 +39,7 @@
   }
 
   function account() {
-    return { profile: $('edgeProfile').value, region: $('edgeRegion').value.trim() };
+    return { profile: $('edgeProfile').value, region: $('edgeRegion').value };
   }
 
   function qs(obj) {
@@ -116,18 +117,32 @@
 
   // ── Account, subscription and stacks ───────────────────────────────────
 
+  // Regions enabled for the account (or the known list); keeps the current pick, else the profile's region.
+  function loadRegions(fallback) {
+    var sel = $('edgeRegion');
+    var want = regionPicked ? sel.value : fallback;
+    return api('api/aws/regions?' + qs({ profile: $('edgeProfile').value })).then(function (res) {
+      sel.replaceChildren();
+      res.regions.forEach(function (r) {
+        sel.appendChild(option(r.code, r.name ? r.code + ' · ' + r.name : r.code));
+      });
+      if (!res.regions.some(function (r) { return r.code === want; })) sel.appendChild(option(want, want));
+      if (sel.value !== want) { sel.value = want; loadSetup(); }
+    }).catch(function () { /* the server-rendered default stays */ });
+  }
+
   function loadStatus() {
     ident = null;
     showMsg($('edgeIdentity'), T('Checking…'));
     updateSteps();
-    return api('api/aws/status').then(function (st) {
+    return api('api/aws/status?' + qs({ profile: $('edgeProfile').value })).then(function (st) {
       var sel = $('edgeProfile');
       var chosen = sel.value;
       sel.replaceChildren(option('', T('Default credentials')));
       st.profiles.forEach(function (p) { sel.appendChild(option(p, p)); });
       if (st.profiles.indexOf(chosen) >= 0) sel.value = chosen;
       if (!st.profiles.length || st.error || !st.boto3) $('edgeGuide').open = true;
-      if (!$('edgeRegion').value) $('edgeRegion').value = st.default_region;
+      if (st.boto3) loadRegions(st.default_region);
       var missing = $('edgeBoto3Missing');
       missing.hidden = st.boto3;
       KINDS.forEach(function (k) {
@@ -671,7 +686,8 @@
   });
   $k('edgeStack', 'greengrass').addEventListener('change', loadDevices);
   $('edgeProfile').addEventListener('change', loadSetup);
-  $('edgeRegion').addEventListener('change', loadSetup);
+  $('edgeRegion').addEventListener('change', function () { regionPicked = true; loadSetup(); });
+  $('edgeProfile').addEventListener('change', function () { if (!regionPicked) loadStatus(); });
   $('edgeDeleteForm').addEventListener('submit', submitDelete);
   $('edgeDeleteCancel').addEventListener('click', function () { $('edgeDeleteDialog').close(); });
   $('edgeDeleteConfirm').addEventListener('input', function () {
