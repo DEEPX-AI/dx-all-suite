@@ -4182,6 +4182,82 @@ window._DX_I18N_DICT = {
     'zh-CN': 'Graph Composer 正在实时运行，请先停止', 'zh-TW': 'Graph Composer 正在即時執行，請先停止',
     es: 'El Graph Composer tiene un en vivo en ejecución; deténgalo primero',
   },
+  /* Graph Composer results view (graph-results.js) and Live's "Draw" picker */
+  'Layers': {
+    ko: '레이어', ja: 'レイヤー',
+    'zh-CN': '图层', 'zh-TW': '圖層',
+    es: 'Capas',
+  },
+  'Event panel': {
+    ko: '이벤트 패널', ja: 'イベントパネル',
+    'zh-CN': '事件面板', 'zh-TW': '事件面板',
+    es: 'Panel de eventos',
+  },
+  'Enlarge {source}': {
+    ko: '{source} 크게 보기', ja: '{source} を拡大',
+    'zh-CN': '放大 {source}', 'zh-TW': '放大 {source}',
+    es: 'Ampliar {source}',
+  },
+  'Layers for this frame': {
+    ko: '이 프레임의 레이어', ja: 'このフレームのレイヤー',
+    'zh-CN': '此帧的图层', 'zh-TW': '此影格的圖層',
+    es: 'Capas de este fotograma',
+  },
+  'Running the graph on this frame…': {
+    ko: '이 프레임으로 그래프를 실행하는 중…', ja: 'このフレームでグラフを実行中…',
+    'zh-CN': '正在用此帧运行图…', 'zh-TW': '正在用此影格執行圖…',
+    es: 'Ejecutando el grafo en este fotograma…',
+  },
+  'Frame at {t} s': {
+    ko: '{t}초 지점의 프레임', ja: '{t} 秒のフレーム',
+    'zh-CN': '{t} 秒处的帧', 'zh-TW': '{t} 秒處的影格',
+    es: 'Fotograma en {t} s',
+  },
+  'Back to the video': {
+    ko: '비디오로 돌아가기', ja: '動画に戻る',
+    'zh-CN': '返回视频', 'zh-TW': '返回影片',
+    es: 'Volver al vídeo',
+  },
+  'That run is gone (newer runs replaced it). Run the graph again.': {
+    ko: '그 실행 결과가 없습니다 (더 최근 실행으로 교체됨). 그래프를 다시 실행하세요.', ja: 'その実行結果はありません (新しい実行に置き換えられました)。グラフをもう一度実行してください。',
+    'zh-CN': '该次运行的结果已不存在（已被更新的运行替换）。请重新运行图。', 'zh-TW': '該次執行的結果已不存在（已被較新的執行取代）。請重新執行圖。',
+    es: 'Esa ejecución ya no existe (la reemplazaron otras más recientes). Ejecute el grafo de nuevo.',
+  },
+  'This dx_app build cannot write layers. Update dx_app to see them.': {
+    ko: '이 dx_app 빌드는 레이어를 쓸 수 없습니다. 레이어를 보려면 dx_app을 업데이트하세요.', ja: 'この dx_app のビルドはレイヤーを書き出せません。表示するには dx_app を更新してください。',
+    'zh-CN': '此 dx_app 版本无法输出图层。请更新 dx_app 后查看。', 'zh-TW': '此 dx_app 版本無法輸出圖層。請更新 dx_app 後查看。',
+    es: 'Esta versión de dx_app no puede escribir capas. Actualice dx_app para verlas.',
+  },
+  'This frame could not be read: {why}': {
+    ko: '이 프레임을 읽을 수 없습니다: {why}', ja: 'このフレームを読み取れませんでした: {why}',
+    'zh-CN': '无法读取此帧：{why}', 'zh-TW': '無法讀取此影格：{why}',
+    es: 'No se pudo leer este fotograma: {why}',
+  },
+  'Draw': {
+    ko: '그리기', ja: '描画',
+    'zh-CN': '绘制', 'zh-TW': '繪製',
+    es: 'Dibujar',
+  },
+  'Only the checked nodes draw on the picture; every node still runs and raises its events.': {
+    ko: '체크한 노드만 화면에 그립니다. 모든 노드는 그대로 실행되고 이벤트도 발생합니다.', ja: 'チェックしたノードだけが画面に描画されます。すべてのノードは実行され、イベントも発生します。',
+    'zh-CN': '只有勾选的节点会绘制到画面上；所有节点仍会运行并产生事件。', 'zh-TW': '只有勾選的節點會繪製到畫面上；所有節點仍會執行並產生事件。',
+    es: 'Solo los nodos marcados dibujan en la imagen; todos los nodos siguen ejecutándose y generando sus eventos.',
+  },
+  'Check at least one node to draw.': {
+    ko: '그릴 노드를 하나 이상 체크하세요.', ja: '描画するノードを 1 つ以上チェックしてください。',
+    'zh-CN': '请至少勾选一个要绘制的节点。', 'zh-TW': '請至少勾選一個要繪製的節點。',
+    es: 'Marque al menos un nodo para dibujar.',
+  },
+  'The nodes to draw do not match the graph: {why}': {
+    ko: '그릴 노드가 그래프와 맞지 않습니다: {why}', ja: '描画するノードがグラフと一致しません: {why}',
+    'zh-CN': '要绘制的节点与图不符：{why}', 'zh-TW': '要繪製的節點與圖不符：{why}',
+    es: 'Los nodos a dibujar no coinciden con el grafo: {why}',
+  },
+  'This dx_app build draws every node. Update dx_app to pick the nodes to draw.': {
+    ko: '이 dx_app 빌드는 모든 노드를 그립니다. 그릴 노드를 고르려면 dx_app을 업데이트하세요.', ja: 'この dx_app のビルドはすべてのノードを描画します。描画するノードを選ぶには dx_app を更新してください。',
+    'zh-CN': '此 dx_app 版本会绘制所有节点。请更新 dx_app 以选择要绘制的节点。', 'zh-TW': '此 dx_app 版本會繪製所有節點。請更新 dx_app 以選擇要繪製的節點。',
+    es: 'Esta versión de dx_app dibuja todos los nodos. Actualice dx_app para elegir qué nodos dibujar.',
+  },
   'Last values: {values}': {
     ko: '마지막 값: {values}', ja: '最後の値: {values}',
     'zh-CN': '最近的值：{values}', 'zh-TW': '最近的值：{values}',
