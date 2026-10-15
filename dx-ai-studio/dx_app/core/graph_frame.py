@@ -174,7 +174,7 @@ def inspect(data) -> tuple:
             files[sid] = _frame_png(paths[sid], t)
     except (OSError, RuntimeError, subprocess.SubprocessError) as e:
         return _bad(str(e), "frame_unreadable", 422)
-    body, code = graph_run.start(graph, variant=variant, frame_files=files,
+    body, code = graph_run.start(graph, variant=variant, frame_files=files, inspect=True,
                                  inputs={sid: str(p) for sid, p in paths.items() if sid not in files})
     if code != 200:
         return body, code

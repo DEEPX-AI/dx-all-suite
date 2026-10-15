@@ -164,6 +164,23 @@ def test_a_paused_video_frame_runs_again_with_each_node_s_layer(runs):
     assert out["layers"]["base"].endswith("/layers/result_000000_base.png")
 
 
+def test_many_frame_layers_do_not_push_the_run_they_come_from_out(runs, monkeypatch):
+    """Each "Layers for this frame" is a run of its own; they are kept in their own folder with their own limit, so
+    looking at more frames than the run limit never deletes the run (run_gone) nor other runs."""
+    from dx_app.core import graph_run
+    monkeypatch.setattr(graph_run, "_KEEP_RUN_DIRS", 3)
+    monkeypatch.setattr(graph_run, "_KEEP_INSPECT_DIRS", 2)
+    rid = _video_run()
+    for i in range(5):
+        body, code = graph_frame.inspect({"run_id": rid, "stream": "cam", "time_s": 0.1 * i})
+        assert code == 200 and body["ok"] is True, (i, body)
+        assert "/graph/inspect/" in body["output"]["url"], body["output"]["url"]
+    assert [p.name for p in graph_run.runs_dir().iterdir()] == [rid], "inspects are not in the runs folder"
+    assert len(list(graph_run.inspect_dir().iterdir())) <= 3, "the inspect folder keeps its own few (2 + the new)"
+    body, code = graph_frame.inspect({"run_id": rid, "stream": "cam", "frame": 3})
+    assert code == 200 and body["ok"] is True, body
+
+
 def test_a_frame_number_is_found_at_the_middle_of_that_frame(runs):
     rid = _video_run()
     body, code = graph_frame.inspect({"run_id": rid, "stream": "cam", "frame": 12})

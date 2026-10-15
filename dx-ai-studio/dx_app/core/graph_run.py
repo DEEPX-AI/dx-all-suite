@@ -49,6 +49,9 @@ _POLL_READ_BYTES = 256 * 1024       # of the log per poll, from where the last p
 _RESULT_LOG_BYTES = 4 * 1024 * 1024  # the log's tail a finished run is read from (errors, last progress, events)
 _SOURCE_ID = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
 _KEEP_RUN_DIRS = 20
+# "Layers for this frame" (graph_frame.inspect) runs keep their own folder and limit, so looking at many frames of a
+# run never prunes the run itself (its run.json is what an inspect reads).
+_KEEP_INSPECT_DIRS = 20
 _MAX_UPLOAD_B64 = 20 * 1024 * 1024
 # All uploads of one run together. dx_app/server.py accepts at most 24 MB of JSON on /api/graph/run; the uploads stay
 # below it with room for the graph, so too many images get this error instead of the server's bare 413.
@@ -69,6 +72,12 @@ _BUSY = {"graph_run": {"error": "a graph run is already running", "error_key": "
 
 def runs_dir() -> Path:
     d = Path(config.OUTPUTS_DIR) / "graph" / "runs"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+def inspect_dir() -> Path:
+    d = Path(config.OUTPUTS_DIR) / "graph" / "inspect"
     d.mkdir(parents=True, exist_ok=True)
     return d
 
@@ -190,10 +199,13 @@ def _write_upload(d: Path, sid: str, b64) -> Path:
     return p
 
 
-def _prune_runs(keep: int = _KEEP_RUN_DIRS) -> None:
+def _prune_runs(keep: int | None = None, root: Path | None = None) -> None:
+    """Keep the newest `keep` run folders of `root` (default: the runs folder and _KEEP_RUN_DIRS)."""
+    keep = _KEEP_RUN_DIRS if keep is None else keep
     with _lock:
         active = {str(j["dir"]) for j in _jobs.values()}
-    dirs = sorted((p for p in runs_dir().iterdir() if p.is_dir()), key=lambda p: p.stat().st_mtime, reverse=True)
+    root = runs_dir() if root is None else root
+    dirs = sorted((p for p in root.iterdir() if p.is_dir()), key=lambda p: p.stat().st_mtime, reverse=True)
     for p in dirs[keep:]:
         if str(p) not in active:
             shutil.rmtree(p, ignore_errors=True)
@@ -231,9 +243,10 @@ def _int_in(value, lo, hi, label):
 
 
 def start(graph: dict, *, variant="sync", inputs=None, uploads=None, max_inflight=None, frames=None,
-          frame_files=None):
+          frame_files=None, inspect=False):
     """Start a run; returns ({"job_id"}, 200) or ({"error", "error_key"}, status). `frame_files` ({source id: PNG
-    bytes}, graph_frame.inspect only) replaces those sources with one frame each."""
+    bytes}, graph_frame.inspect only) replaces those sources with one frame each; `inspect` (graph_frame.inspect)
+    puts the run in the inspect folder, pruned on its own."""
     if variant not in graph_cli.NAMES:
         return {"error": f"unknown variant {variant!r}", "error_key": "invalid_payload"}, 400
     if inputs is not None and not isinstance(inputs, dict):
@@ -262,7 +275,8 @@ def start(graph: dict, *, variant="sync", inputs=None, uploads=None, max_infligh
         return {"error": f"source id {bad[0]!r} must be 1-64 letters, digits, '_', '.' or '-'",
                 "error_key": "invalid_source_id"}, 400
     job_id = uuid.uuid4().hex
-    d = runs_dir() / job_id
+    root = inspect_dir() if inspect else runs_dir()
+    d = root / job_id
     now = time.time()
     job = {"id": job_id, "dir": d, "proc": None, "log": None, "graph": graph, "video": False, "start": now,
            "sources": [s["id"] for s in sources],
@@ -285,7 +299,7 @@ def start(graph: dict, *, variant="sync", inputs=None, uploads=None, max_infligh
         return body, code
 
     try:
-        _prune_runs()
+        _prune_runs(_KEEP_INSPECT_DIRS if inspect else _KEEP_RUN_DIRS, root)
         d.mkdir(parents=True)
         args, video, paths = [], False, {}
         for s in sources:
