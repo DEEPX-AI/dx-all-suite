@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "name": "multistream-people-count",
+  "nodes": [
+    { "id": "cam1",    "type": "source", "uri": "sample/img/sample_people.jpg" },
+    { "id": "cam2",    "type": "source", "uri": "sample/img/sample_crowd.jpg" },
+    { "id": "od",      "model": "yolov8-n_640x640", "params": { "score_threshold": 0.35 } },
+    { "id": "count",   "type": "logic", "op": "count", "params": { "classes": ["person"] } },
+    { "id": "crowded", "type": "logic", "op": "condition",
+      "params": { "value": "total", "comparator": ">=", "threshold": 5,
+                  "cooldown_s": 10, "event": "crowded" } }
+  ],
+  "edges": [
+    { "from": "cam1",  "to": "od" },
+    { "from": "cam2",  "to": "od" },
+    { "from": "od",    "to": "count",   "carry": "result" },
+    { "from": "count", "to": "crowded", "carry": "result" }
+  ]
+}

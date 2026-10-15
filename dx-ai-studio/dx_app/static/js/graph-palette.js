@@ -16,7 +16,44 @@ window.GraphPalette = (function () {
   var LOGIC_LABELS = { filter: 'Filter', zone: 'Zone', line: 'Line crossing', count: 'Count', dwell: 'Dwell',
     condition: 'Condition → Event', gallery: 'Gallery match', user: 'User logic' };
 
+  /* dx_app's example graphs by example id (the templates, with logic blocks, then the engine examples): a name and
+     what it does, both dictionary keys. An example dx_app adds later shows its graph name and its blocks or models.
+     tests/dx_app/test_graph_composer_i18n.py keeps this list equal to dx_app's samples. */
+  var TEMPLATE_TEXT = {
+    zone_intrusion: ['Restricted-zone intrusion', 'An event when a person enters the zone'],
+    line_counting: ['Line counting', 'People crossing a line, counted per direction'],
+    ppe_zone_check: ['PPE check', 'An event for a person in the zone without a hat'],
+    loitering_dwell: ['Loitering', 'An event when a person stays in the zone over 5 s'],
+    zone_people_count: ['People count per zone', 'People counted in two zones'],
+    gallery_known_person: ['Known person', 'Each person named after the closest Gallery entry, or unknown'],
+    driver_attention: ['Driver attention', 'Events when the driver turns the head away or down'],
+    multistream_people_count: ['Multi-camera people count', 'People counted per camera; an event when one is crowded'],
+    logistics_volume_alert: ['Logistics volume alert', 'An event when the estimated volume of packages passes a limit'],
+    fanout_od_seg_pose: ['Detection, segmentation and pose', 'Three models on one frame, drawn together'],
+    fanout_od_seg_depth: ['Detection, segmentation and depth', 'Three models on one frame, with depth instead of pose'],
+    cascade_od_reid_track: ['Person re-identification', 'Each tracked person cropped for a ReID embedding'],
+    cascade_od_attr: ['Person attributes', 'Each person cropped for attribute recognition'],
+    cascade_obb_cls: ['Rotated objects classified', 'Oriented boxes straightened, then classified'],
+    handoff_denoise_od: ['Denoise, then detect', 'Detection on the denoised image'],
+    handoff_sr_od_cls: ['Super-resolution, detect, classify', 'Detection and classification on a 2x image; too large for DX-M1'],
+    multistream_od_two_sources: ['Two cameras, one ReID', 'Two sources share one tracked detector and one ReID model'],
+    chain_sr_od_pose: ['Super-resolution, detect, pose', 'Top-down pose on a 2x image; too large for DX-M1'],
+    chain_zerodce_od_pose_emb: ['Low-light detection, pose and ReID', 'Low-light enhancement, then a pose and an embedding per person'],
+    hand_cascade: ['Hand landmarks', 'Palm detection, then 21 landmarks per hand'],
+    dms_headpose: ['Driver head pose', 'Face detection, then pitch, yaw and roll'],
+    logistics_volume: ['Package volume', 'Detection, masks and depth give a volume estimate per package']
+  };
+
   function opLabel(op) { return LOGIC_LABELS[op] ? T(LOGIC_LABELS[op]) : op; }
+  function templateName(ex) { return TEMPLATE_TEXT[ex.id] ? T(TEMPLATE_TEXT[ex.id][0]) : ex.name; }
+
+  /* The search box finds an example by its graph name, its id or its name in this language. */
+  function exampleMatches(ex) {
+    if (!query) return true;
+    return [ex.name, ex.id, templateName(ex)].some(function (s) {
+      return String(s || '').toLowerCase().indexOf(query) !== -1;
+    });
+  }
 
   function stateLabel(m) {
     if (m.state === 'installed') return T('Installed');
@@ -89,15 +126,18 @@ window.GraphPalette = (function () {
   }
 
   function templateItem(c, ex) {
+    var name = templateName(ex), text = TEMPLATE_TEXT[ex.id];
+    var blocks = (ex.ops || []).map(opLabel).join(' · ');
+    var about = text ? T(text[1]) : blocks;
     var open = c.h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: T('Open'),
-      'aria-label': c.fmt(T('Open the template {name}'), { name: ex.name }) });
+      'aria-label': c.fmt(T('Open the template {name}'), { name: name }) });
     open.addEventListener('click', function () { c.loadExample(ex.id); });
-    var thumb = ex.thumb ? c.h('img', { class: 'gc-thumb', src: ex.thumb, alt: c.fmt(T('Result of {name}'), { name: ex.name }), loading: 'lazy' })
+    var thumb = ex.thumb ? c.h('img', { class: 'gc-thumb', src: ex.thumb, alt: c.fmt(T('Result of {name}'), { name: name }), loading: 'lazy' })
       : c.icon('graph');
     return c.h('div', { class: 'gc-item gc-template', role: 'listitem', dataset: { cat: 'example', id: ex.id } }, [
       thumb,
-      c.h('span', { class: 'gc-item-text' }, [c.h('span', { class: 'gc-item-name', text: ex.name, title: ex.name }),
-                                              c.h('span', { class: 'gc-item-sub', text: (ex.ops || []).map(opLabel).join(' · ') })]),
+      c.h('span', { class: 'gc-item-text' }, [c.h('span', { class: 'gc-item-name', text: name, title: name }),
+                                              c.h('span', { class: 'gc-item-sub', text: about, title: text ? about + ' (' + blocks + ')' : blocks })]),
       open
     ]);
   }
@@ -111,15 +151,18 @@ window.GraphPalette = (function () {
   }
 
   function exampleItem(c, ex) {
+    var name = templateName(ex), text = TEMPLATE_TEXT[ex.id];
+    var models = ex.models.join(' + ');
+    var about = text ? T(text[1]) : models;
     var open = c.h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: T('Open'),
-      'aria-label': c.fmt(T('Open the example {name}'), { name: ex.name }) });
+      'aria-label': c.fmt(T('Open the example {name}'), { name: name }) });
     open.addEventListener('click', function () { c.loadExample(ex.id); });
-    var thumb = ex.thumb ? c.h('img', { class: 'gc-thumb', src: ex.thumb, alt: c.fmt(T('Result of {name}'), { name: ex.name }), loading: 'lazy' })
+    var thumb = ex.thumb ? c.h('img', { class: 'gc-thumb', src: ex.thumb, alt: c.fmt(T('Result of {name}'), { name: name }), loading: 'lazy' })
       : c.icon('graph');
-    return c.h('div', { class: 'gc-item gc-example', role: 'listitem', dataset: { cat: 'example' } }, [
+    return c.h('div', { class: 'gc-item gc-example', role: 'listitem', dataset: { cat: 'example', id: ex.id } }, [
       thumb,
-      c.h('span', { class: 'gc-item-text' }, [c.h('span', { class: 'gc-item-name', text: ex.name }),
-                                              c.h('span', { class: 'gc-item-sub', text: ex.models.join(' + ') })]),
+      c.h('span', { class: 'gc-item-text' }, [c.h('span', { class: 'gc-item-name', text: name, title: name }),
+                                              c.h('span', { class: 'gc-item-sub', text: about, title: text ? about + ' (' + models + ')' : models })]),
       open
     ]);
   }
@@ -199,7 +242,7 @@ window.GraphPalette = (function () {
     if (cat.available === false) {
       root.appendChild(c.h('p', { class: 'gc-empty', text: T('The graph runner is not built. Build dx_app (./build.sh) to use the Graph Composer.') }));
     }
-    var exs = (cat.examples || []).filter(matches(['name', 'id']));
+    var exs = (cat.examples || []).filter(exampleMatches);
     var templates = exs.filter(function (ex) { return ex.logic; });
     if (templates.length) root.appendChild(group(c, 'templates', T('Templates'), templates.map(function (ex) { return templateItem(c, ex); })));
     root.appendChild(group(c, 'examples', T('Examples'), exs.filter(function (ex) { return !ex.logic; })

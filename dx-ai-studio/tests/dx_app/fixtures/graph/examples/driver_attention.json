@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "name": "driver-attention",
+  "nodes": [
+    { "id": "cam",       "type": "source", "uri": "sample/img/sample_driver_monitoring.png" },
+    { "id": "face",      "model": "scrfd-500m_640x640" },
+    { "id": "headpose",  "type": "cpu", "op": "headpose" },
+    { "id": "yaw_high",  "type": "logic", "op": "condition",
+      "params": { "value": "yaw", "comparator": ">", "threshold": 30,
+                  "cooldown_s": 3, "event": "looking_away" } },
+    { "id": "yaw_low",   "type": "logic", "op": "condition",
+      "params": { "value": "yaw", "comparator": "<", "threshold": -30,
+                  "cooldown_s": 3, "event": "looking_away" } },
+    { "id": "head_down", "type": "logic", "op": "condition",
+      "params": { "value": "pitch", "comparator": "<", "threshold": -20,
+                  "cooldown_s": 3, "event": "head_down" } }
+  ],
+  "edges": [
+    { "from": "cam",      "to": "face" },
+    { "from": "face",     "to": "headpose",  "carry": "result" },
+    { "from": "headpose", "to": "yaw_high",  "carry": "result" },
+    { "from": "headpose", "to": "yaw_low",   "carry": "result" },
+    { "from": "headpose", "to": "head_down", "carry": "result" }
+  ]
+}

@@ -36,6 +36,8 @@
 .gc-item-text{display:flex;flex-direction:column;flex:1;min-width:0}
 .gc-item-name{font-size:var(--fs-sm);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .gc-item-sub{font-size:var(--fs-2xs);color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* A template's or an example's description may take two lines; the tooltip holds all of it and its blocks or models. */
+.gc-template .gc-item-sub,.gc-example .gc-item-sub{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;line-clamp:2;-webkit-box-orient:vertical}
 /* A model's install state and Download sit on a second row, so the name keeps the width of the palette. */
 .gc-item-extra{order:3;display:flex;flex:1 0 100%;flex-wrap:wrap;align-items:center;gap:var(--sp-1);padding-left:var(--sp-5)}
 .gc-item-extra .badge{white-space:nowrap}

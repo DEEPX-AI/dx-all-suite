@@ -4750,6 +4750,228 @@ window._DX_I18N_DICT = {
     'zh-CN': '服务器已不再记录此次运行：它已结束，或服务器已重启。', 'zh-TW': '伺服器已不再記錄此次執行：它已結束，或伺服器已重新啟動。',
     es: 'El servidor ya no conoce esta ejecución; terminó o el servidor se reinició.',
   },
+  /* Graph Composer templates (graph-palette.js TEMPLATE_TEXT): a scenario name and what it decides. */
+  'Restricted-zone intrusion': {
+    ko: '출입 금지 구역 침입', ja: '立入禁止ゾーンへの侵入',
+    'zh-CN': '禁区闯入', 'zh-TW': '禁區闖入',
+    es: 'Intrusión en zona restringida',
+  },
+  'An event when a person enters the zone': {
+    ko: '사람이 구역에 들어오면 이벤트', ja: '人がゾーンに入るとイベント',
+    'zh-CN': '有人进入区域时触发事件', 'zh-TW': '有人進入區域時觸發事件',
+    es: 'Un evento cuando una persona entra en la zona',
+  },
+  'Line counting': {
+    ko: '선 통과 계수', ja: 'ライン通過カウント',
+    'zh-CN': '越线计数', 'zh-TW': '越線計數',
+    es: 'Conteo por línea',
+  },
+  'People crossing a line, counted per direction': {
+    ko: '선을 지나는 사람을 방향별로 계수', ja: 'ラインを通過した人を方向別にカウント',
+    'zh-CN': '按方向统计越线的人', 'zh-TW': '依方向統計越線的人',
+    es: 'Personas que cruzan una línea, contadas por sentido',
+  },
+  'PPE check': {
+    ko: '보호구 확인', ja: '保護具チェック',
+    'zh-CN': '防护装备检查', 'zh-TW': '防護裝備檢查',
+    es: 'Comprobación de EPI',
+  },
+  'An event for a person in the zone without a hat': {
+    ko: '구역 안에 모자를 쓰지 않은 사람이 있으면 이벤트', ja: 'ゾーン内に帽子をかぶっていない人がいるとイベント',
+    'zh-CN': '区域内有人未戴帽子时触发事件', 'zh-TW': '區域內有人未戴帽子時觸發事件',
+    es: 'Un evento cuando hay una persona sin sombrero en la zona',
+  },
+  'Loitering': {
+    ko: '배회 감지', ja: 'うろつき検知',
+    'zh-CN': '徘徊检测', 'zh-TW': '徘徊偵測',
+    es: 'Merodeo',
+  },
+  'An event when a person stays in the zone over 5 s': {
+    ko: '사람이 구역에 5초 넘게 머물면 이벤트', ja: '人がゾーンに 5 秒を超えてとどまるとイベント',
+    'zh-CN': '有人在区域内停留超过 5 秒时触发事件', 'zh-TW': '有人在區域內停留超過 5 秒時觸發事件',
+    es: 'Un evento cuando una persona permanece más de 5 s en la zona',
+  },
+  'People count per zone': {
+    ko: '구역별 인원 계수', ja: 'ゾーンごとの人数カウント',
+    'zh-CN': '分区人数统计', 'zh-TW': '分區人數統計',
+    es: 'Conteo de personas por zona',
+  },
+  'People counted in two zones': {
+    ko: '두 구역의 인원을 계수', ja: '2 つのゾーンの人数をカウント',
+    'zh-CN': '统计两个区域中的人数', 'zh-TW': '統計兩個區域中的人數',
+    es: 'Personas contadas en dos zonas',
+  },
+  'Known person': {
+    ko: '등록된 인물 확인', ja: '登録済み人物の確認',
+    'zh-CN': '已登记人员识别', 'zh-TW': '已登記人員辨識',
+    es: 'Persona conocida',
+  },
+  'Each person named after the closest Gallery entry, or unknown': {
+    ko: '사람마다 가장 가까운 Gallery 항목의 이름, 없으면 unknown', ja: '各人に最も近いギャラリー項目の名前、なければ unknown',
+    'zh-CN': '为每个人标注最接近的图库条目名称，没有则为 unknown', 'zh-TW': '為每個人標註最接近的圖庫項目名稱，沒有則為 unknown',
+    es: 'Cada persona recibe el nombre de la entrada de galería más cercana, o unknown',
+  },
+  'Driver attention': {
+    ko: '운전자 주의 상태', ja: 'ドライバーの注意状態',
+    'zh-CN': '驾驶员注意力', 'zh-TW': '駕駛注意力',
+    es: 'Atención del conductor',
+  },
+  'Events when the driver turns the head away or down': {
+    ko: '운전자가 고개를 돌리거나 숙이면 이벤트', ja: 'ドライバーが顔をそらしたり下を向いたりするとイベント',
+    'zh-CN': '驾驶员转头或低头时触发事件', 'zh-TW': '駕駛轉頭或低頭時觸發事件',
+    es: 'Eventos cuando el conductor gira o baja la cabeza',
+  },
+  'Multi-camera people count': {
+    ko: '여러 카메라 인원 계수', ja: '複数カメラの人数カウント',
+    'zh-CN': '多摄像头人数统计', 'zh-TW': '多攝影機人數統計',
+    es: 'Conteo de personas con varias cámaras',
+  },
+  'People counted per camera; an event when one is crowded': {
+    ko: '카메라마다 인원을 계수하고, 붐비면 이벤트', ja: 'カメラごとに人数をカウントし、混雑するとイベント',
+    'zh-CN': '按摄像头统计人数，拥挤时触发事件', 'zh-TW': '依攝影機統計人數，擁擠時觸發事件',
+    es: 'Personas contadas por cámara; un evento cuando una escena se llena de gente',
+  },
+  /* Graph Composer engine examples and the volume alert template (graph-palette.js TEMPLATE_TEXT). */
+  'Logistics volume alert': {
+    ko: '물류 부피 경보', ja: '物流の体積アラート',
+    'zh-CN': '物流体积警报', 'zh-TW': '物流體積警報',
+    es: 'Alerta de volumen logístico',
+  },
+  'An event when the estimated volume of packages passes a limit': {
+    ko: '화물의 추정 부피가 기준을 넘으면 이벤트', ja: '荷物の推定体積が上限を超えるとイベント',
+    'zh-CN': '包裹估算体积超过上限时触发事件', 'zh-TW': '包裹估算體積超過上限時觸發事件',
+    es: 'Un evento cuando el volumen estimado de los paquetes supera un límite',
+  },
+  'Detection, segmentation and pose': {
+    ko: '검출·분할·자세', ja: '検出・セグメンテーション・姿勢',
+    'zh-CN': '检测、分割与姿态', 'zh-TW': '偵測、分割與姿態',
+    es: 'Detección, segmentación y pose',
+  },
+  'Three models on one frame, drawn together': {
+    ko: '한 프레임에 모델 세 개를 실행해 함께 그림', ja: '1 フレームに 3 つのモデルを実行して重ねて描画',
+    'zh-CN': '在同一帧上运行三个模型并一起绘制', 'zh-TW': '在同一影格上執行三個模型並一起繪製',
+    es: 'Tres modelos sobre un fotograma, dibujados juntos',
+  },
+  'Detection, segmentation and depth': {
+    ko: '검출·분할·깊이', ja: '検出・セグメンテーション・深度',
+    'zh-CN': '检测、分割与深度', 'zh-TW': '偵測、分割與深度',
+    es: 'Detección, segmentación y profundidad',
+  },
+  'Three models on one frame, with depth instead of pose': {
+    ko: '자세 대신 깊이를 쓰는 모델 세 개를 한 프레임에 실행', ja: '姿勢の代わりに深度を使う 3 つのモデルを 1 フレームで実行',
+    'zh-CN': '在同一帧上运行三个模型，用深度代替姿态', 'zh-TW': '在同一影格上執行三個模型，以深度取代姿態',
+    es: 'Tres modelos sobre un fotograma, con profundidad en lugar de pose',
+  },
+  'Person re-identification': {
+    ko: '인물 재식별', ja: '人物の再識別',
+    'zh-CN': '行人重识别', 'zh-TW': '行人重新辨識',
+    es: 'Reidentificación de personas',
+  },
+  'Each tracked person cropped for a ReID embedding': {
+    ko: '추적한 사람마다 잘라 ReID embedding 계산', ja: '追跡した人物ごとに切り出して ReID 埋め込みを計算',
+    'zh-CN': '裁剪每个被跟踪的人并计算 ReID 嵌入', 'zh-TW': '裁切每個被追蹤的人並計算 ReID 嵌入',
+    es: 'Cada persona seguida se recorta para un embedding ReID',
+  },
+  'Person attributes': {
+    ko: '인물 속성', ja: '人物の属性',
+    'zh-CN': '行人属性', 'zh-TW': '行人屬性',
+    es: 'Atributos de personas',
+  },
+  'Each person cropped for attribute recognition': {
+    ko: '사람마다 잘라 속성 인식', ja: '人物ごとに切り出して属性を認識',
+    'zh-CN': '裁剪每个人并识别属性', 'zh-TW': '裁切每個人並辨識屬性',
+    es: 'Cada persona se recorta para reconocer sus atributos',
+  },
+  'Rotated objects classified': {
+    ko: '회전된 물체 분류', ja: '回転した物体の分類',
+    'zh-CN': '旋转目标分类', 'zh-TW': '旋轉目標分類',
+    es: 'Objetos girados clasificados',
+  },
+  'Oriented boxes straightened, then classified': {
+    ko: '회전 박스를 바로 세운 뒤 분류', ja: '回転ボックスをまっすぐにしてから分類',
+    'zh-CN': '把旋转框摆正后再分类', 'zh-TW': '把旋轉框擺正後再分類',
+    es: 'Las cajas orientadas se enderezan y luego se clasifican',
+  },
+  'Denoise, then detect': {
+    ko: '잡음 제거 후 검출', ja: 'ノイズ除去してから検出',
+    'zh-CN': '先去噪再检测', 'zh-TW': '先去噪再偵測',
+    es: 'Eliminar ruido y detectar',
+  },
+  'Detection on the denoised image': {
+    ko: '잡음을 없앤 이미지에서 검출', ja: 'ノイズを除去した画像で検出',
+    'zh-CN': '在去噪后的图像上检测', 'zh-TW': '在去噪後的影像上偵測',
+    es: 'Detección sobre la imagen sin ruido',
+  },
+  'Super-resolution, detect, classify': {
+    ko: '초해상도 후 검출과 분류', ja: '超解像のあと検出と分類',
+    'zh-CN': '超分辨率后检测与分类', 'zh-TW': '超解析度後偵測與分類',
+    es: 'Superresolución, detectar y clasificar',
+  },
+  'Detection and classification on a 2x image; too large for DX-M1': {
+    ko: '2배 이미지에서 검출하고 분류. DX-M1에는 너무 큼', ja: '2 倍の画像で検出と分類。DX-M1 には大きすぎる',
+    'zh-CN': '在 2 倍图像上检测和分类；对 DX-M1 来说太大', 'zh-TW': '在 2 倍影像上偵測和分類；對 DX-M1 來說太大',
+    es: 'Detección y clasificación sobre una imagen 2x; demasiado grande para DX-M1',
+  },
+  'Two cameras, one ReID': {
+    ko: '카메라 두 대, ReID 하나', ja: '2 台のカメラ、1 つの ReID',
+    'zh-CN': '两路摄像头，一个 ReID', 'zh-TW': '兩路攝影機，一個 ReID',
+    es: 'Dos cámaras, un ReID',
+  },
+  'Two sources share one tracked detector and one ReID model': {
+    ko: '두 소스가 추적 detector 하나와 ReID 모델 하나를 함께 사용', ja: '2 つのソースが追跡付き検出器 1 つと ReID モデル 1 つを共有',
+    'zh-CN': '两个源共用一个带跟踪的检测器和一个 ReID 模型', 'zh-TW': '兩個來源共用一個附追蹤的偵測器和一個 ReID 模型',
+    es: 'Dos fuentes comparten un detector con seguimiento y un modelo ReID',
+  },
+  'Super-resolution, detect, pose': {
+    ko: '초해상도 후 검출과 자세', ja: '超解像のあと検出と姿勢',
+    'zh-CN': '超分辨率后检测与姿态', 'zh-TW': '超解析度後偵測與姿態',
+    es: 'Superresolución, detectar y pose',
+  },
+  'Top-down pose on a 2x image; too large for DX-M1': {
+    ko: '2배 이미지에서 사람마다 자세 추정. DX-M1에는 너무 큼', ja: '2 倍の画像で人物ごとに姿勢推定。DX-M1 には大きすぎる',
+    'zh-CN': '在 2 倍图像上逐人估计姿态；对 DX-M1 来说太大', 'zh-TW': '在 2 倍影像上逐人估計姿態；對 DX-M1 來說太大',
+    es: 'Pose por persona sobre una imagen 2x; demasiado grande para DX-M1',
+  },
+  'Low-light detection, pose and ReID': {
+    ko: '저조도 검출·자세·ReID', ja: '低照度での検出・姿勢・ReID',
+    'zh-CN': '低光照检测、姿态与 ReID', 'zh-TW': '低光照偵測、姿態與 ReID',
+    es: 'Detección, pose y ReID con poca luz',
+  },
+  'Low-light enhancement, then a pose and an embedding per person': {
+    ko: '저조도 보정 후 사람마다 자세와 embedding', ja: '低照度補正のあと人物ごとに姿勢と埋め込み',
+    'zh-CN': '低光照增强后，逐人估计姿态并计算嵌入', 'zh-TW': '低光照增強後，逐人估計姿態並計算嵌入',
+    es: 'Mejora de poca luz y después una pose y un embedding por persona',
+  },
+  'Hand landmarks': {
+    ko: '손 landmark', ja: '手のランドマーク',
+    'zh-CN': '手部关键点', 'zh-TW': '手部關鍵點',
+    es: 'Puntos de la mano',
+  },
+  'Palm detection, then 21 landmarks per hand': {
+    ko: '손바닥 검출 후 손마다 landmark 21개', ja: '手のひらを検出して手ごとに 21 点のランドマーク',
+    'zh-CN': '先检测手掌，再为每只手求 21 个关键点', 'zh-TW': '先偵測手掌，再為每隻手求 21 個關鍵點',
+    es: 'Detección de palmas y luego 21 puntos por mano',
+  },
+  'Driver head pose': {
+    ko: '운전자 머리 자세', ja: 'ドライバーの頭部姿勢',
+    'zh-CN': '驾驶员头部姿态', 'zh-TW': '駕駛頭部姿態',
+    es: 'Pose de la cabeza del conductor',
+  },
+  'Face detection, then pitch, yaw and roll': {
+    ko: '얼굴 검출 후 pitch, yaw, roll', ja: '顔を検出して pitch・yaw・roll',
+    'zh-CN': '检测人脸后求 pitch、yaw、roll', 'zh-TW': '偵測人臉後求 pitch、yaw、roll',
+    es: 'Detección de caras y luego pitch, yaw y roll',
+  },
+  'Package volume': {
+    ko: '화물 부피', ja: '荷物の体積',
+    'zh-CN': '包裹体积', 'zh-TW': '包裹體積',
+    es: 'Volumen de paquetes',
+  },
+  'Detection, masks and depth give a volume estimate per package': {
+    ko: '검출, mask, 깊이로 화물마다 부피 추정', ja: '検出・マスク・深度から荷物ごとの体積を推定',
+    'zh-CN': '由检测、掩码和深度估算每件包裹的体积', 'zh-TW': '由偵測、遮罩和深度估算每件包裹的體積',
+    es: 'Detección, máscaras y profundidad dan un volumen estimado por paquete',
+  },
 };
 
 /* ─── Graph Composer logic blocks: Studio's translations of dx_app's --list-ops texts ───

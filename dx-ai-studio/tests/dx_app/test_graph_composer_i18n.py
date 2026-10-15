@@ -89,6 +89,9 @@ def _graph_keys(strings) -> list[str]:
         if p.name == "graph-palette.js" and "var LOGIC_LABELS" in src:
             block = src[src.index("var LOGIC_LABELS"):src.index("};", src.index("var LOGIC_LABELS"))]
             keys |= set(re.findall(r": '([^']+)'", block))
+        if p.name == "graph-palette.js" and "var TEMPLATE_TEXT" in src:
+            block = src[src.index("var TEMPLATE_TEXT"):src.index("};", src.index("var TEMPLATE_TEXT"))]
+            keys |= set(re.findall(r"'([^']+)'", block))
     return sorted(keys)
 
 
@@ -253,3 +256,15 @@ def test_graph_error_keys_read_in_every_language(key):
     lacking = [lang for lang in TARGET_LANGS if f"{lang}:" not in entry and f"'{lang}':" not in entry]
     assert entry and not lacking, (key, lacking)
     assert not [w for w in _P2_HANGUL_SPELLINGS if w in _ko(entry)], _ko(entry)
+
+
+def test_every_dx_app_example_has_a_name_in_the_palette():
+    """TEMPLATE_TEXT (graph-palette.js) names exactly the sample graphs dx_app ships."""
+    import re
+    from dx_app.core import config
+    d = config.DX_APP_ROOT / "src" / "cpp_example" / "multi_model_graph"
+    if not d.is_dir():
+        pytest.skip("dx_app is not checked out next to the studio")
+    src = (ROOT / "dx_app/static/js/graph-palette.js").read_text(encoding="utf-8")
+    block = src[src.index("var TEMPLATE_TEXT"):src.index("};", src.index("var TEMPLATE_TEXT"))]
+    assert set(re.findall(r"^\s+(\w+): \[", block, re.M)) == {p.stem for p in d.glob("*.json")}

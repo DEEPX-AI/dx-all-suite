@@ -196,7 +196,7 @@ def test_examples_with_logic_nodes_are_templates_with_a_thumbnail(tmp_path, monk
     assert ex["line_counting"]["thumb"] == "/file/src/cpp_example/multi_model_graph/line_counting.jpg"
     assert ex["loitering_dwell"]["thumb"] == "/static/img/graph-examples/loitering_dwell.jpg"
     assert ex["ppe_zone_check"]["models"] == ["deepmar_resnet18_224x224", "yolov8-n_640x640"]
-    assert sum(e["logic"] for e in ex.values()) == 6
+    assert sum(e["logic"] for e in ex.values()) == 9
 
 
 def test_the_catalog_says_whether_dx_app_can_export(tmp_path, monkeypatch):

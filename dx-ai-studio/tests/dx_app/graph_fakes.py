@@ -95,7 +95,7 @@ exit 2
 
 
 def install_examples(root: Path) -> Path:
-    """Copy the six logic sample graphs into <root>/src/cpp_example/multi_model_graph (a fake dx_app root)."""
+    """Copy the nine logic sample graphs into <root>/src/cpp_example/multi_model_graph (a fake dx_app root)."""
     d = root / "src" / "cpp_example" / "multi_model_graph"
     d.mkdir(parents=True, exist_ok=True)
     for p in sorted((FIX / "examples").glob("*.json")):

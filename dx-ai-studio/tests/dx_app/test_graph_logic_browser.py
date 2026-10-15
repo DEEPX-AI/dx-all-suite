@@ -220,11 +220,54 @@ def test_the_palette_offers_templates_with_thumbnails_and_the_logic_blocks(ui):
     page, _ = ui
     names = page.eval_on_selector_all("[data-group='logic'] .gc-item-name", "els => els.map(e => e.textContent)")
     assert names == ["Filter", "Zone", "Line crossing", "Count", "Dwell", "Condition → Event", "Gallery match", "User logic"]
-    assert page.get_attribute(".gc-template[data-id='zone_intrusion'] img.gc-thumb", "alt") == "Result of zone-intrusion"
-    assert page.locator(".gc-template").count() == 6
-    assert page.get_attribute(".gc-example img.gc-thumb", "alt") == "Result of person-attributes", "examples show theirs too"
+    assert page.get_attribute(".gc-template[data-id='zone_intrusion'] img.gc-thumb", "alt") == \
+        "Result of Restricted-zone intrusion"
+    assert page.locator(".gc-template").count() == 9
+    assert page.get_attribute(".gc-example img.gc-thumb", "alt") == "Result of Person attributes", "examples show theirs too"
     groups = page.eval_on_selector_all("#gc-palette-list .gc-group:not(.is-empty)", "els => els.map(e => e.dataset.group)")
     assert groups[:3] == ["templates", "examples", "sources"] and groups[-2:] == ["logic", "cpu"]
+
+
+def test_templates_show_their_scenario_and_what_it_decides(ui):
+    page, _ = ui
+    items = page.eval_on_selector_all(".gc-template", """els => els.map(e => [e.dataset.id,
+        e.querySelector('.gc-item-name').textContent, e.querySelector('.gc-item-sub').textContent])""")
+    got = {i: (name, sub) for i, name, sub in items}
+    assert got["zone_intrusion"] == ("Restricted-zone intrusion", "An event when a person enters the zone")
+    assert got["driver_attention"] == ("Driver attention", "Events when the driver turns the head away or down")
+    assert got["multistream_people_count"][0] == "Multi-camera people count"
+    assert got["logistics_volume_alert"][0] == "Logistics volume alert"
+    assert page.get_attribute(".gc-template[data-id='zone_intrusion'] .gc-item-sub", "title") == \
+        "An event when a person enters the zone (Condition → Event · Filter · Zone)"
+    assert page.get_attribute(".gc-template[data-id='zone_intrusion'] button", "aria-label") == \
+        "Open the template Restricted-zone intrusion"
+    page.fill("#gc-search", "multi-camera")
+    page.wait_for_function("() => document.querySelectorAll('.gc-template').length === 1")
+    assert page.get_attribute(".gc-template", "data-id") == "multistream_people_count"
+
+
+def test_template_names_follow_the_language(ui):
+    page, _ = ui
+    page.evaluate("DXI18n.setLang('ko')")
+    page.wait_for_function("() => document.querySelector(\".gc-template[data-id='zone_intrusion'] .gc-item-name\")"
+                           ".textContent === '출입 금지 구역 침입'")
+    assert page.inner_text(".gc-template[data-id='driver_attention'] .gc-item-name") == "운전자 주의 상태"
+    assert page.get_attribute(".gc-template[data-id='zone_intrusion'] button", "aria-label") == \
+        "출입 금지 구역 침입 Template 열기"
+    page.fill("#gc-search", "카메라")
+    page.wait_for_function("() => document.querySelectorAll('.gc-template').length === 1")
+
+
+def test_examples_show_a_name_and_what_they_chain(ui):
+    page, _ = ui
+    item = ".gc-example[data-id='cascade_od_attr']"
+    assert page.inner_text(item + " .gc-item-name") == "Person attributes"
+    assert page.inner_text(item + " .gc-item-sub") == "Each person cropped for attribute recognition"
+    assert page.get_attribute(item + " .gc-item-sub", "title") == \
+        "Each person cropped for attribute recognition (deepmar_resnet50_224x224 + yolov8-n_640x640)"
+    assert page.get_attribute(item + " button", "aria-label") == "Open the example Person attributes"
+    page.evaluate("DXI18n.setLang('ko')")
+    page.wait_for_function("() => document.querySelector(\"" + item + " .gc-item-name\").textContent === '인물 속성'")
 
 
 def test_a_logic_block_joins_the_graph_with_its_defaults_and_connection_rules(ui):
