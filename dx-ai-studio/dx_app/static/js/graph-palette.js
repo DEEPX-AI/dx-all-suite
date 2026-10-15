@@ -114,8 +114,10 @@ window.GraphPalette = (function () {
     var open = c.h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: T('Open'),
       'aria-label': c.fmt(T('Open the example {name}'), { name: ex.name }) });
     open.addEventListener('click', function () { c.loadExample(ex.id); });
+    var thumb = ex.thumb ? c.h('img', { class: 'gc-thumb', src: ex.thumb, alt: c.fmt(T('Result of {name}'), { name: ex.name }), loading: 'lazy' })
+      : c.icon('graph');
     return c.h('div', { class: 'gc-item gc-example', role: 'listitem', dataset: { cat: 'example' } }, [
-      c.icon('graph'),
+      thumb,
       c.h('span', { class: 'gc-item-text' }, [c.h('span', { class: 'gc-item-name', text: ex.name }),
                                               c.h('span', { class: 'gc-item-sub', text: ex.models.join(' + ') })]),
       open

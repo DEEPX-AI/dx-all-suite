@@ -89,7 +89,7 @@
 
 /* logic blocks and templates (palette) */
 .gc-item[data-cat="logic"]::before{background:var(--cat-5)}
-/* A template's result thumbnail sits on its own row above the name, the width of the palette. */
+/* An example's or template's result thumbnail sits on its own row above the name, the width of the palette. */
 .gc-thumb{order:-1;flex:1 0 100%;width:100%;aspect-ratio:16 / 9;max-height:120px;border-radius:var(--radius-sm);object-fit:cover;background:var(--surface-sunken)}
 .gc-warn{margin:var(--sp-2) 0;padding:var(--sp-2);border:1px solid var(--status-warn);border-radius:var(--radius-sm);font-size:var(--fs-sm)}
 .gc-warn p{margin:0 0 var(--sp-1)}

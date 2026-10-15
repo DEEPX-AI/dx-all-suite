@@ -203,7 +203,7 @@ def _thumb(d: Path, stem: str):
 
 def examples() -> list[dict]:
     """The shipped sample graphs (dx_app src/cpp_example/multi_model_graph/*.json); one with logic nodes is a
-    template (`logic`, `ops`, `thumb`)."""
+    template (`logic`, `ops`). Each has its result thumbnail (`thumb`) when one was made."""
     d = Path(config.DX_APP_ROOT) / "src" / "cpp_example" / "multi_model_graph"
     out = []
     for p in sorted(d.glob("*.json")):
@@ -218,7 +218,7 @@ def examples() -> list[dict]:
         ops = sorted({n["op"] for n in nodes if n.get("type") == "logic" and isinstance(n.get("op"), str)})
         out.append({"id": p.stem, "name": g.get("name") or p.stem, "graph": g, "models": models,
                     "nodes": len(g["nodes"]), "edges": len(g.get("edges") or []), "logic": bool(ops), "ops": ops,
-                    "thumb": _thumb(d, p.stem) if ops else None})
+                    "thumb": _thumb(d, p.stem)})
     return out
 
 

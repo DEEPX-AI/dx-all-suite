@@ -177,10 +177,16 @@ def test_examples_with_logic_nodes_are_templates_with_a_thumbnail(tmp_path, monk
     thumbs = tmp_path / "studio_thumbs"
     thumbs.mkdir()
     (thumbs / "loitering_dwell.jpg").write_bytes(b"\xff\xd8")
+    (d / "engine_only.json").write_text(json.dumps({"version": 1, "name": "engine-only", "nodes": [
+        {"id": "cam", "type": "source", "uri": "a"}, {"id": "od", "model": "yolov8-n_640x640"}],
+        "edges": [{"from": "cam", "to": "od"}]}))
+    (thumbs / "engine_only.jpg").write_bytes(b"\xff\xd8")
     monkeypatch.setattr(config, "DX_APP_ROOT", tmp_path)
     monkeypatch.setattr(graph_catalog, "THUMBS_DIR", thumbs)
     ex = {e["id"]: e for e in graph_catalog.examples()}
     assert ex["plain"]["logic"] is False and ex["plain"]["thumb"] is None
+    assert ex["engine_only"]["logic"] is False, "an example without logic blocks is not a template"
+    assert ex["engine_only"]["thumb"] == "/static/img/graph-examples/engine_only.jpg", "but it has a thumbnail too"
     zone = ex["zone_intrusion"]
     assert zone["logic"] is True and zone["ops"] == ["condition", "filter", "zone"] and zone["thumb"] is None
     assert ex["line_counting"]["thumb"] == "/file/src/cpp_example/multi_model_graph/line_counting.jpg"

@@ -32,6 +32,7 @@ for _p in sorted((FIX / "examples").glob("*.json")):
                      "nodes": len(_g["nodes"]), "edges": len(_g["edges"]), "logic": True, "ops": _ops,
                      "thumb": "/static/shared/favicons/dx_app.svg" if _p.stem == "zone_intrusion" else None})
 CATALOG = json.loads((FIX / "catalog.json").read_text(encoding="utf-8"))
+CATALOG["examples"][0]["thumb"] = "/static/shared/favicons/dx_app.svg"   # cascade_od_attr, an engine example
 CATALOG.update(logic_ops=OPS, logic_error=None, examples=CATALOG["examples"] + EXAMPLES,
                limits={"uploads_total_b64": 20 * 1024 * 1024})
 CATALOG["capabilities"].update(list_ops=True, events=True, loop=True, draw=True, output_layers=True)
@@ -221,6 +222,7 @@ def test_the_palette_offers_templates_with_thumbnails_and_the_logic_blocks(ui):
     assert names == ["Filter", "Zone", "Line crossing", "Count", "Dwell", "Condition → Event", "Gallery match", "User logic"]
     assert page.get_attribute(".gc-template[data-id='zone_intrusion'] img.gc-thumb", "alt") == "Result of zone-intrusion"
     assert page.locator(".gc-template").count() == 6
+    assert page.get_attribute(".gc-example img.gc-thumb", "alt") == "Result of person-attributes", "examples show theirs too"
     groups = page.eval_on_selector_all("#gc-palette-list .gc-group:not(.is-empty)", "els => els.map(e => e.dataset.group)")
     assert groups[:3] == ["templates", "examples", "sources"] and groups[-2:] == ["logic", "cpu"]
 
