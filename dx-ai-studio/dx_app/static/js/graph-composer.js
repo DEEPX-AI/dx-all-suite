@@ -2,8 +2,8 @@
 
    Palette, canvas, inspector, validation pins, the NPU memory bar, the run panel and projects around one dx_app
    graph. The server API is /api/graph/* (dx_app/core/graph_routes.py) with the Lab session token.
-   Pieces: graph-doc.js (document model), graph-palette.js, graph-inspector.js, graph-run.js (run once),
-   graph-live.js (Live), graph-events.js (event lists), graph-zone.js + graph-zone-editor.js (zones and lines); the
+   Pieces: graph-doc.js (document model), graph-palette.js, graph-inspector.js, graph-run.js (run once) and
+   graph-results.js (its results view), graph-live.js (Live), graph-events.js (event lists), graph-zone.js + graph-zone-editor.js (zones and lines); the
    canvas is shared/static/dx-graph-canvas.js. While a run or a Live goes, its per-node time and event counts tint and
    badge the nodes (observe()). Contract: tests/dx_app/test_graph_composer_page.py,
    tests/dx_app/test_graph_composer_browser.py */
@@ -85,6 +85,7 @@ window.GraphComposer = (function () {
     },
     liveStop: function (id) { return call('POST', '/api/graph/live/stop', { id: id }); },
     result: function (id) { return call('GET', '/api/graph/run/result?id=' + encodeURIComponent(id)); },
+    runFrame: function (body) { return call('POST', '/api/graph/run/frame', body); },
     stop: function (id) { return call('POST', '/api/graph/run/stop', { id: id }); },
     galleryBuild: function (body) { return call('POST', '/api/graph/gallery/build', body); },
     galleryPoll: function (id) { return call('GET', '/api/graph/gallery/poll?id=' + encodeURIComponent(id)); },
@@ -329,6 +330,7 @@ window.GraphComposer = (function () {
     (st.catalog.logic_ops || []).forEach(function (o) { st.ops[o.op] = o; });
     renderPalette();
     refreshDisplay();
+    if (window.GraphLive) GraphLive.renderInputs();      // the "Draw" picker needs the build's capabilities
     updateStatus();
     scheduleValidate();
   }

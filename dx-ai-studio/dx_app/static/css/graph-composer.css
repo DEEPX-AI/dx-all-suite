@@ -84,7 +84,6 @@
 .gc-ms-bar{height:6px;border-radius:var(--radius-pill);background:var(--surface-sunken);overflow:hidden}
 .gc-ms-fill{display:block;height:100%;background:var(--status-warn)}
 .gc-ms-value{text-align:right;font-variant-numeric:tabular-nums}
-.gc-run-media{display:block;max-width:100%;max-height:480px;margin-top:var(--sp-3);border-radius:var(--radius)}
 .gc-run-table{margin-top:var(--sp-3);border-collapse:collapse;font-size:var(--fs-sm)}
 .gc-run-table th,.gc-run-table td{padding:var(--sp-1) var(--sp-2);text-align:left;border-bottom:1px solid var(--border-subtle)}
 
@@ -133,6 +132,46 @@
 .gc-num{text-align:right;font-variant-numeric:tabular-nums}
 .gc-ev-data{max-width:320px;overflow-wrap:anywhere;font-size:var(--fs-xs);color:var(--text-muted)}
 
+/* results view (graph-results.js): one cell per stream, layer stacks and their toggles, the enlarge dialog */
+.gc-res{margin-top:var(--sp-3);--gc-res-maxh:480px}
+.gc-res-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--sp-3)}
+.gc-res-grid[data-n="2"],.gc-res-grid[data-n="3"],.gc-res-grid[data-n="4"]{grid-template-columns:repeat(2,minmax(0,1fr));--gc-res-maxh:360px}
+.gc-res-grid[data-n="many"]{grid-template-columns:repeat(3,minmax(0,1fr));--gc-res-maxh:280px}
+.gc-res-cell{min-width:0;margin:0;padding:var(--sp-2);border:1px solid var(--border-subtle);border-radius:var(--radius);background:var(--surface-sunken)}
+.gc-res-cell.is-sought{animation:gc-res-flash 1.2s ease-out}
+@keyframes gc-res-flash{0%{box-shadow:0 0 0 3px var(--accent)}100%{box-shadow:0 0 0 0 transparent}}
+.gc-res-cap{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-2);margin-bottom:var(--sp-2);font-size:var(--fs-sm);font-weight:600}
+.gc-res-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--mono)}
+.gc-res-media{display:flex;flex-direction:column;align-items:center;gap:var(--sp-2);min-width:0}
+/* Every image of a stack fills one box of the frame's aspect ratio (--ar), so the layers align pixel for pixel. */
+.gc-res-stack{position:relative;width:min(100%,calc(var(--gc-res-maxh) * var(--ar,1.7778)));aspect-ratio:16 / 9;overflow:hidden;border-radius:var(--radius-sm)}
+.gc-res-stack img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.gc-res-stack img[hidden]{display:none}
+.gc-res-stack .gc-res-layer{pointer-events:none}
+.gc-res-stack .gc-res-base,.gc-res-img{cursor:zoom-in}
+.gc-res-img,.gc-res-video{display:block;max-width:100%;max-height:var(--gc-res-maxh);border-radius:var(--radius-sm)}
+.gc-res-video[hidden]{display:none}
+.gc-res-frame-tools{display:flex;flex-wrap:wrap;align-items:center;gap:var(--sp-2);align-self:stretch}
+.gc-res-note .spin{width:12px;height:12px;vertical-align:middle}
+.gc-res-toggles:empty{display:none}
+.gc-checks{min-width:0;margin:0 0 var(--sp-3);padding:var(--sp-2) var(--sp-3);border:1px solid var(--border-subtle);border-radius:var(--radius)}
+.gc-checks-title{padding:0 var(--sp-1);font-size:var(--fs-xs);font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px}
+.gc-checks-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--sp-2)}
+.gc-checks-list{display:flex;flex-wrap:wrap;gap:var(--sp-1) var(--sp-3);min-width:0}
+.gc-check{display:inline-flex;align-items:center;gap:var(--sp-1);font-size:var(--fs-sm);cursor:pointer;overflow-wrap:anywhere}
+.gc-swatch{flex:none;width:10px;height:10px;border-radius:2px;background:var(--cat-3)}
+.gc-swatch[data-cat="logic"]{background:var(--cat-5)}
+.gc-swatch[data-cat="cpu"]{background:var(--cat-2)}
+.gc-swatch[data-cat="panel"]{background:var(--text-muted)}
+.gc-checks-all{display:flex;gap:var(--sp-1)}
+.gc-res-modal{width:1200px;max-width:96vw}
+.gc-res-dialog-head{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-2);margin-bottom:var(--sp-3)}
+.gc-res-dialog-head h2{margin:0}
+.gc-res-src{font-family:var(--mono);text-transform:none;letter-spacing:0}
+.gc-res-dialog-body{--gc-res-maxh:72vh}
+.gc-live-draw{margin-top:var(--sp-3)}
+.gc-live-draw[hidden]{display:none}
+
 @media(max-width:1200px){
   .gc-layout{grid-template-columns:240px minmax(0,1fr)}
   .gc-inspector{grid-column:1 / -1;max-height:none}
@@ -144,4 +183,5 @@
   .gc-toolbar .gc-group-end{margin-left:0}
   .gc-field .input{min-width:0;width:100%}
   .gc-zone-main{grid-template-columns:minmax(0,1fr)}
+  .gc-res-grid[data-n]{grid-template-columns:minmax(0,1fr)}
 }

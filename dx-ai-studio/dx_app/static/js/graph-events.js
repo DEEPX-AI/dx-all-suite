@@ -2,7 +2,8 @@
    time; a row shows its frame in the result video of its stream (when there is one) and selects its node on the
    canvas; the --events file is offered for download. Events: {seq, frame, time, stream, node, event, track_id, data}
    (dx_app/core/graph_events.py); track_id -1 with data.track_ids ("3,7") is an event of several tracks. Frames count
-   per stream, so an event is sought in its stream's video at frame / that video's fps. A component: its owner (graph-run.js, graph-live.js) calls render() after a language
+   per stream, so an event is sought in its stream's video at frame / that video's fps (opts.onSeek(video) lets the
+   owner show that stream's cell first). A component: its owner (graph-run.js, graph-live.js) calls render() after a language
    change. Contract: tests/dx_app/test_graph_logic_browser.py */
 window.GraphEvents = (function () {
   'use strict';
@@ -57,6 +58,7 @@ window.GraphEvents = (function () {
       if (o.onSelectNode) o.onSelectNode(e.node);
       var v = videoOf(e), t = frameTime(e);
       if (!v || t == null) return;
+      if (o.onSeek) o.onSeek(v);          // the owner brings that stream's cell into view first
       v.video.pause();
       v.video.currentTime = Math.max(0, t);
       v.video.focus();

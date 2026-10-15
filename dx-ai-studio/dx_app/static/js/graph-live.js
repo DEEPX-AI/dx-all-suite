@@ -1,11 +1,14 @@
 /* DX App — Graph Composer Live tab: run the graph on a camera, an RTSP stream or a looping video until stopped, and
    watch it — the rendered frames (an MJPEG stream of the runner's window, /api/graph/live/frame), FPS, time per node
    and the events as they fire. One Live at a time; it does not run beside a run once or the Run page's Live
-   (dx_app/core/graph_live.py). Leaving the page stops it, like the Run page's continuous mode.
+   (dx_app/core/graph_live.py). Leaving the page stops it, like the Run page's continuous mode. Before start, "Draw"
+   picks the nodes the picture shows (dx_app --draw; every node still runs); with several sources the picture is
+   dx_app's grid of the streams, each labelled with its source id.
    Contract: tests/dx_app/test_graph_logic_browser.py */
 window.GraphLive = (function () {
   'use strict';
   var c = null, root = null, job = null, timer = 0, picks = {}, rtsp = {}, cameras = [], videos = [], events = null;
+  var drawOff = {};
   var els = {};
 
   function running() { return !!job; }
@@ -23,6 +26,8 @@ window.GraphLive = (function () {
     if (key === 'live_busy') return T('The Run page has a Live run. Stop it there first.');
     if (key === 'invalid_live_input') return c.fmt(T('This input cannot stream: {why}'), { why: r.error || '' });
     if (key === 'graph_binary_missing') return T('The graph runner is not built. Build dx_app (./build.sh) to use the Graph Composer.');
+    if (key === 'invalid_draw') return c.fmt(T('The nodes to draw do not match the graph: {why}'), { why: r.error || '' });
+    if (key === 'draw_unsupported') return T('This dx_app build draws every node. Update dx_app to pick the nodes to draw.');
     /* Other refusals (npu_hold_lost, gallery_busy, unknown_job, ...): the dictionary text of the error key. */
     return (typeof translatedError === 'function' ? translatedError(r) : r && r.error) || T('Live failed to start.');
   }
@@ -38,7 +43,41 @@ window.GraphLive = (function () {
     return opts;
   }
 
+  /* The nodes that draw (every node but the sources), for the "Draw" picker. */
+  function drawable() {
+    return c.canvas().getGraph().nodes.filter(function (n) { return n.kind !== 'source'; });
+  }
+
+  function canDraw() {
+    var caps = c.state.catalog && c.state.catalog.capabilities;
+    return !!(caps && caps.draw);
+  }
+
+  function renderDraw() {
+    els.draw.textContent = '';
+    var nodes = drawable();
+    els.draw.hidden = !canDraw() || !nodes.length;
+    if (els.draw.hidden) return;
+    var items = nodes.map(function (n) {
+      var d = n.data || {};
+      return { key: n.id, label: n.id + (d.model ? ' · ' + d.model : d.op ? ' · ' + d.op : ''), cat: n.category };
+    });
+    els.draw.appendChild(GraphResults.nodeChecks(c, { id: 'gc-live-draw-list', idPrefix: 'gc-live-draw', title: T('Draw'),
+      items: items, disabled: !!job, isOn: function (k) { return !drawOff[k]; },
+      onChange: function (k, on) { if (on) delete drawOff[k]; else drawOff[k] = true; },
+      onAll: function (on) { items.forEach(function (it) { if (on) delete drawOff[it.key]; else drawOff[it.key] = true; }); } }));
+    els.draw.appendChild(c.h('p', { class: 'gc-help', text: T('Only the checked nodes draw on the picture; every node still runs and raises its events.') }));
+  }
+
+  /* The ids to send as `draw`: null when every node draws (no --draw), [] when none is checked. */
+  function drawPick() {
+    var nodes = drawable();
+    if (!canDraw() || !nodes.some(function (n) { return drawOff[n.id]; })) return null;
+    return nodes.filter(function (n) { return !drawOff[n.id]; }).map(function (n) { return n.id; });
+  }
+
   function renderInputs() {
+    if (els.draw) renderDraw();
     els.inputs.textContent = '';
     var srcs = sources();
     if (!srcs.length) { els.inputs.appendChild(c.h('p', { class: 'gc-help', text: T('Add a source to run the graph.') })); return; }
@@ -77,6 +116,7 @@ window.GraphLive = (function () {
     els.start = c.h('button', { type: 'button', class: 'btn btn-primary btn-sm', id: 'gc-live-start' }, [c.icon('play'), c.h('span', { text: ' ' + T('Start Live') })]);
     els.stop = c.h('button', { type: 'button', class: 'btn btn-ghost btn-sm', id: 'gc-live-stop', disabled: true }, [c.icon('stop'), c.h('span', { text: ' ' + T('Stop') })]);
     els.status = c.h('div', { class: 'gc-run-progress', role: 'status', 'aria-live': 'polite' });
+    els.draw = c.h('div', { class: 'gc-live-draw', id: 'gc-live-draw' });
     els.view = c.h('img', { class: 'gc-live-view', id: 'gc-live-view', alt: T('Live view of the graph'), hidden: true });
     els.errors = c.h('div', { class: 'gc-run-result' });
     els.events = c.h('div', { class: 'gc-events', id: 'gc-live-events' });
@@ -85,6 +125,7 @@ window.GraphLive = (function () {
     root.appendChild(c.h('div', { class: 'gc-run-form' }, [els.inputs,
       c.h('div', { class: 'fg gc-fg' }, [c.h('label', { for: 'gc-live-mode', text: T('Mode') }), els.mode]),
       c.h('div', { class: 'gc-run-actions' }, [els.start, els.stop])]));
+    root.appendChild(els.draw);
     root.appendChild(c.h('p', { class: 'gc-help', text: T('A video loops until you stop. One Live runs at a time; leaving this page stops it.') }));
     root.appendChild(els.status);
     root.appendChild(els.view);
@@ -100,6 +141,7 @@ window.GraphLive = (function () {
   function setRunning(on) {
     els.start.disabled = on;
     els.stop.disabled = !on;
+    els.draw.querySelectorAll('input, button').forEach(function (el) { el.disabled = on; });
     c.updateStatus();
   }
 
@@ -117,7 +159,9 @@ window.GraphLive = (function () {
     if (job) return;
     var g = c.engine();
     if (!g.nodes.length) return;
-    var body = { graph: g, variant: els.mode.value, inputs: inputsBody() };
+    var body = { graph: g, variant: els.mode.value, inputs: inputsBody() }, draw = drawPick();
+    if (draw && !draw.length) { els.status.textContent = T('Check at least one node to draw.'); return; }
+    if (draw) body.draw = draw;
     els.errors.textContent = '';
     events.clear();
     els.status.textContent = T('Starting Live…');
