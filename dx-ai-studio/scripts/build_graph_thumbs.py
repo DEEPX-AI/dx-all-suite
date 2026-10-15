@@ -54,6 +54,8 @@ def tile(pictures: list, size=SIZE) -> bytes:
     its picture cropped around its centre."""
     from PIL import Image, ImageOps
     pics = list(pictures)[:4]
+    if not pics:
+        raise ValueError("no pictures to make a thumbnail of")
     if len(pics) == 1:
         return make_thumb(pics[0], size)
     cols, rows = (2, 1) if len(pics) == 2 else (2, 2)
@@ -81,34 +83,41 @@ def _scaled(path: Path, width=PREVIEW_WIDTH):
 def write_preview(r: dict, outputs_dir: Path, out_dir: Path = None, url: str = TUTORIAL_URL) -> dict:
     """The tutorial's recorded result (GraphRun.preview): a finished image run with layers, in graph_run.result's
     shape, its pictures scaled to PREVIEW_WIDTH and written into `out_dir` beside preview.json. The pictures and
-    preview.json already there are replaced; other files are kept."""
+    preview.json already there are replaced only once the new ones are all written (a run that cannot be a preview
+    leaves them as they were); other files are kept."""
+    import shutil
     from PIL import Image
     out_dir = Path(out_dir or TUTORIAL_DIR)
-    out_dir.mkdir(parents=True, exist_ok=True)
-    for p in out_dir.iterdir():
-        if p.suffix in (".jpg", ".png") or p.name == "preview.json":
-            p.unlink()
 
     def local(u):
         return Path(outputs_dir) / u[len("/outputs/"):]
 
-    outputs = []
-    for o in r.get("outputs") or []:
+    rows_in = r.get("outputs") or []
+    for o in rows_in:
         lay = o.get("layers")
         if o.get("kind") != "image" or not lay:
             raise ValueError(f"{o.get('name')}: the preview needs image results with layers")
+        for u in [o["url"], lay["base"]] + [layer["url"] for layer in lay.get("layers") or []]:
+            if not local(u).is_file():
+                raise FileNotFoundError(f"{o.get('name')}: {u} is missing")
+    new = out_dir.parent / f".{out_dir.name}.new"
+    shutil.rmtree(new, ignore_errors=True)
+    new.mkdir(parents=True)
+    outputs = []
+    for o in rows_in:
+        lay = o["layers"]
         s = o["stream"]
-        _scaled(local(o["url"])).convert("RGB").save(out_dir / f"{s}.jpg", format="JPEG", quality=QUALITY,
-                                                     optimize=True)
+        _scaled(local(o["url"])).convert("RGB").save(new / f"{s}.jpg", format="JPEG", quality=QUALITY, optimize=True)
         base = _scaled(local(lay["base"])).convert("RGB")
-        base.save(out_dir / f"{s}_base.jpg", format="JPEG", quality=QUALITY, optimize=True)
+        base.save(new / f"{s}_base.jpg", format="JPEG", quality=QUALITY, optimize=True)
         rows = []
-        for layer in lay.get("layers") or []:
-            name = f"{s}_{layer.get('node') or 'panel-' + layer.get('panel', '')}.png"
+        for i, layer in enumerate(lay.get("layers") or []):
+            what = layer.get("node") or (f"panel-{layer['panel']}" if layer.get("panel") else f"layer-{i}")
+            name = f"{s}_{what}.png"
             img = _scaled(local(layer["url"])).convert("RGBA")
             if img.size != base.size:
                 img = img.resize(base.size, Image.Resampling.LANCZOS)
-            img.save(out_dir / name, format="PNG", optimize=True)
+            img.save(new / name, format="PNG", optimize=True)
             row = {k: layer[k] for k in ("node", "model", "op", "panel") if k in layer}
             row["url"] = url + name
             rows.append(row)
@@ -118,7 +127,14 @@ def write_preview(r: dict, outputs_dir: Path, out_dir: Path = None, url: str = T
     doc = {k: r[k] for k in _PREVIEW_KEYS if k in r}
     doc.update(exit_code=0, run_id=None, outputs=outputs, errors=[], events_truncated=False, events_url=None,
                events_partial=False, preview=True)
-    (out_dir / "preview.json").write_text(json.dumps(doc, indent=1, sort_keys=True) + "\n", encoding="utf-8")
+    (new / "preview.json").write_text(json.dumps(doc, indent=1, sort_keys=True) + "\n", encoding="utf-8")
+    out_dir.mkdir(parents=True, exist_ok=True)
+    for p in out_dir.iterdir():
+        if p.suffix in (".jpg", ".png") or p.name == "preview.json":
+            p.unlink()
+    for p in new.iterdir():
+        p.replace(out_dir / p.name)
+    new.rmdir()
     return doc
 
 

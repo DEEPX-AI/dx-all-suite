@@ -233,12 +233,14 @@ def test_templates_show_their_scenario_and_what_it_decides(ui):
     items = page.eval_on_selector_all(".gc-template", """els => els.map(e => [e.dataset.id,
         e.querySelector('.gc-item-name').textContent, e.querySelector('.gc-item-sub').textContent])""")
     got = {i: (name, sub) for i, name, sub in items}
-    assert got["zone_intrusion"] == ("Restricted-zone intrusion", "An event when a person enters the zone")
+    assert got["zone_intrusion"] == ("Restricted-zone intrusion", "An event while a person is in the zone")
     assert got["driver_attention"] == ("Driver attention", "Events when the driver turns the head away or down")
     assert got["multistream_people_count"][0] == "Multi-camera people count"
     assert got["logistics_volume_alert"][0] == "Logistics volume alert"
     assert page.get_attribute(".gc-template[data-id='zone_intrusion'] .gc-item-sub", "title") == \
-        "An event when a person enters the zone (Condition → Event · Filter · Zone)"
+        "An event while a person is in the zone (Condition → Event · Filter · Zone)"
+    assert page.inner_text(".gc-template[data-id='zone_intrusion'] .gc-item-more") == \
+        "(Condition → Event · Filter · Zone)", "screen readers hear the blocks the tooltip shows"
     assert page.get_attribute(".gc-template[data-id='zone_intrusion'] button", "aria-label") == \
         "Open the template Restricted-zone intrusion"
     page.fill("#gc-search", "multi-camera")
@@ -266,6 +268,7 @@ def test_examples_show_a_name_and_what_they_chain(ui):
     assert page.get_attribute(item + " .gc-item-sub", "title") == \
         "Each person cropped for attribute recognition (deepmar_resnet50_224x224 + yolov8-n_640x640)"
     assert page.get_attribute(item + " button", "aria-label") == "Open the example Person attributes"
+    assert page.text_content(item + " .gc-item-more") == "(deepmar_resnet50_224x224 + yolov8-n_640x640)"
     page.evaluate("DXI18n.setLang('ko')")
     page.wait_for_function("() => document.querySelector(\"" + item + " .gc-item-name\").textContent === '인물 속성'")
 

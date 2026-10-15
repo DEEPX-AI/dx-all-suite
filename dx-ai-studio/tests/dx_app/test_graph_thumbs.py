@@ -173,3 +173,34 @@ def test_the_new_templates_have_their_thumbnails():
     from dx_app.core import graph_catalog
     for ex_id in ("driver_attention", "multistream_people_count", "logistics_volume_alert"):
         assert (graph_catalog.THUMBS_DIR / f"{ex_id}.jpg").is_file(), ex_id
+
+
+def test_no_pictures_make_no_thumbnail():
+    with pytest.raises(ValueError):
+        thumbs.tile([])
+
+
+def test_a_failed_preview_keeps_the_one_before(tmp_path):
+    outputs, out = tmp_path / "outputs", tmp_path / "p"
+    thumbs.write_preview(_run_result(outputs), outputs, out)
+    before = {p.name: p.read_bytes() for p in out.iterdir()}
+    bad = _run_result(tmp_path / "outputs2")
+    del bad["outputs"][1]["layers"]
+    with pytest.raises(ValueError, match="layers"):
+        thumbs.write_preview(bad, tmp_path / "outputs2", out)
+    assert {p.name: p.read_bytes() for p in out.iterdir()} == before
+    missing = _run_result(tmp_path / "outputs3")
+    (tmp_path / "outputs3" / "graph" / "runs" / "r1" / "layers" / "cam2_od.png").unlink()
+    with pytest.raises(FileNotFoundError):
+        thumbs.write_preview(missing, tmp_path / "outputs3", out)
+    assert {p.name: p.read_bytes() for p in out.iterdir()} == before
+
+
+def test_layers_without_a_node_or_a_panel_keep_their_own_files(tmp_path):
+    outputs = tmp_path / "outputs"
+    r = _run_result(outputs)
+    u = "/outputs/graph/runs/r1/layers/"
+    r["outputs"][0]["layers"]["layers"] = [{"url": u + "cam1_od.png"}, {"url": u + "cam1_events.png"}]
+    doc = thumbs.write_preview(r, outputs, tmp_path / "p")
+    urls = [l["url"] for l in doc["outputs"][0]["layers"]["layers"]]
+    assert len(set(urls)) == 2 and all((tmp_path / "p" / x.rsplit("/", 1)[1]).is_file() for x in urls)

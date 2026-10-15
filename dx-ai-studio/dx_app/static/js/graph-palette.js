@@ -20,7 +20,7 @@ window.GraphPalette = (function () {
      what it does, both dictionary keys. An example dx_app adds later shows its graph name and its blocks or models.
      tests/dx_app/test_graph_composer_i18n.py keeps this list equal to dx_app's samples. */
   var TEMPLATE_TEXT = {
-    zone_intrusion: ['Restricted-zone intrusion', 'An event when a person enters the zone'],
+    zone_intrusion: ['Restricted-zone intrusion', 'An event while a person is in the zone'],
     line_counting: ['Line counting', 'People crossing a line, counted per direction'],
     ppe_zone_check: ['PPE check', 'An event for a person in the zone without a hat'],
     loitering_dwell: ['Loitering', 'An event when a person stays in the zone over 5 s'],
@@ -35,9 +35,9 @@ window.GraphPalette = (function () {
     cascade_od_attr: ['Person attributes', 'Each person cropped for attribute recognition'],
     cascade_obb_cls: ['Rotated objects classified', 'Oriented boxes straightened, then classified'],
     handoff_denoise_od: ['Denoise, then detect', 'Detection on the denoised image'],
-    handoff_sr_od_cls: ['Super-resolution, detect, classify', 'Detection and classification on a 2x image; too large for DX-M1'],
+    handoff_sr_od_cls: ['Super-resolution, detect, classify', 'Detection and classification on a 2x image; needs more memory than DX-M1 has'],
     multistream_od_two_sources: ['Two cameras, one ReID', 'Two sources share one tracked detector and one ReID model'],
-    chain_sr_od_pose: ['Super-resolution, detect, pose', 'Top-down pose on a 2x image; too large for DX-M1'],
+    chain_sr_od_pose: ['Super-resolution, detect, pose', 'Top-down pose on a 2x image; needs more memory than DX-M1 has'],
     chain_zerodce_od_pose_emb: ['Low-light detection, pose and ReID', 'Low-light enhancement, then a pose and an embedding per person'],
     hand_cascade: ['Hand landmarks', 'Palm detection, then 21 landmarks per hand'],
     dms_headpose: ['Driver head pose', 'Face detection, then pitch, yaw and roll'],
@@ -137,7 +137,8 @@ window.GraphPalette = (function () {
     return c.h('div', { class: 'gc-item gc-template', role: 'listitem', dataset: { cat: 'example', id: ex.id } }, [
       thumb,
       c.h('span', { class: 'gc-item-text' }, [c.h('span', { class: 'gc-item-name', text: name, title: name }),
-                                              c.h('span', { class: 'gc-item-sub', text: about, title: text ? about + ' (' + blocks + ')' : blocks })]),
+                                              c.h('span', { class: 'gc-item-sub', text: about, title: text ? about + ' (' + blocks + ')' : blocks }),
+                                              text ? c.h('span', { class: 'sr-only gc-item-more', text: '(' + blocks + ')' }) : null]),
       open
     ]);
   }
@@ -162,7 +163,8 @@ window.GraphPalette = (function () {
     return c.h('div', { class: 'gc-item gc-example', role: 'listitem', dataset: { cat: 'example', id: ex.id } }, [
       thumb,
       c.h('span', { class: 'gc-item-text' }, [c.h('span', { class: 'gc-item-name', text: name, title: name }),
-                                              c.h('span', { class: 'gc-item-sub', text: about, title: text ? about + ' (' + models + ')' : models })]),
+                                              c.h('span', { class: 'gc-item-sub', text: about, title: text ? about + ' (' + models + ')' : models }),
+                                              text ? c.h('span', { class: 'sr-only gc-item-more', text: '(' + models + ')' }) : null]),
       open
     ]);
   }

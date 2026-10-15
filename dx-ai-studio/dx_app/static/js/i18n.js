@@ -4756,10 +4756,10 @@ window._DX_I18N_DICT = {
     'zh-CN': '禁区闯入', 'zh-TW': '禁區闖入',
     es: 'Intrusión en zona restringida',
   },
-  'An event when a person enters the zone': {
-    ko: '사람이 구역에 들어오면 이벤트', ja: '人がゾーンに入るとイベント',
-    'zh-CN': '有人进入区域时触发事件', 'zh-TW': '有人進入區域時觸發事件',
-    es: 'Un evento cuando una persona entra en la zona',
+  'An event while a person is in the zone': {
+    ko: '구역 안에 사람이 있으면 이벤트', ja: 'ゾーン内に人がいるとイベント',
+    'zh-CN': '区域内有人时触发事件', 'zh-TW': '區域內有人時觸發事件',
+    es: 'Un evento mientras haya una persona en la zona',
   },
   'Line counting': {
     ko: '선 통과 계수', ja: 'ライン通過カウント',
@@ -4822,7 +4822,7 @@ window._DX_I18N_DICT = {
     es: 'Eventos cuando el conductor gira o baja la cabeza',
   },
   'Multi-camera people count': {
-    ko: '여러 카메라 인원 계수', ja: '複数カメラの人数カウント',
+    ko: '다중 카메라 인원 계수', ja: '複数カメラの人数カウント',
     'zh-CN': '多摄像头人数统计', 'zh-TW': '多攝影機人數統計',
     es: 'Conteo de personas con varias cámaras',
   },
@@ -4833,7 +4833,7 @@ window._DX_I18N_DICT = {
   },
   /* Graph Composer engine examples and the volume alert template (graph-palette.js TEMPLATE_TEXT). */
   'Logistics volume alert': {
-    ko: '물류 부피 경보', ja: '物流の体積アラート',
+    ko: '화물 부피 경보', ja: '荷物の体積アラート',
     'zh-CN': '物流体积警报', 'zh-TW': '物流體積警報',
     es: 'Alerta de volumen logístico',
   },
@@ -4858,7 +4858,7 @@ window._DX_I18N_DICT = {
     es: 'Detección, segmentación y profundidad',
   },
   'Three models on one frame, with depth instead of pose': {
-    ko: '자세 대신 깊이를 쓰는 모델 세 개를 한 프레임에 실행', ja: '姿勢の代わりに深度を使う 3 つのモデルを 1 フレームで実行',
+    ko: '한 프레임에 모델 세 개, 자세 대신 깊이', ja: '姿勢の代わりに深度を使う 3 つのモデルを 1 フレームで実行',
     'zh-CN': '在同一帧上运行三个模型，用深度代替姿态', 'zh-TW': '在同一影格上執行三個模型，以深度取代姿態',
     es: 'Tres modelos sobre un fotograma, con profundidad en lugar de pose',
   },
@@ -4868,7 +4868,7 @@ window._DX_I18N_DICT = {
     es: 'Reidentificación de personas',
   },
   'Each tracked person cropped for a ReID embedding': {
-    ko: '추적한 사람마다 잘라 ReID embedding 계산', ja: '追跡した人物ごとに切り出して ReID 埋め込みを計算',
+    ko: '추적한 사람마다 잘라 ReID Embedding 계산', ja: '追跡した人物ごとに切り出して ReID 埋め込みを計算',
     'zh-CN': '裁剪每个被跟踪的人并计算 ReID 嵌入', 'zh-TW': '裁切每個被追蹤的人並計算 ReID 嵌入',
     es: 'Cada persona seguida se recorta para un embedding ReID',
   },
@@ -4885,7 +4885,7 @@ window._DX_I18N_DICT = {
   'Rotated objects classified': {
     ko: '회전된 물체 분류', ja: '回転した物体の分類',
     'zh-CN': '旋转目标分类', 'zh-TW': '旋轉目標分類',
-    es: 'Objetos girados clasificados',
+    es: 'Clasificación de objetos rotados',
   },
   'Oriented boxes straightened, then classified': {
     ko: '회전 박스를 바로 세운 뒤 분류', ja: '回転ボックスをまっすぐにしてから分類',
@@ -4893,24 +4893,24 @@ window._DX_I18N_DICT = {
     es: 'Las cajas orientadas se enderezan y luego se clasifican',
   },
   'Denoise, then detect': {
-    ko: '잡음 제거 후 검출', ja: 'ノイズ除去してから検出',
+    ko: '노이즈 제거 후 검출', ja: 'ノイズ除去してから検出',
     'zh-CN': '先去噪再检测', 'zh-TW': '先去噪再偵測',
     es: 'Eliminar ruido y detectar',
   },
   'Detection on the denoised image': {
-    ko: '잡음을 없앤 이미지에서 검출', ja: 'ノイズを除去した画像で検出',
+    ko: '노이즈를 없앤 이미지에서 검출', ja: 'ノイズを除去した画像で検出',
     'zh-CN': '在去噪后的图像上检测', 'zh-TW': '在去噪後的影像上偵測',
     es: 'Detección sobre la imagen sin ruido',
   },
   'Super-resolution, detect, classify': {
     ko: '초해상도 후 검출과 분류', ja: '超解像のあと検出と分類',
     'zh-CN': '超分辨率后检测与分类', 'zh-TW': '超解析度後偵測與分類',
-    es: 'Superresolución, detectar y clasificar',
+    es: 'Superresolución, detección y clasificación',
   },
-  'Detection and classification on a 2x image; too large for DX-M1': {
-    ko: '2배 이미지에서 검출하고 분류. DX-M1에는 너무 큼', ja: '2 倍の画像で検出と分類。DX-M1 には大きすぎる',
-    'zh-CN': '在 2 倍图像上检测和分类；对 DX-M1 来说太大', 'zh-TW': '在 2 倍影像上偵測和分類；對 DX-M1 來說太大',
-    es: 'Detección y clasificación sobre una imagen 2x; demasiado grande para DX-M1',
+  'Detection and classification on a 2x image; needs more memory than DX-M1 has': {
+    ko: '2배 이미지에서 검출하고 분류. DX-M1 메모리에 들어가지 않음', ja: '2 倍の画像で検出と分類。DX-M1 のメモリに収まらない',
+    'zh-CN': '在 2 倍图像上检测和分类；DX-M1 内存装不下', 'zh-TW': '在 2 倍影像上偵測和分類；DX-M1 記憶體放不下',
+    es: 'Detección y clasificación sobre una imagen 2x; necesita más memoria de la que tiene DX-M1',
   },
   'Two cameras, one ReID': {
     ko: '카메라 두 대, ReID 하나', ja: '2 台のカメラ、1 つの ReID',
@@ -4925,12 +4925,12 @@ window._DX_I18N_DICT = {
   'Super-resolution, detect, pose': {
     ko: '초해상도 후 검출과 자세', ja: '超解像のあと検出と姿勢',
     'zh-CN': '超分辨率后检测与姿态', 'zh-TW': '超解析度後偵測與姿態',
-    es: 'Superresolución, detectar y pose',
+    es: 'Superresolución, detección y pose',
   },
-  'Top-down pose on a 2x image; too large for DX-M1': {
-    ko: '2배 이미지에서 사람마다 자세 추정. DX-M1에는 너무 큼', ja: '2 倍の画像で人物ごとに姿勢推定。DX-M1 には大きすぎる',
-    'zh-CN': '在 2 倍图像上逐人估计姿态；对 DX-M1 来说太大', 'zh-TW': '在 2 倍影像上逐人估計姿態；對 DX-M1 來說太大',
-    es: 'Pose por persona sobre una imagen 2x; demasiado grande para DX-M1',
+  'Top-down pose on a 2x image; needs more memory than DX-M1 has': {
+    ko: '2배 이미지에서 사람마다 자세 추정. DX-M1 메모리에 들어가지 않음', ja: '2 倍の画像で人物ごとに姿勢推定。DX-M1 のメモリに収まらない',
+    'zh-CN': '在 2 倍图像上逐人估计姿态；DX-M1 内存装不下', 'zh-TW': '在 2 倍影像上逐人估計姿態；DX-M1 記憶體放不下',
+    es: 'Pose por persona sobre una imagen 2x; necesita más memoria de la que tiene DX-M1',
   },
   'Low-light detection, pose and ReID': {
     ko: '저조도 검출·자세·ReID', ja: '低照度での検出・姿勢・ReID',
@@ -4938,17 +4938,17 @@ window._DX_I18N_DICT = {
     es: 'Detección, pose y ReID con poca luz',
   },
   'Low-light enhancement, then a pose and an embedding per person': {
-    ko: '저조도 보정 후 사람마다 자세와 embedding', ja: '低照度補正のあと人物ごとに姿勢と埋め込み',
+    ko: '저조도 보정 후 사람마다 자세와 Embedding', ja: '低照度補正のあと人物ごとに姿勢と埋め込み',
     'zh-CN': '低光照增强后，逐人估计姿态并计算嵌入', 'zh-TW': '低光照增強後，逐人估計姿態並計算嵌入',
     es: 'Mejora de poca luz y después una pose y un embedding por persona',
   },
   'Hand landmarks': {
-    ko: '손 landmark', ja: '手のランドマーク',
+    ko: '손 랜드마크', ja: '手のランドマーク',
     'zh-CN': '手部关键点', 'zh-TW': '手部關鍵點',
     es: 'Puntos de la mano',
   },
   'Palm detection, then 21 landmarks per hand': {
-    ko: '손바닥 검출 후 손마다 landmark 21개', ja: '手のひらを検出して手ごとに 21 点のランドマーク',
+    ko: '손바닥 검출 후 손마다 랜드마크 21개', ja: '手のひらを検出して手ごとに 21 点のランドマーク',
     'zh-CN': '先检测手掌，再为每只手求 21 个关键点', 'zh-TW': '先偵測手掌，再為每隻手求 21 個關鍵點',
     es: 'Detección de palmas y luego 21 puntos por mano',
   },
@@ -4968,7 +4968,7 @@ window._DX_I18N_DICT = {
     es: 'Volumen de paquetes',
   },
   'Detection, masks and depth give a volume estimate per package': {
-    ko: '검출, mask, 깊이로 화물마다 부피 추정', ja: '検出・マスク・深度から荷物ごとの体積を推定',
+    ko: '검출, 마스크, 깊이로 화물마다 부피 추정', ja: '検出・マスク・深度から荷物ごとの体積を推定',
     'zh-CN': '由检测、掩码和深度估算每件包裹的体积', 'zh-TW': '由偵測、遮罩和深度估算每件包裹的體積',
     es: 'Detección, máscaras y profundidad dan un volumen estimado por paquete',
   },
