@@ -1,6 +1,6 @@
 # Installation & Launch
 
-!!! warning "Beta release (v0.1.0)"
+!!! warning "Beta release (v0.1.1)"
     DX-AI-Studio is a **beta** release. Features, APIs, and the UI may change before the
     general-availability release.
 

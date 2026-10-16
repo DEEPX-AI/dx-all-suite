@@ -64,10 +64,10 @@ plugins:
       author: DEEPX.ai
       copyright: ⓒ Copyright 2026 DEEPX All Rights Reserved.
       cover_title: DX-AI-Studio User Manual
-      cover_subtitle: 2026/07/24 (v0.1.0 beta)
+      cover_subtitle: 2026/10/16 (v0.1.1 beta)
       cover_logo : img/deepx.png
       custom_template_path: source/stylesheets
-      output_path: ../DEEPX_DX-AI-Studio_UM_v0.1.0_JUL_2026.pdf
+      output_path: ../DEEPX_DX-AI-Studio_UM_v0.1.1_OCT_2026.pdf
 extra:
   homepage: https://developer.deepx.ai
   generator: false

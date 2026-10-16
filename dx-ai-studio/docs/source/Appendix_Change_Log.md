@@ -2,9 +2,9 @@
 
 Notable changes to the DX-AI-Studio User Manual.
 
-## Unreleased (since v0.1.0)
+## v0.1.1 / 2026-10
 
-Changes since the v0.1.0 beta manual. The version number and date are set at release.
+Changes since the v0.1.0 beta manual.
 
 **Hub and design**
 
@@ -35,6 +35,12 @@ Changes since the v0.1.0 beta manual. The version number and date are set at rel
 - DX Stream: Demo Launcher on the same stage with WebRTC or remote MJPEG playback; Setup as a
   step list; launches work on a board whose Stream contracts validate.
 - Model Zoo: nearly 500 models from the internal publish page, with real result images.
+- Model Zoo and DX App: PP-ShiTu's two mainbody detectors are listed under their own task, **Main-body
+  Detection** (as on DX Model Zoo), in six languages.
+- **DX Cloud** (ninth module): AWS Compiler (Marketplace subscription, compiler stacks, cloud compile with its log
+  and `.dxnn` download) and AWS Greengrass (dx-runtime devices), with a numbered setup flow and guides.
+- Acceptance runs for SQA: `bash scripts/run_ci.sh --acceptance=<ticket|area|all>` checks each SDKREQ-438
+  ticket's acceptance criteria and writes a report (Markdown, HTML, JUnit with TestRail ids).
 - DX Compiler, DX App and DX Stream: Setup shows the next step and why a button is locked.
 - SDK Library follows the suite's documentation (190 documents, 6 shelves).
 - About 370 DX App strings that were translated but never shown now appear in every language;
