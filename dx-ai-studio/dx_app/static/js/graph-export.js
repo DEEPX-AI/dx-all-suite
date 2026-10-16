@@ -9,7 +9,8 @@ window.GraphExport = (function () {
   'use strict';
   var NAME = /^[A-Za-z][A-Za-z0-9_-]{0,47}$/;
   var c = null;
-  var st = { plan: null, seq: 0, busy: false, include: false, name: '', result: null, error: '' };
+  var st = { plan: null, seq: 0, busy: false, include: false, name: '', result: null, error: '', failure: null,
+    announced: false };
 
   function $id(i) { return document.getElementById(i); }
   function bytes(b) { return c.D.fmtBytes(b || 0); }
@@ -39,6 +40,9 @@ window.GraphExport = (function () {
     /* The exporter's refusals (user_name_invalid, model_file_missing, ...): the dictionary text of the key. */
     return (typeof translatedError === 'function' ? translatedError(r) : r && r.error) || T('The export failed.');
   }
+
+  /* A new failure: shown, and announced once. */
+  function fail(r) { st.failure = r || {}; st.error = errorText(r); st.announced = false; }
 
   function canInclude() { return !!st.plan && st.plan.models.every(function (m) { return m.present; }); }
 
@@ -153,7 +157,11 @@ window.GraphExport = (function () {
     body.appendChild(why);
     body.appendChild(h('p', { class: 'gc-help', text: T('The project holds the graph, the engine with only these models, a main.cpp, setup.sh, run.sh and a README. It builds and runs anywhere the DEEPX runtime is installed.') }));
     body.appendChild(planBlock());
-    var err = h('p', { id: 'gc-export-error', class: 'gc-export-error', role: 'alert', text: st.error });
+    /* The failure's text follows the language, but only a new failure is announced: the alert role goes on the
+       error's first rendering, so a re-render (a language change) does not read it out again. */
+    if (st.failure) st.error = errorText(st.failure);
+    var err = h('p', { id: 'gc-export-error', class: 'gc-export-error', text: st.error });
+    if (st.error && !st.announced) { err.setAttribute('role', 'alert'); st.announced = true; }
     err.hidden = !st.error;
     body.appendChild(err);
     var res = resultBlock();
@@ -166,7 +174,8 @@ window.GraphExport = (function () {
   async function open() {
     if (!c) return;
     /* The model files are left out unless the user ticks the box (it can be ticked when every model is installed). */
-    st = { plan: null, seq: st.seq + 1, busy: false, include: false, name: defaultName(), result: null, error: '' };
+    st = { plan: null, seq: st.seq + 1, busy: false, include: false, name: defaultName(), result: null, error: '',
+      failure: null, announced: false };
     render();
     if (typeof openModal === 'function') openModal('gc-export-dialog'); else $id('gc-export-dialog').showModal();
     var name = $id('gc-export-name');
@@ -174,7 +183,7 @@ window.GraphExport = (function () {
     var mine = st.seq;
     var r = await c.api.exportPlan({ graph: c.engine(), inputs: inputs() });
     if (mine !== st.seq) return;
-    if (r && r.ok) st.plan = r; else st.error = errorText(r);
+    if (r && r.ok) st.plan = r; else fail(r);
     render();
   }
 
@@ -182,13 +191,14 @@ window.GraphExport = (function () {
     if (st.busy || !st.plan || !NAME.test(st.name)) return;
     st.busy = true;
     st.error = '';
+    st.failure = null;
     st.result = null;
     var mine = st.seq;
     render();
     var r = await c.api.exportProject({ graph: c.engine(), name: st.name, include_models: st.include, inputs: inputs() });
     if (mine !== st.seq) return;
     st.busy = false;
-    if (r && r.ok) st.result = r; else st.error = errorText(r);
+    if (r && r.ok) st.result = r; else fail(r);
     render();
     var focus = $id(st.result ? 'gc-export-zip' : 'gc-export-name');
     if (focus) focus.focus();

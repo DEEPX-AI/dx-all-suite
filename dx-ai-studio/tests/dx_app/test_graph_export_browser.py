@@ -217,6 +217,26 @@ def test_a_refusal_says_why_and_the_dialog_stays_usable(browser, server):
     ctx.close()
 
 
+def test_a_shown_error_is_not_announced_again_on_a_language_change(browser, server):
+    """The error is an alert when it appears; a language change re-renders it in the new language without the alert
+    role, so a screen reader does not read it out a second time. A new failure is announced again."""
+    full = ({"ok": False, "error": "x", "error_key": "export_no_space", "need_bytes": 300 * 1048576,
+             "free_bytes": 100 * 1048576}, 507)
+    ctx, page, errors = _page(browser, server, FakeApi(done=full))
+    _open_dialog(page)
+    page.click("#gc-export-go")
+    page.wait_for_function("() => !document.getElementById('gc-export-error').hidden")
+    assert page.get_attribute("#gc-export-error", "role") == "alert"
+    page.evaluate("DXI18n.setLang('ko')")
+    page.wait_for_function("() => document.getElementById('gc-export-size').textContent.startsWith('모델')")
+    assert page.get_attribute("#gc-export-error", "role") is None
+    assert page.inner_text("#gc-export-error") == "디스크 공간이 부족합니다: 내보내기에 300 MB가 필요한데 100 MB만 남아 있습니다."
+    page.click("#gc-export-go")
+    page.wait_for_function("() => document.getElementById('gc-export-error').getAttribute('role') === 'alert'")
+    assert not errors, errors
+    ctx.close()
+
+
 def test_no_space_names_both_sizes(browser, server):
     full = ({"ok": False, "error": "x", "error_key": "export_no_space", "need_bytes": 300 * 1048576,
              "free_bytes": 100 * 1048576}, 507)
