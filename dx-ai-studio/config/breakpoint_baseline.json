@@ -20,6 +20,13 @@
     768,
     1200
   ],
+  "dx_edge/static/css/guide.css": [
+    600,
+    900
+  ],
+  "dx_edge/static/css/style.css": [
+    600
+  ],
   "dx_modelzoo/static/css/style.css": [
     600,
     768,
@@ -50,7 +57,6 @@
   ],
   "launcher/static/home-stage.css": [
     600,
-    900,
     1200
   ],
   "launcher/static/sdk-library.css": [

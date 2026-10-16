@@ -380,6 +380,16 @@ def build_results(tickets: list[dict], hw: dict, records: dict, walls: dict, sto
     return out
 
 
+def _load_hardware_probe():
+    """tests/acceptance/hardware.py's probe_all, loaded by path: the tests tree is not an installed package."""
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("acceptance_hardware", ROOT / "tests" / "acceptance" / "hardware.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.probe_all
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("selection", nargs="?", default="all")
@@ -402,8 +412,7 @@ def main(argv: list[str] | None = None) -> int:
         print(list_text(tickets))
         return 0
 
-    sys.path.insert(0, str(ROOT))
-    from tests.acceptance.hardware import probe_all
+    probe_all = _load_hardware_probe()
 
     started = _dt.datetime.now()
     out = Path(args.out) if args.out else ROOT / "var" / "acceptance" / started.strftime("%Y%m%d-%H%M%S")
