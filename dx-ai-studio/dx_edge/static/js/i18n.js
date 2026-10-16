@@ -327,7 +327,7 @@ window._DX_I18N_DICT = {
     ja: '失敗',
     'zh-CN': '失败',
     'zh-TW': '失敗',
-    es: 'fallido',
+    es: 'falló',
   },
   'Waiting for the compile workflow to start…': {
     ko: '컴파일 워크플로 시작을 기다리는 중…',
@@ -713,7 +713,7 @@ window._DX_I18N_DICT = {
     ja: '完了',
     'zh-CN': '完成',
     'zh-TW': '完成',
-    es: 'Listo',
+    es: 'Hecho',
   },
   'Action needed': {
     ko: '조치 필요',
