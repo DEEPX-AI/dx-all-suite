@@ -130,7 +130,10 @@
       return;
     }
     if (ns.currentApp === 'sdk-library') {
-      LauncherRouter._showSdk({ source: 'boot-ready', skipHistory: true });
+      // Keep the URL's ?doc=/q=/view=: without it the empty query replaced the deep link's pending
+      // one and an F5 on an open document showed the library instead.
+      LauncherRouter._showSdk({ source: 'boot-ready', skipHistory: true,
+                                query: (window.location.search || '').replace(/^\?/, '') });
       return;
     }
     // Reopen the same subpath and hash (e.g. /cloud/guide#compiler-cfn-3), not just the module root.
