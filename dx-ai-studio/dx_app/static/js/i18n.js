@@ -6572,6 +6572,13 @@ window._DX_I18N_PLACEHOLDERS = {
     'zh-CN': 'ModelZoo 加载失败', 'zh-TW': 'ModelZoo 載入失敗',
     es: 'Error al cargar ModelZoo',
   },
+  'The public model list could not be loaded. Check the network connection, or switch the source to Internal.': {
+    ko: '공개 모델 목록을 불러오지 못했습니다. 네트워크 연결을 확인하거나 소스를 Internal로 바꾸세요.',
+    ja: '公開モデル一覧を読み込めませんでした。ネットワーク接続を確認するか、ソースを Internal に切り替えてください。',
+    'zh-CN': '无法加载公开模型列表。请检查网络连接，或将来源切换为 Internal。',
+    'zh-TW': '無法載入公開模型清單。請檢查網路連線，或將來源切換為 Internal。',
+    es: 'No se pudo cargar la lista pública de modelos. Compruebe la conexión de red o cambie la fuente a Internal.',
+  },
   'Hide': {
     ko: '숨기기', ja: '非表示',
     'zh-CN': '隐藏', 'zh-TW': '隱藏',

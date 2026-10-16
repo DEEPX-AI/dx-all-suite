@@ -64,7 +64,13 @@ async function mzLoadModels() {
     MZ.models = r.models;
   } else {
     MZ.models = [];
-    toast(r.error || T('Failed to load ModelZoo'), 'err');
+    // r.error is the server's developer detail ("ModelZoo payload unreadable: …", "<urlopen error …>"), in no
+    // particular language. It goes to the console; the toast says what happened and what to do, in the UI language.
+    // Contract: tests/dx_app/test_modelzoo_load_error_browser.py
+    console.warn('[ModelZoo] ' + MZ.source + ' model list failed to load:', r.error || r);
+    toast(MZ.source === 'public'
+      ? T('The public model list could not be loaded. Check the network connection, or switch the source to Internal.')
+      : T('Failed to load ModelZoo'), 'err');
   }
   return true;
 }
