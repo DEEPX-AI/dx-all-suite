@@ -9,10 +9,10 @@
       "params": { "value": "yaw", "comparator": ">", "threshold": 30,
                   "cooldown_s": 3, "event": "looking_away" } },
     { "id": "yaw_low",   "type": "logic", "op": "condition",
-      "params": { "value": "yaw", "comparator": "<", "threshold": -30,
+      "params": { "value": "yaw", "comparator": "<", "threshold": -30, "reduce": "min",
                   "cooldown_s": 3, "event": "looking_away" } },
     { "id": "head_down", "type": "logic", "op": "condition",
-      "params": { "value": "pitch", "comparator": "<", "threshold": -20,
+      "params": { "value": "pitch", "comparator": "<", "threshold": -20, "reduce": "min",
                   "cooldown_s": 3, "event": "head_down" } }
   ],
   "edges": [
