@@ -44,16 +44,21 @@ function mzUpdateHomepageLink() {
 
 async function initModelZoo() {
   mzUpdateHomepageLink();
-  if (!MZ.models.length) await mzLoadModels();
+  // false = a later source switch started its own load; that one draws the page.
+  if (!MZ.models.length && !(await mzLoadModels())) return;
   mzRenderTaskChips();
   mzRenderTable();
   mzRenderCart();
 }
 
 async function mzLoadModels() {
+  // Offline, Public answers slowly with an error; if the user switched to Internal meanwhile, that late
+  // answer must not empty the Internal list. Only the latest load may write MZ.models.
+  var seq = MZ.loadSeq = (MZ.loadSeq || 0) + 1;
   MZ.loading = true;
   mzRenderLoading();
   const r = await api('/api/modelzoo/list?source=' + encodeURIComponent(MZ.source));
+  if (seq !== MZ.loadSeq) return false;
   MZ.loading = false;
   if (r.ok && r.models) {
     MZ.models = r.models;
@@ -61,6 +66,7 @@ async function mzLoadModels() {
     MZ.models = [];
     toast(r.error || T('Failed to load ModelZoo'), 'err');
   }
+  return true;
 }
 
 function mzSwitchSource() {
