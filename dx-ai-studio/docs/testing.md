@@ -580,7 +580,7 @@ bash scripts/run_ci.sh --acceptance=all --strict       # NOT RUN also fails the 
 
 - **Selection**: `all`, a ticket key (`SDKREQ-474`) or its number (`474`), or an alias:
   `launcher app stream agent zoo compiler edgeguide monitor benchmark boot i18n sdklib toolbar tutorial
-  cloud`. `DXCLOUD` (alias `cloud`) holds DX Cloud until its Jira key exists.
+  cloud`. DX Cloud is `SDKREQ-710` (alias `cloud`).
 - **What runs**: `tests/acceptance/manifest.json` maps ticket → TestRail case → AC (current product
   wording, Korean) → pytest node ids. Most AC run `tests/acceptance/test_sdkreq_<n>_<area>.py`, which
   starts the studio the way a user does (`./launcher.sh --no-kill --port <free> --fast --no-browser`,

@@ -1,4 +1,4 @@
-"""DXCLOUD [DX Cloud] AWS cloud compile and Greengrass — DX Cloud inside a real ./launcher.sh studio.
+"""SDKREQ-710 [DX Cloud] AWS Compiler and Greengrass — DX Cloud inside a real ./launcher.sh studio.
 
 DX Cloud talks to AWS through the studio server (boto3 and the user's AWS CLI profile). The UI checks run
 against a fake AWS account: the page's /cloud/api/aws/* calls are answered by FakeAws below, so they run

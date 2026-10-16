@@ -35,7 +35,7 @@ def test_a_ticket_is_selected_by_key_number_or_alias():
     assert _keys("sdkreq-474") == ["SDKREQ-474"]
     assert _keys("474") == ["SDKREQ-474"]
     assert _keys("app") == ["SDKREQ-474"]
-    assert _keys("cloud") == ["DXCLOUD"]
+    assert _keys("cloud") == ["SDKREQ-710"]
 
 
 def test_a_comma_list_is_deduplicated_and_kept_in_manifest_order():
@@ -70,10 +70,13 @@ def test_the_schema_check_catches_what_it_should():
 
 
 def test_jira_tickets_carry_their_testrail_case():
+    # SDKREQ-473..486 have TestRail cases C18231..C18244; a ticket created later (SDKREQ-710, DX Cloud) has none yet.
     for t in MANIFEST["tickets"]:
         n = acc.ticket_number(t["key"])
-        if n:
+        if n and 473 <= int(n) <= 486:
             assert t["testrail"] == f"C{18231 + int(n) - 473}", t["key"]
+        else:
+            assert t["testrail"] is None, t["key"]
 
 
 def test_every_mapped_test_exists_and_is_collected():
@@ -167,7 +170,7 @@ def test_list_prints_tickets_ac_and_tests():
 def test_list_from_the_command_line_runs_nothing(tmp_path):
     out = subprocess.run([sys.executable, str(ROOT / "scripts" / "acceptance.py"), "cloud", "--list"],
                          cwd=str(ROOT), capture_output=True, text=True, timeout=60)
-    assert out.returncode == 0 and "DXCLOUD" in out.stdout and "SDKREQ" not in out.stdout
+    assert out.returncode == 0 and "SDKREQ-710" in out.stdout and "SDKREQ-473" not in out.stdout
     bad = subprocess.run([sys.executable, str(ROOT / "scripts" / "acceptance.py"), "nope", "--list"],
                          cwd=str(ROOT), capture_output=True, text=True, timeout=60)
     assert bad.returncode == 2 and "unknown ticket or alias" in bad.stderr

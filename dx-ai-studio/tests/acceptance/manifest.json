@@ -1037,145 +1037,145 @@
    ]
   },
   {
-   "key": "DXCLOUD",
+   "key": "SDKREQ-710",
    "alias": "cloud",
    "testrail": null,
-   "title": "[DX Cloud] AWS 클라우드 컴파일 · Greengrass",
+   "title": "[DX Cloud] AWS Compiler · Greengrass",
    "ac": [
     {
-     "id": "DXCLOUD-AC1",
+     "id": "710-AC1",
      "title": "Home의 DX Cloud 카드(Alt+9)로 `/cloud`가 열리고, 두 솔루션 탭(DEEPX Compiler Solution·DEEPX Greengrass Solution)과 상태 칩(Profile·Region·Account·Subscription·Stacks)이 표시된다.",
      "requires": [
       "browser"
      ],
      "tests": [
-      "tests/acceptance/test_sdkreq_dxcloud_cloud.py::test_entry_from_home_shows_both_solutions_and_the_status_bar"
+      "tests/acceptance/test_sdkreq_710_cloud.py::test_entry_from_home_shows_both_solutions_and_the_status_bar"
      ]
     },
     {
-     "id": "DXCLOUD-AC2",
+     "id": "710-AC2",
      "title": "설정은 번호가 붙은 단계로 진행된다(Compiler: 1 AWS 연결 → 2 Marketplace 구독 → 3 Stack → 4 Cloud Compile, Greengrass: 2 → 3 → 4-1 Compile → 4-2 Devices). 앞 단계가 끝나야 다음 단계가 열린다.",
      "requires": [
       "browser"
      ],
      "tests": [
-      "tests/acceptance/test_sdkreq_dxcloud_cloud.py::test_setup_is_a_numbered_flow_that_unlocks_step_by_step"
+      "tests/acceptance/test_sdkreq_710_cloud.py::test_setup_is_a_numbered_flow_that_unlocks_step_by_step"
      ]
     },
     {
-     "id": "DXCLOUD-AC3",
+     "id": "710-AC3",
      "title": "AWS 상태: boto3 유무, AWS CLI profile 목록, region, 연결된 account(ARN)를 보여 주고, boto3가 없으면 설치 방법을 안내하며 AWS 버튼을 잠근다.",
      "requires": [
       "browser"
      ],
      "tests": [
-      "tests/acceptance/test_sdkreq_dxcloud_cloud.py::test_aws_status_names_the_profile_and_region_and_without_boto3_says_how_to_install_it",
+      "tests/acceptance/test_sdkreq_710_cloud.py::test_aws_status_names_the_profile_and_region_and_without_boto3_says_how_to_install_it",
       "tests/dx_edge/test_server.py::test_status_endpoint",
       "tests/dx_edge/test_server.py::test_missing_boto3_is_a_json_error_with_a_hint",
       "tests/dx_edge/test_without_boto3.py::test_status_reports_boto3_missing_with_the_install_hint"
      ]
     },
     {
-     "id": "DXCLOUD-AC4",
+     "id": "710-AC4",
      "title": "Marketplace 구독 확인: 솔루션별로 구독/미구독 badge와 Marketplace 링크(미구독이면 'Subscribe on Marketplace')를 보여 준다.",
      "requires": [
       "browser"
      ],
      "tests": [
-      "tests/acceptance/test_sdkreq_dxcloud_cloud.py::test_marketplace_subscription_is_checked_per_solution",
+      "tests/acceptance/test_sdkreq_710_cloud.py::test_marketplace_subscription_is_checked_per_solution",
       "tests/dx_edge/test_server.py::test_subscription_endpoint"
      ]
     },
     {
-     "id": "DXCLOUD-AC5",
+     "id": "710-AC5",
      "title": "Compiler stack 생성·삭제: 이름으로 stack을 만들고 진행 이벤트를 보여 주며, 삭제는 stack 이름을 그대로 입력해야만 실행된다.",
      "requires": [
       "browser"
      ],
      "tests": [
-      "tests/acceptance/test_sdkreq_dxcloud_cloud.py::test_a_compiler_stack_is_created_and_deleted_only_after_typing_its_name",
+      "tests/acceptance/test_sdkreq_710_cloud.py::test_a_compiler_stack_is_created_and_deleted_only_after_typing_its_name",
       "tests/dx_edge/test_server.py::test_create_stack_hands_the_body_to_the_core",
       "tests/dx_edge/test_server.py::test_delete_stack_passes_the_typed_confirmation",
       "tests/dx_edge/test_server.py::test_stack_posts_cross_origin_are_refused"
      ]
     },
     {
-     "id": "DXCLOUD-AC6",
+     "id": "710-AC6",
      "title": "Cloud Compile: .onnx·.json을 올려 compile을 시작하면 job prefix, workflow 단계와 dxcom 로그가 표시되고 끝나면 .dxnn 다운로드·Studio 모델 폴더 저장 버튼이 나온다.",
      "requires": [
       "browser"
      ],
      "tests": [
-      "tests/acceptance/test_sdkreq_dxcloud_cloud.py::test_cloud_compile_uploads_the_model_and_shows_the_workflow_log",
+      "tests/acceptance/test_sdkreq_710_cloud.py::test_cloud_compile_uploads_the_model_and_shows_the_workflow_log",
       "tests/dx_edge/test_server.py::test_compile_hands_the_files_to_the_core_and_ignores_a_client_bucket",
       "tests/dx_edge/test_server.py::test_compile_log_endpoint",
       "tests/dx_edge/test_server.py::test_compile_cross_origin_is_refused"
      ]
     },
     {
-     "id": "DXCLOUD-AC7",
+     "id": "710-AC7",
      "title": "Compile jobs 목록은 stack의 모든 compile을 상태와 함께 보여 주고 .dxnn을 내려받을 수 있다.",
      "requires": [
       "browser"
      ],
      "tests": [
-      "tests/acceptance/test_sdkreq_dxcloud_cloud.py::test_the_job_list_shows_every_compile_and_downloads_its_dxnn",
+      "tests/acceptance/test_sdkreq_710_cloud.py::test_the_job_list_shows_every_compile_and_downloads_its_dxnn",
       "tests/dx_edge/test_server.py::test_jobs_endpoint"
      ]
     },
     {
-     "id": "DXCLOUD-AC8",
+     "id": "710-AC8",
      "title": "Greengrass 탭: thing group, deployment 상태, core device 목록(HEALTHY 등)과 기기 등록용 install script 생성.",
      "requires": [
       "browser"
      ],
      "tests": [
-      "tests/acceptance/test_sdkreq_dxcloud_cloud.py::test_greengrass_tab_lists_devices_and_generates_an_install_script",
+      "tests/acceptance/test_sdkreq_710_cloud.py::test_greengrass_tab_lists_devices_and_generates_an_install_script",
       "tests/dx_edge/test_server.py::test_greengrass_devices_endpoint",
       "tests/dx_edge/test_server.py::test_greengrass_install_script_endpoint"
      ]
     },
     {
-     "id": "DXCLOUD-AC9",
+     "id": "710-AC9",
      "title": "AWS CLI 설정 안내(설치·자격 증명·확인·필요 권한)와 AWS Console guide 페이지(`/cloud/guide`, 두 탭에서 링크)가 열린다.",
      "requires": [
       "browser"
      ],
      "tests": [
-      "tests/acceptance/test_sdkreq_dxcloud_cloud.py::test_aws_cli_setup_guide_and_the_console_guide_page",
+      "tests/acceptance/test_sdkreq_710_cloud.py::test_aws_cli_setup_guide_and_the_console_guide_page",
       "tests/dx_edge/test_server.py::test_console_guide_page_is_served_and_linked_from_both_tabs"
      ]
     },
     {
-     "id": "DXCLOUD-AC10",
+     "id": "710-AC10",
      "title": "튜토리얼: toolbar Tutorial로 DX Cloud 투어를 시작하고, 투어는 AWS에 쓰는 버튼을 누르지 않는다.",
      "requires": [
       "browser"
      ],
      "tests": [
-      "tests/acceptance/test_sdkreq_dxcloud_cloud.py::test_the_tutorial_guides_through_dx_cloud_without_pressing_aws_buttons",
+      "tests/acceptance/test_sdkreq_710_cloud.py::test_the_tutorial_guides_through_dx_cloud_without_pressing_aws_buttons",
       "tests/dx_edge/test_tutorial.py::test_tour_never_clicks_aws_write_buttons",
       "tests/dx_edge/test_tutorial.py::test_targets_exist_in_rendered_page"
      ]
     },
     {
-     "id": "DXCLOUD-AC11",
+     "id": "710-AC11",
      "title": "AWS Partner·AWS Qualified Software badge가 표시된다.",
      "requires": [
       "browser"
      ],
      "tests": [
-      "tests/acceptance/test_sdkreq_dxcloud_cloud.py::test_the_aws_partner_and_qualified_software_badges_show"
+      "tests/acceptance/test_sdkreq_710_cloud.py::test_the_aws_partner_and_qualified_software_badges_show"
      ]
     },
     {
-     "id": "DXCLOUD-AC12",
+     "id": "710-AC12",
      "title": "실제 AWS 계정: 사용 가능한 AWS profile이 있으면 account·구독·stack 조회(read-only)가 실제 AWS에서 응답한다.",
      "requires": [
       "aws"
      ],
      "tests": [
-      "tests/acceptance/test_sdkreq_dxcloud_cloud.py::test_a_real_aws_account_answers_read_only_calls"
+      "tests/acceptance/test_sdkreq_710_cloud.py::test_a_real_aws_account_answers_read_only_calls"
      ]
     }
    ]
