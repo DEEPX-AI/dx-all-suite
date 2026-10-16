@@ -1,7 +1,7 @@
 """DX App model store: when the Public list cannot be loaded, the toast speaks the user's language.
 
 The toast showed the server's developer message as is — "ModelZoo payload unreadable: window.__MODEL_ZOO_DATA__
-을 찾을 수 없다 …" (Korean, whatever the UI language) or a raw "<urlopen error …>". The toast now says, in the UI
+…" with a Korean tail whatever the UI language (DETAIL below), or a raw "<urlopen error …>". The toast now says, in the UI
 language, that the public model list could not be loaded and what to do; the technical detail goes to the console
 only. /api/modelzoo/list is a fixture with the server's real error.
 """
