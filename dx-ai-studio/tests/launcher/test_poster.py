@@ -147,9 +147,10 @@ def test_platform_info_left_uses_requested_five_image_sequence():
 def test_platform_info_panel_uses_flex_layout():
     html = (ROOT / "launcher/static/index.html").read_text(encoding="utf-8")
     assert 'data-help-id="pm-agent-dev"' in html
+    assert 'data-help-id="pm-dx-edge"' in html
     assert "Agent Dev" in html
-    assert "8개의 전문 모듈" in html
-    assert "8 specialized modules" in html
+    assert "9개의 전문 모듈" in html
+    assert "9 specialized modules" in html
     assert 'class="platform-info-gallery"' not in html
     assert 'class="platform-info-body"' not in html
 

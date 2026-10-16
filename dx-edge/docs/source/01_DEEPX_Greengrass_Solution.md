@@ -58,9 +58,23 @@ The end-to-end flow has two main parts. The first is model preparation, in which
 
 *Figure 3. Cloud compilation pipeline and AWS IoT Greengrass runtime deployment architecture*
 
-In the cloud, uploading an ONNX model and a compilation configuration JSON file to Amazon S3 starts an event-driven workflow. AWS Lambda and AWS Step Functions launch a temporary EC2 instance based on the DEEPX Compiler AMI and invoke the `dxcom` compiler through AWS Systems Manager Run Command. When compilation finishes, the DXNN artifact is stored in S3 and the EC2 instance is terminated. Execution status and detailed logs are available in AWS Step Functions and Amazon CloudWatch Logs.
+In the cloud, uploading an ONNX model and a compilation configuration JSON file to Amazon S3 starts an event-driven workflow. AWS Lambda and AWS Step Functions launch a temporary EC2 instance based on the DEEPX Compiler AMI and invoke the `dxcom` compiler through AWS Systems Manager Run Command. When compilation finishes, the DXNN artifact is stored in S3 and the EC2 instance is terminated. Execution status and detailed logs are available in AWS Step Functions and Amazon CloudWatch Logs. Steps 1 through 7 in Figure 3 correspond to the following.
 
-At the edge, AWS IoT Core manages devices and thing groups, and AWS IoT Greengrass deploys the DEEPX runtime at the group level. Devices install the NPU driver, firmware, dx_rt, and dx_stream through an AWS IoT Greengrass component and report deployment status back to the cloud. This lets you apply the same runtime environment consistently across many edge devices without connecting to each one directly.
+1. You upload a pair of files, an `.onnx` model and a `.json` compilation configuration file, to the same prefix in the S3 model bucket.
+2. The S3 `ObjectCreated` event invokes an AWS Lambda trigger function. The function looks for the matching counterpart file under the same prefix and continues only when both files of the pair are present. It derives the execution name from a hash of the file name so that the same pair does not start duplicate executions.
+3. The AWS Step Functions compilation workflow starts.
+4. The workflow launches an Amazon EC2 instance from the DEEPX Compiler AMI provided with the Marketplace subscription, in the VPC and subnet you specified as CloudFormation parameters.
+5. AWS Systems Manager Run Command delivers the compilation commands defined in the SSM document to the instance.
+6. The `dxcom` compiler preinstalled in the AMI runs. At this point the `dataset_path` value in the configuration file is replaced with `/opt/dx-compiler/calibration_dataset`, the calibration dataset path included in the AMI.
+7. The compiled `.dxnn` artifact is uploaded to the same S3 prefix as the source model. The workflow terminates the instance on both the success and failure paths, and execution logs are written to the `/dx-compiler/<stack-name>/execution` log group in Amazon CloudWatch Logs.
+
+At the edge, AWS IoT Core manages devices and thing groups, and AWS IoT Greengrass deploys the DEEPX runtime at the group level. Devices install the NPU driver, firmware, dx_rt, and dx_stream through an AWS IoT Greengrass component and report deployment status back to the cloud. This lets you apply the same runtime environment consistently across many edge devices without connecting to each one directly. Steps A through E in Figure 3 correspond to the following.
+
+- **A.** While the CloudFormation stack is being created, a custom resource Lambda function publishes the `com.deepx.dx-runtime` Greengrass component. Publishing is idempotent: if the same component version already exists, it is reused, so deploying several stacks in one account does not cause a conflict.
+- **B.** The published component is included in a Greengrass deployment.
+- **C.** The deployment targets the thing group you specified in `ThingGroupName`, or a `<stack-name>-cores` group if you left the parameter blank. An existing group with that name is used as is rather than recreated.
+- **D.** Greengrass delivers the `com.deepx.dx-runtime` component to each device in the thing group as an AWS IoT job over an MQTT connection secured with TLS.
+- **E.** Each device downloads the driver, firmware, and runtime packages over HTTPS from the DEEPX public artifact bucket and installs them.
 
 ### Zero-Touch Provisioning
 
@@ -108,7 +122,17 @@ Subscribe to [DEEPX Greengrass Solution](https://aws.amazon.com/marketplace/pp/p
 | `VpcId` / `SubnetId` | The existing VPC and subnet in which the compiler instance runs. They must allow outbound HTTPS access to AWS services such as Amazon S3, AWS Systems Manager, and Amazon CloudWatch Logs. |
 | `ThingGroupName` | The name of the IoT thing group targeted by the runtime deployment. If you leave it blank, a `<stack-name>-cores` group is created; if you enter the name of an existing group, that group is used. |
 
+![Figure 5. Entering the stack parameters in the CloudFormation console](img/greengrass/fig05_cfn_parameters.png)
+
+*Figure 5. Entering the stack parameters in the AWS CloudFormation console*
+
 **Step 4.** Choose **Next** to go to the review page, then choose **Submit**.
+
+The stack creates the S3 model bucket, the Lambda functions, the Step Functions state machine, the least-privilege IAM roles, and the Greengrass component and deployment.
+
+![Figure 6. Stack creation complete](img/greengrass/fig06_cfn_create_complete.png)
+
+*Figure 6. The stack reaching the CREATE_COMPLETE status*
 
 When stack creation completes, note `ModelBucketName`, `StateMachineArn`, and `CompilerExecutionLogGroupName` in the CloudFormation **Outputs**. The rest of this procedure uses these values to upload models and check workflow status and compilation logs.
 
@@ -166,15 +190,15 @@ aws s3 cp --only-show-errors yolov5-s-face_640x640.onnx "s3://${MODEL_BUCKET}/${
 aws s3 cp --only-show-errors yolov5-s-face_640x640.json "s3://${MODEL_BUCKET}/${MODEL_PREFIX}/"
 ```
 
-![Figure 5. Uploading the ONNX model and the compilation configuration file to the same S3 path](img/greengrass/fig05_s3_upload.png)
+![Figure 7. Uploading the ONNX model and the compilation configuration file to the same S3 path](img/greengrass/fig07_s3_upload.png)
 
-*Figure 5. Uploading the ONNX model and the compilation configuration file to the same Amazon S3 path*
+*Figure 7. Uploading the ONNX model and the compilation configuration file to the same Amazon S3 path*
 
 When both files are uploaded, an Amazon S3 event starts the workflow. You can track workflow progress in the AWS Step Functions console. The workflow starts the instance, runs the compilation, polls for status, and then terminates the instance. It is designed to terminate the instance on failure paths as well.
 
-![Figure 6. Step Functions compilation workflow execution result](img/greengrass/fig06_stepfunctions_succeeded.png)
+![Figure 8. Step Functions compilation workflow execution result](img/greengrass/fig08_stepfunctions_succeeded.png)
 
-*Figure 6. AWS Step Functions compilation workflow execution result (Succeeded)*
+*Figure 8. AWS Step Functions compilation workflow execution result (Succeeded)*
 
 Use the following commands to check the status of recent executions.
 
@@ -211,6 +235,10 @@ aws s3 ls "s3://${MODEL_BUCKET}/${MODEL_PREFIX}/"
 # yolov5-s-face_640x640.dxnn
 ```
 
+![Figure 9. The compiled .dxnn file in the same S3 path as the source model](img/greengrass/fig09_dxnn_in_s3.png)
+
+*Figure 9. The compiled `.dxnn` file created in the same Amazon S3 path as the source model*
+
 Because this approach starts an EC2 instance only when there is a compilation job and terminates it afterward, you do not need to run a compilation server continuously.
 
 ---
@@ -223,18 +251,20 @@ In this step, you deploy the DEEPX runtime to Greengrass core devices that are r
 >
 > This is the Greengrass component published by the CloudFormation stack. It installs the NPU driver, firmware, dx_rt, and dx_stream on the target device to prepare a DEEPX runtime environment for running DXNN models, and it reports the installation result to Greengrass.
 
-The `com.deepx.dx-runtime` component published by the CloudFormation stack installs the following software in order.
+The component is published while the CloudFormation stack is being created, by a custom resource Lambda function. Publishing is idempotent: if the same component version already exists in the account, it is reused instead of being published again, so you can deploy several stacks in one account without conflicts.
 
-- **NPU Linux driver**: Uses DKMS to build the driver for the target device's kernel
-- **Firmware**: Updates the DX-M1 NPU firmware using `dxcli`
-- **dx_rt**: The DEEPX C/C++ runtime for NPU detection and model execution
-- **dx_stream**: A video inference pipeline that integrates OpenCV and GStreamer
+The `com.deepx.dx-runtime` component installs the following software in order.
 
-The stack deploys this component to the target thing group. If you specified `ThingGroupName`, that group is used; if you left it blank, a `<stack-name>-cores` group is created. If the group contains core devices, the Greengrass deployment starts automatically.
+- **NPU Linux driver**: The `dxrt-driver-dkms` package uses DKMS to build the driver for the target device's kernel
+- **dx_rt**: The `libdxrt-bin` package installs the DEEPX C/C++ runtime (`dxcli`, `libdxrt.so`) for NPU detection and model execution
+- **Firmware**: Downloads `fw.bin` and updates the DX-M1 NPU firmware with `dxcli -u`
+- **dx_stream**: Unpacks `dx_stream.tar.gz` to set up a video inference pipeline that integrates OpenCV and GStreamer
 
-![Figure 7. Checking AWS IoT Greengrass deployment status](img/greengrass/fig07_greengrass_deployment.png)
+The stack deploys this component to the target thing group. If you specified `ThingGroupName`, that group is used; if you left it blank, a `<stack-name>-cores` group is created. If the group contains core devices, the Greengrass deployment starts automatically: Greengrass creates an AWS IoT job that delivers the component to each device over an MQTT connection secured with TLS, and each device then downloads the packages listed above over HTTPS from the DEEPX public artifact bucket.
 
-*Figure 7. Checking whether the target devices succeeded in the AWS IoT Greengrass deployment status*
+![Figure 10. Checking AWS IoT Greengrass deployment status](img/greengrass/fig10_greengrass_deployment.png)
+
+*Figure 10. Checking whether the target devices succeeded in the AWS IoT Greengrass deployment status*
 
 In the Greengrass console, confirm that the deployment status is **Completed**. For any device that reports a problem, use the component logs to diagnose it. The commands for checking logs on the classic Greengrass nucleus and on nucleus lite are as follows.
 
@@ -261,7 +291,15 @@ When the Greengrass deployment completes, use `dxcli` to check NPU detection sta
 ```bash
 # Check NPU and firmware status
 dxcli -s
+```
 
+![Figure 11. dxcli -s output showing the detected NPU and its firmware version](img/greengrass/fig11_dxcli_status.png)
+
+*Figure 11. The `dxcli -s` output, showing the detected NPU device and the firmware version*
+
+Next, set the dx_stream executable and library paths. The following snippet resolves the architecture-specific plugin directory automatically, so it works unchanged on both x86_64 and aarch64 hosts. Add it to the end of `~/.bashrc` if you want it applied to every shell.
+
+```bash
 # Set the dx_stream executable and library paths
 GST_ARCH_TRIPLET="$(gcc -dumpmachine 2>/dev/null || true)"
 if [ -z "$GST_ARCH_TRIPLET" ]; then
@@ -281,6 +319,10 @@ export PATH="/usr/local/share/gstdxstream/bin:/usr/local/bin:$PATH"
 # Verify the dx_stream GStreamer plugin
 gst-inspect-1.0 dxstream
 ```
+
+![Figure 12. gst-inspect-1.0 dxstream output listing the registered elements](img/greengrass/fig12_gst_inspect.png)
+
+*Figure 12. The `gst-inspect-1.0 dxstream` output, listing the registered dx_stream elements*
 
 The current stack deploys the runtime through Greengrass and stores compiled DXNN models in S3. The following command therefore shows how to download a DXNN model to the device manually for inference verification. To deploy models over the air as well, you need to create a separate Greengrass component that includes the DXNN artifact and the commands to run it.
 
@@ -314,9 +356,9 @@ gst-launch-1.0 urisourcebin uri=file://$INPUT_VIDEO_PATH ! decodebin ! \
   $VIDEOCONVERT_PIPELINE ! fpsdisplaysink sync=false
 ```
 
-![Figure 8. dx_stream face detection result](img/greengrass/fig08_dxstream_result.png)
+![Figure 13. dx_stream face detection result](img/greengrass/fig13_dxstream_result.png)
 
-*Figure 8. Example of face detection running in DEEPX dx_stream*
+*Figure 13. Example of face detection running in DEEPX dx_stream*
 
 ---
 

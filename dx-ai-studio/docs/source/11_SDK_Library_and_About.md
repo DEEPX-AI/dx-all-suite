@@ -1,6 +1,6 @@
 # SDK Library & About
 
-Besides the eight tools, the hub hosts two reference views.
+Besides the nine tools, the hub hosts two reference views.
 
 ![SDK Library — category tree, document cards, and search over the in-app DEEPX docs.](resources/sdk_library.png)
 

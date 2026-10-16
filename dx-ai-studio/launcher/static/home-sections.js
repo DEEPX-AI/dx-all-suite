@@ -20,7 +20,8 @@
   /* card data-app → the key checkHealth() files it under */
   var HEALTH_KEY = {
     app: 'app', stream: 'stream', zoo: 'zoo', compiler: 'compiler',
-    planner: 'planner', benchmark: 'benchmark', dx_monitor: 'monitor', agent: 'agent'
+    planner: 'planner', benchmark: 'benchmark', dx_monitor: 'monitor', agent: 'agent',
+    edge: 'edge'
   };
 
   function $(id) { return document.getElementById(id); }

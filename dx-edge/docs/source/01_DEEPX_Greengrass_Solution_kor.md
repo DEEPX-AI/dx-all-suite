@@ -58,9 +58,23 @@ AWS IoT Core와 AWS IoT Greengrass는 이 컴파일 흐름을 현장 운영으�
 
 *그림 3. 클라우드 컴파일 파이프라인과 AWS IoT Greengrass 런타임 배포 아키텍처*
 
-클라우드에서는 ONNX 모델과 컴파일 설정 JSON을 Amazon S3에 업로드하면 이벤트 기반 워크플로가 시작됩니다. AWS Lambda와 AWS Step Functions는 DEEPX Compiler AMI 기반 EC2 인스턴스를 일시적으로 실행하고, AWS Systems Manager Run Command로 `dxcom` 컴파일러를 호출합니다. 컴파일이 완료되면 DXNN 아티팩트는 S3에 저장되고, EC2 인스턴스는 종료됩니다. 실행 상태와 상세 로그는 AWS Step Functions와 Amazon CloudWatch Logs에서 확인할 수 있습니다.
+클라우드에서는 ONNX 모델과 컴파일 설정 JSON을 Amazon S3에 업로드하면 이벤트 기반 워크플로가 시작됩니다. AWS Lambda와 AWS Step Functions는 DEEPX Compiler AMI 기반 EC2 인스턴스를 일시적으로 실행하고, AWS Systems Manager Run Command로 `dxcom` 컴파일러를 호출합니다. 컴파일이 완료되면 DXNN 아티팩트는 S3에 저장되고, EC2 인스턴스는 종료됩니다. 실행 상태와 상세 로그는 AWS Step Functions와 Amazon CloudWatch Logs에서 확인할 수 있습니다. 그림 3의 1~7번 단계는 다음과 같습니다.
 
-엣지에서는 AWS IoT Core가 디바이스와 Thing Group을 관리하고, AWS IoT Greengrass가 그룹 단위로 DEEPX 런타임을 배포합니다. 디바이스는 AWS IoT Greengrass 컴포넌트를 통해 NPU 드라이버, 펌웨어, dx_rt, dx_stream을 설치하고 배포 상태를 클라우드에 보고합니다. 이를 통해 개별 장비에 직접 접속하지 않고도 동일한 실행 환경을 여러 엣지 디바이스에 일관되게 적용할 수 있습니다.
+1. 사용자가 `.onnx` 모델과 `.json` 컴파일 설정 파일을 S3 모델 버킷의 같은 prefix에 업로드합니다.
+2. S3 `ObjectCreated` 이벤트가 AWS Lambda 트리거 함수를 호출합니다. 함수는 같은 prefix에서 짝이 되는 파일을 찾아 두 파일이 모두 있을 때만 다음 단계로 진행하며, 파일 이름 기반 해시로 실행 이름을 만들어 같은 짝이 중복 실행되지 않도록 합니다.
+3. AWS Step Functions 컴파일 워크플로가 시작됩니다.
+4. 워크플로는 Marketplace 구독으로 제공되는 DEEPX Compiler AMI 기반 Amazon EC2 인스턴스를 CloudFormation 파라미터로 지정한 VPC와 서브넷에서 실행합니다.
+5. AWS Systems Manager Run Command가 SSM 문서에 정의된 컴파일 명령을 인스턴스에 전달합니다.
+6. AMI에 사전 설치된 `dxcom` 컴파일러가 실행됩니다. 이때 설정 파일의 `dataset_path` 값은 AMI에 포함된 캘리브레이션 데이터셋 경로인 `/opt/dx-compiler/calibration_dataset`으로 치환됩니다.
+7. 컴파일된 `.dxnn` 아티팩트가 원본 모델과 같은 S3 prefix에 업로드됩니다. 워크플로는 성공과 실패 경로 모두에서 인스턴스를 종료하며, 실행 로그는 Amazon CloudWatch Logs의 `/dx-compiler/<스택명>/execution` 로그 그룹에 기록됩니다.
+
+엣지에서는 AWS IoT Core가 디바이스와 Thing Group을 관리하고, AWS IoT Greengrass가 그룹 단위로 DEEPX 런타임을 배포합니다. 디바이스는 AWS IoT Greengrass 컴포넌트를 통해 NPU 드라이버, 펌웨어, dx_rt, dx_stream을 설치하고 배포 상태를 클라우드에 보고합니다. 이를 통해 개별 장비에 직접 접속하지 않고도 동일한 실행 환경을 여러 엣지 디바이스에 일관되게 적용할 수 있습니다. 그림 3의 A~E 단계는 다음과 같습니다.
+
+- **A.** CloudFormation 스택을 생성하는 동안 Custom Resource Lambda 함수가 `com.deepx.dx-runtime` Greengrass 컴포넌트를 게시합니다. 게시는 멱등적으로 동작해 같은 컴포넌트 버전이 이미 있으면 그대로 재사용하므로, 한 계정에 여러 스택을 배포해도 충돌하지 않습니다.
+- **B.** 게시된 컴포넌트가 Greengrass 배포에 포함됩니다.
+- **C.** 배포 대상은 `ThingGroupName`으로 지정한 Thing Group이며, 파라미터를 비워 두었다면 `<스택명>-cores` 그룹입니다. 같은 이름의 그룹이 이미 있으면 새로 만들지 않고 그대로 사용합니다.
+- **D.** Greengrass는 TLS로 보호되는 MQTT 연결 위에서 AWS IoT Job 형태로 `com.deepx.dx-runtime` 컴포넌트를 Thing Group의 각 디바이스에 전달합니다.
+- **E.** 각 디바이스는 DEEPX 공개 아티팩트 버킷에서 드라이버, 펌웨어, 런타임 패키지를 HTTPS로 내려받아 설치합니다.
 
 ### Zero-Touch Provisioning
 
@@ -108,7 +122,17 @@ AWS Marketplace에서 [DEEPX Greengrass Solution](https://aws.amazon.com/marketp
 | `VpcId` / `SubnetId` | 컴파일러 인스턴스를 실행할 기존 VPC와 서브넷입니다. Amazon S3, AWS Systems Manager, Amazon CloudWatch Logs 등 AWS 서비스에 HTTPS로 나갈 수 있어야 합니다. |
 | `ThingGroupName` | 런타임 배포 대상 IoT Thing Group 이름입니다. 비워 두면 `<스택명>-cores` 그룹이 생성되고, 기존 그룹 이름을 입력하면 해당 그룹을 사용합니다. |
 
+![그림 5. CloudFormation 콘솔의 스택 파라미터 입력 화면](img/greengrass/fig05_cfn_parameters.png)
+
+*그림 5. AWS CloudFormation 콘솔의 스택 파라미터 입력 화면*
+
 **단계 4.** **Next**를 선택해 검토 화면으로 이동한 뒤 **Submit**을 선택합니다.
+
+스택은 S3 모델 버킷, Lambda 함수, Step Functions 상태 머신, 최소 권한 IAM 역할, Greengrass 컴포넌트와 배포를 생성합니다.
+
+![그림 6. 스택 생성 완료](img/greengrass/fig06_cfn_create_complete.png)
+
+*그림 6. CREATE_COMPLETE 상태가 된 스택*
 
 스택 생성이 완료되면 CloudFormation **Outputs**에서 `ModelBucketName`, `StateMachineArn`, `CompilerExecutionLogGroupName`을 확인합니다. 이후 과정에서는 이 값으로 모델 업로드, 워크플로 상태, 컴파일 로그를 확인합니다.
 
@@ -166,15 +190,15 @@ aws s3 cp --only-show-errors yolov5-s-face_640x640.onnx "s3://${MODEL_BUCKET}/${
 aws s3 cp --only-show-errors yolov5-s-face_640x640.json "s3://${MODEL_BUCKET}/${MODEL_PREFIX}/"
 ```
 
-![그림 5. ONNX 모델과 컴파일 설정 파일을 같은 S3 경로에 업로드](img/greengrass/fig05_s3_upload.png)
+![그림 7. ONNX 모델과 컴파일 설정 파일을 같은 S3 경로에 업로드](img/greengrass/fig07_s3_upload.png)
 
-*그림 5. ONNX 모델과 컴파일 설정 파일을 같은 Amazon S3 경로에 업로드*
+*그림 7. ONNX 모델과 컴파일 설정 파일을 같은 Amazon S3 경로에 업로드*
 
 두 파일이 업로드되면 Amazon S3 이벤트가 워크플로를 시작합니다. AWS Step Functions 콘솔에서 워크플로 진행 상태를 확인할 수 있으며, 워크플로는 인스턴스 시작, 컴파일 실행, 상태 폴링, 인스턴스 종료 순으로 진행됩니다. 실패 경로에서도 인스턴스를 종료하도록 설계되어 있습니다.
 
-![그림 6. Step Functions 컴파일 워크플로 실행 결과](img/greengrass/fig06_stepfunctions_succeeded.png)
+![그림 8. Step Functions 컴파일 워크플로 실행 결과](img/greengrass/fig08_stepfunctions_succeeded.png)
 
-*그림 6. AWS Step Functions 컴파일 워크플로 실행 결과 (Succeeded)*
+*그림 8. AWS Step Functions 컴파일 워크플로 실행 결과 (Succeeded)*
 
 다음 명령으로 최근 실행 상태를 확인합니다.
 
@@ -211,6 +235,10 @@ aws s3 ls "s3://${MODEL_BUCKET}/${MODEL_PREFIX}/"
 # yolov5-s-face_640x640.dxnn
 ```
 
+![그림 9. 원본 모델과 같은 S3 경로에 생성된 .dxnn 파일](img/greengrass/fig09_dxnn_in_s3.png)
+
+*그림 9. 원본 모델과 같은 Amazon S3 경로에 생성된 `.dxnn` 파일*
+
 이 방식은 컴파일 작업이 있을 때만 EC2 인스턴스를 실행하고 종료하므로 상시 컴파일 서버를 운영할 필요가 없습니다.
 
 ---
@@ -223,18 +251,20 @@ aws s3 ls "s3://${MODEL_BUCKET}/${MODEL_PREFIX}/"
 >
 > CloudFormation 스택이 게시하는 Greengrass 컴포넌트입니다. 대상 디바이스에 NPU 드라이버, 펌웨어, dx_rt, dx_stream을 설치해 DXNN 모델을 실행할 DEEPX 런타임 환경을 준비하고, 설치 결과를 Greengrass에 보고합니다.
 
-CloudFormation 스택에서 게시한 `com.deepx.dx-runtime` 컴포넌트는 다음 소프트웨어를 순서대로 설치합니다.
+이 컴포넌트는 CloudFormation 스택을 생성하는 동안 Custom Resource Lambda 함수가 게시합니다. 게시는 멱등적으로 동작해 같은 컴포넌트 버전이 계정에 이미 있으면 다시 게시하지 않고 재사용하므로, 한 계정에 여러 스택을 배포해도 충돌하지 않습니다.
 
-- **NPU 리눅스 드라이버**: DKMS를 사용해 대상 디바이스의 커널에 맞게 드라이버를 구성
-- **펌웨어**: `dxcli`를 이용해 DX-M1 NPU 펌웨어를 업데이트
-- **dx_rt**: NPU 인식과 모델 실행을 위한 DEEPX C/C++ 런타임
-- **dx_stream**: OpenCV와 GStreamer를 연계한 영상 추론 파이프라인
+`com.deepx.dx-runtime` 컴포넌트는 다음 소프트웨어를 순서대로 설치합니다.
 
-스택은 이 컴포넌트를 대상 Thing Group에 배포합니다. `ThingGroupName`을 지정했다면 해당 그룹을 사용하고, 비워 두었다면 `<스택명>-cores` 그룹을 생성합니다. 해당 그룹에 코어 디바이스가 포함되어 있으면 Greengrass 배포가 자동으로 시작됩니다.
+- **NPU 리눅스 드라이버**: `dxrt-driver-dkms` 패키지가 DKMS를 사용해 대상 디바이스의 커널에 맞게 드라이버를 빌드
+- **dx_rt**: `libdxrt-bin` 패키지가 NPU 인식과 모델 실행을 위한 DEEPX C/C++ 런타임(`dxcli`, `libdxrt.so`)을 설치
+- **펌웨어**: `fw.bin`을 내려받아 `dxcli -u`로 DX-M1 NPU 펌웨어를 업데이트
+- **dx_stream**: `dx_stream.tar.gz`을 풀어 OpenCV와 GStreamer를 연계한 영상 추론 파이프라인을 구성
 
-![그림 7. AWS IoT Greengrass 배포 상태 확인](img/greengrass/fig07_greengrass_deployment.png)
+스택은 이 컴포넌트를 대상 Thing Group에 배포합니다. `ThingGroupName`을 지정했다면 해당 그룹을 사용하고, 비워 두었다면 `<스택명>-cores` 그룹을 생성합니다. 해당 그룹에 코어 디바이스가 포함되어 있으면 Greengrass 배포가 자동으로 시작됩니다. 이때 Greengrass는 TLS로 보호되는 MQTT 연결 위에서 AWS IoT Job을 생성해 컴포넌트를 각 디바이스에 전달하고, 각 디바이스는 위 패키지들을 DEEPX 공개 아티팩트 버킷에서 HTTPS로 내려받습니다.
 
-*그림 7. AWS IoT Greengrass 배포 상태에서 대상 디바이스의 성공 여부 확인*
+![그림 10. AWS IoT Greengrass 배포 상태 확인](img/greengrass/fig10_greengrass_deployment.png)
+
+*그림 10. AWS IoT Greengrass 배포 상태에서 대상 디바이스의 성공 여부 확인*
 
 Greengrass 콘솔에서 배포 상태가 **Completed**가 되었는지 확인합니다. 문제가 발생한 디바이스는 컴포넌트 로그로 진단할 수 있습니다. 클래식 Greengrass nucleus와 nucleus lite의 로그 확인 방법은 다음과 같습니다.
 
@@ -261,7 +291,15 @@ Greengrass 배포가 완료되면 `dxcli`로 NPU 인식 상태와 펌웨어 버�
 ```bash
 # NPU와 펌웨어 상태 확인
 dxcli -s
+```
 
+![그림 11. NPU 인식 상태와 펌웨어 버전을 보여주는 dxcli -s 출력](img/greengrass/fig11_dxcli_status.png)
+
+*그림 11. 인식된 NPU 디바이스와 펌웨어 버전을 보여주는 `dxcli -s` 출력*
+
+이어서 dx_stream 실행 파일과 라이브러리 경로를 설정합니다. 아래 스니펫은 아키텍처별 플러그인 경로를 자동으로 판별하므로 x86_64와 aarch64 호스트에서 그대로 사용할 수 있습니다. 모든 셸에 적용하려면 `~/.bashrc` 끝에 추가합니다.
+
+```bash
 # dx_stream 실행 파일과 라이브러리 경로 설정
 GST_ARCH_TRIPLET="$(gcc -dumpmachine 2>/dev/null || true)"
 if [ -z "$GST_ARCH_TRIPLET" ]; then
@@ -281,6 +319,10 @@ export PATH="/usr/local/share/gstdxstream/bin:/usr/local/bin:$PATH"
 # dx_stream GStreamer 플러그인 확인
 gst-inspect-1.0 dxstream
 ```
+
+![그림 12. 등록된 요소를 보여주는 gst-inspect-1.0 dxstream 출력](img/greengrass/fig12_gst_inspect.png)
+
+*그림 12. 등록된 dx_stream 요소 목록을 보여주는 `gst-inspect-1.0 dxstream` 출력*
 
 현재 스택은 런타임을 Greengrass로 배포하고, 컴파일된 DXNN 모델은 S3에 저장합니다. 따라서 아래 명령은 추론 검증을 위해 DXNN 모델을 디바이스에 수동으로 내려받는 예시입니다. 모델도 OTA로 배포하려면 DXNN 아티팩트와 실행 명령을 포함한 별도 Greengrass 컴포넌트를 만들어야 합니다.
 
@@ -314,9 +356,9 @@ gst-launch-1.0 urisourcebin uri=file://$INPUT_VIDEO_PATH ! decodebin ! \
   $VIDEOCONVERT_PIPELINE ! fpsdisplaysink sync=false
 ```
 
-![그림 8. dx_stream 얼굴 검출 실행 결과](img/greengrass/fig08_dxstream_result.png)
+![그림 13. dx_stream 얼굴 검출 실행 결과](img/greengrass/fig13_dxstream_result.png)
 
-*그림 8. DEEPX dx_stream에서 실행한 얼굴 검출 예시*
+*그림 13. DEEPX dx_stream에서 실행한 얼굴 검출 예시*
 
 ---
 

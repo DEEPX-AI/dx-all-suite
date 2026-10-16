@@ -1,11 +1,12 @@
 # Architecture
 
 DX AI Studio is a browser front-end that unifies the DEEPX NPU SDK tools into one
-experience. It is a **launcher hub** plus **eight independent module servers**, all
+experience. It is a **launcher hub** plus **nine independent module servers**, all
 built on the Python standard-library `http.server` (no FastAPI/Flask/Node). It has
 **no third-party runtime dependencies** — pure Python standard library (3.8+),
 including a tiny built-in template renderer for DX Compiler (no Jinja2) and a stdlib
-`html.parser` DOM for the dx_app Model Zoo tab (no BeautifulSoup, no requests).
+`html.parser` DOM for the dx_app Model Zoo tab (no BeautifulSoup, no requests). The one
+optional extra is `boto3` (`pip install -e '.[aws]'`), used only by DX Cloud compile.
 
 ## Big picture
 
@@ -18,6 +19,7 @@ Browser ──▶ Launcher :8890 ──(reverse proxy)──▶ dx_app       :80
                                                 dx_benchmark :8097  /benchmark/
                                                 dx_monitor   :8098  /dx_monitor/
                                                 dx_agent_dev :8099  /agent/
+                                                dx_edge      :8100  /cloud/
 
 shared/dx_server.py  ← base HTTP handler + server wrapper for ALL servers
 shared/chat/         ← ChatEngine (per-module AI assistant)
@@ -45,7 +47,7 @@ The launcher is both a **process supervisor** and a **reverse proxy**
    for EventSource/fetch calls that lack a usable prefix.
 4. **Proxy** — `_proxy()` forwards over `http.client` to `127.0.0.1:<port>`, strips
    hop-by-hop headers, streams SSE line-by-line, and injects the hardware-monitor
-   widget into HTML responses (all modules except `dx_monitor` and `dx_agent_dev`).
+   widget into HTML responses (all modules except `dx_monitor`, `dx_agent_dev` and `dx_edge`).
 5. **Supervise** — a watchdog thread polls each module (process alive + port open) and
    restarts a dead module up to 3 times / 120 s, else marks it `unavailable`.
 
@@ -65,6 +67,7 @@ Top-level browser navigations (deep links, F5) are detected via `Sec-Fetch-Dest`
 | DX Benchmark | `dx_benchmark/` | 8097 | `/benchmark/` | `DX_BENCHMARK_PORT` |
 | DX Monitor | `dx_monitor/` | 8098 | `/dx_monitor/` | `DX_MONITOR_PORT` |
 | DX Agent Dev | `dx_agent_dev/` | 8099 | `/agent/` | `DX_AGENT_PORT` |
+| DX Cloud | `dx_edge/` | 8100 | `/cloud/` | `DX_EDGE_PORT` |
 
 The `DX_*_PORT` variables are read only by `launcher/launcher.py` (as proxy-map
 defaults). The module `server.py` files do **not** read them — a standalone module

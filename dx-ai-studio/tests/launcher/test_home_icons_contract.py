@@ -75,7 +75,7 @@ def test_description_is_a_tooltip_not_a_second_line():
     rest = re.search(r"\.stage-deck \.studio-grid :is\(\.card-desc, \.orbital-port\)\s*\{([^}]*)\}", css)
     assert rest and re.search(r"opacity:\s*0\b", rest.group(1))
     assert re.search(r":is\(:hover, :focus-visible\)[^{]*:is\(\.card-desc, \.orbital-port\)\s*\{[^}]*opacity:\s*1", css)
-    assert HTML.count('class="card-desc"') == 8
+    assert HTML.count('class="card-desc"') == 9
 
 
 def test_a_module_that_is_down_is_dimmed_not_hidden():

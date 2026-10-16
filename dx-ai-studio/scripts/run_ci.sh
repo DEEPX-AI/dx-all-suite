@@ -251,6 +251,7 @@ echo "== 5/7 Module + shared + root contract suites (no browser) =="
   tests/dx_planner/ \
   tests/dx_benchmark/ \
   tests/dx_monitor/ \
+  tests/dx_edge/ \
   tests/shared/ \
   tests/i18n_audit/ \
   "${ROOT_TESTS[@]}" \
@@ -285,7 +286,7 @@ if [ "$RUN_OFFLINE" = "1" ]; then
   # top-level `core`, which clashes with other modules' `core`).
   DX_OFFLINE_GUARD=1 "$PY" -m pytest \
     tests/dx_app/ tests/dx_stream/ tests/dx_compiler/ tests/dx_modelzoo/ \
-    tests/dx_planner/ tests/dx_benchmark/ tests/dx_monitor/ \
+    tests/dx_planner/ tests/dx_benchmark/ tests/dx_monitor/ tests/dx_edge/ \
     tests/shared/ tests/release/ tests/i18n_audit/ \
     -q --tb=short \
     --ignore=tests/dx_stream/benchmark \

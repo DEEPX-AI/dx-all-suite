@@ -4,7 +4,7 @@ The **hub** is the home page that ties the studio together. Every tool opens fro
 runs under the hub's single address; the hub proxies each module, so one URL is all you
 need (and all you can reach from another computer — module ports listen on the board only).
 
-![The hub home — the prompt box, the eight tool cards with SDK Library and About DEEPX, the DX-M1 widget and the "Measured on DX-M1" card.](resources/hub.png)
+![The hub home — the prompt box, the nine tool cards with SDK Library and About DEEPX, the DX-M1 widget and the "Measured on DX-M1" card.](resources/hub.png)
 
 ## Layout
 
@@ -14,7 +14,7 @@ need (and all you can reach from another computer — module ports listen on the
   where you follow its activity and answer its questions. Example chips under the box fill in
   a ready-made request; the **Agent** row picks the coding agent, model, effort and mode. The
   agent and model are saved as the Studio agent and shared with Agent Dev and the chat.
-- **Tool cards** — the eight tools plus **SDK Library** and **About DEEPX**. Cards show live
+- **Tool cards** — the nine tools plus **SDK Library** and **About DEEPX**. Cards show live
   facts where a module can count them (for example *26 demos · 12 groups* for DX App, the
   catalogue size for Model Zoo). Click a card to open the tool; the hub chrome stays in
   place.
@@ -67,7 +67,7 @@ button in the top bar opens the contents at any time.
 - Click a card to enter a tool; use the logo or the browser **Back** button to return home.
 - The current tool and view are reflected in the **URL**, so links are shareable and
   reload-safe (for example, a DX EdgeGuide recommendation or an SDK Library document).
-- **Keyboard shortcuts** — `Alt`+`1`…`8` open a tool directly. `Esc` closes the topmost
+- **Keyboard shortcuts** — `Alt`+`1`…`9` open a tool directly. `Esc` closes the topmost
   thing first — the chat, the tutorial, a search, a dialog — and only then leaves the tool.
 
 ## Language

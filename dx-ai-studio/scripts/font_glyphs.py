@@ -41,6 +41,11 @@ def dictionary_glyphs(root: Path = ROOT) -> dict[str, set[int]]:
     for rec in extract_inventory(root):
         for lang in LANGS:
             per[lang].update(cp for cp in map(ord, rec.texts.get(lang, "")) if is_cjk(cp))
+    # Rendered content translated per file (e.g. dx_edge/static/guide/content.ja.json) is a dictionary too.
+    for path in iter_source_files(root):
+        parts = path.name.split(".")
+        if len(parts) == 3 and parts[1] in per and parts[2] == "json" and _is_rendered(path, root):
+            per[parts[1]].update(cp for cp in map(ord, path.read_text(encoding="utf-8")) if is_cjk(cp))
     return per
 
 

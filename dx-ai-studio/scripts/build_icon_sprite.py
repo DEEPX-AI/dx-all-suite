@@ -25,7 +25,7 @@ def gear():
 
 G = gear()
 S = {}
-# ── The 8 modules (same glyphs as the launcher home) ──
+# ── The 9 modules (same glyphs as the launcher home) ──
 S['app'] = ([R(3, 4, 18, 13, 2.5)], [R(3, 4, 18, 13, 2.5), P('M10.5 8.2v4.6l4-2.3z'), P('M8 20.5h8')])
 S['stream'] = ([R(7.5, 3.5, 13, 10, 2)], [R(7.5, 3.5, 13, 10, 2), P('M3.5 8v8.5a2 2 0 0 0 2 2H16'), P('M12.5 6.6l3.2 1.9-3.2 1.9z')])
 S['zoo'] = ([R(13.5, 3.5, 7, 7, 2)], [R(3.5, 3.5, 7, 7, 2), R(13.5, 3.5, 7, 7, 2), R(3.5, 13.5, 7, 7, 2), R(13.5, 13.5, 7, 7, 2)])
@@ -34,6 +34,8 @@ S['bench'] = ([P('M4 16a8 8 0 0 1 16 0z')], [P('M4 16a8 8 0 0 1 16 0'), P('M12 1
 S['edge'] = ([C(12, 12, 9)], [C(12, 12, 9), P('M15.6 8.4l-2.3 4.9-4.9 2.3 2.3-4.9z')])
 S['monitor'] = ([R(3, 4, 18, 16, 3)], [R(3, 4, 18, 16, 3), P('M6 12.5h3l1.8-4 2.6 8 1.8-4H18')])
 S['agent'] = ([R(3, 5.5, 18, 14, 3)], [R(3, 5.5, 18, 14, 3), P('M7 10.5l2.5 2L7 14.5'), P('M12 15h4'), P('M18.5 1.8v2.8M17.1 3.2h2.8')])
+CLOUD = 'M7 19a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 17.9 9.1 5 5 0 0 1 17 19z'
+S['cloud'] = ([P(CLOUD)], [P(CLOUD), P('M12 16.5v-5M9.5 14 12 11.5l2.5 2.5')])
 # ── Books ──
 S['library'] = ([R(5.2, 5, 6.6, 14.5, 1)], [P('M6.5 5v14M10.5 5v14'), P('M14 5.6l3.4 13'), P('M4.5 19.5h15')])
 OPEN_BOOK = 'M12 7.2c-2-1.5-5-1.6-7.5-.6v11.2c2.5-1 5.5-.9 7.5.6 2-1.5 5-1.6 7.5-.6V6.6c-2.5-1-5.5-.9-7.5.6z'
@@ -226,7 +228,7 @@ out = ['<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" style="posi
        '     CSS outside cannot reach inside the <use> shadow tree, so shapes change only through inherited variables:',
        '     ico-fill (fill opacity, .24), ico-fill-o (whole fill, 1), ico-stroke (line width, 2). Colour is currentColor.',
        '     (XML comments cannot contain a double dash, so the variable names lose their leading dashes.)',
-       '     The eight module icons match the launcher home glyphs. Contract: tests/shared/test_icon_system.py -->',
+       '     The nine module icons match the launcher home glyphs. Contract: tests/shared/test_icon_system.py -->',
        '<defs>']
 for name, (fills, lines) in S.items():
     body = ''
@@ -243,7 +245,8 @@ print(len(S), 'symbols')
 # Module name -> glyph. The launcher stands for the whole studio, so it gets the letters DX.
 FAV_DIR = __import__('pathlib').Path(__file__).resolve().parents[1] / 'shared/static/favicons'
 FAV = {'dx_app': 'app', 'dx_stream': 'stream', 'dx_modelzoo': 'zoo', 'dx_compiler': 'compiler',
-       'dx_benchmark': 'bench', 'dx_planner': 'edge', 'dx_monitor': 'monitor', 'dx_agent_dev': 'agent'}
+       'dx_benchmark': 'bench', 'dx_planner': 'edge', 'dx_monitor': 'monitor', 'dx_agent_dev': 'agent',
+       'dx_edge': 'cloud'}
 FAV_BG, FAV_FG = '#0b1220', '#2997ff'
 FAV_DIR.mkdir(parents=True, exist_ok=True)
 def _fav(body):

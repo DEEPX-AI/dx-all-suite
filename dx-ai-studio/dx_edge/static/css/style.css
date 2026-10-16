@@ -1,0 +1,161 @@
+/* DX Cloud – module-local layout (shared foundation loaded via HTML).
+   Full module width like Monitor; the numbered steps reuse the shared .dx-steps list. */
+.edge-main{width:100%;min-width:0;box-sizing:border-box;--step-dot:32px}
+/* Status chips (Monitor's status bar look); the dot carries the state */
+.edge-status{display:flex;flex-wrap:wrap;gap:var(--sp-2);margin-bottom:var(--sp-5)}
+.edge-chip{display:inline-flex;align-items:center;gap:var(--sp-2);min-width:0;max-width:100%;padding:var(--sp-2) var(--sp-3);
+  background:linear-gradient(145deg,var(--control-bg),color-mix(in srgb,var(--control-bg) 85%,var(--text-primary)));
+  border:1px solid var(--border-subtle);border-radius:var(--radius);font-size:var(--fs-base);font-weight:var(--fw-semibold)}
+.edge-chip::before{content:"";flex:none;width:8px;height:8px;border-radius:50%;background:var(--text-faint)}
+.edge-chip[data-state="ok"]{border-color:color-mix(in srgb,var(--status-ok) 35%,transparent)}
+.edge-chip[data-state="ok"]::before{background:var(--status-ok)}
+.edge-chip[data-state="bad"]{border-color:color-mix(in srgb,var(--status-warn) 45%,transparent)}
+.edge-chip[data-state="bad"]::before{background:var(--status-warn)}
+.edge-chip[data-state="busy"]::before{background:var(--accent)}
+.edge-chip-label{color:var(--text-muted);font-size:var(--fs-xs);font-weight:var(--fw-regular)}
+.edge-chip-value{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-primary)}
+/* Marketplace: two compact cards in one row */
+.edge-market{margin-bottom:var(--sp-5)}
+.edge-kicker{margin:0 0 var(--sp-2);font-size:var(--fs-xs);font-weight:var(--fw-bold);text-transform:uppercase;letter-spacing:.6px;color:var(--text-muted)}
+.edge-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(320px,100%),1fr));gap:var(--sp-3)}
+/* Solution card: text column, with the AWS Qualified Software badge in its own column top right */
+.edge-card{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:var(--sp-5);align-items:start;min-width:0}
+.edge-card-body{display:flex;flex-direction:column;gap:var(--sp-2);min-width:0;height:100%}
+.edge-card-head{display:flex;flex-wrap:wrap;align-items:center;gap:var(--sp-2)}
+.edge-card h3{display:flex;align-items:center;gap:var(--sp-2);margin:0;font-size:var(--fs-md)}
+.edge-card p{font-size:var(--fs-sm)}
+.edge-card .edge-actions{margin-top:auto;padding-top:var(--sp-1)}
+/* Steps: shared dot + title + state pill, each step's content in a card */
+.edge-steps .dx-step-row{cursor:default}
+.edge-steps .dx-step-title{display:flex;align-items:center;gap:var(--sp-2)}
+.edge-step > .dx-step-body > .card{margin-top:var(--sp-3)}
+.edge-step[data-state="todo"] .dx-step-dot{color:var(--accent-ink);border-color:var(--accent)}
+.edge-step[data-state="blocked"] .dx-step-dot{color:var(--text-muted)}
+.edge-steps .dx-step-state.is-blocked{background:color-mix(in srgb,var(--text-primary) 7%,transparent)}
+.edge-steps + .edge-tabs{margin-top:var(--sp-3)}
+.edge-card p,.edge-note{color:var(--text-secondary);line-height:1.6;margin:0}
+.edge-actions{display:flex;flex-wrap:wrap;gap:var(--sp-2);margin-top:var(--sp-3)}
+.edge-actions .btn{text-decoration:none}
+.edge-alert{margin:var(--sp-3) 0 0;color:var(--status-warn)}
+.edge-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(240px,100%),1fr));gap:0 var(--sp-4);margin-top:var(--sp-4)}
+.edge-form .edge-actions{grid-column:1/-1;margin-top:0}
+.card > .edge-form:first-child,.edge-alert[hidden] + .edge-form{margin-top:0}
+.edge-stack-row{grid-column:1/-1}
+.edge-form--files{grid-template-columns:repeat(2,minmax(0,1fr))}
+.edge-form .fg{min-width:0}
+.edge-inline{display:flex;gap:var(--sp-2);align-items:center}
+.edge-inline select{flex:1;min-width:0}
+.edge-job{margin-top:var(--sp-4);padding-top:var(--sp-4);border-top:1px solid var(--border-subtle)}
+.edge-job-line{display:flex;align-items:center;gap:var(--sp-2);margin:0;flex-wrap:wrap}
+.edge-job-msg{margin:var(--sp-2) 0 0;color:var(--text-secondary);overflow-wrap:anywhere}
+.edge-job-msg.is-error{color:var(--status-error)}
+.edge-job .badge[data-state="succeeded"]{color:var(--status-ok)}
+.edge-job .badge[data-state="failed"]{color:var(--status-error)}
+.edge-links{display:flex;flex-wrap:wrap;gap:var(--sp-2);margin-top:var(--sp-3)}
+.edge-sub{margin:var(--sp-5) 0 var(--sp-2);font-size:var(--fs-base);color:var(--text-primary)}
+.edge-rows{list-style:none;margin:0;padding:0;display:grid;gap:var(--sp-2)}
+.edge-row{display:flex;flex-wrap:wrap;align-items:center;gap:var(--sp-2);padding:var(--sp-2) var(--sp-3);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);overflow-wrap:anywhere}
+.edge-row .btn{margin-left:auto;text-decoration:none}
+.edge-dim,.edge-empty{color:var(--text-secondary)}
+.edge-main .badge[data-state="ok"]{color:var(--status-ok)}
+.edge-main .badge[data-state="bad"]{color:var(--status-error)}
+.edge-main .badge[data-state="busy"]{color:var(--status-warn)}
+.edge-events{list-style:none;margin:var(--sp-2) 0 0;padding:0;font-family:var(--mono);font-size:var(--fs-xs);color:var(--text-secondary);overflow-wrap:anywhere}
+.edge-dialog{width:480px}
+.edge-dialog .edge-note + .edge-note{margin-top:var(--sp-2)}
+.edge-dialog .fg{margin-top:var(--sp-3)}
+/* DEEPX Compiler Solution | DEEPX Greengrass Solution tabs; they wrap rather than scroll on a phone */
+.edge-tabs{display:flex;flex-wrap:wrap;gap:var(--sp-1);margin-bottom:var(--sp-2);border-bottom:1px solid var(--border-subtle)}
+.edge-tab{display:flex;align-items:center;gap:var(--sp-2);padding:var(--sp-2) var(--sp-4);font:inherit;font-size:var(--fs-base);color:var(--text-muted);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;transition:var(--transition)}
+.edge-tab:hover{color:var(--text-primary)}
+.edge-tab[aria-selected="true"]{color:var(--accent-ink);border-bottom-color:var(--accent);font-weight:var(--fw-semibold);background:var(--accent-dim)}
+.edge-panel:focus-visible{outline:2px solid var(--control-border-focus);outline-offset:var(--sp-1)}
+/* Greengrass devices: the table scrolls inside its card at 390px instead of widening the page */
+.edge-table-wrap{overflow-x:auto;margin-top:var(--sp-3)}
+.edge-table{width:100%;border-collapse:collapse;font-size:var(--fs-sm)}
+.edge-table th,.edge-table td{padding:var(--sp-2) var(--sp-3);text-align:left;border-bottom:1px solid var(--border-subtle);vertical-align:top}
+.edge-table th{color:var(--text-secondary);font-weight:var(--fw-semibold);white-space:nowrap}
+.edge-comp-row td{background:var(--surface-sunken)}
+.edge-comps{list-style:none;margin:0;padding:0;display:grid;gap:var(--sp-1)}
+.edge-comps li{display:flex;flex-wrap:wrap;align-items:center;gap:var(--sp-2);overflow-wrap:anywhere}
+.edge-script{margin:var(--sp-3) 0 0;padding:var(--sp-3);max-height:360px;overflow:auto;font-family:var(--mono);font-size:var(--fs-xs);background:var(--surface-sunken);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);white-space:pre}
+/* .onnx / .json drop zones (DX Compiler's dashed zone). The transparent file input covers the zone,
+   so click, keyboard and drop all go to the native input. */
+.edge-drop{position:relative;display:flex;align-items:center;gap:var(--sp-3);min-width:0;padding:var(--sp-3) var(--sp-4);
+  border:2px dashed var(--border-strong);border-radius:var(--radius);background:var(--surface-panel);color:var(--text-muted);transition:var(--transition)}
+.edge-drop:hover,.edge-drop.is-over{border-color:var(--accent);background:var(--accent-dim)}
+.edge-drop.is-over{border-style:solid}
+.edge-drop:focus-within{outline:2px solid var(--control-border-focus);outline-offset:2px}
+.edge-drop input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+.edge-drop > .dx-ico{font-size:var(--fs-xl);color:var(--accent)}
+.edge-drop-text{display:flex;flex-direction:column;min-width:0;font-size:var(--fs-sm)}
+.edge-drop-file{color:var(--text-primary);font-weight:var(--fw-semibold);overflow-wrap:anywhere}
+.edge-drop-file:empty,.edge-drop[data-state="ready"] .edge-drop-prompt{display:none}
+.edge-drop[data-state="ready"]{border-style:solid;border-color:color-mix(in srgb,var(--status-ok) 55%,transparent);background:color-mix(in srgb,var(--status-ok) 8%,transparent)}
+.edge-drop[data-state="ready"] > .dx-ico{color:var(--status-ok)}
+.edge-drop[data-state="bad"]{border-color:var(--status-error)}
+.edge-drop[data-state="bad"] .edge-drop-file{color:var(--status-error)}
+/* AWS CLI setup guide (inside step 1) */
+.edge-guide{margin-top:var(--sp-4);border:1px solid var(--border-subtle);border-radius:var(--radius);background:var(--surface-panel)}
+.edge-guide > summary{display:flex;align-items:center;gap:var(--sp-2);padding:var(--sp-3) var(--sp-4);cursor:pointer;font-weight:var(--fw-semibold);color:var(--text-primary)}
+.edge-guide > summary:focus-visible{outline:2px solid var(--control-border-focus);outline-offset:-2px;border-radius:var(--radius)}
+.edge-guide[open] > summary{border-bottom:1px solid var(--border-subtle)}
+.edge-guide > .edge-note{padding:var(--sp-3) var(--sp-4) 0}
+.edge-guide-steps{margin:0;padding:var(--sp-2) var(--sp-4) var(--sp-4) calc(var(--sp-4) + var(--sp-5));display:grid;gap:var(--sp-4)}
+.edge-guide-steps > li{min-width:0}
+.edge-guide-steps > li::marker{color:var(--accent-ink);font-weight:var(--fw-bold)}
+.edge-guide h4{margin:0 0 var(--sp-2);font-size:var(--fs-md);color:var(--text-primary)}
+.edge-guide .edge-note{font-size:var(--fs-sm)}
+.edge-guide .edge-note + .edge-cmd,.edge-cmd + .edge-note,.edge-cmd + .edge-cmd,.edge-cmd + .edge-sample,.edge-sample + .edge-note{margin-top:var(--sp-2)}
+.edge-cmd{display:flex;align-items:flex-start;gap:var(--sp-2);min-width:0}
+/* Commands wrap inside their box, so nothing is clipped at any width */
+.edge-cmd pre,.edge-sample{flex:1;min-width:0;margin:0;padding:var(--sp-2) var(--sp-3);white-space:pre-wrap;overflow-wrap:anywhere;font-family:var(--mono);font-size:var(--fs-xs);line-height:1.6;
+  background:var(--surface-sunken);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);color:var(--text-primary)}
+.edge-cmd code,.edge-sample code{padding:0;background:none;border-radius:0;color:inherit;font:inherit}
+.edge-sample{color:var(--text-muted)}
+.edge-cmd .btn{flex:none}
+.edge-perms{display:flex;flex-wrap:wrap;gap:var(--sp-1);list-style:none;margin:0 0 var(--sp-2);padding:0}
+.edge-perms li{padding:2px var(--sp-2);border-radius:var(--radius-xs);font-size:var(--fs-xs);color:var(--text-secondary);background:color-mix(in srgb,var(--text-primary) 7%,transparent)}
+.edge-doc{display:inline-flex;align-items:center;gap:var(--sp-1);margin-top:var(--sp-2);font-size:var(--fs-sm);color:var(--accent-ink);text-decoration:none}
+.edge-doc:hover{text-decoration:underline}
+/* Phone: the step cards reach back under the number column so forms keep their width */
+@media (max-width:600px){
+  .edge-step > .dx-step-body > .card{margin-left:calc(-1 * (var(--step-dot) + var(--sp-4)))}
+  .edge-guide-steps{padding-left:var(--sp-5);padding-right:var(--sp-3)}
+  .edge-form--files{grid-template-columns:minmax(0,1fr)}
+  .edge-cmd{flex-wrap:wrap;justify-content:flex-end}
+  .edge-cmd pre{flex-basis:100%}
+}
+/* Compile log: workflow steps, then dxcom's own output (stderr tinted) */
+.edge-log{margin-top:var(--sp-3);border-top:1px solid var(--border-subtle);padding-top:var(--sp-3)}
+.edge-log summary{cursor:pointer;font-weight:var(--fw-semibold);color:var(--text-primary)}
+.edge-log-steps{list-style:none;margin:var(--sp-2) 0 0;padding:0;display:grid;gap:var(--sp-1);font-size:var(--fs-sm)}
+.edge-log-steps li{display:flex;flex-wrap:wrap;gap:var(--sp-2);align-items:baseline;color:var(--text-secondary)}
+.edge-log-steps time{font-family:var(--mono);font-size:var(--fs-xs);color:var(--text-muted)}
+.edge-log-steps .is-failed{color:var(--status-error)}
+.edge-log-steps .is-last{color:var(--text-primary);font-weight:var(--fw-semibold)}
+.edge-log-out{margin:var(--sp-3) 0 0;padding:var(--sp-3);max-height:360px;overflow:auto;font-family:var(--mono);font-size:var(--fs-xs);line-height:1.5;background:var(--surface-sunken);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);white-space:pre-wrap;overflow-wrap:anywhere}
+.edge-log-out:empty{display:none}
+.edge-log-out .is-err{color:var(--status-warn)}
+/* Compile jobs: every model folder in the stack's bucket */
+.edge-jobs{margin-top:var(--sp-5);padding-top:var(--sp-4);border-top:1px solid var(--border-subtle)}
+.edge-jobs-head{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-2)}
+.edge-jobs-head .edge-sub{margin:0}
+.edge-jobs .edge-note{margin-top:var(--sp-1);font-size:var(--fs-sm)}
+.edge-job-actions{display:flex;flex-wrap:wrap;gap:var(--sp-1);justify-content:flex-end}
+.edge-table tr.is-current td{background:var(--accent-dim)}
+/* AWS Partner / AWS Qualified Software badges: black art on light themes, white art on dark */
+/* Top row: live status chips, then the AWS Partner badge at the far right */
+.edge-top{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-4);margin-bottom:var(--sp-5)}
+.edge-top .edge-status{flex:1;min-width:0;margin-bottom:0}
+.edge-badge-art{display:inline-flex;flex:none}
+.edge-badge-art img{display:block;width:100%;height:auto}
+.edge-badge-art--lg{width:calc(var(--sp-7) + var(--sp-4))}
+.edge-badge-art--md{width:calc(var(--sp-7) + var(--sp-2))}
+.edge-badge-art .edge-badge-art--light{display:none}
+:root[data-theme="light"] .edge-badge-art .edge-badge-art--light{display:block}
+:root[data-theme="light"] .edge-badge-art .edge-badge-art--dark{display:none}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]) .edge-badge-art .edge-badge-art--light{display:block}
+  :root:not([data-theme="dark"]) .edge-badge-art .edge-badge-art--dark{display:none}
+}

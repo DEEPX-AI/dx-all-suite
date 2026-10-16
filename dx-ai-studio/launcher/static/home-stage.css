@@ -211,10 +211,16 @@
 .stage-deck .studio-grid {
   grid-area: grid;
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--sp-4);
   align-items: start;
 }
+/* Nine modules fill a 3×3 block; the two books own the last column, centred across the three
+   rows. Each book spans two rows and centres in them, so SDK Library sits on the row 1/2 line
+   and About DEEPX on the row 2/3 line — no empty cell. */
+.stage-deck .studio-grid > .about-book-card { grid-column: 4; align-self: center; }
+.stage-deck .studio-grid > .sdk-card { grid-row: 1 / span 2; }
+.stage-deck .studio-grid > .about-book-card:not(.sdk-card) { grid-row: 2 / span 2; }
 .stage-widget { min-width: 0; display: flex; flex-direction: column; gap: var(--sp-2); }
 .stage-widget-title {
   margin: 0;
@@ -312,7 +318,7 @@
 .stage-widget-link:not(:empty)::after { content: " \203A"; }
 .stage-widget-link:hover { text-decoration: underline; }
 
-/* ── Cells: 8 icons + 2 books ─────────────────────────────────────────
+/* ── Cells: 9 icons + 2 books ─────────────────────────────────────────
    Each cell is a 4-row grid: [tooltip 0px] [icon] [name] [status]. The tooltip sits in a
    zero-height row and overflows upward — overlap without absolute positioning (nothing floats
    on this home). .mod-text uses display:contents so name and description get their own rows. */
@@ -342,7 +348,8 @@
 /* Drop the separator line (inset box-shadow from style.css's .orbital-card + .orbital-card)
    meant for the vertical list; in the grid it showed above only some cells. */
 .stage-deck .studio-grid > *,
-.stage-deck .studio-grid > *:focus-visible { box-shadow: none; }   /* focus is drawn by outline */
+.stage-deck .studio-grid > *:focus-visible,
+.stage-deck .studio-grid > .about-book-card + .about-book-card { box-shadow: none; }   /* focus is drawn by outline */
 
 /* Icon — Liquid Glass. Colours mix from style.css's single --mod-tint (no new hex).
    Gloss, edge light and shadow are neutral rgba (css_token_gate does not count them). */
@@ -679,12 +686,11 @@
     grid-template-areas: "grid grid" "dev meas";
   }
 }
-@media (max-width: 900px) {
-  .stage-deck .studio-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-}
 @media (max-width: 600px) {
   .stage-deck { grid-template-columns: minmax(0, 1fr); grid-template-areas: "grid" "dev" "meas"; }
   .stage-deck .studio-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  /* Phone: the books drop under the 3×3 modules as a fourth row. */
+  .stage-deck .studio-grid > .about-book-card { grid-column: auto; grid-row: auto; align-self: start; }
 }
 
 

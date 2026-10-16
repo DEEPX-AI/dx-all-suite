@@ -18,7 +18,10 @@ window.DXLauncher.APP_PATHS = {
   benchmark: '/benchmark/',
   dx_monitor: '/dx_monitor/',
   agent: '/agent/',
+  edge: '/cloud/',
 };
+// Paths a module had before it was renamed, so old bookmarks and refreshes still open it.
+window.DXLauncher.LEGACY_PATHS = { '/edge': '/cloud' };
 
 
 window.DXLauncher._DECODE_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';

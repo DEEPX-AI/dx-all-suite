@@ -28,6 +28,7 @@ def test_tutorial_records_cover_all_modules():
         "dx_monitor",
         "dx_agent_dev",
         "dx_compiler",
+        "dx_edge",
         "launcher",
     }
     missing = expected - modules

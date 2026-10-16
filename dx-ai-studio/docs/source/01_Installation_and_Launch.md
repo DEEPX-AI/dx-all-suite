@@ -80,7 +80,7 @@ Build NPU applications from natural language:
 
 1. **[Agent Dev](10_DX_Agent_Dev.md)** — Describe what you want; the agent generates and runs it
 
-See **[The Hub](02_The_Hub.md)** for details on all eight tools and navigation.
+See **[The Hub](02_The_Hub.md)** for details on all nine tools and navigation.
 
 ## How to Use This Manual
 
@@ -105,6 +105,7 @@ See **[The Hub](02_The_Hub.md)** for details on all eight tools and navigation.
 **🚀 Development:**
 
 - **[Agent Dev](10_DX_Agent_Dev.md)** — Generate NPU apps from natural language
+- **[DX Cloud](13_DX_Edge_AWS.md)** — Compile on AWS and deploy to edge devices
 
 **📚 Reference:**
 

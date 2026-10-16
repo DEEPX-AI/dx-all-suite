@@ -1,8 +1,8 @@
 # DX AI Studio
 
-An all-in-one desktop web workspace for building on the **DEEPX NPU**. Eight
+An all-in-one desktop web workspace for building on the **DEEPX NPU**. Nine
 specialized tools — model catalog, compiler, inference, streaming, benchmarking,
-hardware monitor, deployment planner, and an agent-driven builder — in one browser
+hardware monitor, deployment planner, an agent-driven builder, and AWS cloud compile — in one browser
 experience, in six languages.
 
 ![The DX AI Studio hub — the prompt box, the tool cards, the DX-M1 widget and the "Measured on DX-M1" card.](docs/source/resources/hub.png)
@@ -110,6 +110,7 @@ inference.
 | **DX Benchmark** | Browse and compare NPU throughput / latency / multi-stream results. → [guide](dx_benchmark/README.md) |
 | **DX Monitor** | Live NPU + system telemetry (temperature, clock, utilization, versions). → [guide](dx_monitor/README.md) |
 | **DX Agent Dev** | Describe an NPU app in natural language and have a coding agent build it. → [guide](dx_agent_dev/README.md) |
+| **DX Cloud** | DEEPX on AWS Marketplace, and cloud ONNX → `.dxnn` compile on your DEEPX Compiler stack (optional `boto3`). → [guide](dx_edge/README.md) |
 
 From the **hub** you can also open the **SDK Library** (DEEPX docs & brochures in-app),
 **About DEEPX**, switch **language** (6 locales), and jump to the DEEPX store.

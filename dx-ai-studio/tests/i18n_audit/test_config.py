@@ -24,6 +24,7 @@ def test_all_user_facing_modules_are_registered():
         "dx_benchmark",
         "dx_monitor",
         "dx_agent_dev",
+        "dx_edge",
         "shared",
     }
 

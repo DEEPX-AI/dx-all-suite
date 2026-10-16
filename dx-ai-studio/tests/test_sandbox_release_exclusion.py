@@ -31,8 +31,8 @@ def test_launcher_runtime_does_not_register_sandbox():
     assert "/sandbox" not in route_body.group("body")
 
 
-def test_launcher_state_registers_exact_eight_release_modules():
-    """Eight modules, no sandbox — checked where the app actually routes.
+def test_launcher_state_registers_exact_nine_release_modules():
+    """Nine modules, no sandbox — checked where the app actually routes.
 
     APP_PATHS is the one register. The names themselves are asserted where
     they are shown: the home's list.
@@ -40,16 +40,16 @@ def test_launcher_state_registers_exact_eight_release_modules():
     src = read("launcher/static/launcher-state.js")
     app_paths = _js_block(src, "window.DXLauncher.APP_PATHS")
     assert "sandbox" not in app_paths
-    assert app_paths.count(":") == 8
+    assert app_paths.count(":") == 9
 
     html = read("launcher/static/index.html")
     for name in ("App", "Stream", "Model Zoo", "Compiler",
-                 "EdgeGuide", "Benchmark", "Monitor", "Agent Dev"):
+                 "EdgeGuide", "Benchmark", "Monitor", "Agent Dev", "Cloud"):
         assert ">" + name + "<" in html, f"{name} is missing from the home's list"
     assert "DX Sandbox" not in html
 
 
-def test_launcher_navigation_shortcuts_are_compact_eight_modules():
+def test_launcher_navigation_shortcuts_are_compact_nine_modules():
     src = read("launcher/static/launcher.js")
     assert "launch('sandbox')" not in src
     expected = {
@@ -61,12 +61,13 @@ def test_launcher_navigation_shortcuts_are_compact_eight_modules():
         "6": "benchmark",
         "7": "dx_monitor",
         "8": "agent",
+        "9": "edge",
     }
     for key, app in expected.items():
         pattern = rf"e\.altKey\s*&&\s*e\.key\s*===\s*['\"]{key}['\"][\s\S]{{0,220}}?ns\.launch\(['\"]{app}['\"]\)"
         assert re.search(pattern, src), f"Alt+{key} should launch {app}"
-    # Shortcuts are compact/contiguous: Alt+1..Alt+8, no gap and no 9th key.
-    assert "e.key === '9'" not in src
+    # Shortcuts are compact/contiguous: Alt+1..Alt+9, no gap and no 10th key (Alt+0).
+    assert "e.key === '0'" not in src
 
 
 def test_launcher_app_frame_has_no_sandbox_nav_or_health_binding():
@@ -81,28 +82,28 @@ def test_launcher_app_frame_has_no_sandbox_nav_or_health_binding():
     assert "sandbox" not in nav.group(1)
 
 
-def test_launcher_home_copy_and_cards_are_eight_module_release():
+def test_launcher_home_copy_and_cards_are_nine_module_release():
     html = read("launcher/static/index.html")
     assert 'data-app="sandbox"' not in html
     assert "pm-dx-sandbox" not in html
     assert "dotSandbox" not in html
     assert "DX Sandbox" not in html
-    assert "7 Modules" not in html
-    assert "7개 모듈" not in html
-    assert "8 Modules" in html
-    assert "8개 모듈" in html
-    assert "8 specialized modules" in html
-    assert "8 モジュール" in html
-    assert "8 módulos" in html
-    assert "8 个模块" in html
-    assert "8 個模組" in html
-    # Eight modules, in the home grid's order, with no ninth and no sandbox. The two
+    assert "8 Modules" not in html
+    assert "8개 모듈" not in html
+    assert "9 Modules" in html
+    assert "9개 모듈" in html
+    assert "9 specialized modules" in html
+    assert "9 モジュール" in html
+    assert "9 módulos" in html
+    assert "9 个模块" in html
+    assert "9 個模組" in html
+    # Nine modules, in the home grid's order, with no tenth and no sandbox. The two
     # books (SDK Library, About) are not modules and are not counted here. Update this
     # list together with the grid order.
     cards = re.findall(r'class="orbital-card"[^>]*\sdata-app="([^"]+)"', html)
     assert cards == [
-        "app", "stream", "zoo", "compiler",
-        "benchmark", "planner", "dx_monitor", "agent",
+        "app", "stream", "zoo", "compiler", "benchmark",
+        "planner", "dx_monitor", "agent", "edge",
     ]
 
 
@@ -118,9 +119,9 @@ def test_the_intro_carries_no_module_list():
     assert "_SPLASH_MODULES" not in state, "the intro's module list outlived its only reader"
     assert "_SPLASH_MODULES" not in splash
     assert "_MODULE_ICONS" not in splash, "the intro's icon table has no consumer"
-    # The home's own list is where the eight modules are named, and it stays.
+    # The home's own list is where the nine modules are named, and it stays.
     html = read("launcher/static/index.html")
-    assert html.count('class="orbital-card"') == 8
+    assert html.count('class="orbital-card"') == 9
 
 
 def test_the_offline_assistant_does_not_offer_the_excluded_sandbox():
@@ -132,5 +133,5 @@ def test_the_offline_assistant_does_not_offer_the_excluded_sandbox():
     help_rule = COMMON_RULES[1][1]
     for lang, text in help_rule.items():
         for module in ("DX App", "DX Stream", "DX Model Zoo", "DX Compiler", "DX Benchmark", "DX Monitor",
-                       "DX EdgeGuide", "DX Agent Dev"):
+                       "DX EdgeGuide", "DX Agent Dev", "DX Cloud"):
             assert module in text, f"{lang}: {module} 이 도움말에 없다"

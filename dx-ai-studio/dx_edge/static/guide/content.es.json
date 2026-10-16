@@ -1,0 +1,667 @@
+{
+ "lang": "es",
+ "ui": {
+  "title": "Guía de la consola de AWS",
+  "lead": "Hazlo todo en la AWS Management Console, paso a paso: suscríbete en AWS Marketplace, despliega el Stack, compila un modelo y despliega el runtime de DEEPX.",
+  "back": "Volver a DX Cloud",
+  "guide": "Guía",
+  "onThisPage": "En esta página",
+  "jumpTo": "Ir a un paso",
+  "consolePath": "Ruta en la consola",
+  "note": "Nota",
+  "copy": "Copiar",
+  "copied": "Copiado",
+  "copyFailed": "No se pudo copiar",
+  "zoom": "Haz clic para ampliar",
+  "close": "Cerrar",
+  "loadError": "No se pudo cargar la guía."
+ },
+ "guides": [
+  {
+   "id": "compiler",
+   "name": "DEEPX Compiler Solution",
+   "title": "DEEPX Compiler Solution",
+   "intro": "Compila un modelo ONNX al formato DXNN de las NPU de DEEPX en AWS: de forma interactiva en una instancia de Amazon EC2, o automáticamente con un Stack de CloudFormation que compila cada modelo que subes a Amazon S3. Ambos caminos usan el mismo compilador y el mismo dataset de calibración, así que el resultado es idéntico.",
+   "sections": [
+    {
+     "id": "prep",
+     "title": "Antes de empezar",
+     "steps": [
+      {
+       "id": "choose",
+       "title": "Elegir una opción de despliegue",
+       "path": [
+        "AWS Marketplace",
+        "DEEPX Compiler Solution"
+       ],
+       "items": [
+        "Abre la ficha de [DEEPX Compiler Solution](https://aws.amazon.com/marketplace/pp/prodview-ev6ed5omu4ulo) en AWS Marketplace. Su página de lanzamiento ofrece dos servicios.",
+        "**Amazon EC2** (despliegue personalizado con una AMI): inicias una instancia y ejecutas el compilador tú mismo. Ideal para probar opciones una y otra vez y depurar de forma interactiva.",
+        "**AWS CloudFormation** (despliegue automatizado en un paso): subes archivos a Amazon S3 y la compilación arranca sola; el flujo de trabajo inicia y termina la instancia. Ideal para compilaciones repetibles y CI."
+       ],
+       "image": {
+        "src": "compiler-marketplace.png",
+        "width": 1377,
+        "height": 428,
+        "alt": "Página del producto DEEPX Compiler Solution en AWS Marketplace"
+       }
+      },
+      {
+       "id": "prereq",
+       "title": "Requisitos previos",
+       "items": [
+        "Una cuenta de AWS con permisos para iniciar instancias EC2 o crear un Stack de CloudFormation.",
+        "El modelo ONNX y su archivo de configuración JSON. En el [DEEPX Model Zoo](https://developer.deepx.ai/modelzoo/) hay modelos y configuraciones validados.",
+        "Una VPC y una subred existentes que lleguen a Amazon S3, AWS Systems Manager y Amazon CloudWatch Logs por HTTPS. Una subred privada necesita un NAT gateway o endpoints de VPC.",
+        "Para ejecutar comandos de AWS CLI desde tu equipo, configura las credenciales una vez. Si `aws sts get-caller-identity` muestra tu ID de cuenta y el ARN de usuario, ya está listo."
+       ],
+       "commands": [
+        "aws configure\n# AWS Access Key ID [None]: <access-key-id>\n# AWS Secret Access Key [None]: <secret-access-key>\n# Default region name [None]: <region, for example us-east-1>\n# Default output format [None]: json\n\naws sts get-caller-identity"
+       ]
+      }
+     ]
+    },
+    {
+     "id": "ec2",
+     "title": "Camino A — Compilar en Amazon EC2",
+     "steps": [
+      {
+       "id": "ec2-1",
+       "title": "Suscribirse e iniciar una instancia",
+       "path": [
+        "AWS Marketplace",
+        "DEEPX Compiler Solution",
+        "Launch DEEPX Compiler Solution"
+       ],
+       "items": [
+        "En la página del producto, elige **View purchase options** y suscríbete.",
+        "En **Launch DEEPX Compiler Solution**, pon **Service** en **Amazon EC2**.",
+        "En **Launch method**, elige **One-click launch from AWS Marketplace**. Usa **Launch from EC2 Console** solo si necesitas opciones que el formulario no ofrece, como un perfil de instancia, datos de usuario o volúmenes adicionales.",
+        "Completa **Version** (viene preseleccionada la última versión estable de `dx-com`), **Region**, **Number of instances**, **Instance type**, **VPC**, **Subnet**, **Security group** y **Key pair**.",
+        "Elige **Launch**."
+       ],
+       "note": "La compilación exige mucha CPU y memoria. La página de lanzamiento marca `t3.xlarge` (4 vCPU, 16 GiB) como **Vendor recommended**; con modelos grandes o muchas imágenes de calibración, un tipo mayor puede ir más rápido. El grupo de seguridad no necesita más acceso entrante que SSH.",
+       "image": {
+        "src": "compiler-launch.png",
+        "width": 2648,
+        "height": 1639,
+        "alt": "Configuración de lanzamiento con Service en Amazon EC2"
+       }
+      },
+      {
+       "id": "ec2-2",
+       "title": "Conectarse y preparar el modelo",
+       "path": [
+        "EC2",
+        "Instances"
+       ],
+       "items": [
+        "En **EC2 › Instances**, busca la dirección de la instancia y conéctate por SSH como `ubuntu`.",
+        "Activa el entorno de Python del compilador. El compilador y el dataset de calibración vienen preinstalados en `/opt/dx-compiler`.",
+        "Descarga el modelo y su configuración del Model Zoo, y haz que `dataset_path` apunte al dataset de calibración incluido en la AMI."
+       ],
+       "note": "Parte de la configuración del Model Zoo: un archivo escrito a mano sin la lista `preprocessings` falla. Las imágenes de calibración están un nivel más abajo de lo que indica la AMI: `/opt/dx-compiler/calibration_dataset/calibration_dataset`.",
+       "commands": [
+        "ssh -i <your-key>.pem ubuntu@<instance-address>\n\nsource /opt/dx-compiler/venv/bin/activate",
+        "curl -fLO https://sdk.deepx.ai/modelzoo/onnx/yolov5-s-face_640x640.onnx\ncurl -fLO https://sdk.deepx.ai/modelzoo/q-lite-json/2_4_0/yolov5-s-face_640x640.json\n\nsed -i 's#\"dataset_path\": *\"[^\"]*\"#\"dataset_path\": \"/opt/dx-compiler/calibration_dataset/calibration_dataset\"#' \\\n    yolov5-s-face_640x640.json"
+       ]
+      },
+      {
+       "id": "ec2-3",
+       "title": "Ejecutar la compilación",
+       "items": [
+        "Ejecuta `dxcom` con el modelo (`-m`), la configuración (`-c`) y el directorio de salida (`-o`). Solo está en el `PATH` mientras el entorno `(venv)` está activo.",
+        "El compilador muestra su configuración, las decisiones de cuantización y preprocesamiento y después una barra de progreso."
+       ],
+       "note": "El aviso `GPU device discovery failed` al inicio es inofensivo: la instancia no tiene GPU y la compilación sigue en la CPU.",
+       "image": {
+        "src": "compiler-dxcom-run.png",
+        "width": 2029,
+        "height": 1122,
+        "alt": "Compilación del modelo ONNX con dxcom en la instancia EC2"
+       },
+       "commands": [
+        "dxcom -m yolov5-s-face_640x640.onnx \\\n      -c yolov5-s-face_640x640.json \\\n      -o output/yolov5-s-face_640x640"
+       ]
+      },
+      {
+       "id": "ec2-4",
+       "title": "Revisar la salida y subirla",
+       "items": [
+        "El archivo `.dxnn` se escribe dentro del directorio de `-o`, con el nombre del modelo.",
+        "Súbelo a Amazon S3 para que los dispositivos edge y otros entornos puedan descargarlo."
+       ],
+       "image": {
+        "src": "compiler-dxnn-output.png",
+        "width": 854,
+        "height": 252,
+        "alt": "El archivo .dxnn compilado en el directorio de salida"
+       },
+       "commands": [
+        "ls -lhR output/",
+        "aws s3 cp output/yolov5-s-face_640x640/yolov5-s-face_640x640.dxnn s3://<your-bucket>/<path>/"
+       ]
+      },
+      {
+       "id": "ec2-5",
+       "title": "Terminar la instancia",
+       "path": [
+        "EC2",
+        "Instances",
+        "Instance state"
+       ],
+       "items": [
+        "En **EC2 › Instances**, selecciona la instancia del compilador.",
+        "Elige **Instance state › Terminate instance** para dejar de pagar. Elimina los volúmenes EBS que no se borren con la instancia.",
+        "Si compilas a menudo, el camino B es más fácil de gestionar y no cuesta nada mientras está inactivo."
+       ]
+      }
+     ]
+    },
+    {
+     "id": "cfn",
+     "title": "Camino B — Automatizar con CloudFormation",
+     "steps": [
+      {
+       "id": "cfn-1",
+       "title": "Lanzar el Stack desde la ficha",
+       "path": [
+        "AWS Marketplace",
+        "DEEPX Compiler Solution",
+        "Launch DEEPX Compiler Solution"
+       ],
+       "items": [
+        "Si aún no te has suscrito, hazlo en la página del producto (**View purchase options**).",
+        "En **Launch DEEPX Compiler Solution**, pon **Service** en **AWS CloudFormation** y elige la Region.",
+        "Al lanzarlo, la consola de CloudFormation se abre en **Create stack** con la plantilla ya seleccionada."
+       ]
+      },
+      {
+       "id": "cfn-2",
+       "title": "Introducir los parámetros del Stack",
+       "path": [
+        "CloudFormation",
+        "Stacks",
+        "Create stack",
+        "Specify stack details"
+       ],
+       "items": [
+        "Escribe un **Stack name** (letras, números y guiones).",
+        "`ImageId` — la ruta del parámetro de SSM de la AMI de DX Compiler. Se resuelve a la AMI de la Region; deja el valor predeterminado.",
+        "`ModelBucketName` — el bucket de S3 para las entradas `.onnx`/`.json` y los resultados `.dxnn`. Debe ser único a nivel global.",
+        "`InstanceType` — el tipo de instancia del compilador. El valor predeterminado es `t3.xlarge`.",
+        "`VpcId` / `SubnetId` — la VPC y la subred existentes para la instancia del compilador, con salida HTTPS hacia los servicios de AWS."
+       ],
+       "note": "La captura es del Stack de Greengrass, que añade `ThingGroupName` y campos del runtime. El Stack del compilador muestra solo los grupos de AMI, red, instancia y almacenamiento.",
+       "image": {
+        "src": "cfn-parameters.png",
+        "width": 1974,
+        "height": 1658,
+        "alt": "Especificar los detalles del Stack en la consola de CloudFormation"
+       }
+      },
+      {
+       "id": "cfn-3",
+       "title": "Crear el Stack y leer sus salidas",
+       "path": [
+        "CloudFormation",
+        "Stacks",
+        "<stack-name>",
+        "Outputs"
+       ],
+       "items": [
+        "Elige **Next**, deja las opciones del Stack como están y, en la página de revisión, elige **Submit**. Si se te pide, confirma que CloudFormation puede crear recursos de IAM.",
+        "Espera a que el Stack llegue a **CREATE_COMPLETE**. Crea el bucket de modelos, funciones Lambda, la máquina de estados de Step Functions y roles de IAM con privilegios mínimos.",
+        "En la pestaña **Outputs**, anota `ModelBucketName`, `StateMachineArn` y `CompilerExecutionLogGroupName`."
+       ],
+       "image": {
+        "src": "cfn-create-complete.png",
+        "width": 1998,
+        "height": 890,
+        "alt": "El Stack en CREATE_COMPLETE"
+       }
+      },
+      {
+       "id": "cfn-4",
+       "title": "Subir el .onnx y el .json a S3",
+       "path": [
+        "S3",
+        "Buckets",
+        "<ModelBucketName>",
+        "models/<model-name>/"
+       ],
+       "items": [
+        "En **S3 › Buckets**, abre el bucket de `ModelBucketName`.",
+        "Elige **Create folder** y crea `models/<model-name>/`: una carpeta propia por modelo.",
+        "Abre la carpeta, elige **Upload › Add files**, añade el modelo `.onnx` y su configuración `.json` con el mismo nombre base y elige **Upload**.",
+        "La compilación empieza solo cuando ambos archivos están en la misma carpeta. Los comandos de CLI de abajo hacen lo mismo desde una terminal."
+       ],
+       "note": "Tenga el valor que tenga `dataset_path` en la configuración, el pipeline lo sustituye por el dataset de calibración incluido en la AMI (`/opt/dx-compiler/calibration_dataset`).",
+       "image": {
+        "src": "s3-upload.png",
+        "width": 1977,
+        "height": 652,
+        "alt": "El modelo y su configuración subidos a la misma ruta de S3"
+       },
+       "commands": [
+        "export STACK_NAME=<cloudformation-stack-name>\n\nexport MODEL_BUCKET=$(aws cloudformation describe-stacks \\\n  --stack-name \"$STACK_NAME\" \\\n  --query \"Stacks[0].Outputs[?OutputKey=='ModelBucketName'].OutputValue\" \\\n  --output text)\n\nexport MODEL_PREFIX=models/yolov5-s-face_640x640\n\ncurl -fLO https://sdk.deepx.ai/modelzoo/onnx/yolov5-s-face_640x640.onnx\ncurl -fLO https://sdk.deepx.ai/modelzoo/q-lite-json/2_4_0/yolov5-s-face_640x640.json\n\naws s3 cp --only-show-errors yolov5-s-face_640x640.onnx \"s3://${MODEL_BUCKET}/${MODEL_PREFIX}/\"\naws s3 cp --only-show-errors yolov5-s-face_640x640.json \"s3://${MODEL_BUCKET}/${MODEL_PREFIX}/\""
+       ]
+      },
+      {
+       "id": "cfn-5",
+       "title": "Seguir el flujo de trabajo de Step Functions",
+       "path": [
+        "Step Functions",
+        "State machines",
+        "CompilerStateMachine-…",
+        "Execution"
+       ],
+       "items": [
+        "En **Step Functions › State machines**, abre la máquina de estados de `StateMachineArn` y selecciona la ejecución más reciente.",
+        "El gráfico muestra cómo se inicia la instancia, se ejecuta el comando de compilación mediante Systems Manager, se consulta el estado y se termina la instancia. También la termina si falla.",
+        "Espera a **Succeeded**. Los registros detallados de `dxcom` están en CloudWatch Logs, en `/dx-compiler/<stack-name>/execution`."
+       ],
+       "image": {
+        "src": "sfn-succeeded.png",
+        "width": 2174,
+        "height": 1286,
+        "alt": "El flujo de compilación en la consola de Step Functions"
+       },
+       "commands": [
+        "export STATE_MACHINE_ARN=$(aws cloudformation describe-stacks \\\n  --stack-name \"$STACK_NAME\" \\\n  --query \"Stacks[0].Outputs[?OutputKey=='StateMachineArn'].OutputValue\" \\\n  --output text)\n\naws stepfunctions list-executions \\\n  --state-machine-arn \"$STATE_MACHINE_ARN\" \\\n  --max-results 5 \\\n  --query \"executions[].[status,startDate,stopDate,name]\" \\\n  --output table",
+        "export COMPILER_LOG_GROUP=$(aws cloudformation describe-stacks \\\n  --stack-name \"$STACK_NAME\" \\\n  --query \"Stacks[0].Outputs[?OutputKey=='CompilerExecutionLogGroupName'].OutputValue\" \\\n  --output text)\n\naws logs tail \"$COMPILER_LOG_GROUP\" --since 1h --follow"
+       ]
+      },
+      {
+       "id": "cfn-6",
+       "title": "Descargar el .dxnn",
+       "path": [
+        "S3",
+        "Buckets",
+        "<ModelBucketName>",
+        "models/<model-name>/"
+       ],
+       "items": [
+        "De vuelta en la carpeta del modelo, el `.dxnn` compilado está junto al `.onnx` y el `.json` de origen.",
+        "Selecciónalo y elige **Download**, o cópialo con la CLI."
+       ],
+       "image": {
+        "src": "s3-dxnn.png",
+        "width": 1971,
+        "height": 479,
+        "alt": "El .dxnn compilado en la misma ruta de S3 que el modelo de origen"
+       },
+       "commands": [
+        "aws s3 ls \"s3://${MODEL_BUCKET}/${MODEL_PREFIX}/\"\n# yolov5-s-face_640x640.onnx\n# yolov5-s-face_640x640.json\n# yolov5-s-face_640x640.dxnn",
+        "aws s3 cp \"s3://${MODEL_BUCKET}/${MODEL_PREFIX}/yolov5-s-face_640x640.dxnn\" ."
+       ]
+      }
+     ]
+    },
+    {
+     "id": "end",
+     "title": "Para terminar",
+     "steps": [
+      {
+       "id": "cost",
+       "title": "Costes",
+       "items": [
+        "El precio del software y las condiciones de suscripción están en la ficha de AWS Marketplace; los cargos de recursos de AWS se aplican aparte.",
+        "**Amazon EC2 y EBS**: la instancia del compilador y sus volúmenes mientras funcionan. El pipeline de CloudFormation solo ejecuta la instancia durante un trabajo; una instancia que inicias tú sigue en marcha hasta que la terminas.",
+        "**Amazon S3, AWS Lambda, AWS Step Functions, Amazon CloudWatch Logs** (camino CloudFormation): almacenamiento, eventos, ejecuciones del flujo y retención de registros.",
+        "Haz una estimación con la [AWS Pricing Calculator](https://calculator.aws/) antes de desplegar."
+       ]
+      },
+      {
+       "id": "cleanup",
+       "title": "Limpiar recursos",
+       "path": [
+        "CloudFormation",
+        "Stacks",
+        "Delete"
+       ],
+       "items": [
+        "Camino EC2: termina la instancia y elimina los volúmenes EBS que queden.",
+        "Camino CloudFormation: en **CloudFormation › Stacks**, selecciona el Stack y elige **Delete**.",
+        "El bucket de modelos se conserva para proteger tus datos. Si ya no lo necesitas, vacíalo y elimínalo en la consola de S3.",
+        "Cancela la suscripción en [Manage subscriptions](https://aws.amazon.com/marketplace/library) si ya no la necesitas."
+       ]
+      },
+      {
+       "id": "troubleshoot",
+       "title": "Solución de problemas",
+       "items": [
+        "**El flujo no arranca tras la subida** — el `.onnx` y el `.json` deben estar en la misma ruta de S3; con uno solo, el disparador espera.",
+        "**El flujo falla** — revisa los registros de `dxcom` en el grupo de registros `/dx-compiler/<stack-name>/execution`.",
+        "**La instancia no se inicia** — comprueba que la subred tenga salida HTTPS (NAT gateway o endpoints de VPC) y que la suscripción esté completa.",
+        "**`dxcom: command not found`** — ejecuta antes `source /opt/dx-compiler/venv/bin/activate`.",
+        "**No encuentra las imágenes de calibración** — `dataset_path` debe ser `/opt/dx-compiler/calibration_dataset/calibration_dataset`, no su directorio padre.",
+        "**Error de forma de entrada o baja precisión** — haz que `inputs` coincida con el modelo ONNX y `preprocessings` con el entrenamiento; sube `calibration_num` si hace falta."
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "greengrass",
+   "name": "DEEPX Greengrass Solution",
+   "title": "DEEPX Greengrass Solution",
+   "intro": "Un único Stack de CloudFormation aporta el pipeline de compilación en la nube y despliega por OTA el runtime de DEEPX (driver de la NPU, firmware, dx_rt y dx_stream) en cada core device de Greengrass de un Thing Group.",
+   "sections": [
+    {
+     "id": "prep",
+     "title": "Antes de empezar",
+     "steps": [
+      {
+       "id": "how",
+       "title": "Cómo funciona la solución",
+       "items": [
+        "En la nube, al subir un `.onnx` y su `.json` al mismo prefijo de S3, AWS Lambda inicia un flujo de Step Functions. Este lanza una instancia EC2 temporal desde la AMI de DEEPX Compiler, ejecuta `dxcom` mediante Systems Manager Run Command, guarda el `.dxnn` junto al origen y termina la instancia.",
+        "En el edge, el Stack publica el Greengrass component `com.deepx.dx-runtime` y lo despliega en un Thing Group. Cada core device del grupo instala el driver de la NPU, el firmware, dx_rt y dx_stream e informa del resultado.",
+        "Basta con añadir un dispositivo registrado al Thing Group para aprovisionarlo (aprovisionamiento sin intervención). Inyectar certificados en fábrica o usar el aprovisionamiento de flotas requiere un diseño aparte."
+       ],
+       "image": {
+        "src": "gg-architecture.png",
+        "width": 1100,
+        "height": 700,
+        "alt": "Pipeline de compilación en la nube y despliegue del runtime con Greengrass"
+       }
+      },
+      {
+       "id": "prereq",
+       "title": "Requisitos previos",
+       "items": [
+        "Una cuenta de AWS con permisos para crear un Stack de CloudFormation.",
+        "Un dispositivo edge con un módulo M.2 DEEPX DX-M1, por ejemplo una Raspberry Pi 5 (arm64) o un host Ubuntu x86_64.",
+        "El modelo ONNX y su configuración JSON; por ejemplo, del [DEEPX Model Zoo](https://developer.deepx.ai/modelzoo/).",
+        "Una VPC y una subred existentes para la instancia del compilador, con salida HTTPS hacia Amazon S3, AWS Systems Manager y Amazon CloudWatch Logs (NAT gateway o endpoints de VPC en una subred privada)."
+       ]
+      }
+     ]
+    },
+    {
+     "id": "stack",
+     "title": "Suscribirse y desplegar el Stack",
+     "steps": [
+      {
+       "id": "subscribe",
+       "title": "Suscribirse en AWS Marketplace",
+       "path": [
+        "AWS Marketplace",
+        "DEEPX Greengrass Solution"
+       ],
+       "items": [
+        "En AWS Marketplace, busca [DEEPX Greengrass Solution](https://aws.amazon.com/marketplace/pp/prodview-732s46qfzuh34), selecciónala y suscríbete.",
+        "Elige la Region de AWS donde desplegar y elige **Launch with CloudFormation**.",
+        "¿Solo necesitas compilar, sin desplegar en dispositivos? Usa la guía de DEEPX Compiler Solution."
+       ],
+       "image": {
+        "src": "gg-marketplace.png",
+        "width": 1722,
+        "height": 586,
+        "alt": "Página de suscripción de la solución DEEPX en AWS Marketplace"
+       }
+      },
+      {
+       "id": "stack-1",
+       "title": "Introducir los parámetros del Stack",
+       "path": [
+        "CloudFormation",
+        "Stacks",
+        "Create stack",
+        "Specify stack details"
+       ],
+       "items": [
+        "Escribe un **Stack name**.",
+        "`ImageId` — la ruta del parámetro de SSM de la AMI de DX Compiler; deja el valor predeterminado.",
+        "`ModelBucketName` — el bucket de S3 para las entradas ONNX y los resultados DXNN; único a nivel global.",
+        "`InstanceType` — el tipo de instancia del compilador; por defecto `t3.xlarge`.",
+        "`VpcId` / `SubnetId` — la VPC y la subred existentes para la instancia del compilador, con salida HTTPS hacia los servicios de AWS.",
+        "`ThingGroupName` — el Thing Group que recibe el runtime. Déjalo vacío para crear `<stack-name>-cores`; escribe el nombre de un grupo existente para usar ese grupo."
+       ],
+       "image": {
+        "src": "cfn-parameters.png",
+        "width": 1974,
+        "height": 1658,
+        "alt": "Especificar los detalles del Stack en la consola de CloudFormation"
+       }
+      },
+      {
+       "id": "stack-2",
+       "title": "Crear el Stack y leer sus salidas",
+       "path": [
+        "CloudFormation",
+        "Stacks",
+        "<stack-name>",
+        "Outputs"
+       ],
+       "items": [
+        "Elige **Next** para llegar a la página de revisión y después **Submit**. Si se te pide, confirma que CloudFormation puede crear recursos de IAM.",
+        "El Stack crea el bucket de modelos, funciones Lambda, la máquina de estados de Step Functions, roles de IAM con privilegios mínimos y el Greengrass component con su despliegue. Espera a **CREATE_COMPLETE**.",
+        "En **Outputs**, anota `ModelBucketName`, `StateMachineArn`, `CompilerExecutionLogGroupName`, `ThingGroupName` y `TokenExchangeRoleName`."
+       ],
+       "image": {
+        "src": "cfn-create-complete.png",
+        "width": 1998,
+        "height": 890,
+        "alt": "El Stack en CREATE_COMPLETE"
+       }
+      }
+     ]
+    },
+    {
+     "id": "compile",
+     "title": "Compilar un modelo",
+     "steps": [
+      {
+       "id": "compile-1",
+       "title": "Subir el .onnx y el .json a S3",
+       "path": [
+        "S3",
+        "Buckets",
+        "<ModelBucketName>",
+        "models/<model-name>/"
+       ],
+       "items": [
+        "En **S3 › Buckets**, abre el bucket de `ModelBucketName` y crea una carpeta propia por modelo, como `models/yolov5-s-face_640x640/`.",
+        "Elige **Upload › Add files**, añade el modelo `.onnx` y la configuración `.json` con el mismo nombre base y elige **Upload**.",
+        "Usa la configuración del Model Zoo del modelo. El pipeline sustituye su `dataset_path` por el dataset de calibración incluido en la AMI."
+       ],
+       "image": {
+        "src": "s3-upload.png",
+        "width": 1977,
+        "height": 652,
+        "alt": "El modelo y su configuración subidos a la misma ruta de S3"
+       },
+       "commands": [
+        "export STACK_NAME=<cloudformation-stack-name>\n\nexport MODEL_BUCKET=$(aws cloudformation describe-stacks \\\n  --stack-name \"$STACK_NAME\" \\\n  --query \"Stacks[0].Outputs[?OutputKey=='ModelBucketName'].OutputValue\" \\\n  --output text)\n\nexport MODEL_PREFIX=models/yolov5-s-face_640x640\n\ncurl -fLO https://sdk.deepx.ai/modelzoo/onnx/yolov5-s-face_640x640.onnx\ncurl -fLO https://sdk.deepx.ai/modelzoo/q-lite-json/2_4_0/yolov5-s-face_640x640.json\n\naws s3 cp --only-show-errors yolov5-s-face_640x640.onnx \"s3://${MODEL_BUCKET}/${MODEL_PREFIX}/\"\naws s3 cp --only-show-errors yolov5-s-face_640x640.json \"s3://${MODEL_BUCKET}/${MODEL_PREFIX}/\""
+       ]
+      },
+      {
+       "id": "compile-2",
+       "title": "Seguir el flujo de trabajo de Step Functions",
+       "path": [
+        "Step Functions",
+        "State machines",
+        "CompilerStateMachine-…",
+        "Execution"
+       ],
+       "items": [
+        "En **Step Functions › State machines**, abre la máquina de estados de `StateMachineArn` y selecciona la ejecución más reciente.",
+        "El flujo inicia la instancia, ejecuta la compilación, consulta el estado y termina la instancia, también si algo falla.",
+        "En el grupo de registros `/dx-compiler/<stack-name>/execution` deberías ver, por este orden, la descarga desde S3, la ejecución de `dxcom` y la subida del `.dxnn`."
+       ],
+       "image": {
+        "src": "sfn-succeeded.png",
+        "width": 2174,
+        "height": 1286,
+        "alt": "El flujo de compilación en Succeeded"
+       },
+       "commands": [
+        "export STATE_MACHINE_ARN=$(aws cloudformation describe-stacks \\\n  --stack-name \"$STACK_NAME\" \\\n  --query \"Stacks[0].Outputs[?OutputKey=='StateMachineArn'].OutputValue\" \\\n  --output text)\n\naws stepfunctions list-executions \\\n  --state-machine-arn \"$STATE_MACHINE_ARN\" \\\n  --max-results 5 \\\n  --query \"executions[].[status,startDate,stopDate,name]\" \\\n  --output table",
+        "export COMPILER_LOG_GROUP=$(aws cloudformation describe-stacks \\\n  --stack-name \"$STACK_NAME\" \\\n  --query \"Stacks[0].Outputs[?OutputKey=='CompilerExecutionLogGroupName'].OutputValue\" \\\n  --output text)\n\naws logs tail \"$COMPILER_LOG_GROUP\" --since 1h --follow"
+       ]
+      },
+      {
+       "id": "compile-3",
+       "title": "Encontrar el .dxnn en S3",
+       "path": [
+        "S3",
+        "Buckets",
+        "<ModelBucketName>",
+        "models/<model-name>/"
+       ],
+       "items": [
+        "El `.dxnn` compilado aparece en la misma carpeta de S3 que el modelo de origen.",
+        "No hay un servidor de compilación permanente: la instancia EC2 solo existe mientras dura el trabajo."
+       ],
+       "image": {
+        "src": "s3-dxnn.png",
+        "width": 1971,
+        "height": 479,
+        "alt": "El .dxnn compilado en la misma ruta de S3 que el modelo de origen"
+       },
+       "commands": [
+        "aws s3 ls \"s3://${MODEL_BUCKET}/${MODEL_PREFIX}/\"\n# yolov5-s-face_640x640.onnx\n# yolov5-s-face_640x640.json\n# yolov5-s-face_640x640.dxnn"
+       ]
+      }
+     ]
+    },
+    {
+     "id": "device",
+     "title": "Desplegar el runtime en un dispositivo",
+     "steps": [
+      {
+       "id": "device-1",
+       "title": "Registrar el dispositivo como core de Greengrass",
+       "path": [
+        "IoT Greengrass",
+        "Core devices"
+       ],
+       "items": [
+        "En el dispositivo, instala Java 11 o posterior y proporciona credenciales de AWS con permiso para aprovisionar Greengrass (cosa de IoT, certificado y política, alias de rol de IAM). Usa claves de larga duración de un usuario de IAM solo para desarrollo.",
+        "Descarga el software AWS IoT Greengrass Core e instálalo con las salidas del Stack: `--thing-group-name` es `ThingGroupName` y `--tes-role-name` es `TokenExchangeRoleName`.",
+        "Comprueba que el servicio esté en marcha y, en **IoT Greengrass › Core devices**, confirma que el dispositivo está **Healthy**."
+       ],
+       "note": "Unirse al Thing Group es lo que inicia el despliegue del runtime. Un dispositivo ya registrado basta con añadirlo al grupo.",
+       "commands": [
+        "curl -s https://d2s8p88vqu9w66.cloudfront.net/releases/greengrass-nucleus-latest.zip -o greengrass-nucleus-latest.zip\nunzip greengrass-nucleus-latest.zip -d GreengrassInstaller\n\nsudo -E java -Droot=\"/greengrass/v2\" -Dlog.store=FILE \\\n  -jar ./GreengrassInstaller/lib/Greengrass.jar \\\n  --aws-region <region> \\\n  --thing-name <thing-name> \\\n  --thing-group-name <ThingGroupName> \\\n  --tes-role-name <TokenExchangeRoleName> \\\n  --component-default-user ggc_user:ggc_group \\\n  --provision true \\\n  --setup-system-service true",
+        "sudo systemctl status greengrass.service"
+       ]
+      },
+      {
+       "id": "device-2",
+       "title": "Seguir el despliegue de com.deepx.dx-runtime",
+       "path": [
+        "IoT Greengrass",
+        "Deployments",
+        "<stack-name> DX Runtime Deployment"
+       ],
+       "items": [
+        "En **IoT Greengrass › Deployments**, abre **<stack-name> DX Runtime Deployment**. Su destino es el Thing Group y se inicia en cada core device del grupo.",
+        "Greengrass entrega el component como un trabajo de AWS IoT sobre MQTT protegido con TLS. El dispositivo descarga los paquetes por HTTPS e instala el driver de la NPU (`dxrt-driver-dkms`), dx_rt (`libdxrt-bin`), el firmware (`fw.bin` mediante `dxcli -u`) y dx_stream.",
+        "Espera a que cada dispositivo muestre **Succeeded**. Si alguno informa de un problema, lee el registro del component en el dispositivo.",
+        "Para publicar más adelante una nueva versión del runtime, sube la versión del component y crea un nuevo despliegue para el Thing Group."
+       ],
+       "note": "El tiempo de instalación depende del dispositivo y de la red. En dispositivos arm64 modestos que compilan bibliotecas desde el código fuente puede tardar decenas de minutos o más.",
+       "image": {
+        "src": "gg-deployment.png",
+        "width": 1970,
+        "height": 1095,
+        "alt": "Estado del despliegue en los dispositivos de destino"
+       },
+       "commands": [
+        "# Classic Greengrass nucleus\nsudo tail -f /greengrass/v2/logs/com.deepx.dx-runtime.log\n\n# Greengrass nucleus lite\nsudo journalctl -f -u ggl.com.deepx.dx-runtime.service"
+       ]
+      },
+      {
+       "id": "device-3",
+       "title": "Comprobar la NPU en el dispositivo",
+       "items": [
+        "Ejecuta `dxcli -s` para ver la NPU detectada y su versión de firmware."
+       ],
+       "image": {
+        "src": "dxcli-status.png",
+        "width": 632,
+        "height": 557,
+        "alt": "Salida de dxcli -s con la NPU detectada y la versión de firmware"
+       },
+       "commands": [
+        "dxcli -s"
+       ]
+      },
+      {
+       "id": "device-4",
+       "title": "Comprobar el plugin de dx_stream",
+       "items": [
+        "Configura las rutas de ejecutables y bibliotecas de dx_stream. El fragmento elige el directorio de plugins para x86_64 o aarch64; añádelo al final de `~/.bashrc` para conservarlo en todas las shells.",
+        "`gst-inspect-1.0 dxstream` lista los elementos de dx_stream registrados."
+       ],
+       "image": {
+        "src": "gst-inspect.png",
+        "width": 1041,
+        "height": 815,
+        "alt": "gst-inspect-1.0 dxstream con los elementos registrados"
+       },
+       "commands": [
+        "GST_ARCH_TRIPLET=\"$(gcc -dumpmachine 2>/dev/null || true)\"\nif [ -z \"$GST_ARCH_TRIPLET\" ]; then\n  case \"$(uname -m)\" in\n    x86_64) GST_ARCH_TRIPLET=\"x86_64-linux-gnu\" ;;\n    aarch64|arm64) GST_ARCH_TRIPLET=\"aarch64-linux-gnu\" ;;\n    armv7l|armv6l) GST_ARCH_TRIPLET=\"arm-linux-gnueabihf\" ;;\n    *) GST_ARCH_TRIPLET=\"$(uname -m)-linux-gnu\" ;;\n  esac\nfi\n\nGST_PLUGIN_DIR=\"/usr/local/lib/$GST_ARCH_TRIPLET/gstreamer-1.0\"\nexport GST_PLUGIN_PATH=\"$GST_PLUGIN_DIR:$GST_PLUGIN_PATH\"\nexport LD_LIBRARY_PATH=\"$GST_PLUGIN_DIR:/usr/local/share/gstdxstream/lib:$LD_LIBRARY_PATH\"\nexport PATH=\"/usr/local/share/gstdxstream/bin:/usr/local/bin:$PATH\"\n\ngst-inspect-1.0 dxstream"
+       ]
+      },
+      {
+       "id": "device-5",
+       "title": "Ejecutar una inferencia de prueba",
+       "items": [
+        "El Stack despliega el runtime; los modelos compilados se quedan en S3. Para esta prueba, copia el `.dxnn` al dispositivo. Desplegar modelos por OTA requiere un Greengrass component aparte.",
+        "Descarga el vídeo de ejemplo y ejecuta el pipeline: `dxpreprocess` redimensiona los fotogramas a 640×640, `dxinfer` ejecuta la NPU, `dxpostprocess` interpreta los resultados de YOLOv5s-Face, `dxosd` dibuja los recuadros y `fpsdisplaysink` los muestra con la tasa de fotogramas."
+       ],
+       "note": "El posprocesamiento depende del modelo. Con otro modelo, cambia `library-file-path` junto con `model-path`.",
+       "image": {
+        "src": "dxstream-result.png",
+        "width": 1914,
+        "height": 1111,
+        "alt": "Detección de rostros en DEEPX dx_stream"
+       },
+       "commands": [
+        "aws s3 cp \"s3://${MODEL_BUCKET}/${MODEL_PREFIX}/yolov5-s-face_640x640.dxnn\" .",
+        "curl -fSLO https://sdk.deepx.ai/res/video/sample_videos.tar.gz\ntar xzf sample_videos.tar.gz\n\nexport MODEL_PATH=\"$PWD/yolov5-s-face_640x640.dxnn\"\nexport INPUT_VIDEO_PATH=\"$PWD/dance-group.mov\"\nexport VIDEOCONVERT_PIPELINE=\"videoconvert\"\n\ngst-launch-1.0 urisourcebin uri=file://$INPUT_VIDEO_PATH ! decodebin ! \\\n  dxpreprocess preprocess-id=1 resize-width=640 resize-height=640 ! \\\n  queue max-size-buffers=1 ! \\\n  dxinfer preprocess-id=1 inference-id=1 model-path=$MODEL_PATH ! \\\n  queue max-size-buffers=1 ! \\\n  dxpostprocess inference-id=1 \\\n  library-file-path=/usr/local/share/gstdxstream/lib/libpostprocess_yolov5s_face.so \\\n  function-name=PostProcess ! \\\n  queue max-size-buffers=1 ! dxosd ! \\\n  $VIDEOCONVERT_PIPELINE ! fpsdisplaysink sync=false"
+       ]
+      }
+     ]
+    },
+    {
+     "id": "end",
+     "title": "Para terminar",
+     "steps": [
+      {
+       "id": "cost",
+       "title": "Costes",
+       "items": [
+        "El precio del software y las condiciones de suscripción están en la ficha de AWS Marketplace; los cargos de recursos de AWS se aplican aparte.",
+        "**Amazon EC2**: la instancia del compilador solo funciona durante una compilación y se termina tanto si sale bien como si falla, así que solo pagas el tiempo de compilación.",
+        "**Amazon S3, AWS Lambda, AWS Step Functions, Amazon CloudWatch Logs**: almacenamiento, eventos, ejecuciones del flujo y retención de registros.",
+        "**AWS IoT Core y AWS IoT Greengrass**: dependen de las funciones que uses y del número de dispositivos.",
+        "Haz una estimación con la [AWS Pricing Calculator](https://calculator.aws/) antes de desplegar."
+       ]
+      },
+      {
+       "id": "cleanup",
+       "title": "Limpiar recursos",
+       "path": [
+        "CloudFormation",
+        "Stacks",
+        "Delete"
+       ],
+       "items": [
+        "En **CloudFormation › Stacks**, selecciona el Stack y elige **Delete**. El Thing Group y las versiones del component que creó se eliminan con él; un grupo que ya existía se conserva.",
+        "El bucket de modelos se conserva para proteger tus datos. Si ya no lo necesitas, vacíalo y elimínalo.",
+        "Cancela la suscripción en [Manage subscriptions](https://aws.amazon.com/marketplace/library) si ya no la necesitas.",
+        "Opcional: revisa el despliegue en la consola de Greengrass para quitar el component de tus dispositivos."
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}
