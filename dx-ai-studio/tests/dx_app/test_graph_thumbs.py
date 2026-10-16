@@ -204,3 +204,38 @@ def test_layers_without_a_node_or_a_panel_keep_their_own_files(tmp_path):
     doc = thumbs.write_preview(r, outputs, tmp_path / "p")
     urls = [l["url"] for l in doc["outputs"][0]["layers"]["layers"]]
     assert len(set(urls)) == 2 and all((tmp_path / "p" / x.rsplit("/", 1)[1]).is_file() for x in urls)
+
+
+def _banded(w, h, band):
+    """A w x h gray picture with a red band `band` px tall along its top and a blue one along its bottom: an
+    alert line and an event panel drawn at the frame's edges."""
+    img = Image.new("RGB", (w, h), (128, 128, 128))
+    img.paste((220, 0, 0), (0, 0, w, band))
+    img.paste((0, 0, 220), (0, h - band, w, h))
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    return buf.getvalue()
+
+
+def test_logistics_volume_alert_keeps_its_alert_line_and_its_event_panel():
+    """Its 500x333 result has the load_high line along the top edge and the event panel along the bottom one; a
+    16:9 centre crop cut both. It is shown whole, on the backdrop at its sides."""
+    assert thumbs.framing("logistics_volume_alert") == "contain"
+    pic = _banded(500, 333, 25)
+    out = Image.open(io.BytesIO(thumbs.tile([pic], fit=thumbs.framing("logistics_volume_alert")))).convert("RGB")
+    assert out.size == (320, 180)
+    r, g, b = out.getpixel((160, 4))
+    assert r > 180 and b < 60, (r, g, b)
+    r, g, b = out.getpixel((160, 175))
+    assert b > 180 and r < 60, (r, g, b)
+    assert all(c < 40 for c in out.getpixel((4, 90)))          # the backdrop beside the picture
+    # The centre crop the others keep loses both bands.
+    cropped = Image.open(io.BytesIO(thumbs.tile([pic]))).convert("RGB")
+    assert cropped.getpixel((160, 4))[0] < 180 and cropped.getpixel((160, 175))[2] < 180
+
+
+def test_the_other_examples_keep_the_centre_crop():
+    for ex_id in ("zone_intrusion", "logistics_volume", "driver_attention", "hand_cascade"):
+        assert thumbs.framing(ex_id) == "crop"
+    pic = _png(640, 640, (200, 30, 30))
+    assert thumbs.tile([pic], fit="crop") == thumbs.tile([pic]) == thumbs.make_thumb(pic)

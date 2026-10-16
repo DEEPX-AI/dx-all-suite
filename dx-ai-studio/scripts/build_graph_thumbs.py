@@ -2,8 +2,8 @@
 the engine examples).
 
 Runs each example whose models are installed once on the NPU through dx_app/core/graph_run.py (the real graph
-binary, the graph's own sample input, one frame) and writes its rendered result, cropped to 16:9 and scaled to
-320x180, to dx_app/static/img/graph-examples/<id>.jpg; an example with a model missing is named and left out. A
+binary, the graph's own sample input, one frame) and writes its rendered result, cropped to 16:9 (or, for an
+example in FRAMING, shown whole on the backdrop) and scaled to 320x180, to dx_app/static/img/graph-examples/<id>.jpg; an example with a model missing is named and left out. A
 run of several sources becomes a grid, one cell per source, as the results view lays them out. The palette shows it
 (graph_catalog._thumb) unless dx_app ships its own <id>.jpg next to the graph.
 
@@ -33,38 +33,61 @@ TUTORIAL_URL = "/static/img/graph-tutorial/"
 PREVIEW_WIDTH = 640
 # What the tutorial's recorded result keeps of a run's result (graph_run.result): no run id (nothing on the server
 # to inspect), no log, no events file.
+# Examples whose result is shown whole instead of centre-cropped to 16:9, and why: a crop would cut what the
+# example is about.
+FRAMING = {
+    # 500x333: the load_high alert line runs along the top edge and the event panel along the bottom one.
+    "logistics_volume_alert": "contain",
+}
 _PREVIEW_KEYS = ("ok", "frames", "error_frames", "fps", "avg_fps", "node_ms", "nodes", "elapsed", "events",
                  "event_total", "event_counts")
 
 
-def make_thumb(data: bytes, size=SIZE) -> bytes:
-    """A JPEG of `size`, the picture cropped around its centre to that aspect."""
+def framing(example_id: str) -> str:
+    """How an example's thumbnail frames its result: "crop" (around the centre, to 16:9) or "contain" (whole)."""
+    return FRAMING.get(example_id, "crop")
+
+
+def _framed(img, size, fit="crop"):
+    """`img` as `size`: cropped around its centre to that aspect, or ("contain") scaled to fit inside it,
+    centred on the backdrop."""
     from PIL import Image, ImageOps
+    img = img.convert("RGB")
+    if fit != "contain":
+        return ImageOps.fit(img, size, Image.Resampling.LANCZOS)
+    canvas = Image.new("RGB", size, BACKDROP)
+    inner = ImageOps.contain(img, size, Image.Resampling.LANCZOS)
+    canvas.paste(inner, ((size[0] - inner.width) // 2, (size[1] - inner.height) // 2))
+    return canvas
+
+
+def make_thumb(data: bytes, size=SIZE, fit="crop") -> bytes:
+    """A JPEG of `size`, the picture cropped around its centre to that aspect (or, `fit` "contain", whole)."""
+    from PIL import Image
     img = Image.open(io.BytesIO(data))
     img.load()
     out = io.BytesIO()
-    ImageOps.fit(img.convert("RGB"), size, Image.Resampling.LANCZOS).save(out, format="JPEG", quality=QUALITY,
-                                                                          optimize=True)
+    _framed(img, size, fit).save(out, format="JPEG", quality=QUALITY, optimize=True)
     return out.getvalue()
 
 
-def tile(pictures: list, size=SIZE) -> bytes:
+def tile(pictures: list, size=SIZE, fit="crop") -> bytes:
     """A thumbnail of a run's results laid out as the results view lays out its cells (graph-results.js): one
     picture fills it, two sit side by side, three or four make a 2x2 grid; past four, the first four. Each cell is
-    its picture cropped around its centre."""
-    from PIL import Image, ImageOps
+    its picture cropped around its centre (or, `fit` "contain", whole)."""
+    from PIL import Image
     pics = list(pictures)[:4]
     if not pics:
         raise ValueError("no pictures to make a thumbnail of")
     if len(pics) == 1:
-        return make_thumb(pics[0], size)
+        return make_thumb(pics[0], size, fit)
     cols, rows = (2, 1) if len(pics) == 2 else (2, 2)
     w, h = (size[0] - GAP * (cols - 1)) // cols, (size[1] - GAP * (rows - 1)) // rows
     canvas = Image.new("RGB", size, BACKDROP)
     for i, data in enumerate(pics):
         img = Image.open(io.BytesIO(data))
         img.load()
-        cell = ImageOps.fit(img.convert("RGB"), (w, h), Image.Resampling.LANCZOS)
+        cell = _framed(img, (w, h), fit)
         canvas.paste(cell, ((i % cols) * (w + GAP), (i // cols) * (h + GAP)))
     out = io.BytesIO()
     canvas.save(out, format="JPEG", quality=QUALITY, optimize=True)
@@ -218,7 +241,7 @@ def main(argv=None) -> int:
             continue
         pictures = [result_picture(Path(config.OUTPUTS_DIR) / o["url"][len("/outputs/"):]) for o in outputs]
         dst = out_dir / f"{ex['id']}.jpg"
-        dst.write_bytes(tile(pictures))
+        dst.write_bytes(tile(pictures, fit=framing(ex["id"])))
         print(f"ok   {ex['id']}: {dst.relative_to(Path(__file__).resolve().parents[1])} ({dst.stat().st_size} bytes)")
     return 1 if failed else 0
 
