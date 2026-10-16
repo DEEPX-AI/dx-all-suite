@@ -9,7 +9,10 @@ MAX_PIXELS pixels (checked from its header, before it is decoded), is refused (`
 inspect() is the results view's "Layers for this frame": a paused result video's frame is taken from the run's own
 input (ffmpeg, at that time; every other video source at the same time, an image as it is) and the run's graph runs
 once on it with --output-layers, through graph_run.start (so it takes the NPU like any run, or is refused while
-another job holds it), and the stream's output comes back with its base and per-node layer URLs.
+another job holds it), and the stream's output comes back with its base and per-node layer URLs. That frame runs
+without the frames before it, so the nodes that keep state across frames (stateful_nodes(): a tracked detector,
+zone members, line crossings, dwell stays, condition edges and cooldowns, gallery names) start afresh; the answer
+names them, and the page says their ids and times can differ from the run's.
 Contract: tests/dx_app/test_graph_frame.py
 """
 from __future__ import annotations
@@ -32,6 +35,24 @@ _JPEG_QUALITY = 85
 # How long a "Layers for this frame" run may take before it is stopped (models load before the one frame runs)
 INSPECT_TIMEOUT = 180.0
 _RUN_ID = re.compile(r"^[0-9a-f]{32}$")
+
+
+# Logic ops whose result or events depend on earlier frames of the stream (dx_app's README, "Time and state");
+# filter, count and user read one frame only.
+STATEFUL_OPS = ("zone", "line", "dwell", "condition", "gallery")
+
+
+def stateful_nodes(graph: dict) -> list:
+    """The ids of the graph's nodes that keep state across frames: a node with "track" (`{}` is the defaults), and
+    the logic nodes of STATEFUL_OPS."""
+    out = []
+    for n in (graph or {}).get("nodes") or []:
+        if not isinstance(n, dict) or not isinstance(n.get("id"), str):
+            continue
+        tracked = n.get("track") is not None and n.get("track") is not False
+        if tracked or (n.get("type") == "logic" and n.get("op") in STATEFUL_OPS):
+            out.append(n["id"])
+    return out
 
 
 class _TooLarge(Exception):
@@ -124,7 +145,8 @@ def inspect(data) -> tuple:
     """Run a graph once on one frame with its layers. `data`: {"run_id"} (a run once; its run.json gives the graph
     and the inputs) or {"graph", "inputs", "variant"}, plus "stream" (a source id) and "time_s" or "frame" (an
     index, taken at the middle of that frame of the stream's video). Returns ({"ok", "run_id", "stream", "time_s",
-    "output": {url, kind, name, stream, layers}, "errors", "exit_code"}, 200) or ({"error", "error_key"}, status)."""
+    "output": {url, kind, name, stream, layers}, "errors", "exit_code", "stateful": [node ids]}, 200) or
+    ({"error", "error_key"}, status)."""
     if not isinstance(data, dict):
         return _bad("the request must be an object")
     run_id = data.get("run_id")
@@ -182,4 +204,5 @@ def inspect(data) -> tuple:
     out = next((o for o in r.get("outputs") or [] if o.get("stream") == stream), None)
     return {"ok": bool(r.get("ok")) and out is not None and "layers" in out, "run_id": body["job_id"],
             "stream": stream, "time_s": t, "output": out, "errors": r.get("errors") or [],
-            "exit_code": r.get("exit_code"), "log_tail": (r.get("log_tail") or "")[-2000:]}, 200
+            "exit_code": r.get("exit_code"), "log_tail": (r.get("log_tail") or "")[-2000:],
+            "stateful": stateful_nodes(graph)}, 200

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import base64
 import io
+import json
 import shutil
 import subprocess
 
@@ -179,6 +180,24 @@ def test_many_frame_layers_do_not_push_the_run_they_come_from_out(runs, monkeypa
     assert len(list(graph_run.inspect_dir().iterdir())) <= 3, "the inspect folder keeps its own few (2 + the new)"
     body, code = graph_frame.inspect({"run_id": rid, "stream": "cam", "frame": 3})
     assert code == 200 and body["ok"] is True, body
+
+
+def test_a_frame_names_the_nodes_whose_state_it_starts_afresh(runs):
+    """A frame runs without the frames before it: the answer names the nodes that keep state across frames (a
+    tracked detector, zone, line, dwell, condition, gallery), none for a graph of models only."""
+    body, code = graph_frame.inspect({"run_id": _video_run(), "stream": "cam", "time_s": 0.5})
+    assert code == 200 and body["stateful"] == []
+    tracked = json.loads(json.dumps(FANOUT))
+    tracked["nodes"][1]["track"] = {}
+    tracked["nodes"] += [{"id": "z", "type": "logic", "op": "zone", "params": {"polygon": [0, 0, 1, 0, 1, 1]}},
+                         {"id": "n", "type": "logic", "op": "count"},
+                         {"id": "c", "type": "logic", "op": "condition", "params": {"value": "count"}}]
+    assert graph_frame.stateful_nodes(tracked) == ["od", "z", "c"]
+    for op in ("line", "dwell", "gallery"):
+        assert graph_frame.stateful_nodes({"nodes": [{"id": "x", "type": "logic", "op": op}]}) == ["x"]
+    for op in ("filter", "count", "user"):
+        assert graph_frame.stateful_nodes({"nodes": [{"id": "x", "type": "logic", "op": op}]}) == []
+    assert graph_frame.stateful_nodes({"nodes": [{"id": "od", "model": "m", "track": False}, "junk"]}) == []
 
 
 def test_a_frame_number_is_found_at_the_middle_of_that_frame(runs):

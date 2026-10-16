@@ -6,7 +6,9 @@
    of the same size) is a stack of <img>s in a box of the frame's aspect ratio, each filling it, so they align
    pixel for pixel; the layer toggles (one per node, in its category colour, with All / None) show and hide them in
    every cell at once. A paused result video offers "Layers for this frame": the run's graph runs again on that
-   frame (POST /api/graph/run/frame, the NPU) and the cell shows that frame's stack until the video plays again.
+   frame (POST /api/graph/run/frame, the NPU) and the cell shows that frame's stack until the video plays again,
+   with a note when the graph has nodes that keep state across frames (tracks, zones, lines, dwell, conditions):
+   on that frame alone their ids and times can differ from the video's.
    A component: its owner calls render() after a language change. Contract: tests/dx_app/test_graph_logic_browser.py */
 window.GraphResults = (function () {
   'use strict';
@@ -152,6 +154,10 @@ window.GraphResults = (function () {
         back.addEventListener('click', function () { delete st.frames[s]; renderCell(s); renderToggles(); video.focus(); });
         wrap.appendChild(stack(f.layers, frameLabel(f)));
         wrap.appendChild(c.h('div', { class: 'gc-res-frame-tools' }, [c.h('span', { class: 'gc-help', text: frameLabel(f) }), back]));
+        /* The frame ran without the frames before it: the nodes that keep state across frames started afresh. */
+        if (f.stateful && f.stateful.length) {
+          wrap.appendChild(c.h('p', { class: 'gc-help gc-res-state-note', text: c.fmt(T('This frame ran alone, without the frames before it: track ids, dwell times, crossings and cooldowns of {nodes} can differ from the video.'), { nodes: f.stateful.join(', ') }) }));
+        }
         return wrap;
       }
       video.hidden = false;
@@ -196,7 +202,7 @@ window.GraphResults = (function () {
       var r = await o.inspect(body);
       st.busy[s] = false;
       if (r && r.ok && r.output && r.output.layers) {
-        st.frames[s] = { layers: r.output.layers, time_s: r.time_s };
+        st.frames[s] = { layers: r.output.layers, time_s: r.time_s, stateful: r.stateful || [] };
         renderCell(s);
         renderToggles();
         var stackEl = st.cells[s] && st.cells[s].media.querySelector('.gc-res-back');

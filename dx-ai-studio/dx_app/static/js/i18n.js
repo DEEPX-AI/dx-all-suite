@@ -4660,6 +4660,13 @@ window._DX_I18N_DICT = {
     'zh-CN': '要包含文件，所有模型都必须已安装。', 'zh-TW': '要包含檔案，所有模型都必須已安裝。',
     es: 'Para incluir los archivos, todos los modelos deben estar instalados.',
   },
+  'This frame ran alone, without the frames before it: track ids, dwell times, crossings and cooldowns of {nodes} can differ from the video.': {
+    ko: '이 프레임은 앞선 프레임 없이 단독으로 실행했습니다: {nodes}의 track ID, dwell 시간, crossing, cooldown이 비디오와 다를 수 있습니다.',
+    ja: 'このフレームはそれ以前のフレームなしで単独で実行しました: {nodes} のトラック ID、滞在時間、通過、クールダウンは動画と異なる場合があります。',
+    'zh-CN': '此帧在没有之前帧的情况下单独运行：{nodes} 的跟踪 ID、停留时间、越线和冷却可能与视频不同。',
+    'zh-TW': '此影格在沒有先前影格的情況下單獨執行：{nodes} 的追蹤 ID、停留時間、越線和冷卻可能與影片不同。',
+    es: 'Este fotograma se ejecutó solo, sin los anteriores: los id de seguimiento, los tiempos de permanencia, los cruces y las esperas de {nodes} pueden diferir del vídeo.',
+  },
   'not installed ({size})': {
     ko: '설치 안 됨 ({size})', ja: '未インストール ({size})',
     'zh-CN': '未安装（{size}）', 'zh-TW': '未安裝（{size}）',

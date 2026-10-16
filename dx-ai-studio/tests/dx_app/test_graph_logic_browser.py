@@ -898,7 +898,7 @@ def test_a_paused_video_shows_the_layers_of_its_frame(browser, server, webm):
         pytest.skip("ffmpeg is needed for the result video")
     frame = {"ok": True, "run_id": "b" * 32, "stream": "cam", "time_s": 0.25, "errors": [], "exit_code": 0,
              "output": {"url": "/fake/layers/result_base.png", "kind": "image", "name": "result.jpg", "stream": "cam",
-                        "layers": _layers("result_000000")}}
+                        "layers": _layers("result_000000")}, "stateful": ["zone", "alarm"]}
     fake = FakeApi(video_url="/fake/result.webm", frame=frame)
     ctx, page, errors = _page(browser, server, fake, webm)
     try:
@@ -914,6 +914,17 @@ def test_a_paused_video_shows_the_layers_of_its_frame(browser, server, webm):
         assert page.is_hidden("#gc-run-results .gc-res-video")
         assert "Frame at 0.25 s" in page.inner_text("#gc-run-results .gc-res-frame-tools")
         assert page.eval_on_selector_all("#gc-run-results .gc-check-name", "els => els.length") == 3
+        # zone_intrusion's zone and condition keep state across frames: the frame says they started afresh.
+        assert page.inner_text("#gc-run-results .gc-res-state-note") == (
+            "This frame ran alone, without the frames before it: track ids, dwell times, crossings and cooldowns "
+            "of zone, alarm can differ from the video.")
+        page.click("#gc-run-results .gc-res-back")
+        assert page.locator("#gc-run-results .gc-res-state-note").count() == 0
+        # A graph of models only keeps no state: no note.
+        fake.frame = dict(frame, stateful=[])
+        page.click("#gc-run-results .gc-res-inspect")
+        page.wait_for_selector("#gc-run-results .gc-res-stack")
+        assert page.locator("#gc-run-results .gc-res-state-note").count() == 0
         page.click("#gc-run-results .gc-res-back")
         assert page.is_visible("#gc-run-results .gc-res-video")
         assert page.locator("#gc-run-results .gc-res-stack").count() == 0
