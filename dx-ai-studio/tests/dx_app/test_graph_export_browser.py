@@ -292,3 +292,52 @@ def test_typing_keeps_the_caret_when_the_plan_arrives(ui):
     page.evaluate("GraphExport.refreshLanguage()")
     assert page.evaluate("document.activeElement.id") == "gc-export-name"
     assert page.evaluate("document.getElementById('gc-export-name').selectionStart") == 2
+
+
+class HeldPlans(FakeApi):
+    """FakeApi whose export plans wait in `held` until the test answers them, in any order."""
+
+    def __init__(self):
+        super().__init__()
+        self.held = []
+
+    def handle(self, route):
+        if route.request.url.split("?")[0].endswith("/api/graph/export/plan"):
+            self.held.append(route)
+            return
+        super().handle(route)
+
+
+def test_a_plan_answering_a_closed_dialog_is_dropped(browser, server):
+    """The dialog is opened, closed and opened again before the first plan arrives: that late answer is not the
+    reopened dialog's plan (open's seq), only the reopened dialog's own answer is shown."""
+    fake = HeldPlans()
+    ctx, page, errors = _page(browser, server, fake)
+    page.wait_for_function("() => !document.getElementById('gc-export-cpp').disabled")
+    page.click("#gc-export-cpp")
+    page.wait_for_function("() => document.getElementById('gc-export-dialog').open")
+    page.keyboard.press("Escape")
+    assert not page.evaluate("GraphExport.isOpen()")
+    page.click("#gc-export-cpp")
+    page.wait_for_function("() => document.getElementById('gc-export-dialog').open")
+    for _ in range(50):
+        if len(fake.held) == 2:
+            break
+        page.wait_for_timeout(100)
+    assert len(fake.held) == 2
+    stale = json.loads(json.dumps(PLAN))
+    stale["models"][0].update(model="stale-model_640x640", bytes=1048576)
+    stale["model_bytes"] = 1048576
+    with page.expect_response("**/api/graph/export/plan"):
+        fake.held[0].fulfill(status=200, content_type="application/json", body=json.dumps(stale))
+    page.evaluate("() => new Promise(r => setTimeout(r, 100))")
+    assert page.evaluate("GraphExport.state().plan") is None
+    assert not page.query_selector(".gc-export-table")
+    assert page.inner_text("#gc-export-plan") == "Reading what the export will hold…"
+    with page.expect_response("**/api/graph/export/plan"):
+        fake.held[1].fulfill(status=200, content_type="application/json", body=json.dumps(PLAN))
+    page.wait_for_selector("#gc-export-dialog[open] .gc-export-table td")
+    assert page.inner_text(".gc-export-table").split() == ["yolov8-n_640x640", "8", "MB"]
+    assert page.inner_text("#gc-export-size") == "Include the model files (8 MB)"
+    assert not errors, errors
+    ctx.close()
