@@ -170,9 +170,36 @@ def test_a_missing_model_file_turns_the_model_choice_off(browser, server):
     ctx, page, errors = _page(browser, server, FakeApi(plan=(plan, 200)))
     _open_dialog(page)
     assert page.is_disabled("#gc-export-models") and not page.is_checked("#gc-export-models")
-    assert "not installed" in page.inner_text(".gc-export-table")
+    # An older dx_app says 0 bytes for a file it does not have: that is not a size.
+    assert page.inner_text(".gc-export-table").split("\t")[-1].strip() == "not installed, size unknown"
+    assert page.inner_text("#gc-export-size") == "Include the model files (size unknown)"
     assert page.inner_text("#gc-export-models-why") == "Every model must be installed to include the files."
     assert "gc-export-models-why" in page.get_attribute("#gc-export-models", "aria-describedby")
+    assert not errors, errors
+    ctx.close()
+
+
+def test_an_unknown_model_size_is_never_shown_as_a_size(browser, server):
+    """The exporter gives bytes null for a model not installed whose download size it does not know, and the
+    download size when it knows it: the table says which, and the total is a lower bound while a size is unknown."""
+    plan = json.loads(json.dumps(PLAN))
+    known = plan["models"][0]
+    plan["models"] = [known,
+                      dict(known, model="casvit-t_224x224", file="casvit-t_224x224.dxnn", present=False, bytes=None),
+                      dict(known, model="resnet50_224x224", file="resnet50_224x224.dxnn", present=False,
+                           bytes=3 * 1048576)]
+    plan["model_bytes"], plan["model_bytes_unknown"] = known["bytes"] + 3 * 1048576, 1
+    ctx, page, errors = _page(browser, server, FakeApi(plan=(plan, 200)))
+    _open_dialog(page)
+    rows = [r.split("\t") for r in page.inner_text(".gc-export-table").strip().split("\n")]
+    assert [c.strip() for c in rows[1]] == ["casvit-t_224x224", "not installed, size unknown"]
+    assert [c.strip() for c in rows[2]] == ["resnet50_224x224", "not installed (3 MB)"]
+    assert page.inner_text("#gc-export-size") == "Include the model files (at least 11 MB)"
+    assert page.is_disabled("#gc-export-models")
+    page.evaluate("DXI18n.setLang('ko')")
+    page.wait_for_function("() => document.getElementById('gc-export-size').textContent.startsWith('모델')")
+    assert page.inner_text("#gc-export-size") == "모델 파일 포함 (최소 11 MB)"
+    assert "설치 안 됨, 크기 알 수 없음" in page.inner_text(".gc-export-table")
     assert not errors, errors
     ctx.close()
 

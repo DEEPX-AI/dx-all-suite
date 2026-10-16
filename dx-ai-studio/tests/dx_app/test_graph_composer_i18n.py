@@ -239,7 +239,8 @@ EXPORT_STRINGS = ("Export C++ project", "Project folder name",
                   "Export needs a graph without problems and a dx_app that can export projects.", "Close",
                   "Inputs", "for source {source}", "no input: give one with --input",
                   "An uploaded image is not exported: a source uses the sample picked for it, else its own input.",
-                  "Every model must be installed to include the files.")
+                  "Every model must be installed to include the files.",
+                  "not installed ({size})", "not installed, size unknown", "at least {size}", "size unknown")
 
 
 @pytest.mark.parametrize("key", EXPORT_STRINGS)

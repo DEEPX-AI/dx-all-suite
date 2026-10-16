@@ -4660,6 +4660,26 @@ window._DX_I18N_DICT = {
     'zh-CN': '要包含文件，所有模型都必须已安装。', 'zh-TW': '要包含檔案，所有模型都必須已安裝。',
     es: 'Para incluir los archivos, todos los modelos deben estar instalados.',
   },
+  'not installed ({size})': {
+    ko: '설치 안 됨 ({size})', ja: '未インストール ({size})',
+    'zh-CN': '未安装（{size}）', 'zh-TW': '未安裝（{size}）',
+    es: 'no instalado ({size})',
+  },
+  'not installed, size unknown': {
+    ko: '설치 안 됨, 크기 알 수 없음', ja: '未インストール、サイズ不明',
+    'zh-CN': '未安装，大小未知', 'zh-TW': '未安裝，大小未知',
+    es: 'no instalado, tamaño desconocido',
+  },
+  'at least {size}': {
+    ko: '최소 {size}', ja: '{size} 以上',
+    'zh-CN': '至少 {size}', 'zh-TW': '至少 {size}',
+    es: 'al menos {size}',
+  },
+  'size unknown': {
+    ko: '크기 알 수 없음', ja: 'サイズ不明',
+    'zh-CN': '大小未知', 'zh-TW': '大小未知',
+    es: 'tamaño desconocido',
+  },
   'export_busy': {
     en: 'Another export is running; wait for it.',
     ko: '다른 내보내기가 진행 중입니다. 끝날 때까지 기다리세요.', ja: '別のエクスポートが実行中です。終わるまでお待ちください。',

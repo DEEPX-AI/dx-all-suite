@@ -42,6 +42,25 @@ window.GraphExport = (function () {
 
   function canInclude() { return !!st.plan && st.plan.models.every(function (m) { return m.present; }); }
 
+  /* A model that is not installed has the download size the exporter knows, else none: bytes null (an older dx_app
+     says 0), shown as unknown rather than as 0 B. */
+  function sized(m) { return m.present || (typeof m.bytes === 'number' && m.bytes > 0); }
+
+  function modelSize(m) {
+    if (m.present) return bytes(m.bytes);
+    return sized(m) ? c.fmt(T('not installed ({size})'), { size: bytes(m.bytes) }) : T('not installed, size unknown');
+  }
+
+  /* The models' total: exact when every size is known, else the known part as a lower bound. */
+  function totalSize() {
+    var p = st.plan;
+    if (!p) return '…';
+    var known = 0, unknown = 0;
+    p.models.forEach(function (m) { if (sized(m)) known += m.bytes || 0; else unknown += 1; });
+    if (!unknown) return bytes(known);
+    return known > 0 ? c.fmt(T('at least {size}'), { size: bytes(known) }) : T('size unknown');
+  }
+
   function planBlock() {
     var h = c.h, p = st.plan, box = h('div', { id: 'gc-export-plan', class: 'gc-export-plan' });
     if (!p) {
@@ -50,7 +69,7 @@ window.GraphExport = (function () {
     }
     box.appendChild(h('h3', { class: 'gc-export-head', text: T('Models') }));
     box.appendChild(h('table', { class: 'gc-export-table' }, [h('tbody', null, p.models.map(function (m) {
-      return h('tr', null, [h('td', { text: m.model }), h('td', { text: m.present ? bytes(m.bytes) : T('not installed') })]);
+      return h('tr', null, [h('td', { text: m.model }), h('td', { text: modelSize(m) })]);
     }))]));
     /* The inputs the project carries: a run's upload is never one of them (the source keeps its own input). */
     box.appendChild(h('h3', { class: 'gc-export-head', text: T('Inputs') }));
@@ -100,7 +119,7 @@ window.GraphExport = (function () {
     }
     var why = $id('gc-export-models-why');
     if (why) why.hidden = !(st.plan && !canInclude());
-    if (size) size.textContent = c.fmt(T('Include the model files ({size})'), { size: st.plan ? bytes(st.plan.model_bytes) : '…' });
+    if (size) size.textContent = c.fmt(T('Include the model files ({size})'), { size: totalSize() });
     if (go) {
       go.disabled = st.busy || !st.plan || !ok;
       go.textContent = st.busy ? T('Exporting…') : T('Export');

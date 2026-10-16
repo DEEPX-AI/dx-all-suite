@@ -33,6 +33,12 @@ if mode == "refuse":
     print(json.dumps({{"ok": False, "error": "node 'od': model 'nope' is not in config/model_registry.json",
                       "error_key": "model_unknown"}}))
     sys.exit(1)
+if mode == "unsized" and "--dry-run" in args:
+    plan = json.loads((FIX / "export_plan.json").read_text())
+    plan["models"][0].update(present=False, bytes=None)
+    plan.update(model_bytes=0, model_bytes_unknown=1, bytes=plan["source_bytes"] + plan["input_bytes"])
+    print(json.dumps(plan))
+    sys.exit(0)
 if mode == "garbage":
     print("Traceback (most recent call last): boom", file=sys.stderr)
     sys.exit(1)
@@ -264,3 +270,14 @@ def test_any_failure_after_the_folder_is_made_removes_it_and_keeps_the_old_expor
 def test_the_upload_dirs_are_the_run_and_live_folders(fake):
     from dx_app.core import graph_live
     assert graph_export._UPLOAD_DIRS() == (graph_run.runs_dir(), graph_live.live_dir())
+
+
+def test_a_model_of_unknown_size_reaches_the_page_as_unknown(fake, monkeypatch):
+    """A model that is not installed and whose download size the exporter does not know: bytes null, never 0."""
+    monkeypatch.setenv("FAKE_EXPORT", "unsized")
+    body, code = graph_export.plan(GRAPH)
+    assert code == 200
+    assert body["models"][0]["bytes"] is None and body["models"][0]["present"] is False
+    assert body["model_bytes_unknown"] == 1
+    body, code = graph_export.export(GRAPH, "user-zone")          # without the models: the unknown size costs nothing
+    assert code == 200 and Path(body["folder"]).is_dir()
