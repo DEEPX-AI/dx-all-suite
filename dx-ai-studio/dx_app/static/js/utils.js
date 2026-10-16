@@ -8,7 +8,7 @@ const S={
   devToken:null,benchAbort:false,benchRes:{},
   sseSource:null,cpuCores:4
 };
-const CAT_IMG={object_detection:'sample/img/sample_street.jpg',face_detection:'sample/img/sample_face.jpg',
+const CAT_IMG={object_detection:'sample/img/sample_street.jpg',mainbody_detection:'sample/img/sample_street.jpg',face_detection:'sample/img/sample_face.jpg',
  pose_estimation:'sample/img/sample_people.jpg',obb_detection:'sample/img/sample_parking.jpg',classification:'sample/img/sample_dog.jpg',
  instance_segmentation:'sample/img/sample_street.jpg',semantic_segmentation:'sample/img/sample_horse.jpg',
  depth_estimation:'sample/img/sample_kitchen.jpg',image_denoising:'sample/img/sample_dark_room.jpg',super_resolution:'sample/img/sample_dark_room.jpg',

@@ -202,6 +202,7 @@ async function showDetail(name,registryName){
   };
   var VIS_DESC={
     object_detection:T('Draws bounding boxes with class labels and confidence scores.'),
+    mainbody_detection:T('Draws a bounding box around each main object, with its confidence score.'),
     face_detection:T('Draws face bounding boxes and landmark points.'),
     pose_estimation:T('Draws skeleton (joint connections) and keypoints.'),
     obb_detection:T('Draws oriented (rotated) bounding boxes.'),

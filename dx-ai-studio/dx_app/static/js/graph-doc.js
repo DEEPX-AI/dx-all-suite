@@ -13,7 +13,7 @@
   var SCHEMA = 1;
   var CROPPABLE = { boxes: true, obboxes: true, instances: true };
   var TASK_IDS = {
-    object_detection: 'od', oriented_object_detection: 'obb', instance_segmentation: 'iseg',
+    object_detection: 'od', mainbody_detection: 'mainbody', oriented_object_detection: 'obb', instance_segmentation: 'iseg',
     semantic_segmentation: 'seg', depth_estimation: 'depth', pose_estimation: 'pose',
     image_classification: 'cls', face_detection: 'face', face_landmark: 'landmark', face_recognition: 'face_id',
     person_attribute: 'attr', person_reid: 'reid', super_resolution: 'sr', image_denoising: 'denoise',

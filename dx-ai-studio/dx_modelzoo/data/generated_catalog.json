@@ -20995,13 +20995,13 @@
       "id": "pp_shituv1_mainbody_detection_640x640",
       "display": {
         "name": "PP-ShiTuV1_mainbody_detection",
-        "task": "object_detection",
+        "task": "mainbody_detection",
         "class_name": "pp_shituv1_mainbody_detection_640x640",
-        "publish_task": "object_detection",
+        "publish_task": "mainbody_detection",
         "summary": {
-          "en": "Object detection model for identifying and localizing objects."
+          "en": "Main-body detection model that finds the main object in an image."
         },
-        "category_label": "Object Detection"
+        "category_label": "Main-body Detection"
       },
       "specification": {
         "input_width": 640,
@@ -21311,13 +21311,13 @@
       "id": "pp_shituv2_mainbody_detection_640x640",
       "display": {
         "name": "PP-ShiTuV2_mainbody_detection",
-        "task": "object_detection",
+        "task": "mainbody_detection",
         "class_name": "pp_shituv2_mainbody_detection_640x640",
-        "publish_task": "object_detection",
+        "publish_task": "mainbody_detection",
         "summary": {
-          "en": "Object detection model for identifying and localizing objects."
+          "en": "Main-body detection model that finds the main object in an image."
         },
-        "category_label": "Object Detection"
+        "category_label": "Main-body Detection"
       },
       "specification": {
         "input_width": 640,

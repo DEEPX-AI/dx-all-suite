@@ -111,6 +111,7 @@ CAT_LABEL={c:_make_label(c) for c in CATEGORIES}
 _DEFAULT_IMAGE="sample/img/sample_street.jpg"
 _DEFAULT_VIDEO="assets/videos/dance-group.mov"
 _CAT_IMAGE_OVERRIDES=_TaskTable({"object_detection":"sample/img/sample_street.jpg",
+ "mainbody_detection":"sample/img/sample_street.jpg",
  "face_detection":"sample/img/sample_face.jpg",
  "pose_estimation":"sample/img/sample_people.jpg","obb_detection":"sample/img/sample_airport_satellite_view.png",
  "classification":"sample/img/sample_dog.jpg","instance_segmentation":"sample/img/sample_street.jpg",
@@ -134,6 +135,7 @@ _CAT_IMAGE_OVERRIDES=_TaskTable({"object_detection":"sample/img/sample_street.jp
 # Canonical per-category demo videos — synced to dx_app-dev scripts/run_demo.py (v3.1.x).
 # Each maps to a task-appropriate clip present in assets/videos (sample_videos_v3.1.0).
 _CAT_VIDEO_OVERRIDES=_TaskTable({"object_detection":"assets/videos/snowboard.mp4",
+ "mainbody_detection":"assets/videos/snowboard.mp4",
  "face_detection":"assets/videos/dance-group.mov","obb_detection":"assets/videos/obb.mp4",
  "pose_estimation":"assets/videos/dance-solo.mov","hand_landmark":"assets/videos/hand.mp4",
  "hand_detection":"assets/videos/hand.mp4","face_alignment":"assets/videos/face-alignment-closeup.mp4",

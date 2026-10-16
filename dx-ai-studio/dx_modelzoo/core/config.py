@@ -57,6 +57,7 @@ SERVER_NAME = "DX Model Zoo"
 
 CATEGORIES = {
     "object_detection":     {"label_en": "Object Detection",      "label_ko": "객체 탐지",           "label_ja": "物体検出",              "label_es": "Detección de objetos",         "label_zh-CN": "目标检测",   "label_zh-TW": "物件偵測",   "icon": "task-object_detection"},
+    "mainbody_detection":   {"label_en": "Main-body Detection",   "label_ko": "주요 객체 탐지",      "label_ja": "主要物体検出",          "label_es": "Detección del objeto principal","label_zh-CN": "主体检测",   "label_zh-TW": "主體偵測",   "icon": "task-mainbody_detection"},
     "classification":       {"label_en": "Classification",        "label_ko": "분류",               "label_ja": "分類",                  "label_es": "Clasificación",                "label_zh-CN": "分类",       "label_zh-TW": "分類",       "icon": "task-classification"},
     "ppu":                  {"label_en": "PPU",                   "label_ko": "PPU",                "label_ja": "PPU",                   "label_es": "PPU",                          "label_zh-CN": "PPU",        "label_zh-TW": "PPU",        "icon": "task-ppu"},
     "instance_segmentation":{"label_en": "Instance Segmentation", "label_ko": "인스턴스 분할",       "label_ja": "インスタンスセグメンテーション", "label_es": "Segmentación de instancias",   "label_zh-CN": "实例分割",   "label_zh-TW": "實例分割",   "icon": "task-instance_segmentation"},
@@ -98,7 +99,7 @@ CATEGORIES = {
 # How each task's example image is shown
 # TaskTable: a lookup with a new task key (image_classification …) finds the legacy key's value (shared/tasks.py)
 EXAMPLE_TYPES = TaskTable({
-    "object_detection": "single", "face_detection": "single",
+    "object_detection": "single", "mainbody_detection": "single", "face_detection": "single",
     "pose_estimation": "single", "obb_detection": "single",
     "ppu": "single", "face_alignment": "single", "hand_landmark": "single",
     "attribute_recognition": "single", "embedding": "single",
@@ -123,6 +124,7 @@ EXAMPLE_TYPES = TaskTable({
 # tests/dx_modelzoo/test_conf_categories_are_known.py reports any mismatch.
 SAMPLE_IMAGES = TaskTable({
     "object_detection": "sample/img/sample_street.jpg",
+    "mainbody_detection": "sample/img/sample_street.jpg",
     "face_detection": "sample/img/sample_face.jpg",
     "pose_estimation": "sample/img/sample_people.jpg",
     "obb_detection": "sample/img/sample_airport_satellite_view.png",

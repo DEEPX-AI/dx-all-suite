@@ -120,6 +120,8 @@ S['clock'] = ([C(12, 12, 9)], [C(12, 12, 9), P('M12 7v5l3.2 2')])
 # ── Tasks (icon = "task-<key>" in dx_modelzoo/core/config.py CATEGORIES) ──
 CORNERS = 'M3 8V4.5A1.5 1.5 0 0 1 4.5 3H8M16 3h3.5A1.5 1.5 0 0 1 21 4.5V8M21 16v3.5a1.5 1.5 0 0 1-1.5 1.5H16M8 21H4.5A1.5 1.5 0 0 1 3 19.5V16'
 S['task-object_detection'] = ([R(7.5, 7.5, 9, 9, 1.5)], [P(CORNERS), R(7.5, 7.5, 9, 9, 1.5)])
+# The one main object of the frame: the corners frame it, a single subject sits in the middle.
+S['task-mainbody_detection'] = ([C(12, 12, 5)], [P(CORNERS), C(12, 12, 5), C(12, 12, 1.2)])
 TAG = 'M3.5 11.6V5a1.5 1.5 0 0 1 1.5-1.5h6.6l8.6 8.6a1.5 1.5 0 0 1 0 2.1l-6.2 6.2a1.5 1.5 0 0 1-2.1 0z'
 S['task-classification'] = ([P(TAG)], [P(TAG), C(8.5, 8.5, 1.5)])
 S['task-ppu'] = ([R(6, 6, 12, 12, 2.5)], [R(6, 6, 12, 12, 2.5), P('M9.5 2.5V6M14.5 2.5V6M9.5 18v3.5M14.5 18v3.5M2.5 9.5H6M2.5 14.5H6M18 9.5h3.5M18 14.5h3.5'), P('M9.5 10h5M10.5 12.5h3M11.5 15h1')])

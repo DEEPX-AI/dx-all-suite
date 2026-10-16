@@ -33,10 +33,10 @@ class TestConfig:
         from core.config import CONFIG_FILE
         assert str(CONFIG_FILE).endswith("test_models.conf")
 
-    def test_categories_has_36_entries(self):
-        """22 (dx_app main) + 14 per-model layout keys: 7 renamed tasks + 7 new tasks."""
+    def test_categories_has_37_entries(self):
+        """22 (dx_app main) + 14 per-model layout keys (7 renamed tasks + 7 new tasks) + mainbody_detection."""
         from core.config import CATEGORIES
-        assert len(CATEGORIES) == 36
+        assert len(CATEGORIES) == 37
 
     def test_categories_keys(self):
         from core.config import CATEGORIES
@@ -52,7 +52,8 @@ class TestConfig:
                     "image_classification", "oriented_object_detection", "face_landmark", "face_recognition",
                     "person_attribute", "low_light_enhancement", "person_reid",
                     "anomaly_detection", "zero_shot_image_classification", "zero_shot_instance_segmentation",
-                    "image_matting", "image_retrieval", "visual_place_recognition", "face_attribute"}
+                    "image_matting", "image_retrieval", "visual_place_recognition", "face_attribute",
+                    "mainbody_detection"}
         assert set(CATEGORIES.keys()) == required
 
     def test_default_port(self):

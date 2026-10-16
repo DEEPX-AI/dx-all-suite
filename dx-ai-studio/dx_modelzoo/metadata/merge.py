@@ -14,6 +14,7 @@ from dx_modelzoo.metadata.schema import SCHEMA_VERSION, ARTIFACT_IDS
 _EDITORIAL_BY_TASK = {
     "classification": "Image classification model for visual recognition tasks.",
     "object_detection": "Object detection model for identifying and localizing objects.",
+    "mainbody_detection": "Main-body detection model that finds the main object in an image.",
     "semantic_segmentation": "Semantic segmentation model for pixel-level classification.",
     "face_detection": "Face detection model for detecting facial regions.",
     "pose_estimation": "Pose estimation model for detecting body keypoints.",

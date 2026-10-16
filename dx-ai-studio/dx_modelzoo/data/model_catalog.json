@@ -11,6 +11,15 @@
       "label_zh-TW": "物件偵測",
       "icon": "task-object_detection"
     },
+    "mainbody_detection": {
+      "label_en": "Main-body Detection",
+      "label_ko": "주요 객체 탐지",
+      "label_ja": "主要物体検出",
+      "label_es": "Detección del objeto principal",
+      "label_zh-CN": "主体检测",
+      "label_zh-TW": "主體偵測",
+      "icon": "task-mainbody_detection"
+    },
     "classification": {
       "label_en": "Classification",
       "label_ko": "분류",

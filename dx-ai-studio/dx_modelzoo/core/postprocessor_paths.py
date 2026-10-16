@@ -83,6 +83,7 @@ _PREFIX_STEMS: tuple[tuple[str, str], ...] = (
 _CATEGORY_DEFAULT_STEM = {
     "classification": "classification",
     "object_detection": "yolov8",
+    "mainbody_detection": "picodet",
     "face_detection": "scrfd",
     "pose_estimation": "yolov8pose",
     "instance_segmentation": "yolov8seg",

@@ -6221,6 +6221,11 @@ window._DX_I18N_PLACEHOLDERS = {
     'zh-CN': '绘制边界框和逐实例颜色掩码。', 'zh-TW': '繪製邊界框和逐實例顏色遮罩。',
     es: 'Dibuja cajas delimitadoras y máscaras de color por instancia.',
   },
+  'Draws a bounding box around each main object, with its confidence score.': {
+    ko: '이미지의 주요 객체마다 신뢰도 점수와 함께 바운딩 박스를 표시합니다.', ja: '画像の主要な物体ごとに、信頼度スコア付きのバウンディングボックスを描画します。',
+    'zh-CN': '为图像中的每个主体绘制边界框和置信度分数。', 'zh-TW': '為影像中的每個主體繪製邊界框和信賴度分數。',
+    es: 'Dibuja una caja delimitadora alrededor de cada objeto principal, con su puntuación de confianza.',
+  },
   'Draws bounding boxes around detected hands.': {
     ko: '검출된 손 주위에 바운딩 박스를 표시합니다.', ja: '検出された手の周囲にバウンディングボックスを描画します。',
     'zh-CN': '在检测到的手部周围绘制边界框。', 'zh-TW': '在偵測到的手部周圍繪製邊界框。',
