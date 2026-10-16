@@ -11,8 +11,10 @@ import io
 import json
 import sys
 
-import boto3
 import pytest
+# boto3 is the optional `aws` extra (pyproject.toml): without it these files skip instead of
+# breaking the collection gate of a studio installed without DX Cloud compile.
+boto3 = pytest.importorskip("boto3", reason="boto3 (the optional aws extra) is not installed")
 from botocore.response import StreamingBody
 from botocore.stub import ANY, Stubber
 

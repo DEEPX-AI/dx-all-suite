@@ -208,7 +208,8 @@ def test_compile_status_maps_aws_errors_to_json(base):
 
 def test_download_streams_the_dxnn_as_an_attachment(base, monkeypatch):
     import io
-    from botocore.response import StreamingBody
+    StreamingBody = pytest.importorskip(
+        "botocore.response", reason="botocore (the optional aws extra) is not installed").StreamingBody
 
     monkeypatch.setattr(ac, "open_dxnn",
                         lambda p, r, s, x: ("m.dxnn", 4, StreamingBody(io.BytesIO(b"DXNN"), 4)))

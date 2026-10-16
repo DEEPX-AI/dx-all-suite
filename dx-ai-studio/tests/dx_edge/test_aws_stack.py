@@ -8,8 +8,10 @@ import datetime
 import json
 import re
 
-import boto3
 import pytest
+# boto3 is the optional `aws` extra (pyproject.toml): without it these files skip instead of
+# breaking the collection gate of a studio installed without DX Cloud compile.
+boto3 = pytest.importorskip("boto3", reason="boto3 (the optional aws extra) is not installed")
 from botocore.stub import ANY, Stubber
 
 from dx_edge.core import aws_compile as ac
