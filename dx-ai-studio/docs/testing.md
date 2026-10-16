@@ -565,6 +565,46 @@ Refresh baselines after an intentional design change:
 DX_VISUAL_UPDATE=1 ./.venv/bin/python -m pytest tests/visual/ -q
 ```
 
+## Acceptance (SQA)
+
+QA runs one command per Jira acceptance ticket (epic SDKREQ-438) instead of choosing from the
+developer suites. `--acceptance` runs **only** the acceptance selection — none of the stages above.
+
+```bash
+bash scripts/run_ci.sh --acceptance=all                # every ticket
+bash scripts/run_ci.sh --acceptance=SDKREQ-474         # one ticket (474 works too)
+bash scripts/run_ci.sh --acceptance=app,stream,482     # aliases and numbers, comma-separated
+bash scripts/run_ci.sh --acceptance=all --list         # tickets, AC and their tests; runs nothing
+bash scripts/run_ci.sh --acceptance=all --strict       # NOT RUN also fails the run
+```
+
+- **Selection**: `all`, a ticket key (`SDKREQ-474`) or its number (`474`), or an alias:
+  `launcher app stream agent zoo compiler edgeguide monitor benchmark boot i18n sdklib toolbar tutorial
+  cloud`. `DXCLOUD` (alias `cloud`) holds DX Cloud until its Jira key exists.
+- **What runs**: `tests/acceptance/manifest.json` maps ticket → TestRail case → AC (current product
+  wording, Korean) → pytest node ids. Most AC run `tests/acceptance/test_sdkreq_<n>_<area>.py`, which
+  starts the studio the way a user does (`./launcher.sh --no-kill --port <free> --fast --no-browser`,
+  run state in a temp `DX_LAUNCHER_RUN_DIR`, so a studio already running is left alone) and drives it with
+  Playwright. A few AC reuse developer tests that check the same thing. Each test file runs in its own
+  pytest process; one launcher and one browser serve all AC of a file.
+- **Hardware**: each AC lists what it needs — `npu`, `camera`, `dx_com`, `llm`, `aws`, `browser`.
+  `tests/acceptance/hardware.py` detects them (`/dev/dxrt*` + `dxrt-cli -s`; a V4L2 capture
+  `/dev/video*`; dx_com installed **and** 8 GB free disk; an LLM endpoint in Studio chat settings;
+  boto3 + an AWS profile; Playwright + chromium). Present → the AC runs for real (NPU inference, demo,
+  graph run). Missing → the AC is **NOT RUN** with the reason, never a pass.
+- **NOT RUN** means "this machine cannot check it", e.g. `NOT RUN: no camera (/dev/video* missing)`. It is
+  not a failure unless `--strict` is given; QA reruns those AC on a machine that has the hardware.
+- **Report**: `var/acceptance/<timestamp>/` — `report.md` and `report.html` (ticket → AC → PASS / FAIL /
+  NOT RUN, time per ticket and per AC, test ids, a short failure reason, detected hardware and versions),
+  `junit.xml` (one `testsuite` per ticket with property `testrail_case_id`; each AC is a `testcase`
+  named `[C182xx] <AC id> …` with property `test_id`, for TestRail import), `results.json`, plus
+  `logs/` and `screenshots/` only for what failed.
+- **Exit code**: 0 only when every AC that ran passed (with `--strict`, also none NOT RUN); 2 for a bad
+  selection. The runner stops early if free disk drops below 450 MB.
+- **Adding a ticket**: add it to `manifest.json` (key, alias, TestRail case or `null`, AC with tests);
+  `tests/shared/test_acceptance_runner.py` checks the schema and that every test id is collected.
+  Module lists in the tests come from the launcher's registry, so a new module is covered without edits.
+
 ## Pre-commit hook
 
 The Node-free stand-in for the ticket's Husky step. Runs in ~4s on a normal commit.

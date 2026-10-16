@@ -10,6 +10,10 @@
 #   bash scripts/run_ci.sh --visual     # + pixel visual-regression vs committed baselines
 #   bash scripts/run_ci.sh --offline    # + blocking suite with external network blocked
 #   bash scripts/run_ci.sh --browser --shard=1/3   # browser suites, shard 1 of 3
+#   bash scripts/run_ci.sh --acceptance=all        # SQA acceptance suite only (no developer stages)
+#   bash scripts/run_ci.sh --acceptance=474,stream # tickets by number, key (SDKREQ-474) or alias
+#   bash scripts/run_ci.sh --acceptance=all --list # print tickets, AC and mapped tests; run nothing
+#   bash scripts/run_ci.sh --acceptance=all --strict  # NOT RUN (missing hardware) also fails
 #
 # Cross-browser is env-driven: DX_BROWSER_ENGINES=chromium,firefox[,webkit].
 # Default is chromium alone so the blocking gate stays single-engine and fast.
@@ -26,6 +30,8 @@ RUN_VISUAL=0
 RUN_OFFLINE=0
 SHARD_INDEX=""
 SHARD_TOTAL=""
+ACCEPTANCE=""
+ACCEPT_ARGS=()
 
 for arg in "$@"; do
   case "$arg" in
@@ -35,6 +41,10 @@ for arg in "$@"; do
     --npu) RUN_NPU=1 ;;
     --visual) RUN_VISUAL=1 ;;
     --offline) RUN_OFFLINE=1 ;;
+    --acceptance=*) ACCEPTANCE="${arg#--acceptance=}" ;;
+    --acceptance) ACCEPTANCE="all" ;;
+    --strict) ACCEPT_ARGS+=(--strict) ;;
+    --list) ACCEPT_ARGS+=(--list); ACCEPTANCE="${ACCEPTANCE:-all}" ;;
     --shard=*)
       _spec="${arg#--shard=}"
       SHARD_INDEX="${_spec%%/*}"
@@ -71,6 +81,18 @@ if ! "$PY" -c "import pytest" 2>/dev/null; then
   echo "Install test deps first (once):  $PY -m pip install -r requirements-ci.txt" >&2
   echo "(or create the venv:  python3 -m venv .venv && ./.venv/bin/pip install -r requirements-ci.txt)" >&2
   exit 1
+fi
+
+# SQA acceptance suite: one command per Jira acceptance ticket (tests/acceptance/manifest.json).
+# It runs ONLY the acceptance selection, never the developer stages below; scripts/acceptance.py
+# writes var/acceptance/<timestamp>/ (report.md, report.html, junit.xml) and exits 0 only when every
+# AC that ran passed. docs/testing.md "Acceptance (SQA)".
+if [ -n "$ACCEPTANCE" ]; then
+  exec "$PY" scripts/acceptance.py "$ACCEPTANCE" "${ACCEPT_ARGS[@]}"
+fi
+if [ ${#ACCEPT_ARGS[@]} -gt 0 ]; then
+  echo "--strict/--list go with --acceptance=<selection>" >&2
+  exit 2
 fi
 
 # Playwright browser suites — excluded from the default PR gate. Browser suites are
