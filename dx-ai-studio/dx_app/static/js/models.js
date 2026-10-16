@@ -82,7 +82,7 @@ function filterModels(){
       +'<td>'+(meta.join(' ')||'\u2014')+'</td>'
       +'<td class="m-file">'+fileInfo+'</td>'
       /* The button row is a div inside the cell: a flex td stops being a table cell, and two-line rows misalign cell heights and borders */
-      +'<td class="m-actions-cell"><div class="m-actions"><button class="m-action-btn m-action-detail" onclick="event.stopPropagation();showDetail(\''+esc(m.name)+'\')" title="'+esc(T('Details'))+'">' + DXIcon('search') + ' '+T('Detail')+'</button>'
+      +'<td class="m-actions-cell"><div class="m-actions"><button class="m-action-btn m-action-detail" onclick="event.stopPropagation();showDetail(\''+esc(m.name)+'\''+(runnable?',\''+esc(runnable.name)+'\'':'')+')" title="'+esc(T('Details'))+'">' + DXIcon('search') + ' '+T('Detail')+'</button>'
       +(_onnxGraphArg(m.model_file)&&m.model_exists?'<button class="m-action-btn" onclick="event.stopPropagation();openModelGraph(\''+esc(m.model_file)+'\')" title="'+esc(T('View Graph'))+'">' + DXIcon('dashboard') + ' '+T('Graph')+'</button>':'')
       +(m.dxnn_url?'<button class="m-action-btn m-action-dl" data-name="'+esc(m.mz_name||m.name)+'" data-dxnn="'+esc(m.dxnn_url)+'" data-json="'+esc(m.json_url||'')+'" onclick="event.stopPropagation();mzQuickDownload(this)" title="'+(m.model_exists?T('Re-download the Q-Lite .dxnn from ModelZoo'):T('Download the Q-Lite .dxnn from ModelZoo'))+'">' + DXIcon('download') + ' '+(m.model_exists?T('Re-download'):T('Download'))+'</button>':'')
       +(runnable?'<button class="m-action-btn m-action-run" onclick="event.stopPropagation();quickRun(\''+esc(runnable.name)+'\',\''+esc(runnable.category)+'\',\''+esc(runnable.model_file||'')+'\')">' + DXIcon('play') + ' '+T('Run')+'</button>':'')+'</div></td>'
@@ -147,8 +147,15 @@ function openModelGraph(modelFile){
   window.open('/compiler/?viewer_path='+encodeURIComponent(onnx),'_blank','noopener');
 }
 
-async function showDetail(name){
-  var info=await api('/api/model_info?name='+encodeURIComponent(name));
+async function showDetail(name,registryName){
+  // A catalog row names the ModelZoo model; the details live under the dx_app registry name it runs as.
+  var info=await api('/api/model_info?name='+encodeURIComponent(registryName||name));
+  var cm=(S.catalog||[]).find(function(m){return m.name===name});
+  if(cm){   // a catalog model without a registry entry still shows what the table showed
+    if(!info.category)info.category=cm.category;
+    if(!info.model_file)info.model_file=cm.model_file;
+    if(info.model_exists==null)info.model_exists=cm.model_exists;
+  }
   DXIcon.label($('md-title'),'search',name);
   var cfg=info.config||{};
   var PP_DESC={
