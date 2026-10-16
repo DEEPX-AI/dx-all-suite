@@ -58,9 +58,10 @@ def _boto3():
 
 def _session(profile: str = "", region: str | None = None):
     """A boto3 Session; a bad AWS_PROFILE env var fails here, before any API call."""
+    boto3 = _boto3()    # first: without the aws extra there is no botocore either, and that must read as 503
     from botocore.exceptions import ProfileNotFound
     try:
-        return _boto3().session.Session(profile_name=profile or None, region_name=region)
+        return boto3.session.Session(profile_name=profile or None, region_name=region)
     except ProfileNotFound:
         if profile:
             raise AwsError(400, "Unknown AWS profile") from None
