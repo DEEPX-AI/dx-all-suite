@@ -1402,7 +1402,9 @@
     // and overlay branches, and as a safety net if registration order changes.
     const libView = document.getElementById('sdk-library-view');
     if (libView && libView.classList.contains('visible')) {
-      if (e.key === 'Escape') {
+      // The library search already used this Escape to clear itself; the launcher stays in SDK Library
+      // for it too, so hiding the view here would leave an empty page.
+      if (e.key === 'Escape' && !e.defaultPrevented) {
         hideSdkLibraryView();
         e.preventDefault();
         if (e.stopImmediatePropagation) e.stopImmediatePropagation();

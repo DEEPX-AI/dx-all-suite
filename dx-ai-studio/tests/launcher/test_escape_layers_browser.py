@@ -189,6 +189,8 @@ def test_escape_in_the_sdk_search_clears_it_and_stays(port, browser):
         page.keyboard.press("Escape")
         assert page.input_value("#sdkLibSearch") == ""
         assert page.evaluate("DXLauncher.currentApp") == "sdk-library"
+        # The library stays on screen too — hiding it left a blank page under the SDK Library nav tab.
+        assert page.locator("#sdk-library-view.visible").count() == 1
     finally:
         ctx.close()
 
