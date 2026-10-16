@@ -390,11 +390,11 @@
     {
       "source": "examples/pp_shituv1_mainbody_detection_640x640_result.jpg",
       "subdir": "examples",
-      "source_bytes": 180059,
+      "source_bytes": 178870,
       "webp_path": "examples/pp_shituv1_mainbody_detection_640x640_result-jpg.webp",
       "jpg_path": "examples/pp_shituv1_mainbody_detection_640x640_result-jpg.jpg",
-      "webp_bytes": 66044,
-      "jpg_bytes": 107629
+      "webp_bytes": 65538,
+      "jpg_bytes": 106835
     },
     {
       "source": "examples/pp_shituv2_feature_extraction_224x224_original.jpg",
@@ -417,11 +417,11 @@
     {
       "source": "examples/pp_shituv2_mainbody_detection_640x640_result.jpg",
       "subdir": "examples",
-      "source_bytes": 181135,
+      "source_bytes": 180490,
       "webp_path": "examples/pp_shituv2_mainbody_detection_640x640_result-jpg.webp",
       "jpg_path": "examples/pp_shituv2_mainbody_detection_640x640_result-jpg.jpg",
-      "webp_bytes": 66206,
-      "jpg_bytes": 108319
+      "webp_bytes": 67084,
+      "jpg_bytes": 108353
     },
     {
       "source": "examples/pphgnet_base_224x224_result.jpg",
@@ -3225,11 +3225,11 @@
     {
       "source": "thumbnails/pp_shituv1_mainbody_detection_640x640.jpg",
       "subdir": "thumbnails",
-      "source_bytes": 180059,
+      "source_bytes": 178870,
       "webp_path": "thumbnails/pp_shituv1_mainbody_detection_640x640-jpg.webp",
       "jpg_path": "thumbnails/pp_shituv1_mainbody_detection_640x640-jpg.jpg",
-      "webp_bytes": 24918,
-      "jpg_bytes": 37015
+      "webp_bytes": 24348,
+      "jpg_bytes": 36766
     },
     {
       "source": "thumbnails/pp_shituv2_feature_extraction_224x224.jpg",
@@ -3243,11 +3243,11 @@
     {
       "source": "thumbnails/pp_shituv2_mainbody_detection_640x640.jpg",
       "subdir": "thumbnails",
-      "source_bytes": 181135,
+      "source_bytes": 180490,
       "webp_path": "thumbnails/pp_shituv2_mainbody_detection_640x640-jpg.webp",
       "jpg_path": "thumbnails/pp_shituv2_mainbody_detection_640x640-jpg.jpg",
-      "webp_bytes": 24924,
-      "jpg_bytes": 37285
+      "webp_bytes": 24772,
+      "jpg_bytes": 37296
     },
     {
       "source": "thumbnails/pphgnet_base_224x224.jpg",
@@ -6589,6 +6589,6 @@
       "jpg_bytes": 29238
     }
   ],
-  "total_source_bytes": 92891961,
-  "total_output_bytes": 68148362
+  "total_source_bytes": 92888293,
+  "total_output_bytes": 68147014
 }
