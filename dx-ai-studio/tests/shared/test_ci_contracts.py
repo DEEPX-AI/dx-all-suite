@@ -76,6 +76,7 @@ BROWSER_SUITE_PATHS = {
     "tests/dx_app/test_graph_tutorial_browser.py",
     "tests/dx_app/test_rtsp_address_browser.py",
     "tests/dx_benchmark/test_phone_layout_browser.py",
+    "tests/dx_edge/test_chat_browser.py",
     "tests/dx_compiler/test_compiler_audit_browser.py",
     "tests/dx_compiler/test_auto_compile_model_browser.py",
     "tests/dx_planner/test_lang_summary_browser.py",

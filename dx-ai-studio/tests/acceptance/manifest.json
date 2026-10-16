@@ -936,7 +936,7 @@
     },
     {
      "id": "485-AC3",
-     "title": "chat floating button으로 panel 열기·AI 설정(⚙)·닫기가 된다. DX Cloud를 뺀 모든 모듈(현재 8개)에 있다.",
+     "title": "launcher에 등록된 모든 모듈(현재 9개, DX Cloud 포함)에 chat floating button이 있고, panel 열기·AI 설정(⚙)·닫기가 된다.",
      "requires": [
       "browser"
      ],

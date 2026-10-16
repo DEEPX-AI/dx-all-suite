@@ -235,6 +235,80 @@ _RULES = {
                   "NPU y muestra su progreso. También puede iniciarla desde el cuadro de la página de inicio.",
         }),
     ],
+    "dx_edge": [
+        # Compile first: "compile on my stack" must get the compile answer, not the stack setup one.
+        (["compile", "onnx", "dxnn", "컴파일", "コンパイル", "编译", "編譯", "compilar", "compilo"], {
+            "en": "Cloud Compile: pick a ready stack, drop an .onnx and its .json and press Upload and compile. The "
+                  "stack runs dxcom on EC2 and writes the .dxnn next to them; then Download .dxnn or Save to Studio "
+                  "models. No stack yet? Deploy one from the subscribed template under the stacks list.",
+            "ko": "Cloud Compile: 준비된 스택을 고르고 .onnx 와 그 .json 을 올린 뒤 Upload and compile 을 누르세요. 스택이 "
+                  "EC2 에서 dxcom 을 실행해 같은 위치에 .dxnn 을 만듭니다. 그다음 Download .dxnn 또는 Save to Studio "
+                  "models 를 누르세요. 스택이 없으면 스택 목록에서 구독한 template 으로 먼저 배포하세요.",
+            "ja": "Cloud Compile: 準備済みのスタックを選び、.onnx とその .json を置いて Upload and compile を押してください。"
+                  "スタックが EC2 で dxcom を実行し、同じ場所に .dxnn を作ります。その後 Download .dxnn または Save to "
+                  "Studio models を押します。スタックがなければ、スタック一覧で購読した template からデプロイしてください。",
+            "zh-CN": "Cloud Compile：选择就绪的堆栈，放入 .onnx 及其 .json，然后点击 Upload and compile。堆栈在 EC2 上运行 "
+                     "dxcom，并在同一位置生成 .dxnn；之后点击 Download .dxnn 或 Save to Studio models。还没有堆栈？"
+                     "请先在堆栈列表中用已订阅的 template 部署。",
+            "zh-TW": "Cloud Compile：選擇就緒的堆疊，放入 .onnx 及其 .json，然後按 Upload and compile。堆疊在 EC2 上執行 "
+                     "dxcom，並在同一位置產生 .dxnn；之後按 Download .dxnn 或 Save to Studio models。還沒有堆疊？"
+                     "請先在堆疊清單中用已訂閱的 template 部署。",
+            "es": "Cloud Compile: elija una pila lista, suelte un .onnx y su .json y pulse Upload and compile. La pila "
+                  "ejecuta dxcom en EC2 y escribe el .dxnn junto a ellos; después pulse Download .dxnn o Save to "
+                  "Studio models. ¿Aún no tiene una pila? Despliéguela desde la template suscrita en la lista de pilas.",
+        }),
+        (["aws", "credential", "credentials", "profile", "region", "login", "sso", "access key", "자격", "프로필",
+          "리전", "로그인", "認証", "プロファイル", "リージョン", "凭证", "区域", "登录", "憑證", "區域", "登入",
+          "credenciales", "perfil", "región"], {
+            "en": "DX Cloud uses the AWS CLI credentials of the machine running Studio (aws configure or aws sso "
+                  "login) and never asks for or stores access keys. Pick the AWS profile and region and press Check "
+                  "connection; the AWS CLI setup guide in step 1 has the install and sign-in commands.",
+            "ko": "DX Cloud 는 Studio 가 실행 중인 PC 의 AWS CLI 자격 증명(aws configure 또는 aws sso login)을 쓰고, access "
+                  "key 를 묻거나 저장하지 않습니다. AWS profile 과 region 을 고르고 Check connection 을 누르세요. 1단계의 AWS "
+                  "CLI setup guide 에 설치 · 로그인 명령이 있습니다.",
+            "ja": "DX Cloud は Studio を実行中のマシンの AWS CLI 認証情報(aws configure または aws sso login)を使い、"
+                  "access key を尋ねたり保存したりしません。AWS profile と region を選び Check connection を押してください。"
+                  "手順 1 の AWS CLI setup guide にインストールとサインインのコマンドがあります。",
+            "zh-CN": "DX Cloud 使用运行 Studio 的机器上的 AWS CLI 凭证(aws configure 或 aws sso login)，从不询问或保存 "
+                     "access key。选择 AWS profile 和 region 后点击 Check connection；第 1 步的 AWS CLI setup guide "
+                     "提供安装与登录命令。",
+            "zh-TW": "DX Cloud 使用執行 Studio 的機器上的 AWS CLI 憑證(aws configure 或 aws sso login)，從不詢問或儲存 "
+                     "access key。選擇 AWS profile 與 region 後按 Check connection；第 1 步的 AWS CLI setup guide "
+                     "提供安裝與登入指令。",
+            "es": "DX Cloud usa las credenciales de AWS CLI del equipo que ejecuta Studio (aws configure o aws sso "
+                  "login) y nunca pide ni guarda access keys. Elija el AWS profile y la región y pulse Check "
+                  "connection; la AWS CLI setup guide del paso 1 tiene los comandos de instalación e inicio de sesión.",
+        }),
+        (["greengrass", "device", "devices", "thing", "marketplace", "stack", "stacks", "deploy", "디바이스", "장치",
+          "스택", "배포", "デバイス", "スタック", "デプロイ", "设备", "堆栈", "部署", "裝置", "堆疊", "dispositivo",
+          "pila", "desplegar"], {
+            "en": "Each AWS Marketplace product has a tab: DEEPX Compiler Solution compiles models, DEEPX Greengrass "
+                  "Solution also deploys the NPU driver, firmware, dx_rt and dx_stream to a Thing Group. An account "
+                  "admin subscribes once; then Deploy stack from the template. On the Greengrass tab, Register device "
+                  "generates the script a device runs to join, and Devices (dx-runtime) shows each core device.",
+            "ko": "AWS Marketplace 제품마다 탭이 있습니다. DEEPX Compiler Solution 은 모델을 컴파일하고, DEEPX Greengrass "
+                  "Solution 은 NPU driver · firmware · dx_rt · dx_stream 을 Thing Group 에 배포합니다. 계정 관리자가 한 번 "
+                  "구독한 뒤 template 으로 Deploy stack 하세요. Greengrass 탭의 Register device 가 디바이스에서 실행할 "
+                  "script 를 만들고, Devices (dx-runtime) 에 core device 마다 상태가 보입니다.",
+            "ja": "AWS Marketplace の製品ごとにタブがあります。DEEPX Compiler Solution はモデルをコンパイルし、DEEPX "
+                  "Greengrass Solution は NPU driver・firmware・dx_rt・dx_stream を Thing Group にデプロイします。"
+                  "アカウント管理者が一度購読したら、template から Deploy stack してください。Greengrass タブの Register "
+                  "device がデバイスで実行するスクリプトを作り、Devices (dx-runtime) に core device ごとの状態が出ます。",
+            "zh-CN": "每个 AWS Marketplace 产品都有一个选项卡：DEEPX Compiler Solution 编译模型，DEEPX Greengrass Solution "
+                     "还会把 NPU driver、firmware、dx_rt 和 dx_stream 部署到 Thing Group。账户管理员订阅一次后，用 "
+                     "template 执行 Deploy stack。Greengrass 选项卡的 Register device 生成设备要运行的脚本，"
+                     "Devices (dx-runtime) 显示每个 core device。",
+            "zh-TW": "每個 AWS Marketplace 產品都有一個分頁：DEEPX Compiler Solution 編譯模型，DEEPX Greengrass Solution "
+                     "還會把 NPU driver、firmware、dx_rt 與 dx_stream 部署到 Thing Group。帳戶管理員訂閱一次後，用 "
+                     "template 執行 Deploy stack。Greengrass 分頁的 Register device 產生裝置要執行的指令碼，"
+                     "Devices (dx-runtime) 顯示每個 core device。",
+            "es": "Cada producto de AWS Marketplace tiene una pestaña: DEEPX Compiler Solution compila modelos y DEEPX "
+                  "Greengrass Solution además despliega el driver de la NPU, el firmware, dx_rt y dx_stream en un "
+                  "Thing Group. Un administrador de la cuenta se suscribe una vez; luego use Deploy stack con la "
+                  "template. En la pestaña Greengrass, Register device genera el script que ejecuta el dispositivo y "
+                  "Devices (dx-runtime) muestra cada core device.",
+        }),
+    ],
 }
 
 

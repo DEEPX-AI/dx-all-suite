@@ -102,6 +102,7 @@ CURRENT = {
     "dx_benchmark.md": ["./run.sh preflight", "./run.sh run", "/dev/dxrt", "ORT ON/OFF"],
     "dx_monitor.md": ["DX_MONITOR_EXPLICIT_MOCK=1", "NPU telemetry unavailable"],
     "dx_agent_dev.md": ["cursor-agent", "opencode", "**Stop**"],
+    "dx_edge.md": ["`/cloud/`", "**Check connection**", "**Upload and compile**", "**Register device**"],
 }
 
 

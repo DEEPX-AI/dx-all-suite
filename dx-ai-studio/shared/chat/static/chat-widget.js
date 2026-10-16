@@ -144,6 +144,14 @@ window._DX_CHAT_HEADER_TITLES = window._DX_CHAT_HEADER_TITLES || {
     'zh-CN': 'Agent Dev 帮助',
     'zh-TW': 'Agent Dev 說明',
   },
+  dx_edge: {
+    en: 'DX Cloud Help',
+    ko: 'DX Cloud 도움말',
+    ja: 'DX Cloudヘルプ',
+    es: 'Ayuda DX Cloud',
+    'zh-CN': 'DX Cloud 帮助',
+    'zh-TW': 'DX Cloud 說明',
+  },
   sdk_library: {
     en: 'SDK Library Help',
     ko: 'SDK Library 도움말',

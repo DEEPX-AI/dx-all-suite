@@ -15,8 +15,6 @@ from tests.acceptance.hardware import need, real_chat_config_path
 
 LAUNCHER_ENV = {"PATH": "/usr/local/share/gstdxstream/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"}
 SETTINGS_MODULES = {"app", "stream"}
-# DX Cloud ships the shared toolbar but no chat widget (dx_edge/templates/index.html has no DXChat.init).
-NO_CHAT_MODULES = {"edge"}
 
 
 def _modules(page) -> list[str]:
@@ -64,11 +62,10 @@ def test_every_module_language_menu_lists_six_languages_and_its_tutorial_opens_t
 
 
 def test_every_module_chat_opens_shows_settings_and_closes(pages):
+    seen = []
     for _, key, frame in _each_module(pages):
+        seen.append(key)
         fab = frame.locator(".dx-chat-fab")
-        if key in NO_CHAT_MODULES:
-            assert fab.count() == 0, key
-            continue
         fab.wait_for(state="visible", timeout=15000)
         fab.click()
         frame.locator(".dx-chat-window.open").wait_for(timeout=10000)
@@ -78,12 +75,11 @@ def test_every_module_chat_opens_shows_settings_and_closes(pages):
         frame.wait_for_function("() => !document.querySelector('.dx-chat-settings-panel.open')")
         frame.locator('.dx-chat-window [data-action="close"]').click()
         frame.wait_for_function("() => !document.querySelector('.dx-chat-window.open')")
+    assert len(seen) >= 9 and "edge" in seen, seen      # DX Cloud has the chat too (2026-10-16 decision)
 
 
 def test_every_module_chat_sends_and_answers_without_an_ai_connected(pages):
     for _, key, frame in _each_module(pages):
-        if key in NO_CHAT_MODULES:
-            continue
         frame.locator(".dx-chat-fab").click()
         win = frame.locator(".dx-chat-window.open")
         win.wait_for(timeout=10000)

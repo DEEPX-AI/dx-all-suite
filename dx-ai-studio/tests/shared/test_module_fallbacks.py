@@ -8,7 +8,7 @@ from shared.chat import module_fallbacks as mf
 
 ROOT = Path(__file__).resolve().parents[2]
 MODULES = ("dx_app", "dx_stream", "dx_modelzoo", "dx_compiler", "dx_planner", "dx_benchmark", "dx_monitor",
-           "dx_agent_dev")
+           "dx_agent_dev", "dx_edge")
 
 
 def test_every_module_has_answers_in_all_six_languages():
@@ -39,3 +39,12 @@ def test_a_japanese_question_gets_a_japanese_answer():
     eng = FallbackEngine(app_rules=mf.rules("dx_modelzoo"))
     out = eng.respond("モデルのダウンロード方法は?", lang="ja")["reply"]
     assert re.search(r"[ぁ-んァ-ン]", out) and "Q-Lite" in out
+
+
+def test_dx_cloud_answers_a_compile_question_with_cloud_compile_not_stack_setup():
+    from shared.chat.fallback import FallbackEngine
+    eng = FallbackEngine(app_rules=mf.rules("dx_edge"))
+    for lang, q in (("en", "How do I compile an ONNX model on my stack?"), ("ko", "스택에서 모델을 컴파일하려면?")):
+        out = eng.respond(q, lang=lang)["reply"]
+        assert "Upload and compile" in out, (lang, out)
+    assert "Check connection" in eng.respond("Which AWS profile does it use?", lang="en")["reply"]

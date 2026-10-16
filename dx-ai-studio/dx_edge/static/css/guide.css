@@ -2,6 +2,8 @@
    Tokens only: colours from the theme files, spacing from --sp-*, breakpoints from the shared scale. */
 
 .guide{max-width:1200px;margin:0 auto;min-width:0}
+/* Room at the bottom for the chat button, as on the DX Cloud page (style.css .edge-main). */
+.guide-main{padding-bottom:calc(var(--sp-7) + var(--sp-5))}
 
 /* ── Header ─────────────────────────────────────────────────── */
 .guide-head{display:flex;flex-direction:column;align-items:flex-start;gap:var(--sp-2);margin-bottom:var(--sp-5)}

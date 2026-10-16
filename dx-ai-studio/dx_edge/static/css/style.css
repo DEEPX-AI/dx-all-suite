@@ -1,6 +1,9 @@
 /* DX Cloud – module-local layout (shared foundation loaded via HTML).
    Full module width like Monitor; the numbered steps reuse the shared .dx-steps list. */
 .edge-main{width:100%;min-width:0;box-sizing:border-box;--step-dot:32px}
+/* Room at the bottom so the chat button (56px, 24px inset, bottom right) does not cover the last controls — the
+   shared .dx-shell-main > .page rule does this in tabbed modules, and DX Cloud has no .page. */
+.edge-main{padding-bottom:calc(var(--sp-7) + var(--sp-5))}
 /* Status chips (Monitor's status bar look); the dot carries the state */
 .edge-status{display:flex;flex-wrap:wrap;gap:var(--sp-2);margin-bottom:var(--sp-5)}
 .edge-chip{display:inline-flex;align-items:center;gap:var(--sp-2);min-width:0;max-width:100%;padding:var(--sp-2) var(--sp-3);

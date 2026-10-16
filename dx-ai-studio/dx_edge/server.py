@@ -8,6 +8,8 @@ aws_greengrass.py (Greengrass devices); this file only routes.
 """
 from pathlib import Path
 
+from shared.chat import ChatEngine
+from shared.chat import module_fallbacks as _module_fallbacks
 from shared.dx_server import DXBaseHandler, DXServer, RequestBodyError
 from shared.shell import ShellSpec
 from dx_edge.core import aws_compile as ac
@@ -21,6 +23,12 @@ SERVER_NAME = "DX Cloud"
 
 # A single screen, so there is no tab row — the template root carries .dx-shell--no-tabs.
 DX_EDGE_SHELL = ShellSpec(module_key="cloud")
+
+# The SDK chat, as in every module: DX Cloud knowledge (shared/chat/knowledge/dx_edge.md) and offline answers.
+_chat_engine = ChatEngine(
+    app_name="dx_edge",
+    fallback_rules=_module_fallbacks.rules("dx_edge"),
+)
 
 
 def _models_dir():
@@ -48,6 +56,8 @@ class DXEdgeHandler(DXBaseHandler):
                                                        "device")}
 
     def route(self):
+        if self.handle_chat_routes(_chat_engine):
+            return
         if self.route_common():
             return
         path = self.url_path
