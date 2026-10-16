@@ -129,7 +129,10 @@ def _resolve_module_key(key):
 BASE_DIR  = Path(__file__).resolve().parent
 STUDIO_DIR = BASE_DIR.parent           # dx-ai-studio/
 SUITE_ROOT = STUDIO_DIR.parent         # <suite> root — holds the DX-AllSuite release.ver
-PORTS_DIR = BASE_DIR / ".ports"        # sub-servers report their OS-assigned (:0) port here
+# Run state (port handshake files, pid file) lives next to the launcher unless DX_LAUNCHER_RUN_DIR moves it, so a
+# second launcher from the same checkout (the acceptance suite's own instance) leaves a running studio's state alone.
+RUN_DIR = Path(os.environ.get("DX_LAUNCHER_RUN_DIR") or BASE_DIR)
+PORTS_DIR = RUN_DIR / ".ports"         # sub-servers report their OS-assigned (:0) port here
 APP_DIR    = STUDIO_DIR / "dx_app"
 
 # Fallback shown only if <suite>/release.ver is missing/unreadable (e.g. a partial checkout).
@@ -457,7 +460,7 @@ def _get_widget_cache():
     return _WIDGET_CACHE
 
 # PID file for tracking sub-servers across restarts
-_PIDFILE = BASE_DIR / ".launcher_pids"
+_PIDFILE = RUN_DIR / ".launcher_pids"
 
 
 def _save_pids():
