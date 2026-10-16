@@ -905,6 +905,14 @@
     }
   });
 
+  // The tab labels do not wait for about-data.json: they are written now, once the page language is settled, and on
+  // every language change. They have no data-i18n — their keys are ids ('aboutDeveloper'), and the shared i18n.js
+  // writes an English key as the text, so the tabs read 'aboutDeveloper' until the data arrived (or for good when it
+  // failed). Contract: tests/launcher/test_about_nav_first_paint_browser.py
+  renderAboutNavLabels();
+  document.addEventListener('DOMContentLoaded', renderAboutNavLabels);
+  window.addEventListener('dx-lang-applied', renderAboutNavLabels);
+
   window.AboutDeepX = {
     init: initAboutView,
     onShown: onAboutViewShown,
