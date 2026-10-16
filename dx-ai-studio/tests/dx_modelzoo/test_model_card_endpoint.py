@@ -30,15 +30,15 @@ def test_studio_card_without_a_dx_app_example(tmp_path):
                     asof=None)
 
 
-def test_studio_card_leaves_off_the_links_the_dx_app_index_marks_dead(monkeypatch, tmp_path):
-    from dx_modelzoo.tools import export_dx_app_cards as ex
+def test_studio_card_leaves_off_the_links_the_last_link_check_found_dead(monkeypatch, tmp_path):
+    from dx_modelzoo.core import model_card
     from tests.dx_modelzoo.test_export_dx_app_cards import _tree
 
     app, data, model = _tree(tmp_path)
     dead_url = "https://sdk.deepx.ai/modelzoo/q-pro-dxnn/2_4_0/yolov5-m-face_640x640.dxnn"
-    outputs, _ = ex.build_outputs(app, [model], {}, [], data, "2026-10-13",
-                                  url_ok=lambda u: (u != dead_url, 200 if u != dead_url else 403))
-    ex.write_outputs(app, outputs)
+    store = tmp_path / "dead_download_links.json"
+    model_card.save_dead_links([dead_url], "2026-10-13", store)
+    monkeypatch.setattr(model_card, "DEAD_LINKS_PATH", store)
     html, _ = studio_card(model, {}, {"lang": "ko"}, dx_app_root=app, data_dir=data,
                           benchmark_path=tmp_path / "none.json", asof="2026-10-13")
     assert dead_url not in html and "q-lite-dxnn/2_5_0/yolov5-m-face_640x640.dxnn" in html

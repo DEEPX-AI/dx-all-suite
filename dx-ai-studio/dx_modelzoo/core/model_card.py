@@ -145,15 +145,24 @@ def catalog_date(generated_at, tz=None):
     return when.astimezone(tz).date().isoformat()
 
 
-def load_dead_links(dx_app_root):
-    """The download URLs the last --verify-links export found dead (config/model_cards.json), or None without an
-    index."""
+DEAD_LINKS_PATH = Path(__file__).resolve().parents[1] / "data" / "dead_download_links.json"
+
+
+def load_dead_links(path=None):
+    """The download URLs the last --verify-links export found dead (dx_modelzoo/data/dead_download_links.json), or
+    None without that file."""
     try:
-        index = json.loads((Path(dx_app_root) / "config" / "model_cards.json").read_text(encoding="utf-8"))
+        stored = json.loads(Path(path or DEAD_LINKS_PATH).read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return None
-    links = index.get("dead_links") if isinstance(index, dict) else None
+    links = stored.get("dead_links") if isinstance(stored, dict) else None
     return {u for u in links if isinstance(u, str)} if isinstance(links, list) else set()
+
+
+def save_dead_links(urls, checked, path=None):
+    """Store the dead URLs a --verify-links export found, so runs without the network leave the same links off."""
+    data = {"checked": checked, "dead_links": sorted(urls)}
+    Path(path or DEAD_LINKS_PATH).write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
 def drop_dead_links(cards, url_ok, threads=8):

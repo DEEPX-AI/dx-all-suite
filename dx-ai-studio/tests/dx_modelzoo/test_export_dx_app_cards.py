@@ -31,17 +31,15 @@ def test_outputs_and_report(tmp_path):
                                        "2026-10-13")
     py = "src/python_example/face_detection/yolov5_face/yolov5-m-face_640x640"
     cpp = "src/cpp_example/face_detection/yolov5_face/yolov5-m-face_640x640"
+    # No card index in dx_app: the cards and MODELS.md only.
     assert set(outputs) == {f"{py}/README.md", f"{py}/model.html", f"{py}/result.webp", f"{cpp}/README.md",
-                            "MODELS.md", "config/model_cards.json"}
-    index = json.loads(outputs["config/model_cards.json"])
-    assert index["asof"] == "2026-10-13" and index["models"][0]["zoo_task"] == "face_detection"
-    assert "https://sdk.deepx.ai/modelzoo/q-lite-dxnn/2_5_0/yolov5-m-face_640x640.dxnn" in outputs["config/model_cards.json"].decode()
+                            "MODELS.md"}
+    assert "https://sdk.deepx.ai/modelzoo/q-lite-dxnn/2_5_0/yolov5-m-face_640x640.dxnn" in outputs[f"{py}/README.md"].decode()
     assert report["count"] == 1 and report["setup_name_missing"] == [] and report["missing_image"] == []
     assert report["metric_count_mismatch"] == [] and report["no_python_dir"] == []
     page = outputs[f"{py}/model.html"].decode()
     assert 'href="../../../../cpp_example/face_detection/yolov5_face/yolov5-m-face_640x640/README.md"' in page
     # dx_app examples carry no benchmark numbers (FPS, FPS/W, board measurements)
-    assert "fps" not in index["models"][0] and "fps_per_watt" not in index["models"][0]
     assert "FPS" not in page and "FPS" not in outputs["MODELS.md"].decode()
     assert "FPS" not in outputs[f"{py}/README.md"].decode() and "FPS" not in outputs[f"{cpp}/README.md"].decode()
 
@@ -93,7 +91,7 @@ def test_write_then_check_is_clean_and_drift_is_caught(tmp_path):
 def test_only_skips_the_index(tmp_path):
     app, data, model = _tree(tmp_path)
     outputs, _ = ex.build_outputs(app, [model], {}, [], data, "2026-10-13", only={"yolov5-m-face_640x640"})
-    assert "MODELS.md" not in outputs and "config/model_cards.json" not in outputs
+    assert "MODELS.md" not in outputs
 
 
 def test_setup_name_comes_from_the_manifest_row_for_the_same_file(tmp_path):
@@ -128,10 +126,11 @@ def test_dead_download_links_are_dropped_and_reported(tmp_path):
         return status == 200, status
 
     outputs, report = ex.build_outputs(app, [model], {}, [], data, "2026-10-13", url_ok=url_ok)
-    index = json.loads(outputs["config/model_cards.json"])["models"][0]["downloads"]
-    assert [t["tier"] for t in index["tiers"]] == ["qlite"]            # Q-Pro's dxnn is dead: the tier goes
-    assert index["tiers"][0]["json"] is None                          # a dead json becomes None
-    assert index["onnx"] == "https://sdk.deepx.ai/modelzoo/onnx/yolov5-m-face_640x640.onnx"
+    card = outputs["src/python_example/face_detection/yolov5_face/yolov5-m-face_640x640/README.md"].decode()
+    assert "q-lite-dxnn/2_5_0/yolov5-m-face_640x640.dxnn" in card      # Q-Pro's dxnn is dead: the tier goes
+    assert "https://sdk.deepx.ai/modelzoo/onnx/yolov5-m-face_640x640.onnx" in card
+    assert sorted(report["dead_urls"]) == ["https://sdk.deepx.ai/modelzoo/q-lite-json/2_5_0/yolov5-m-face_640x640.json",
+                                           "https://sdk.deepx.ai/modelzoo/q-pro-dxnn/2_4_0/yolov5-m-face_640x640.dxnn"]
     assert sorted(report["dead_links"]) == [
         "yolov5-m-face_640x640: https://sdk.deepx.ai/modelzoo/q-lite-json/2_5_0/yolov5-m-face_640x640.json (404)",
         "yolov5-m-face_640x640: https://sdk.deepx.ai/modelzoo/q-pro-dxnn/2_4_0/yolov5-m-face_640x640.dxnn (403)",
@@ -141,28 +140,30 @@ def test_dead_download_links_are_dropped_and_reported(tmp_path):
     assert "q-pro-dxnn" not in readme and "q-lite-json" not in readme
 
 
-def test_dead_links_are_kept_in_the_index_and_reapplied_without_a_network_check(tmp_path):
+def test_dead_links_are_stored_in_studio_and_reapplied_without_a_network_check(tmp_path):
     app, data, model = _tree(tmp_path)
+    store = tmp_path / "dead_download_links.json"
     dead_url = "https://sdk.deepx.ai/modelzoo/q-pro-dxnn/2_4_0/yolov5-m-face_640x640.dxnn"
-    outputs, _ = ex.build_outputs(app, [model], {}, [], data, "2026-10-13",
-                                  url_ok=lambda u: (u != dead_url, 200 if u != dead_url else 403))
-    assert json.loads(outputs["config/model_cards.json"])["dead_links"] == [dead_url]
+    outputs, first = ex.build_outputs(app, [model], {}, [], data, "2026-10-13",
+                                      url_ok=lambda u: (u != dead_url, 200 if u != dead_url else 403))
+    ex.save_dead_links(first["dead_urls"], "2026-10-13", store)
+    assert json.loads(store.read_text())["dead_links"] == [dead_url]
     ex.write_outputs(app, outputs)
     # A later run without --verify-links (or --check) applies the stored list: same files, nothing to change.
-    again, report = ex.build_outputs(app, [model], {}, [], data, "2026-10-13", url_ok=ex.stored_dead_links(app))
+    again, report = ex.build_outputs(app, [model], {}, [], data, "2026-10-13", url_ok=ex.stored_dead_links(store))
     assert again == outputs and ex.changed_outputs(app, again) == []
     assert report["dead_links"] == [f"yolov5-m-face_640x640: {dead_url} (dead at the last --verify-links)"]
 
 
-def test_stored_dead_links_is_none_without_an_index(tmp_path):
-    assert ex.stored_dead_links(tmp_path) is None
+def test_stored_dead_links_is_none_without_the_stored_file(tmp_path):
+    assert ex.stored_dead_links(tmp_path / "missing.json") is None
 
 
 def test_links_are_not_checked_by_default(tmp_path):
     app, data, model = _tree(tmp_path)
     outputs, report = ex.build_outputs(app, [model], {}, [], data, "2026-10-13")
     assert report["dead_links"] == []
-    assert "q-pro-dxnn" in outputs["config/model_cards.json"].decode()
+    assert "q-pro-dxnn" in outputs["src/python_example/face_detection/yolov5_face/yolov5-m-face_640x640/README.md"].decode()
 
 
 def test_head_status_reports_a_network_error_instead_of_raising():

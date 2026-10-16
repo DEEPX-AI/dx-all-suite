@@ -53,7 +53,7 @@ def studio_card(model, categories, payload, *, dx_app_root, data_dir, benchmark_
     card = build_card(model, row, dx_app_root, benchmark_rows=load_benchmark(benchmark_path), setup_name=setup_name,
                       manifest_url=manifest_url_for(load_manifest_urls(dx_app_root), row),
                       task_label=task_label, asof=asof, lang=lang)
-    dead = load_dead_links(dx_app_root)
+    dead = load_dead_links()
     if dead:
         # The links the dx_app cards leave off (their last --verify-links run), so both cards list the same downloads.
         drop_dead_links([card], known_dead(dead))

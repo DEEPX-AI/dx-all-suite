@@ -1,5 +1,5 @@
 """Write the dx_app example cards: README.md in every python and cpp example dir, model.html and result.webp in
-the python dir, MODELS.md and config/model_cards.json at the dx_app root.
+the python dir, and MODELS.md at the dx_app root.
 
     python -m dx_modelzoo.tools.export_dx_app_cards [--dx-app PATH] [--check] [--verify-links] [--only VARIANT ...]
                                                      [--report FILE]
@@ -8,8 +8,8 @@ the python dir, MODELS.md and config/model_cards.json at the dx_app root.
 written, since it lives outside dx_app. The catalog must carry its generated_at date (the cards' "as of").
 A variant whose python example dir is missing is skipped and reported (no_python_dir), never created.
 --verify-links sends a HEAD to every download URL; one that does not answer 200 is left off the card, listed in
-the report's dead_links and stored in config/model_cards.json. Without it (--check included) the stored list is
-applied again, so a run without the network writes the same cards; Studio's Save as HTML applies it too.
+the report's dead_links and stored in dx_modelzoo/data/dead_download_links.json (Studio's, not dx_app's). Without it
+(--check included) the stored list is applied again, so a run without the network writes the same cards; Studio's Save as HTML applies it too.
 Contract: tests/dx_modelzoo/test_export_dx_app_cards.py
 """
 from __future__ import annotations
@@ -23,16 +23,13 @@ from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 from dx_modelzoo.core.model_card import (build_card, catalog_date, drop_dead_links, known_dead, load_benchmark,
                                          load_dead_links, load_manifest_urls, load_registry, load_setup_names,
-                                         manifest_url_for, rel_dir)
+                                         manifest_url_for, rel_dir, save_dead_links)
 from dx_modelzoo.core.model_card_html import render_html
 from dx_modelzoo.core.model_card_image import example_image, webp_bytes
 from dx_modelzoo.core.model_card_md import render_index, render_markdown
 from dx_modelzoo.core.model_card_studio import category_label
 
 # No fps / fps_per_watt: a dx_app example card carries no benchmark numbers
-INDEX_FIELDS = ("variant", "zoo_name", "setup_name", "zoo_id", "zoo_task", "name", "task", "family", "input",
-                "dataset", "license", "paths", "downloads")
-
 LINK_CHECK_THREADS = 8
 LINK_CHECK_TIMEOUT = 30
 
@@ -60,10 +57,10 @@ def head_status(url, timeout=LINK_CHECK_TIMEOUT):
     return status == 200, status
 
 
-def stored_dead_links(dx_app_root):
-    """url_ok that applies the dead links the last --verify-links run stored in config/model_cards.json, so a run
-    without the network (--check included) writes the same cards; None without an index."""
-    dead = load_dead_links(dx_app_root)
+def stored_dead_links(path=None):
+    """url_ok that applies the dead links the last --verify-links run stored (load_dead_links), so a run without the
+    network (--check included) writes the same cards; None without the stored file."""
+    dead = load_dead_links(path)
     return None if dead is None else known_dead(dead)
 
 
@@ -82,7 +79,7 @@ def build_outputs(dx_app_root, models, categories, benchmark_rows, data_dir, aso
     outputs, cards = {}, []
     report = {"count": 0, "no_studio_model": [], "missing_image": [], "unpublished": [], "setup_name_missing": [],
               "sample_is_dir": [], "no_sample": [], "accuracy_warnings": [], "metric_count_mismatch": [],
-              "no_python_dir": [], "dead_links": []}
+              "no_python_dir": [], "dead_links": [], "dead_urls": []}
     for variant in sorted(registry):
         if only and variant not in only:
             continue
@@ -98,9 +95,8 @@ def build_outputs(dx_app_root, models, categories, benchmark_rows, data_dir, aso
             report["no_python_dir"].append(variant)
             continue
         cards.append((card, model))
-    dead_urls = []
     if url_ok is not None:
-        report["dead_links"], dead_urls = drop_dead_links([card for card, _ in cards], url_ok,
+        report["dead_links"], report["dead_urls"] = drop_dead_links([card for card, _ in cards], url_ok,
                                                                     LINK_CHECK_THREADS)
     for card, model in cards:
         variant, py, cpp = card["variant"], card["paths"]["python"], card["paths"]["cpp"]
@@ -134,9 +130,6 @@ def build_outputs(dx_app_root, models, categories, benchmark_rows, data_dir, aso
     report["count"] = len(cards)
     if not only:
         outputs["MODELS.md"] = render_index(cards, asof).encode("utf-8")
-        index = {"generated_from": "DX Model Zoo publish table", "asof": asof, "dead_links": dead_urls,
-                 "models": [{k: c[k] for k in INDEX_FIELDS} for c in cards]}
-        outputs["config/model_cards.json"] = (json.dumps(index, indent=2, ensure_ascii=False) + "\n").encode("utf-8")
     return outputs, report
 
 
@@ -176,7 +169,7 @@ def main(argv=None):
     outputs, report = build_outputs(args.dx_app, catalog["models"], catalog.get("categories") or {},
                                     load_benchmark(STUDIO_ROOT / "dx_benchmark" / "dataset.json"), DATA_DIR, asof,
                                     only=set(args.only) if args.only else None,
-                                    url_ok=head_status if args.verify_links else stored_dead_links(args.dx_app))
+                                    url_ok=head_status if args.verify_links else stored_dead_links())
     if args.report:
         Path(args.report).write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     if args.check:
@@ -187,6 +180,8 @@ def main(argv=None):
               f"{len(report['dead_links'])} dead links left off")
         return 1 if changed else 0
     write_outputs(args.dx_app, outputs)
+    if args.verify_links and not args.only:
+        save_dead_links(report["dead_urls"], asof)
     print(f"{report['count']} cards, {len(outputs)} files written to {args.dx_app}")
     return 0
 
