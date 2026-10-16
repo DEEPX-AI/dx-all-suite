@@ -390,6 +390,29 @@ def _load_hardware_probe():
     return module.probe_all
 
 
+def preflight(tickets: list[dict], hw: dict, python: str = sys.executable) -> list[str]:
+    """The test tools a run cannot do without, checked before it starts: pytest always, and Playwright with a
+    Chrome/Chromium when a selected AC needs a browser. Missing tools are not the board's hardware, so they stop
+    the run with the command that installs them instead of turning nearly every AC into NOT RUN."""
+    pip = f"    {python} -m pip install -r requirements-ci.txt"
+    packages = []
+    try:
+        import pytest  # noqa: F401
+    except ImportError:
+        packages.append("pytest")
+    needs_browser = any("browser" in (ac.get("requires") or []) for t in tickets for ac in t["ac"])
+    ok, detail = hw.get("browser", (False, "not probed"))
+    if needs_browser and not ok and detail == "playwright not installed":
+        packages.append("Playwright")
+    problems = [f"{' and '.join(packages)} {'is' if len(packages) == 1 else 'are'} not installed for {python}\n{pip}"] \
+        if packages else []
+    if needs_browser and not ok and detail != "playwright not installed":
+        problems.append("no Chrome/Chromium for Playwright\n"
+                        "    install Google Chrome or Chromium, or: "
+                        f"{python} -m playwright install chromium")
+    return problems
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("selection", nargs="?", default="all")
@@ -413,11 +436,16 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     probe_all = _load_hardware_probe()
+    hw = probe_all()
+    missing = preflight(tickets, hw)
+    if missing:
+        print("--acceptance cannot start; install the test tools first (from dx-ai-studio/):\n  "
+              + "\n  ".join(missing), file=sys.stderr)
+        return 2
 
     started = _dt.datetime.now()
     out = Path(args.out) if args.out else ROOT / "var" / "acceptance" / started.strftime("%Y%m%d-%H%M%S")
     out.mkdir(parents=True, exist_ok=True)
-    hw = probe_all()
     os.environ["DX_ACCEPT_HW"] = json.dumps(hw)
     print("== Acceptance: " + ", ".join(t["key"] for t in tickets))
     for k, (ok, detail) in hw.items():

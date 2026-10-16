@@ -187,3 +187,18 @@ def test_tests_an_early_stop_never_reached_are_not_run_with_the_reason():
     rec = {"t::a": {"nodeid": "t::a", "outcome": "passed", "duration": 1.0}}
     st = acc.ac_status(_ac(["t::a", "t::b"]), HW, rec, stopped="run stopped early: only 300 MB free disk")
     assert st["status"] == acc.NOT_RUN and "300 MB" in st["reason"]
+
+
+def test_preflight_stops_a_browser_run_without_playwright_or_chromium():
+    tickets = acc.select(MANIFEST, "473")
+    no_pw = acc.preflight(tickets, {"browser": (False, "playwright not installed")}, python="PY")
+    assert len(no_pw) == 1 and "Playwright is not installed" in no_pw[0]
+    assert "PY -m pip install -r requirements-ci.txt" in no_pw[0]
+    no_chrome = acc.preflight(tickets, {"browser": (False, "no chromium for Playwright")}, python="PY")
+    assert len(no_chrome) == 1 and "PY -m playwright install chromium" in no_chrome[0]
+    assert acc.preflight(tickets, {"browser": (True, "chromium /usr/bin/google-chrome")}) == []
+
+
+def test_preflight_lets_a_run_without_browser_ac_through():
+    tickets = [{"key": "X", "ac": [{"id": "X-AC1", "requires": [], "tests": ["t::a"]}]}]
+    assert acc.preflight(tickets, {"browser": (False, "playwright not installed")}) == []

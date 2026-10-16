@@ -578,6 +578,10 @@ bash scripts/run_ci.sh --acceptance=all --list         # tickets, AC and their t
 bash scripts/run_ci.sh --acceptance=all --strict       # NOT RUN also fails the run
 ```
 
+- **Test tools (once per machine)**: `./.venv/bin/python -m pip install -r requirements-ci.txt` (pytest,
+  Playwright) and Google Chrome or Chromium (or `./.venv/bin/python -m playwright install chromium`). The run
+  checks them first and stops with the install command when one is missing, rather than reporting nearly
+  every AC as NOT RUN.
 - **Selection**: `all`, a ticket key (`SDKREQ-474`) or its number (`474`), or an alias:
   `launcher app stream agent zoo compiler edgeguide monitor benchmark boot i18n sdklib toolbar tutorial
   cloud`. DX Cloud is `SDKREQ-710` (alias `cloud`).
