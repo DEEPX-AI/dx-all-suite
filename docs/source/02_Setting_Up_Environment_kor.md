@@ -113,13 +113,14 @@ Docker 경로를 사용할 계획이지만 Docker가 설치되어 있지 않은 
 
 - **컴파일러 환경**: `dx-compiler/venv-dx-compiler`에 생성됨    
 - **런타임 환경**: `dx-runtime/venv-dx-runtime`에 생성됨    
+- **ModelZoo 환경**: `dxmz`가 NPU 평가에 `dx_engine`을 사용할 수 있도록 DX-ModelZoo는 런타임 환경(`dx-runtime/venv-dx-runtime`)에 설치됨. Docker 이미지에는 `/venv-dxnn`에 사전 설치됨    
 
 !!! warning "주의"  
     개별 모듈(예: `dx-rt`만 설치)을 설치하는 경우, 설치 실패를 방지하기 위해 스크립트에 의해 생성된 해당 가상 환경을 반드시 활성화(`source .../activate`)해야 합니다.  
 
 ### SDK Workflow Guide
 
-**DX-AllSuite**는 사용자 본인의 모델을 가져오느냐, 아니면 사전 최적화된 모델을 사용하느냐에 따라 DEEPX NPU를 활용하는 두 가지 경로를 제공합니다. SDK는 원활한 개발 경험을 보장하기 위해 필요한 가상 환경과 의존성을 자동으로 관리합니다.  
+**DX-AllSuite**는 사용자 본인의 모델을 가져오느냐, 사전 최적화된 모델을 사용하느냐, DEEPX ModelZoo 모델을 평가하느냐에 따라 DEEPX NPU를 활용하는 세 가지 경로를 제공합니다. SDK는 원활한 개발 경험을 보장하기 위해 필요한 가상 환경과 의존성을 자동으로 관리합니다.  
 
 **[경로 A] 사용자 정의 모델 추론 경로**  
 사용자가 직접 훈련시킨 모델을 변환하고 배포하는 표준 워크플로우입니다.  
@@ -152,6 +153,14 @@ Docker 경로를 사용할 계획이지만 Docker가 설치되어 있지 않은 
 - **단계 1 (Select)**: **DEEPX ModelZoo** 또는 샘플 데이터에서 사전 검증된 `.dxnn` 모델을 선택합니다.  
 - **단계 2 (DX-RT)**: 별도의 컴파일 과정 없이 런타임 환경(`venv-dx-runtime`)에서 선택한 모델을 즉시 로드합니다.  
 - **단계 3 (NPU Acceleration)**: 하드웨어 가속 추론을 실행하고 **FPS** 및 **지연 시간(Latency)**과 같은 주요 성능 지표를 분석합니다.  
+
+**[경로 C] 모델 평가 경로 (DX-ModelZoo)**  
+단일 CLI(`dxmz`)로 사전 구성된 모델의 정확도와 성능을 측정하는 경로입니다.  
+
+- **단계 1 (Select)**: **DX-ModelZoo**에서 모델을 선택합니다(`dxmz list`, `dxmz info`). 각 모델은 하나의 YAML 파일(전처리, 후처리, 데이터셋, 프로파일)로 정의됩니다.  
+- **단계 2 (ONNX Baseline)**: CPU/GPU에서 ONNX 모델을 평가합니다(`--profile onnx`). 모델이 없으면 `DXMZ_MODEL_URL`에서 자동으로 다운로드합니다.  
+- **단계 3 (DX-COM)**: DXNN 프로파일(`c-lite`, `q-lite`, `q-pro`)로 ONNX 모델을 `.dxnn`으로 컴파일합니다.  
+- **단계 4 (DX-RT)**: 동일한 데이터셋으로 NPU에서 `.dxnn` 모델을 평가하고 ONNX 기준 결과와 지표를 비교합니다.  
 
 ---
 
@@ -261,6 +270,54 @@ dxrt-cli -u ./dx-runtime/dx_fw/m1/X.X.X/mdot2/fw.bin
 **단계 3. 시스템 재부팅**  
 설치가 완료되면 반드시 `sudo reboot`를 수행하여 설치된 커널 드라이버를 활성화하십시오.  
 
+### DX-ModelZoo Installation
+
+**DX-ModelZoo**는 `dxmz` CLI로 동작하는 YAML 기반 모델 평가 및 NPU 컴파일 프레임워크입니다. `./dx-modelzoo` 서브모듈에 위치합니다.  
+
+#### A. 설치 전 요구 사항
+- **DX-Runtime**: DX-ModelZoo는 NPU 평가용 `dx_engine`을 제공하는 런타임 환경(`dx-runtime/venv-dx-runtime`)에 설치됩니다. DX-Runtime을 먼저 설치하십시오 (`./getting-started/runtime-0_install_dx-runtime.sh`).  
+- **DX-Compiler** (`dxmz compile` 사용 시에만): 동일한 환경에 `dx_com` wheel이 설치되어 있어야 합니다.  
+- **Python**: 3.8 이상  
+
+#### B. 설치 방법
+제공되는 스크립트로 DX-ModelZoo를 설치하고 워크스페이스를 준비합니다.  
+```Bash
+# 1. Install dx-modelzoo into dx-runtime/venv-dx-runtime (CPU ONNX Runtime by default)
+./getting-started/modelzoo-0_install_dx-modelzoo.sh
+
+# (Optional) GPU ONNX Runtime
+./getting-started/modelzoo-0_install_dx-modelzoo.sh --extra gpu
+
+# 2. Create getting-started/modelzoo (-> workspace/modelzoo) and dx-modelzoo/.env
+./getting-started/modelzoo-1_prepare_assets.sh
+```
+
+!!! note "GPU 추론 (ONNX Runtime GPU)"  
+    `--extra gpu`는 `.[gpu]`(`onnxruntime-gpu` 및 CUDA 라이브러리)를 설치하고, 두 패키지가 공존할 수 없으므로 `onnxruntime`을 제거합니다. `cpu`를 포함하는 `all`과 `gpu`를 함께 사용하지 마십시오. 요구 사항: NVIDIA GPU (Pascal/Turing/Ampere), NVIDIA Driver ≥ 535.230.02, CUDA 12.2, cuDNN 9.1. 설치 후 스크립트가 출력하는 NVIDIA 라이브러리 경로를 `LD_LIBRARY_PATH`에 추가하십시오.  
+
+`modelzoo-1_prepare_assets.sh`는 `.env`가 없을 때만 `dx-modelzoo/.env.example`을 `dx-modelzoo/.env`로 복사합니다. 환경에 맞게 수정하십시오.  
+
+| 변수 | 설명 |
+| :--- | :--- |
+| `DXMZ_MODEL_URL` | 모델 자동 다운로드 기본 URL. 자동 다운로드에 필수 (내장 기본값 없음); `.env.example`은 `https://sdk.deepx.ai/modelzoo`로 설정 |
+| `MODEL_ROOT` | 모델 파일 루트 디렉토리 (`--model-root`가 우선) |
+| `DATA_ROOT` | 데이터셋 루트 디렉토리 (`--data-root`가 우선) |
+
+#### C. 검증 및 사용
+```Bash
+# 1. Activate the Virtual Environment
+source ./dx-runtime/venv-dx-runtime/bin/activate
+
+# 2. Verify the CLI and the NPU Python API
+dxmz --help
+python3 -c "import dx_engine; print('dx_engine OK')"
+
+# 3. Inspect a model
+dxmz info resnet50_224x224
+```
+
+- **다음 단계**: `./getting-started/modelzoo-2_run_first_npu_model.sh`로 첫 번째 모델을 실행합니다. [**Running Your First NPU Model**](03_Running_Your_First_NPU_Model_kor.md)을 참조하십시오.  
+
 ### [Local] Installation Verification (Sanity Check)
 
 로컬 설치가 완료되면 하드웨어와 소프트웨어가 올바르게 통신하는지 최종 확인을 수행합니다.
@@ -352,7 +409,11 @@ Docker 이미지는 GPU 가속 옵션으로 빌드할 수 있습니다. 두 옵�
 ./docker_down.sh --target=dx-modelzoo --ubuntu_version=24.04 --nvidia_gpu
 ```
 
-dx-modelzoo 컨테이너 내에서는 측정 전 GPU 의존성을 설치하십시오: `pip install -e ".[gpu]"`.
+dx-modelzoo GPU 이미지에는 이미지의 CUDA 버전에 맞는 `onnxruntime-gpu`가 설치되어 있어 별도 설정 없이 ONNX 평가가 GPU로 실행됩니다.
+
+- CUDA 12 이미지: `onnxruntime-gpu<1.27`, CUDA 13 이미지: `onnxruntime-gpu>=1.27`
+- **컨테이너 내에서 `pip install -e ".[gpu]"`를 실행하지 마십시오.** `onnxruntime-gpu`가 최신 릴리스로 올라가 다른 CUDA 메이저 버전용 빌드가 설치되면 평가가 CPU로 폴백됩니다.
+- 확인 방법: `python -c "import onnxruntime as ort; print(ort.__version__)"`를 실행하고, 평가 중 `nvidia-smi`를 확인하십시오.
 dx-compiler의 `q-pro` calibration은 GPU를 자동으로 사용합니다 (`quantization_device` auto-detection).
 
 **B. Intel GPU (VA-API 미디어 가속) — dx-runtime (dx_stream)**
@@ -461,6 +522,78 @@ cd /deepx/dx-runtime/dx_stream
 !!! note "시나리오 선택"  
     터미널에 표시되는 시나리오 번호를 입력하여 특정 스트리밍 시나리오를 선택할 수 있습니다.  
 
+#### C. DX-ModelZoo 환경 (모델 평가)
+**DX-ModelZoo** 환경은 사전 구성된 모델을 ONNX Runtime 및 DEEPX NPU에서 평가하고 `.dxnn`으로 컴파일합니다. 이미지에는 DX-ModelZoo(`dxmz`)가 `/venv-dxnn`에 사전 설치되어 있습니다.
+
+!!! note "구버전 이미지는 재빌드 필요"  
+    `dxmz`는 이미지 빌드 시점에 설치됩니다. `Dockerfile.dx-modelzoo`에 DX-ModelZoo가 추가되기 전에 빌드된 이미지에는 포함되어 있지 않으므로, `docker run --rm --entrypoint /venv-dxnn/bin/dxmz dx-modelzoo:ubuntu-24.04 --help`로 확인하고 실패하면 재빌드하십시오.  
+    ```Bash
+    ./docker_build.sh --target=dx-modelzoo --ubuntu_version=24.04
+    ```  
+
+**C-1. 컨테이너 접속**  
+```Bash
+# 1. Run from the host terminal: Enter the container
+docker exec -it dx-modelzoo-ubuntu-24.04 bash
+
+# 2. Inside Container: Verify the CLI
+dxmz --help
+```
+
+!!! note "NPU 접근"  
+    `dx-modelzoo` 컨테이너는 자체 `dxrtd`를 실행하지 않고 `dx-runtime` 컨테이너(또는 호스트)에서 실행 중인 DX-RT 서비스를 사용합니다. NPU(`dxnn`) 평가 전에 `dx-runtime` 컨테이너를 실행하십시오.  
+
+!!! note "GPU 이미지 (ONNX Runtime GPU)"  
+    기본 이미지는 `.[cpu]`를 설치합니다. NVIDIA GPU에서 ONNX 모델을 평가하려면 `--nvidia_gpu`로 빌드 및 실행하십시오. CUDA/cuDNN이 포함된 `nvidia/cuda` cuDNN runtime 베이스 이미지를 사용하고 `.[gpu]`를 설치하므로 `LD_LIBRARY_PATH` 설정이 필요 없습니다. 호스트에는 NVIDIA 드라이버와 NVIDIA Container Toolkit이 필요합니다.  
+    ```Bash
+    ./docker_build.sh --target=dx-modelzoo --ubuntu_version=24.04 --nvidia_gpu
+    ./docker_run.sh --target=dx-modelzoo --ubuntu_version=24.04 --nvidia_gpu
+    ```
+    GPU 컨테이너 이름은 `dx-modelzoo-12.8.1-cudnn-runtime-ubuntu24.04`입니다.  
+    ```Bash
+    docker exec -it dx-modelzoo-12.8.1-cudnn-runtime-ubuntu24.04 bash
+    ```
+
+**C-2. 워크스페이스 및 `.env` 준비**  
+`modelzoo-1_prepare_assets.sh`는 `getting-started/modelzoo`를 `${DOCKER_VOLUME_PATH}/modelzoo`(호스트 `workspace/` 디렉토리에서 마운트됨)로 연결하고, `.env`가 없으면 `.env.example`로부터 `/deepx/dx-modelzoo/.env`를 생성합니다.  
+```Bash
+cd /deepx/getting-started
+./modelzoo-1_prepare_assets.sh
+```
+
+`/deepx/dx-modelzoo/.env`를 확인하고, 네트워크에서 모델 미러를 사용하는 경우 `DXMZ_MODEL_URL`을 설정하십시오. 평가용 데이터셋은 `getting-started/modelzoo/datasets` 아래에 배치합니다 (예: `ILSVRC2012/val`).  
+
+!!! tip "기존 데이터셋 디렉토리 마운트"  
+    데이터셋이 이미 호스트에 있는 경우(예: `/mnt/datasets/ILSVRC2012`) 복사 대신 read-only로 마운트하십시오. 컨테이너 실행 시 `DX_DATASETS_PATH`를 설정하면 `/deepx/datasets`에 마운트됩니다(`DX_DATASETS_TARGET`으로 변경 가능).  
+    ```Bash
+    # Host terminal
+    DX_DATASETS_PATH=/mnt/datasets ./docker_run.sh --target=dx-modelzoo --ubuntu_version=24.04
+    ```
+    컨테이너 안에서는 스크립트 또는 CLI에 마운트 경로를 지정합니다.  
+    ```Bash
+    # 스크립트: DATA_ROOT 재정의
+    DATA_ROOT=/deepx/datasets ./getting-started/modelzoo-2_run_first_npu_model.sh
+
+    # CLI: 실행 단위로 재정의
+    dxmz eval resnet50_224x224 --profile onnx --data-root /deepx/datasets --save
+    ```
+
+**C-3. 첫 번째 모델 실행**  
+```Bash
+./modelzoo-2_run_first_npu_model.sh
+```
+
+!!! note "컴파일"  
+    `dxmz compile`에는 `dx_com`이 필요합니다. 스크립트가 `pip`으로 자동 설치하며(`dx-compiler/compiler.properties`에 고정된 버전, 실패 시 PyPI 릴리스), 로컬 wheel을 사용하려면 `--dx-com-wheel /path/to/dx_com-*.whl`을 전달하십시오.  
+
+!!! tip "컴파일 없이 NPU 평가"  
+    `dxmz eval --profile q-lite`는 `DXMZ_MODEL_URL`에서 사전 빌드된 `.dxnn`을 다운로드하므로 `dx_com` 없이 NPU 평가가 가능합니다.  
+    ```Bash
+    ./modelzoo-2_run_first_npu_model.sh --skip-onnx --skip-compile
+    ```
+
+자세한 스크립트 흐름은 [**Running Your First NPU Model**](03_Running_Your_First_NPU_Model_kor.md)의 **DX-ModelZoo: Model Evaluation Scripts Guide** 섹션을 참조하십시오.  
+
 **경로 관련 주의사항**  
 "`File not found`" 오류를 방지하려면 **호스트** 터미널과 **컨테이너** 터미널을 명확히 구분하는 것이 중요합니다.  
 
@@ -489,8 +622,8 @@ Docker Compose를 사용하는 경우, `docker/docker-compose.yml`의 해당 서
 ```YAML
 services:
 dx-runtime:
-		entrypoint: ["/bin/sh", "-c"]
-		command: ["sleep infinity"]
+entrypoint: ["/bin/sh", "-c"]
+command: ["sleep infinity"]
 ```
 
 !!! note "수동 시작"  

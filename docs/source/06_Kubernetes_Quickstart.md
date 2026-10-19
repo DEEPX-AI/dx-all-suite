@@ -44,6 +44,9 @@ Components (mirroring the proven NVIDIA stack layout):
     mkdir -p ~/.kube
     sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config
     sudo chown "$USER" ~/.kube/config
+    # k3s's kubectl reads /etc/rancher/k3s/k3s.yaml (root-only) unless KUBECONFIG is set
+    echo 'export KUBECONFIG=~/.kube/config' >> ~/.bashrc
+    export KUBECONFIG=~/.kube/config
 
     # helm
     curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash

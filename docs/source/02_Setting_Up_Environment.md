@@ -186,13 +186,14 @@ DX-AllSuite automates the creation of Python virtual environments (venv) to prev
 
 - **Compiler Environment**: Created at `dx-compiler/venv-dx-compiler`  
 - **Runtime Environment**: Created at `dx-runtime/venv-dx-runtime`  
+- **ModelZoo Environment**: DX-ModelZoo is installed into the runtime environment (`dx-runtime/venv-dx-runtime`) so that `dxmz` can use `dx_engine` for NPU evaluation. In the Docker image, it is pre-installed in `/venv-dxnn`.  
 
 !!! warning "CAUTION"  
     If you are installing an individual module (e.g., `dx-rt` only), you **must** activate the corresponding virtual environment (`source .../activate`) created by the script to avoid installation failure.     
     
 ### SDK Workflow Guide
 
-**DX-AllSuite** provides two paths for utilizing the DEEPX NPU, depending on whether you are bringing your own model or using a pre-optimized one. The SDK automatically manages the necessary virtual environments and dependencies to ensure a seamless development experience.  
+**DX-AllSuite** provides three paths for utilizing the DEEPX NPU, depending on whether you are bringing your own model, using a pre-optimized one, or evaluating models from the DEEPX ModelZoo. The SDK automatically manages the necessary virtual environments and dependencies to ensure a seamless development experience.  
 
 **[Path A] Custom Model Inference Path**  
 The standard workflow for converting and deploying user-trained models.  
@@ -224,6 +225,14 @@ This path is ideal for users who want to quickly benchmark DEEPX NPU performance
 - **Step 1 (Select)**: Choose a pre-validated `.dxnn` model from the **DEEPX ModelZoo** or sample data.  
 - **Step 2 (DX-RT)**: Load the selected model immediately in the runtime environment (`venv-dx-runtime`) without a separate compilation process.  
 - **Step 3 (NPU Acceleration)**: Execute hardware-accelerated inference and analyze key performance indicators like **FPS** and **Latency**.  
+
+**[Path C] Model Evaluation Path (DX-ModelZoo)**  
+The path for measuring accuracy and performance of pre-configured models with a single CLI (`dxmz`).  
+
+- **Step 1 (Select)**: Choose a model from **DX-ModelZoo** (`dxmz list`, `dxmz info`). Each model is defined by one YAML file (preprocessing, postprocessing, dataset, profiles).  
+- **Step 2 (ONNX Baseline)**: Evaluate the ONNX model on CPU/GPU (`--profile onnx`). Missing models are downloaded automatically from `DXMZ_MODEL_URL`.  
+- **Step 3 (DX-COM)**: Compile the ONNX model to `.dxnn` with a DXNN profile (`c-lite`, `q-lite`, `q-pro`).  
+- **Step 4 (DX-RT)**: Evaluate the `.dxnn` model on the NPU with the same dataset and compare the metrics with the ONNX baseline.  
 
 ---
 
@@ -332,6 +341,54 @@ It is **strongly recommended** to completely shut down the system, turn off the 
 **Step 3. System Reboot**  
 After installation is complete, be sure to perform `sudo reboot` to activate the installed kernel driver.  
 
+### DX-ModelZoo Installation
+
+**DX-ModelZoo** is a YAML-driven framework for model evaluation and NPU compilation, operated through the `dxmz` CLI. It is located in the `./dx-modelzoo` submodule.  
+
+#### A. Pre-Installation Requirements
+- **DX-Runtime**: DX-ModelZoo is installed into the runtime environment (`dx-runtime/venv-dx-runtime`), which provides `dx_engine` for NPU evaluation. Install DX-Runtime first (`./getting-started/runtime-0_install_dx-runtime.sh`).  
+- **DX-Compiler** (for `dxmz compile` only): The `dx_com` wheel must be installed in the same environment.  
+- **Python**: 3.8 or higher  
+
+#### B. Installation Method
+The provided scripts install DX-ModelZoo and prepare its workspace.  
+```Bash
+# 1. Install dx-modelzoo into dx-runtime/venv-dx-runtime (CPU ONNX Runtime by default)
+./getting-started/modelzoo-0_install_dx-modelzoo.sh
+
+# (Optional) GPU ONNX Runtime
+./getting-started/modelzoo-0_install_dx-modelzoo.sh --extra gpu
+
+# 2. Create getting-started/modelzoo (-> workspace/modelzoo) and dx-modelzoo/.env
+./getting-started/modelzoo-1_prepare_assets.sh
+```
+
+!!! note "GPU Inference (ONNX Runtime GPU)"  
+    `--extra gpu` installs `.[gpu]` (`onnxruntime-gpu` and CUDA libraries) and removes `onnxruntime`, because the two packages cannot coexist. Do not combine `gpu` with `all`, which includes `cpu`. Requirements: NVIDIA GPU (Pascal/Turing/Ampere), NVIDIA Driver ≥ 535.230.02, CUDA 12.2, cuDNN 9.1. After installation, add the NVIDIA library paths printed by the script to `LD_LIBRARY_PATH`.  
+
+`modelzoo-1_prepare_assets.sh` copies `dx-modelzoo/.env.example` to `dx-modelzoo/.env` only when `.env` does not exist. Edit it for your environment:  
+
+| Variable | Description |
+| :--- | :--- |
+| `DXMZ_MODEL_URL` | Base URL for automatic model download. Required for auto-download (no built-in default); `.env.example` sets `https://sdk.deepx.ai/modelzoo` |
+| `MODEL_ROOT` | Model file root directory (overridden by `--model-root`) |
+| `DATA_ROOT` | Dataset root directory (overridden by `--data-root`) |
+
+#### C. Verify and Usage
+```Bash
+# 1. Activate the Virtual Environment
+source ./dx-runtime/venv-dx-runtime/bin/activate
+
+# 2. Verify the CLI and the NPU Python API
+dxmz --help
+python3 -c "import dx_engine; print('dx_engine OK')"
+
+# 3. Inspect a model
+dxmz info resnet50_224x224
+```
+
+- **Next Step**: Run the first model with `./getting-started/modelzoo-2_run_first_npu_model.sh`. Refer to [**Running Your First NPU Model**](03_Running_Your_First_NPU_Model.md).  
+
 ### [Local] Installation Verification (Sanity Check)
 
 Once the local installation is finished, perform a final check to confirm that the hardware and software are communicating correctly. 
@@ -424,7 +481,11 @@ Host requirements: NVIDIA driver and [nvidia-container-toolkit](https://docs.nvi
 ./docker_down.sh --target=dx-modelzoo --ubuntu_version=24.04 --nvidia_gpu
 ```
 
-Inside the dx-modelzoo container, install GPU dependencies before evaluation: `pip install -e ".[gpu]"`.
+The dx-modelzoo GPU image already includes an `onnxruntime-gpu` build that matches the image's CUDA version, so ONNX evaluation runs on the GPU without extra setup.
+
+- CUDA 12 images: `onnxruntime-gpu<1.27`; CUDA 13 images: `onnxruntime-gpu>=1.27`.
+- **Do not run `pip install -e ".[gpu]"` inside the container.** It upgrades `onnxruntime-gpu` to the newest release, which may target a different CUDA major version, and evaluation then falls back to the CPU.
+- To check: `python -c "import onnxruntime as ort; print(ort.__version__)"`, and watch `nvidia-smi` during evaluation.
 For dx-compiler, `q-pro` calibration uses the GPU automatically (`quantization_device` auto-detection).
 
 **B. Intel GPU (VA-API Media Acceleration) — dx-runtime (dx_stream)**
@@ -534,6 +595,78 @@ cd /deepx/dx-runtime/dx_stream
 
 !!! note "Scenario Selection"  
     You can select specific streaming scenarios by entering the scenario number displayed in the terminal.
+
+#### C. DX-ModelZoo Environment (Model Evaluation)
+The **DX-ModelZoo** environment evaluates pre-configured models with ONNX Runtime and the DEEPX NPU, and compiles them to `.dxnn`. The image pre-installs DX-ModelZoo (`dxmz`) in `/venv-dxnn`.  
+
+!!! note "Rebuild Required for Older Images"  
+    `dxmz` is installed during the image build. An image built before DX-ModelZoo was added to `Dockerfile.dx-modelzoo` does not contain it — verify with `docker run --rm --entrypoint /venv-dxnn/bin/dxmz dx-modelzoo:ubuntu-24.04 --help` and rebuild if it fails:  
+    ```Bash
+    ./docker_build.sh --target=dx-modelzoo --ubuntu_version=24.04
+    ```
+
+**C-1. Accessing the Container**  
+```Bash
+# 1. Run from the host terminal: Enter the container
+docker exec -it dx-modelzoo-ubuntu-24.04 bash
+
+# 2. Inside Container: Verify the CLI
+dxmz --help
+```
+
+!!! note "NPU Access"  
+    The `dx-modelzoo` container does not start its own `dxrtd`. It uses the DX-RT service running in the `dx-runtime` container (or on the host). Start the `dx-runtime` container before NPU (`dxnn`) evaluation.  
+
+!!! note "GPU Image (ONNX Runtime GPU)"  
+    The default image installs `.[cpu]`. To evaluate ONNX models on an NVIDIA GPU, build and run with `--nvidia_gpu`. It uses the `nvidia/cuda` cuDNN runtime base image (CUDA/cuDNN included) and installs `.[gpu]`, so no `LD_LIBRARY_PATH` setup is needed. The host requires the NVIDIA driver and NVIDIA Container Toolkit.  
+    ```Bash
+    ./docker_build.sh --target=dx-modelzoo --ubuntu_version=24.04 --nvidia_gpu
+    ./docker_run.sh --target=dx-modelzoo --ubuntu_version=24.04 --nvidia_gpu
+    ```
+    The GPU container is named `dx-modelzoo-12.8.1-cudnn-runtime-ubuntu24.04`.  
+    ```Bash
+    docker exec -it dx-modelzoo-12.8.1-cudnn-runtime-ubuntu24.04 bash
+    ```
+
+**C-2. Preparing the Workspace and `.env`**  
+`modelzoo-1_prepare_assets.sh` links `getting-started/modelzoo` to `${DOCKER_VOLUME_PATH}/modelzoo` (mounted from the host `workspace/` directory) and creates `/deepx/dx-modelzoo/.env` from `.env.example` if it does not exist.  
+```Bash
+cd /deepx/getting-started
+./modelzoo-1_prepare_assets.sh
+```
+
+Review `/deepx/dx-modelzoo/.env` and set `DXMZ_MODEL_URL` if your network uses a model mirror. Place evaluation datasets under `getting-started/modelzoo/datasets` (e.g., `ILSVRC2012/val`).  
+
+!!! tip "Mounting an Existing Dataset Directory"  
+    If the datasets already live on the host (e.g., `/mnt/datasets/ILSVRC2012`), mount them read-only instead of copying. Set `DX_DATASETS_PATH` when starting the container — it is mounted at `/deepx/datasets` (override with `DX_DATASETS_TARGET`).  
+    ```Bash
+    # Host terminal
+    DX_DATASETS_PATH=/mnt/datasets ./docker_run.sh --target=dx-modelzoo --ubuntu_version=24.04
+    ```
+    Inside the container, point the script or the CLI at the mount:  
+    ```Bash
+    # Script: override DATA_ROOT
+    DATA_ROOT=/deepx/datasets ./getting-started/modelzoo-2_run_first_npu_model.sh
+
+    # CLI: override per run
+    dxmz eval resnet50_224x224 --profile onnx --data-root /deepx/datasets --save
+    ```
+
+**C-3. Running the First Model**  
+```Bash
+./modelzoo-2_run_first_npu_model.sh
+```
+
+!!! note "Compilation"  
+    `dxmz compile` requires `dx_com`. The script installs it automatically with `pip` (the version pinned in `dx-compiler/compiler.properties`, falling back to the PyPI release); pass `--dx-com-wheel /path/to/dx_com-*.whl` to use a local wheel instead.  
+
+!!! tip "NPU Evaluation Without Compiling"  
+    `dxmz eval --profile q-lite` downloads a prebuilt `.dxnn` from `DXMZ_MODEL_URL`, so you can evaluate on the NPU without `dx_com`:  
+    ```Bash
+    ./modelzoo-2_run_first_npu_model.sh --skip-onnx --skip-compile
+    ```
+
+For the detailed script flow, refer to **DX-ModelZoo: Model Evaluation Scripts Guide** in [**Running Your First NPU Model**](03_Running_Your_First_NPU_Model.md).  
 
 **Path Precautions**  
 It is critical to distinguish between your **Host** terminal and the **Container** terminal to avoid "`File not found`" errors.  

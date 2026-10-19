@@ -54,6 +54,20 @@ echo -e "=== Delegating to dx-compiler/example/3-compile_sample_models.sh ${TAG_
 DXNN_SYMLINK="${SCRIPT_DIR}/dxnn"
 OUTPUT_REAL="${DX_AS_PATH}/dx-compiler/dx_com/output"
 
+# compiler-3 points dxnn at the shared workspace (e.g. ${DOCKER_VOLUME_PATH}/dxnn in
+# container mode). Keep that link and copy the results there; re-linking to OUTPUT_REAL
+# would leave them inside the container where the runtime cannot see them.
+if [ -L "${DXNN_SYMLINK}" ] && [ -d "${DXNN_SYMLINK}" ] && \
+   [ "$(realpath "${DXNN_SYMLINK}")" != "$(realpath "${OUTPUT_REAL}")" ]; then
+    cp -rf "${OUTPUT_REAL}/." "${DXNN_SYMLINK}/"
+    if [ $? -ne 0 ]; then
+        echo -e "${TAG_ERROR} Failed to copy compiled models: ${OUTPUT_REAL} -> ${DXNN_SYMLINK}"
+        exit 1
+    fi
+    echo "Copied compiled models: ${OUTPUT_REAL} -> ${DXNN_SYMLINK} ($(realpath "${DXNN_SYMLINK}"))"
+    exit 0
+fi
+
 if [ -L "${DXNN_SYMLINK}" ]; then
     rm "${DXNN_SYMLINK}"
 elif [ -e "${DXNN_SYMLINK}" ]; then

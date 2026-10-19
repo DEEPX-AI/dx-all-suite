@@ -102,6 +102,13 @@ docker_run_impl()
     local target=$1
     local config_file_args=${2:--f docker/docker-compose.yml}
 
+    if [ ${NVIDIA_GPU_MODE} -eq 1 ] && [ "$target" != "runtime" ]; then
+        config_file_args="${config_file_args} -f docker/docker-compose.nvidia_gpu.yml"
+        # docker-compose.nvidia_gpu.yml tags images as <cuda>-cudnn-runtime-ubuntu${UBUNTU_VERSION}
+        export UBUNTU_VERSION="${OS_VERSION}"
+        export IMAGE_TAG_SUFFIX="${CUDA_VERSION:-12.8.1}-cudnn-runtime-ubuntu${OS_VERSION}"
+    fi
+
     # Check if Docker image exists before running
     local image_tag="${IMAGE_TAG_SUFFIX:-${BASE_IMAGE_NAME}-${OS_VERSION}}"
     local image_name="dx-${target}:${image_tag}"
@@ -110,11 +117,6 @@ docker_run_impl()
         print_colored_v2 "HINT" "Please build the image first using:"
         echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]   ** './docker_build.sh --target=${target} --<os>_version=<version>'${COLOR_RESET} **"
         return 1
-    fi
-
-    # NVIDIA GPU overlay applies to dx-compiler and dx-modelzoo only
-    if [ ${NVIDIA_GPU_MODE} -eq 1 ] && [ "$target" != "runtime" ]; then
-        config_file_args="${config_file_args} -f docker/docker-compose.nvidia_gpu.yml"
     fi
 
     if [ ${DEV_MODE} -eq 1 ]; then
@@ -146,6 +148,21 @@ docker_run_impl()
     else
         print_colored_v2 "INFO" "XAUTHORITY(${XAUTHORITY}) is set"
         export XAUTHORITY_TARGET="/tmp/.docker.xauth"
+    fi
+
+    # Optional read-only dataset mount (e.g. DX_DATASETS_PATH=/mnt/datasets ./docker_run.sh ...).
+    # Unset -> /dev/null:/dev/null, the same no-op pattern used for TIMEZONE_MOUNT.
+    if [ -n "${DX_DATASETS_PATH}" ] && [ "${DX_DATASETS_PATH}" != "/dev/null" ]; then
+        if [ ! -d "${DX_DATASETS_PATH}" ]; then
+            print_colored_v2 "ERROR" "DX_DATASETS_PATH(${DX_DATASETS_PATH}) is not a directory."
+            exit 1
+        fi
+        export DX_DATASETS_PATH
+        export DX_DATASETS_TARGET="${DX_DATASETS_TARGET:-/deepx/datasets}"
+        print_colored_v2 "INFO" "Mounting datasets: ${DX_DATASETS_PATH} -> ${DX_DATASETS_TARGET} (read-only)"
+    else
+        export DX_DATASETS_PATH="/dev/null"
+        export DX_DATASETS_TARGET="/dev/null"
     fi
 
     # Dynamically set the project name based on the OS
@@ -490,6 +507,11 @@ main() {
 
     if [ "$OS_OPTIONS_COUNT" -eq 0 ]; then
         show_help "error" "An OS version option must be specified (--ubuntu_version, --debian_version, --fedora_version, --rhel_version, or --centos_version)."
+    fi
+
+    # docker-compose.nvidia_gpu.yml uses Ubuntu-based nvidia/cuda images only
+    if [ ${NVIDIA_GPU_MODE} -eq 1 ] && [ -z "$UBUNTU_VERSION" ]; then
+        show_help "error" "--nvidia_gpu requires --ubuntu_version (nvidia/cuda base images are Ubuntu-based)."
     fi
 
     # Set BASE_IMAGE_NAME and OS_VERSION based on input

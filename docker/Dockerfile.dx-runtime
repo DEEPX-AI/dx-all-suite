@@ -220,6 +220,11 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 RUN echo "source /venv-dxnn/bin/activate" >> /root/.bashrc
+# .bashrc only covers interactive shells; `docker run ... bash -c` needs the venv on PATH too
+ENV VIRTUAL_ENV=/venv-dxnn
+ENV PATH="/venv-dxnn/bin:${PATH}"
+# getting-started runtime-2 (setup_sample_models.sh) downloads assets with requests
+RUN pip install --no-cache-dir requests
 
 # COPY 'scripts' and 'getting-started'
 # NOTE: changes under scripts/ or getting-started/ invalidate all child stage

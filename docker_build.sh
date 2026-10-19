@@ -118,6 +118,9 @@ docker_build_impl()
     # NVIDIA GPU overlay applies to dx-compiler and dx-modelzoo only
     if [ ${NVIDIA_GPU_MODE} -eq 1 ] && [ "$target" != "runtime" ]; then
         config_file_args="${config_file_args} -f docker/docker-compose.nvidia_gpu.yml"
+        # docker-compose.nvidia_gpu.yml tags images as <cuda>-cudnn-runtime-ubuntu${UBUNTU_VERSION}
+        export UBUNTU_VERSION="${OS_VERSION}"
+        export IMAGE_TAG_SUFFIX="${CUDA_VERSION:-12.8.1}-cudnn-runtime-ubuntu${OS_VERSION}"
     fi
 
     # Intel GPU (VA-API) overlay applies to dx-runtime only
@@ -427,6 +430,11 @@ main() {
         show_help "error" "--variant cannot be combined with --nvidia_gpu (the nvidia_gpu overlay overrides the image tag, so the variant suffix would be lost)."
     fi
 
+    # docker-compose.nvidia_gpu.yml uses Ubuntu-based nvidia/cuda images only
+    if [ ${NVIDIA_GPU_MODE} -eq 1 ] && [ -z "$UBUNTU_VERSION" ]; then
+        show_help "error" "--nvidia_gpu requires --ubuntu_version (nvidia/cuda base images are Ubuntu-based)."
+    fi
+
     # Set BASE_IMAGE_NAME and OS_VERSION based on input
     if [ -n "$UBUNTU_VERSION" ]; then
         BASE_IMAGE_NAME="ubuntu"
@@ -448,6 +456,15 @@ main() {
         BASE_IMAGE_NAME="quay.io/centos/centos"
         OS_VERSION="$CENTOS_VERSION"
         IMAGE_TAG_SUFFIX="centos-${CENTOS_VERSION}"
+    fi
+
+    # Reject unsupported Ubuntu versions before archiving/building, for every target
+    # (previously only archive_dx-compiler checked; other targets failed late in the Dockerfile)
+    if [ "${BASE_IMAGE_NAME}" = "ubuntu" ]; then
+        case "${OS_VERSION}" in
+            20.04|22.04|24.04|26.04) ;;
+            *) show_help "error" "Unsupported OS version: ubuntu ${OS_VERSION}. Supported versions: Ubuntu 20.04, 22.04, 24.04, 26.04" ;;
+        esac
     fi
 
     # NVIDIA GPU mode: ubuntu-only (nvidia/cuda base images are ubuntu-based)

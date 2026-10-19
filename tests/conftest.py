@@ -562,6 +562,37 @@ def pytest_collection_modifyitems(config, items):
 
 
 # ============================================================================
+# local_install cleanup: container-mode install.sh links <component>/venv-<component>
+# to ${DOCKER_VOLUME_PATH}/venv/<component>. The mounted volume is the host checkout,
+# so after the run those links dangle on the host.
+# ============================================================================
+
+_ran_local_install = False
+
+
+def pytest_runtest_logreport(report):
+    global _ran_local_install
+    if "test_local_install" in report.nodeid:
+        _ran_local_install = True
+
+
+def pytest_sessionfinish(session, exitstatus):
+    # Workers share the host checkout, so clean up once: on the xdist controller
+    # (which still receives worker reports) or in a non-xdist run.
+    # ponytail: a concurrent local_install session on the same checkout would lose its
+    # links too; add a cross-session lock if that ever becomes a real setup.
+    if hasattr(session.config, "workerinput") or not _ran_local_install:
+        return
+    # `or`: an empty DOCKER_VOLUME_PATH would make the prefix "/" and match every link
+    volume = (os.getenv("DOCKER_VOLUME_PATH") or "/deepx/workspace").rstrip("/")
+    checkout = Path(os.getenv("LOCAL_VOLUME_PATH") or str(REPO_ROOT))
+    for link in checkout.glob("*/venv-*"):
+        if link.is_symlink() and not link.exists() and os.readlink(link).startswith(volume + "/"):
+            link.unlink()
+            print(f"\n[local_install cleanup] removed dangling container venv link: {link}")
+
+
+# ============================================================================
 # Reusable local-install docker helpers (image build + container start)
 # ============================================================================
 
