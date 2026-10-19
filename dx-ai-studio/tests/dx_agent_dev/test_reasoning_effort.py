@@ -1,6 +1,6 @@
-"""P5b: reasoning-effort(사고 강도) 컨트롤 — capability-gated.
+"""Reasoning-effort control, gated by capability.
 
-claude는 `--effort <low|medium|high|xhigh|max>`를 지원(일반망 검증). 미지원 agent는 무시.
+claude supports `--effort <low|medium|high|xhigh|max>`. Agents without support ignore it.
 """
 import sys
 from pathlib import Path
@@ -62,8 +62,7 @@ def test_cursor_build_command_skips_bracket_when_model_has_params():
 
 
 def test_copilot_exposes_effort(monkeypatch):
-    # copilot CLI supports --effort/--reasoning-effort, so it now exposes effort options
-    # (previously hidden with an empty list — runtime-verified the flag is accepted).
+    # copilot CLI supports --effort/--reasoning-effort, so it exposes effort options.
     # Verbatim from `copilot --help`: none|low|medium|high|xhigh|max.
     from core import environment
     monkeypatch.setattr(

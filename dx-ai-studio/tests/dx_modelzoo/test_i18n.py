@@ -229,7 +229,7 @@ def test_i18n_core_initializes_globals():
 def test_i18n_js_is_small_bootstrap():
     """i18n.js must be a small compatibility/bootstrap file, not the full dictionary."""
     src = i18n_source()
-    # The original i18n.js was ~980 lines. After split it should be much smaller.
+    # The dictionaries live in split files, so the bootstrap stays small.
     line_count = len(src.strip().splitlines())
     assert line_count < 80, (
         f"i18n.js should be a small bootstrap file but has {line_count} lines"

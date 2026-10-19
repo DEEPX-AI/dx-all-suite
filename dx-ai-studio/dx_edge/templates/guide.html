@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>DX Cloud — AWS Console guide</title>
+  <link rel="icon" type="image/svg+xml" href="/static/shared/favicons/dx_edge.svg">
+  <link rel="stylesheet" href="/static/shared/dx-fonts.css">
+  <link rel="stylesheet" href="/static/shared/dx-tokens.css">
+  <link rel="stylesheet" href="/static/shared/dx-semantic.css">
+  <link rel="stylesheet" href="/static/shared/dx-theme-light.css">
+  <link rel="stylesheet" href="/static/shared/dx-shell.css">
+  <link rel="stylesheet" href="/static/shared/dx-base.css">
+  <link rel="stylesheet" href="/static/shared/dx-utilities.css">
+  <link rel="stylesheet" href="/static/shared/module-chrome.css">
+  <link rel="stylesheet" href="/static/shared/dx-components.css">
+  <link rel="stylesheet" href="/static/shared/brand.css">
+  <link rel="stylesheet" href="/static/shared/toolbar.css">
+  <link rel="stylesheet" href="/static/shared/chat-widget.css">
+  <link rel="stylesheet" href="/static/css/guide.css?m=dx_edge">
+<script src="/static/shared/dx-theme.js"></script>
+<script src="/static/shared/dx-icon.js"></script>
+</head>
+<body>
+<div class="dx-shell dx-shell--no-tabs">
+{{DX_SHELL_RAIL}}
+<div class="dx-shell-body">
+{{DX_SHELL_HEADER}}
+<main class="dx-shell-main guide-main" id="guideMain">
+  <div class="guide">
+    <header class="guide-head">
+      <a class="btn btn-sm btn-ghost guide-back" href="./"><svg class="dx-ico guide-back-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#chev"></use></svg> <span id="guideBack">Back to DX Cloud</span></a>
+      <h1 class="guide-title" id="guideTitle">AWS Console guide</h1>
+      <p class="guide-lead" id="guideLead"></p>
+      <div class="guide-switch" role="tablist" id="guideSwitch"></div>
+    </header>
+    <div class="guide-layout">
+      <nav class="guide-toc" aria-labelledby="guideTocTitle">
+        <h2 class="guide-toc-title" id="guideTocTitle">On this page</h2>
+        <select class="guide-jump" id="guideJump" aria-labelledby="guideTocTitle"></select>
+        <ol class="guide-toc-list" id="guideToc"></ol>
+      </nav>
+      <article class="guide-body" id="guideBody" aria-live="polite"></article>
+    </div>
+  </div>
+
+  <dialog class="modal-overlay guide-zoom" id="guideZoom" aria-labelledby="guideZoomCap">
+    <figure class="guide-zoom-box">
+      <button type="button" class="modal-x guide-zoom-x" id="guideZoomClose"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#x"></use></svg></button>
+      <img class="guide-zoom-img" id="guideZoomImg" alt="">
+      <figcaption class="guide-zoom-cap" id="guideZoomCap"></figcaption>
+    </figure>
+  </dialog>
+</main><!-- /dx-shell-main -->
+</div><!-- /dx-shell-body -->
+</div><!-- /dx-shell -->
+
+  <script src="/static/js/i18n.js?m=dx_edge"></script>
+  <script src="/static/shared/i18n.js"></script>
+  <script src="/static/shared/brand.js"></script>
+  <script>
+DXBrand.mount({
+  target: '#dxBrand',
+  name: 'Cloud',
+  subtitle: {
+    ko: 'AWS 클라우드 컴파일 · 엣지 배포',
+    en: 'AWS Cloud Compile · Edge Deployment',
+    es: 'Compilación en AWS · Despliegue edge',
+    ja: 'AWS クラウドコンパイル · エッジデプロイ',
+    'zh-CN': 'AWS 云端编译 · 边缘部署',
+    'zh-TW': 'AWS 雲端編譯 · 邊緣部署'
+  },
+  accent: 'var(--accent)'
+});
+  </script>
+  <script src="/static/shared/toolbar.js"></script>
+  <script>DXToolbar.init({ container: '.toolbar' });</script>
+  <script src="/static/js/guide.js?m=dx_edge"></script>
+  <script src="/static/shared/chat-widget.js"></script>
+  <script>DXChat.init({ appName: 'dx_edge' });</script>
+</body>
+</html>

@@ -19,14 +19,20 @@ async function openDev(){
   nav('lab');
 }
 function _devInitSelects(){
-  api('/api/task_types').then(function(tasks){
-    if(!Array.isArray(tasks))return;
-    $('da-task').innerHTML=tasks.map(function(t){return'<option value="'+t+'">'+t+'</option>'}).join('');
-    _devUpdatePP($('da-task').value);
-  });
+  // Add Model copies an existing example of the category (add_model.sh --base-model) — the same choices as the
+  // Lab wizard, from /api/lab/capabilities.reference_examples.
+  var caps=(window.LabPortal&&LabPortal.capabilities)?LabPortal.capabilities():null;
+  var refs=(caps&&caps.reference_examples)||{};
+  var cats=Object.keys(refs).sort();
+  if($('da-task')){
+    var cur=$('da-task').value;
+    $('da-task').innerHTML=cats.map(function(c){return'<option value="'+esc(c)+'">'+esc(catText(c))+'</option>'}).join('');
+    if(cur&&cats.indexOf(cur)!==-1)$('da-task').value=cur;
+    _devUpdateBase();
+  }
   // Populate category filters for delete/extract
   var cats=[...new Set(S.models.map(function(m){return m.category}))].sort();
-  var catOpts='<option value="">All Categories</option>'+cats.map(function(c){return'<option value="'+c+'">'+c+'</option>'}).join('');
+  var catOpts='<option value="">'+T('All Categories')+'</option>'+cats.map(function(c){return'<option value="'+esc(c)+'">'+esc(catText(c))+'</option>'}).join('');
   if($('dd-cat'))$('dd-cat').innerHTML=catOpts;
   if($('de-cat'))$('de-cat').innerHTML=catOpts;
   filterDelModels();
@@ -57,11 +63,18 @@ function filterExtModels(){
   }).join('');
   if($('de-model-sel'))$('de-model-sel').innerHTML=opts;
 }
-function _devUpdatePP(task){
-  api('/api/postprocessors').then(function(pps){
-    var list=(pps&&pps[task])||[];
-    $('da-pp').innerHTML=list.length?list.map(function(p){return'<option>'+p+'</option>'}).join(''):'<option value="">N/A</option>';
+function _devUpdateBase(){
+  var caps=(window.LabPortal&&LabPortal.capabilities)?LabPortal.capabilities():null;
+  var cat=$('da-task')?$('da-task').value:'';
+  var lang=$('da-lang')?$('da-lang').value:'both';
+  var need=lang==='both'?['python','cpp']:[lang];
+  var list=(((caps&&caps.reference_examples)||{})[cat]||[]).filter(function(r){
+    return need.every(function(l){return (r.langs||[]).indexOf(l)!==-1});
   });
+  if(!$('da-base'))return;
+  $('da-base').innerHTML=list.length?list.map(function(r){return'<option value="'+esc(r.name)+'">'+esc(r.name)+'</option>'}).join('')
+    :'<option value="">'+esc(T('No example to copy for this language'))+'</option>';
+  $('da-base').disabled=!list.length;
 }
 
 function devTab(el,t){
@@ -72,9 +85,9 @@ function devTab(el,t){
 }
 
 async function devAddModel(){
-  const data={model_name:$('da-name').value,task_type:$('da-task').value,
+  const data={model_name:$('da-name').value.trim(),task_type:$('da-task').value,
     lang:$('da-lang').value,category:$('da-task').value,
-    postprocessor:$('da-pp').value,
+    base_model:$('da-base').value,
     sync_only:$('da-sync').checked};
   if(!data.model_name){toast(T('Name required'),'warn');return}
   var res=await postJ('/api/dev/add_model',data);
@@ -86,13 +99,13 @@ async function devAddModel(){
     }else{toast(T('Cancelled'),'warn');return}
   }
   $('da-out').classList.remove('hidden');
-  if(res.ok){toast(T('Model added'),'ok');$('da-out').textContent=res.output||'Done';await loadModels();renderModelsPage()}
-  else{toast(res.error||T('Failed'),'err');$('da-out').textContent=res.error||'Failed'}
+  if(res.ok){toast(T('Model added'),'ok');$('da-out').textContent=(res.created||[]).map(function(p){return'dx_app/'+p}).join('\n')+'\n\n'+(res.output||'');await loadModels();renderModelsPage()}
+  else{toast(res.error||T('Failed'),'err');$('da-out').textContent=(res.error||T('Failed'))+(res.output?'\n\n'+res.output:'')}
 }
 
 async function devDelModel(){
   const name=$('dd-name').value;if(!name){toast(T('Enter model name'),'warn');return}
-  if(!confirm(T('Delete ')+name+'?'))return;
+  if(!confirm(T('Delete {name}?').replace('{name}',name)))return;
   const confirmText='delete:'+name;
   const res=await postJ('/api/dev/delete_model',{model_name:name,lang:$('dd-lang').value,confirm:confirmText});
   $('dd-out').classList.remove('hidden');
@@ -112,20 +125,20 @@ async function devExtract(){
   var lang=$('de-lang').value;
   if(!path){toast(T('Select or enter a model path'),'warn');return}
   var btn=document.querySelector('#dev-ext .btn-acc');
-  if(btn){btn.disabled=true;btn.textContent='\u23f3 '+T('Extracting...')}
+  if(btn){btn.disabled=true;DXIcon.label(btn,'spinner',T('Extracting...'))}
   $('de-out').textContent=T('Extracting package for: ')+path+'\n...';$('de-out').classList.remove('hidden');
   const res=await postJ('/api/dev/extract',{model_path:path,lang:lang});
-  if(btn){btn.disabled=false;btn.textContent='\ud83d\udce6 '+T('Extract Package')}
+  if(btn){btn.disabled=false;DXIcon.label(btn,'models',T('Extract Package'))}
   if(res.ok){
-    var txt='\u2705 Success! Output directory: '+res.output_dir+'\n\n';
+    var txt=DXIcon('check') + ' Success! Output directory: '+res.output_dir+'\n\n';
     (res.results||[]).forEach(function(r){
-      txt+='['+(r.lang||'?')+'] '+(r.ok?'\u2705 OK':'\u274c FAIL')+'\n';
+      txt+='['+(r.lang||'?')+'] '+(r.ok?DXIcon('check') + ' OK':DXIcon('x') + ' FAIL')+'\n';
       if(r.output)txt+=r.output+'\n';
     });
     $('de-out').textContent=txt;
     toast(T('Package extracted to outputs/'),'ok');
   }else{
-    $('de-out').textContent='\u274c Error: '+(res.error||'Unknown error');
+    DXIcon.label($('de-out'),'x','Error: '+(res.error||'Unknown error'));
     toast(res.error||T('Extract failed'),'err');
   }
 }
@@ -136,7 +149,7 @@ async function devNewTask(){
   if(!/^[a-zA-Z][a-zA-Z0-9_]*$/.test(name)){toast(T('Use letters, digits, underscores only (must start with a letter)'),'warn');return}
   var lang=$('ds-lang').value;
   var btn=document.querySelector('#dev-skel .btn-acc');
-  if(btn){btn.disabled=true;btn.textContent='⏳ '+T('Creating...')}
+  if(btn){btn.disabled=true;DXIcon.label(btn,'spinner',T('Creating...'))}
   $('ds-out').textContent=T('Creating skeleton for: ')+name+'\n...';$('ds-out').classList.remove('hidden');
   var data={task_name:name,lang:lang};
   var res=await postJ('/api/dev/new_task',data);
@@ -145,18 +158,18 @@ async function devNewTask(){
     if(confirm(msg)){
       data.confirm_overwrite=true;
       res=await postJ('/api/dev/new_task',data);
-    }else{if(btn){btn.disabled=false;btn.textContent='🦴 '+T('Create Skeleton')}toast(T('Cancelled'),'warn');return}
+    }else{if(btn){btn.disabled=false;DXIcon.label(btn,'dev',T('Create Skeleton'))}toast(T('Cancelled'),'warn');return}
   }
-  if(btn){btn.disabled=false;btn.textContent='🦴 '+T('Create Skeleton')}
+  if(btn){btn.disabled=false;DXIcon.label(btn,'dev',T('Create Skeleton'))}
   if(res.ok){
-    var txt='✅ Task skeleton created: '+res.task_name+' ('+res.task_upper+')\n\n';
+    var txt=DXIcon('check') + ' Task skeleton created: '+res.task_name+' ('+res.task_upper+')\n\n';
     txt+='Generated '+res.count+' files:\n';
-    (res.files||[]).forEach(function(f){txt+='  📄 '+f+'\n'});
-    txt+='\n💡 Search TODO in generated files for implementation points.';
+    (res.files||[]).forEach(function(f){txt+='  ' + DXIcon('file') + ' '+f+'\n'});
+    txt+='\n' + DXIcon('info') + ' Search TODO in generated files for implementation points.';
     $('ds-out').textContent=txt;
     toast(T('Skeleton created: ')+res.task_name,'ok');
   }else{
-    $('ds-out').textContent='❌ Error: '+(res.error||'Unknown error');
+    DXIcon.label($('ds-out'),'x','Error: '+(res.error||'Unknown error'));
     toast(res.error||T('Failed'),'err');
   }
 }

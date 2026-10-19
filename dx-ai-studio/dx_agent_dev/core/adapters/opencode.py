@@ -1,4 +1,4 @@
-"""opencode run 어댑터(cwd=harness, 텍스트 출력 → 기본 normalize 상속)."""
+"""opencode run adapter (cwd=harness, text output -> inherits the default normalize)."""
 import re
 import subprocess
 
@@ -32,4 +32,4 @@ class OpenCodeAdapter(SubprocessAdapter):
         if self.effort:
             cmd += ["--variant", self.effort]  # provider-specific reasoning effort
         return cmd
-    # normalize: 텍스트 휴리스틱 상속
+    # normalize: inherits the text heuristic

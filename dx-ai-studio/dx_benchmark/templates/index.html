@@ -4,41 +4,42 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>DX Benchmark</title>
+  <link rel="icon" type="image/svg+xml" href="/static/shared/favicons/dx_benchmark.svg">
   <link rel="stylesheet" href="/static/shared/dx-fonts.css">
   <link rel="stylesheet" href="/static/shared/dx-tokens.css">
+  <link rel="stylesheet" href="/static/shared/dx-semantic.css">
+  <link rel="stylesheet" href="/static/shared/dx-theme-light.css">
+  <link rel="stylesheet" href="/static/shared/dx-shell.css">
   <link rel="stylesheet" href="/static/shared/dx-base.css">
   <link rel="stylesheet" href="/static/shared/dx-utilities.css">
+  <link rel="stylesheet" href="/static/shared/dx-components.css">
   <link rel="stylesheet" href="/static/shared/module-chrome.css">
   <link rel="stylesheet" href="/static/shared/brand.css">
   <link rel="stylesheet" href="/static/shared/tutorial.css">
   <link rel="stylesheet" href="/static/shared/toolbar.css">
   <link rel="stylesheet" href="/static/shared/chat-widget.css">
   <link rel="stylesheet" href="/static/css/style.css?m=dx_benchmark">
+<script src="/static/shared/dx-theme.js"></script>
+<script src="/static/shared/dx-icon.js"></script>
 </head>
 <body>
-  <header class="top-bar">
-    <div class="app-title">
-      <div class="dx-brand-slot" id="dxBrand"></div>
-    </div>
-    <nav class="main-tabs">
-      <button class="main-tab active" data-tab="dashboard" data-i18n="Dashboard">Dashboard</button>
-      <button class="main-tab" data-tab="results" data-i18n="Results">Results</button>
-      <button class="main-tab" data-tab="settings" data-i18n="Settings">Settings</button>
-    </nav>
-    <div class="toolbar">
-      <button id="edgeguideBtn" class="dx-toolbar-btn" title="DX EdgeGuide">💰</button>
-    </div>
-  </header>
-
-  <main>
+<div class="dx-shell">
+{{DX_SHELL_RAIL}}
+<div class="dx-shell-body">
+{{DX_SHELL_HEADER}}
+{{DX_SHELL_TABS}}
+<main class="dx-shell-main">
     <div id="tab-dashboard" class="main-tab-content active"></div>
     <div id="tab-results" class="main-tab-content"></div>
     <div id="tab-settings" class="main-tab-content"></div>
-  </main>
+</main><!-- /dx-shell-main -->
+</div><!-- /dx-shell-body -->
+</div><!-- /dx-shell -->
 
-  <script src="/static/js/vendor/marked.min.js?m=dx_benchmark"></script>
+  <script src="/static/shared/markdown_render.js"></script>
   <script src="/static/js/i18n.js?m=dx_benchmark"></script>
   <script src="/static/shared/i18n.js"></script>
+  <script src="/static/shared/server-error-i18n.js"></script>
   <script src="/static/shared/brand.js"></script>
   <script>
 DXBrand.mount({
@@ -56,6 +57,7 @@ DXBrand.mount({
 });
   </script>
   <script src="/static/shared/toolbar.js"></script>
+  <script src="/static/shared/dx-tabs.js"></script>
   <script>
     DXToolbar.init({ container: '.toolbar' });
 

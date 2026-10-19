@@ -1,7 +1,7 @@
 """Tutorial language and selector contracts for DX Monitor.
 
-`tests/dx_agent_dev/test_tutorial.py` 패턴을 dx_monitor(대시보드)에 맞게 복제.
-정적 계약 테스트 — 브라우저/JS 런타임 없이 소스 텍스트만 검증.
+Follows the `tests/dx_agent_dev/test_tutorial.py` pattern for the dx_monitor dashboard.
+Static contract tests: they check source text only, with no browser or JS runtime.
 """
 
 import re
@@ -32,6 +32,16 @@ RUNTIME_SELECTOR_ALLOWLIST = {
 EXPECTED_SECTION_IDS = ["overview", "controls", "charts", "topology", "events"]
 
 TARGET_LANGS = ("ko", "ja", "zh-CN", "zh-TW", "es")
+
+
+def rendered_index() -> str:
+    """The index.html the server actually sends (after shell injection)."""
+    from dx_monitor.server import DX_MONITOR_SHELL
+    from shared.shell import apply as apply_shell
+
+    return apply_shell(
+        (TEMPLATES / "index.html").read_text(encoding="utf-8"), DX_MONITOR_SHELL
+    )
 
 
 def read_text(path: Path) -> str:
@@ -79,7 +89,7 @@ def _unresolved_target_tokens(target: str, selectors: set) -> list:
 
 
 def test_tutorial_targets_extract():
-    """헬퍼 단위(순수) — target/targetAll 추출 정확성."""
+    """Pure helper check: target/targetAll extraction is exact."""
     source = """
     var helpDefs = {
       dashboard: [
@@ -110,7 +120,7 @@ def test_get_lang_uses_dxi18n_and_en_default():
 
 
 def test_tutorial_targets_exist_or_are_runtime_injected():
-    html = read_text(TEMPLATES / "index.html")
+    html = rendered_index()
     source = read_text(JS_DIR / "tutorial.js")
     template_tokens = _template_ids_and_classes(html)
     all_known = template_tokens | RUNTIME_SELECTOR_ALLOWLIST
@@ -132,7 +142,7 @@ def test_preserves_expected_sections():
 
 
 def test_sections_cover_target_languages():
-    """모든 i18n 객체가 TARGET_LANGS를 빠짐없이 커버(ko 출현수 기준)."""
+    """Every i18n object covers all TARGET_LANGS (counted against the ko entries)."""
     source = read_text(JS_DIR / "tutorial.js")
     ko_count = len(re.findall(r"(?<![A-Za-z0-9_'\"-])ko\s*:", source))
     assert ko_count >= 8, f"expected several i18n objects, ko-keys={ko_count}"
@@ -163,8 +173,7 @@ def test_index_html_loads_tutorial_assets():
 
 
 def test_tutorial_header_declares_six_language_support():
-    """The literal '6-language support' header string was removed in a refactor;
-    verify the tutorial genuinely ships all six languages
+    """The tutorial must ship all six languages
     (ko/en/ja/zh-CN/zh-TW/es) with real per-section coverage."""
     source = read_text(JS_DIR / "tutorial.js")
     langs = ("ko", "en", "ja", "zh-CN", "zh-TW", "es")

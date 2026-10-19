@@ -43,7 +43,7 @@ dx-all-suite contains five repos, each with its own `.deepx/`:
 
 Each sub-project `.deepx/` is self-contained. This top-level `.deepx/` adds:
 - Suite-wide router agents (`dx-suite-builder`, `dx-suite-validator`)
-- 19 shared fragments injected into all 5 repos (rename gates, session sentinels,
+- 20 shared fragments injected into all 5 repos (rename gates, session sentinels,
   process gates, autopilot guard, etc.)
 - The `dx-agent-gen` generator (single tool that processes all 5 repos)
 - All agent-driven test infrastructure (`tests/` conformance + `e2e/`)
@@ -76,7 +76,7 @@ Each sub-project `.deepx/` is self-contained. This top-level `.deepx/` adds:
 │   │   ├── CLAUDE-KO.md.tmpl
 │   │   ├── AGENTS-KO.md.tmpl
 │   │   └── copilot-instructions-KO.md.tmpl
-│   └── fragments/               ← 38 shared fragments (19 EN + 19 KO)
+│   └── fragments/               ← 40 shared fragments (20 EN + 20 KO)
 │       ├── en/
 │       └── ko/
 │
@@ -240,7 +240,7 @@ how to fix a red sub-repo gate.
 
 ---
 
-## 8. Shared Fragments (19 EN + 19 KO)
+## 8. Shared Fragments (20 EN + 20 KO)
 
 Fragments are reusable rule blocks injected into instruction files across all 5
 repos. Editing a fragment once propagates the change everywhere via
@@ -267,6 +267,7 @@ repos. Editing a fragment once propagates the change everywhere via
 | `self-contained-portable` | Generated outputs must run when copied outside the suite |
 | `ultralytics-deepx-export` | Ultralytics YOLO `.pt` → DeepX (`format=deepx`) routing |
 | `harness-bootstrap` | Standalone sub-repo: acquire the suite harness before editing `.deepx/`, STOP if unavailable |
+| `inventory-counts` | Model / example / element counts are never written in the suite or dx-runtime KB — where each number lives and how to count it |
 
 See [`docs/fragment-authoring-guide.md`](docs/fragment-authoring-guide.md) for
 how to add or modify a fragment.

@@ -7,6 +7,7 @@ for the layered DAG): imports only stdlib + dx_app.core.config. No sibling
 dx_app.core.{camera,live,inference} imports here — this keeps the DAG acyclic.
 """
 
+from shared.tasks import TaskSet, TaskTable
 import os, re, time, subprocess, shutil, tempfile
 from pathlib import Path
 from dx_app.core.config import PY_DIR, BUILD_DIR, _RUNTIME_PYTHON
@@ -30,9 +31,10 @@ def _sweep_stale_temp(max_age_s=6 * 3600):
             except OSError:
                 pass
 
-_PAIR_COMPARE_CATS = frozenset({"embedding", "reid"})
-_STDOUT_TAG_CATS = frozenset({"classification", "attribute_recognition"})
-_SIDE_BY_SIDE_OUTPUT_CATS = frozenset({
+# TaskSet: the per-model layout's new task keys (face_recognition, person_reid, …) belong to the same set (shared/tasks.py)
+_PAIR_COMPARE_CATS = TaskSet({"embedding", "reid"})
+_STDOUT_TAG_CATS = TaskSet({"classification", "attribute_recognition"})
+_SIDE_BY_SIDE_OUTPUT_CATS = TaskSet({
     "super_resolution", "image_enhancement", "image_denoising", "depth_estimation",
 })
 _IMAGE_EXTENSIONS = frozenset({".jpg", ".jpeg", ".png", ".bmp"})
@@ -55,6 +57,11 @@ def _python_script_path(category, model_name, variant, py_dir=None):
     # inference_exec-local copy taken at import time.
     py_dir = PY_DIR if py_dir is None else py_dir
     pf = py_dir / category / model_name / f"{model_name}_{variant}.py"
+    if pf.exists():
+        return pf
+    # per-model layout: <task>/<family>/<stem>/; the resolver finds the folder (shared/dx_app_layout.py)
+    from shared import dx_app_layout as layout
+    pf = layout.python_script(py_dir.parent.parent, category, model_name, variant)
     return pf if pf.exists() else None
 
 
@@ -83,14 +90,14 @@ def _err(error_key, error, **extra):
     return payload
 
 
-_FALLBACK_BINARIES = {
+_FALLBACK_BINARIES = TaskTable({
     "classification":           ["mobilenetv2","resnet50","alexnet","efficientnet_b0","mobilenetv1"],
     "object_detection":         ["yolov5s","yolov8n","yolov7","yolox_s","damoyolo","ssd_mobilenetv1"],
     "face_detection":           ["retinaface_mobilenet0_25_640","blazeface","scrfd_500m"],
     "pose_estimation":          ["hrnet_w32_256x192","centerpose_regnetx_800mf","movenet"],
     "semantic_segmentation":    ["deeplabv3","bisenetv2","deeplabv3plusmobilenet"],
     "instance_segmentation":    ["yolact","mask_rcnn"],
-}
+})
 
 def _find_fallback_binary(category, variant="sync", build_dir=None):
     """Find a compatible existing binary for custom models without their own binary.

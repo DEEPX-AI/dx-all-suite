@@ -60,6 +60,7 @@ COPY_AUDIT_STATES: tuple[CopyAuditState, ...] = (
     CopyAuditState("dx_monitor", "entry", "/", "body"),
     CopyAuditState("dx_agent_dev", "entry", "/", "body"),
     CopyAuditState("dx_agent_dev", "model-picker", "/", "#model-select"),
+    CopyAuditState("dx_edge", "entry", "/", "body"),
     CopyAuditState(
         "shared",
         "launcher-toolbar-and-help-shell",

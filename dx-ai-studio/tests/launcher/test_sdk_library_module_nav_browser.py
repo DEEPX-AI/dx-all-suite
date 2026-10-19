@@ -118,7 +118,7 @@ def test_sdk_library_nav_tab_shows_module(page, launch_key, module, env_key, rea
 
 @pytest.mark.parametrize("launch_key,module,env_key,ready_sel", MODULE_TABS[:1])
 def test_sdk_library_nav_tab_with_tutorial_toc_open(page, launch_key, module, env_key, ready_sel):
-    """Regression: active SDK tutorial TOC must not block module view after tab switch."""
+    """Active SDK tutorial TOC must not block module view after tab switch."""
     mod_server, mod_port = start_module_server(module)
     prev = os.environ.get(env_key)
     os.environ[env_key] = str(mod_port)

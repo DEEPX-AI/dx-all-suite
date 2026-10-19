@@ -1,5 +1,5 @@
 /**
- * DXTutorial.create() — Tutorial 공통 초기화 헬퍼
+ * DXTutorial.create() — shared tutorial setup helper
  *
  * Usage:
  *   window.DXTutorial.create({
@@ -10,6 +10,7 @@
  *     toolbarWrapper:  false,
  *     toolbarInsertBefore: '#id',
  *     getLang:         function(){},
+ *     isActive:        function(){},  // optional native-view ownership check
  *     onNav:           function(){},
  *     patchNav:        function(engine){},
  *     setupButtons:    function(engine){},
@@ -23,12 +24,17 @@
   window.registerSharedLangRefresher = function (fn) {
     if (typeof fn === 'function') window.__sharedLangRefreshers.push(fn);
   };
-  if (typeof DXI18n !== 'undefined' && typeof DXI18n.onLangChange === 'function') {
-    DXI18n.onLangChange(function () {
-      window.__sharedLangRefreshers.forEach(function (fn) {
-        try { fn(); } catch (e) { console.error('[shared-lang-refresh]', e); }
-      });
+  function _runSharedRefreshers() {
+    window.__sharedLangRefreshers.forEach(function (fn) {
+      try { fn(); } catch (e) { console.error('[shared-lang-refresh]', e); }
     });
+  }
+  if (typeof DXI18n !== 'undefined' && typeof DXI18n.onLangChange === 'function') {
+    DXI18n.onLangChange(_runSharedRefreshers);
+  } else {
+    /* The launcher loads this file before i18n.js, when DXI18n does not exist yet. Listen to the event i18n.js
+       fires on every language change instead, so tooltips and the contents follow a switch mid-tour. */
+    window.addEventListener('dx-lang-applied', _runSharedRefreshers);
   }
 
   window.DXTutorial = {
@@ -85,15 +91,19 @@
         if (tutMode === 'off') return;  // ON by default — only an explicit "off" opts out
         function openWhenReady(attempts) {
           if (engine._scheduledTocCancelled) return;
+          if (opts.isActive && !opts.isActive()) return;
           if (_isLauncherShellBlocked()) {
             if (attempts < 300) {
               setTimeout(function () { openWhenReady(attempts + 1); }, 100);
             }
             return;
           }
-          // Launcher, first load with the tutorial on → auto-run the walkthrough so it opens
-          // on the "you can turn this off" toggle step. Afterwards (and for module tutorials)
-          // just open the table of contents.
+          // Launcher, first load with the tutorial on → auto-run the walkthrough. It opens on the
+          // ask box; the "you can turn this off" switch is its tour-row step.
+          // Afterwards (and for module tutorials) just open the table of contents.
+          // The launcher tour and contents run only on the home screen — when a module, SDK Library or About
+          // was opened directly, that screen's tutorial takes over (otherwise two contents panels would stack).
+          if (engine.appId === 'launcher' && window.DXLauncher && window.DXLauncher.currentApp) return;
           if (engine.appId === 'launcher' &&
               !localStorage.getItem('dx-tutorial-launcher-autostarted')) {
             try { localStorage.setItem('dx-tutorial-launcher-autostarted', '1'); } catch (e) {}
@@ -119,7 +129,9 @@
       }
 
       function _initSingleTutorial(sections, opts) {
-        _destroyActiveTutorialEngine(!!opts.keepPreviousEngine);
+        // A delayed native-view initialization must not destroy the visible view's engine.
+        var isActive = !opts.isActive || opts.isActive();
+        if (isActive) _destroyActiveTutorialEngine(!!opts.keepPreviousEngine);
         var orderedSections = _orderGlobalFirst((sections || []).slice());
         var engine = new DXTutorialEngine({
           appId:    opts.appId,
@@ -133,7 +145,7 @@
           }
         });
 
-        window._dxTutorial = engine;
+        if (isActive) window._dxTutorial = engine;
 
         if (typeof opts.setupButtons === 'function') {
           opts.setupButtons(engine);
@@ -195,7 +207,8 @@
 
         var menuBtn = document.createElement('button');
         menuBtn.className = 'btn-small tutorial-menu-btn';
-        menuBtn.innerHTML = '📖 Tutorial ▼';
+        var _ico = function (n) { return (typeof window.DXIcon === 'function') ? window.DXIcon(n) : ''; };
+        menuBtn.innerHTML = _ico('book') + ' Tutorial ' + _ico('chevd');
 
         var menuDropdown = document.createElement('div');
         menuDropdown.className = 'tutorial-menu-dropdown';
@@ -204,7 +217,10 @@
         tutorials.forEach(function(tut) {
           var item = document.createElement('div');
           item.className = 'tutorial-menu-item';
-          item.textContent = (tut.icon || '') + ' ' + tut.name;
+          // icon is a sprite name; any other icon value is shown as literal text.
+          if (tut.icon && /^[a-z0-9_-]+$/.test(tut.icon)) item.innerHTML = _ico(tut.icon) + ' ';
+          else if (tut.icon) item.textContent = tut.icon + ' ';
+          item.appendChild(document.createTextNode(tut.name));
           item.addEventListener('click', function() {
             menuDropdown.style.display = 'none';
             _startTutorial(tut, opts);

@@ -2,14 +2,14 @@
 
 ## [section:overview,소개] DX Model Zoo 개요
 
-DX Model Zoo (포트 8094)는 **270+ 사전 검증된 모델의 종합 저장소**입니다.
+DX Model Zoo (Studio 경로 `/zoo/`)는 **약 500개 사전 검증된 모델의 종합 저장소**입니다.
 직접 컴파일 없이 즉시 성능과 정확도를 검증할 수 있습니다.
 
-- **17개 카테고리** 별 모델 브라우저 (필터 + 검색)
+- **태스크 카테고리**별 모델 브라우저 (필터 + 검색)
 - 모델별 상세 정보: 스펙, 예제 코드, 라이선스
 - **인퍼런스 데모**: DX App 연동으로 즉시 추론 테스트
 - **YAML-Centric Orchestration**: 전처리/후처리/평가/컴파일 설정 단일 YAML 파일 관리
-- **Unified CLI**: list/info/eval/compile/benchmark 기능 단일 CLI 시스템
+- **Unified CLI**: `dx_tool.sh` (list · search · info · add · extract · validate · run · bench 등) 단일 CLI
 - **Multi-Profile 지원**: 모든 모델이 DEEPX NPU 아키텍처에 최적화, ONNX 평가 → NPU 실행까지 일관된 검증
 - **Plugin-style 확장**: 전처리/후처리/데이터셋/평가자를 플러그인으로 추가 가능
 - 카드/리스트 뷰 전환, 정렬 (이름/카테고리/FPS)
@@ -17,7 +17,7 @@ DX Model Zoo (포트 8094)는 **270+ 사전 검증된 모델의 종합 저장소
 
 ## [section:model,network,catalog,카탈로그] 모델 카탈로그
 
-### 17개 카테고리 (270+ 모델)
+### 주요 카테고리 (약 500개 모델 중 일부)
 
 | 카테고리 | 아이콘 | 대표 모델 | 수 |
 |----------|--------|-----------|-----|
@@ -64,13 +64,13 @@ DX Model Zoo (포트 8094)는 **270+ 사전 검증된 모델의 종합 저장소
 ## [section:inference,run,추론] 인퍼런스 실행
 
 ### 사용 방법 (웹 UI)
-1. 카탈로그에서 모델 선택
-2. **Demo** 탭에서 "이미지 업로드" 또는 "기본 이미지 사용"
-3. **Run Inference** 클릭 → DX App (8080) 프록시로 실행
+1. 카탈로그에서 모델 선택 (모델을 먼저 다운로드해야 실행 가능)
+2. **Run Inference** 패널에서 **Upload Image** (→ **Choose File**) 또는 **Sample Image** (→ **Use Default**) 선택
+3. **Run Inference** 클릭 → DX App (`/app/`) 프록시로 실행
 4. 결과 이미지 + FPS/Latency 통계 표시
 
 ### 전제 조건
-- DX App (포트 8080)이 **실행 중**이어야 함
+- DX App 모듈이 **실행 중**이어야 함 (런처가 함께 띄운다)
 - 상태 인디케이터: 🟢 (정상) / 🔴 (DX App 미실행)
 - DX App 미실행 시 인퍼런스 버튼 비활성화
 
@@ -88,18 +88,17 @@ DX Model Zoo (포트 8094)는 **270+ 사전 검증된 모델의 종합 저장소
 # 모델 목록 확인
 ./scripts/dx_tool.sh list
 
-# 모델 정보 조회
-./scripts/dx_tool.sh info --model YoloV7
-
-# 정확도 평가 (ONNX vs NPU)
-./scripts/dx_tool.sh eval --model YoloV7
-
-# 모델 컴파일
-./scripts/dx_tool.sh compile --model YoloV7
+# 모델 검색 / 정보 조회 (이름을 위치 인자로)
+./scripts/dx_tool.sh search yolov8
+./scripts/dx_tool.sh info yolov8
 
 # 벤치마크 (FPS/Latency 측정)
 ./scripts/dx_tool.sh bench --filter yolov8 --loops 5
+
+# 전체 명령 (add, export, list, search, info, delete, new-task, validate, run, bench)
+./scripts/dx_tool.sh help
 ```
+- `dx_tool.sh`에는 정확도 평가(eval)나 컴파일(compile) 명령이 없습니다. 컴파일은 DX Compiler (Studio 경로 `/compiler/`)를 사용하세요.
 
 ## [section:install,download,설치] 다운로드 및 설치
 
@@ -109,7 +108,7 @@ DX Model Zoo (포트 8094)는 **270+ 사전 검증된 모델의 종합 저장소
 - `downloaded_qpro`: Q-Pro 양자화 모델
 
 ### 카탈로그 데이터 소스
-- `test_models.conf`: 280개 모델 기본 목록 (탭 구분: 이름, 카테고리, 파일)
+- `test_models.conf` (dx_app `config/`): 모델 기본 목록 (탭 구분: 이름, 카테고리, 파일)
 - `model_catalog.json`: 상세 메타데이터 (설명, 스펙, 데모 코드)
 - 두 소스 자동 병합, `test_models.conf`가 기준
 
@@ -144,8 +143,8 @@ evaluation:
 
 | 증상 | 원인 | 해결 |
 |------|------|------|
-| 인퍼런스 버튼 비활성화 | DX App (8080) 미실행 | DX App 먼저 시작 |
-| "DX App Unavailable" | 연결 거부 | `lsof -i :8080` 확인 |
+| 인퍼런스 버튼 비활성화 | DX App (`/app/`) 미실행 | DX App 먼저 시작 |
+| "DX App Unavailable" | DX App 모듈이 응답하지 않음 | 런처 상단 상태에서 DX App 확인, 필요하면 런처 재시작 |
 | 모델 상세 404 | 잘못된 모델 ID | 카탈로그 새로고침 |
 | 결과 이미지 안 나옴 | 추론 실패 | DX App 로그에서 에러 확인 |
 | 카탈로그 비어있음 | `test_models.conf` 누락 | 파일 존재 여부 확인 |

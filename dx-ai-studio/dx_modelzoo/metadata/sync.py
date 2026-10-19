@@ -1,4 +1,4 @@
-"""메타데이터 동기화 오케스트레이터."""
+"""Metadata sync orchestrator."""
 
 import json
 from datetime import datetime, timezone
@@ -44,7 +44,7 @@ _PROFILE_ADAPTERS = {
     ],
 }
 
-# 네트워크 어댑터 (offline 모드에서 제외)
+# Network adapters (excluded in offline mode)
 _NETWORK_ADAPTERS = {"internal_modelzoo", "public_modelzoo"}
 
 
@@ -61,7 +61,7 @@ def _empty_adapter_result(adapter, profile="default") -> AdapterResult:
 
 
 def adapter_names_for_profile(profile, offline=False):
-    """프로필에 해당하는 어댑터 이름 목록 반환."""
+    """Return the adapter names for a profile."""
     adapters = list(_PROFILE_ADAPTERS.get(profile, _PROFILE_ADAPTERS["local"]))
     if offline:
         adapters = [a for a in adapters if a not in _NETWORK_ADAPTERS]
@@ -108,7 +108,7 @@ def is_catalog_downgrade(existing, new_catalog):
 
 
 def resolve_source_profile(cli_source=None, env=None, config_path=None):
-    """소스 프로필 결정: CLI → env → config → 'public' (general network default)."""
+    """Decide the source profile: CLI → env → config → 'public' (general network default)."""
     if cli_source:
         return cli_source
     if env and env.get("DX_MODELZOO_METADATA_SOURCE"):
@@ -157,7 +157,7 @@ def _adapter_kwargs_from_config(source_profile, adapter_kwargs=None, config_path
 
 
 def _get_adapter_func(name):
-    """어댑터 이름 → 실행 함수 매핑."""
+    """Adapter name → runner function."""
     mapping = {
         "local_runtime": local_runtime_adapter,
         "local_studio_catalog": local_studio_catalog_adapter,
@@ -171,7 +171,7 @@ def _get_adapter_func(name):
 
 
 def _stub_network_adapter(adapter_name):
-    """네트워크 어댑터 스텁 – 빈 결과 반환."""
+    """Network adapter stub – returns an empty result."""
     def _adapter(*args, **kwargs):
         result = _empty_adapter_result(adapter_name, profile="public")
         result["warnings"].append(f"{adapter_name}: stub adapter, no data fetched")
@@ -190,7 +190,7 @@ def run_sync(
     benchmark_cache_path=None,
     adapter_kwargs=None,
 ):
-    """동기화 실행: 어댑터 실행 → 병합 → 출력/캐시 작성.
+    """Run the sync: run adapters → merge → write output/cache.
 
     Returns:
         {"catalog": {...}, "report": {...}}
@@ -254,7 +254,7 @@ def run_sync(
     else:
         catalog = None
 
-    # 캐시 fallback: fresh 카탈로그가 없을 때만 이전 캐시 사용
+    # Cache fallback: use the previous cache only when there is no fresh catalog
     if catalog is None and cache_path:
         prior = load_catalog_cache(cache_path)
         if prior is not None and prior.get("models"):
@@ -333,7 +333,7 @@ def run_sync(
 
 
 def _build_coverage_report(catalog):
-    """카탈로그 모델의 missing/suspect 필드를 집계하여 커버리지 리포트 생성."""
+    """Count the missing/suspect fields of catalog models into a coverage report."""
     missing_by_field = {}
     suspect_by_field = {}
 
@@ -341,7 +341,7 @@ def _build_coverage_report(catalog):
         for field in model.get("missing", []):
             missing_by_field[field] = missing_by_field.get(field, 0) + 1
 
-        # suspect 필드 집계: evaluation 하위의 source_status == "suspect"
+        # Count suspect fields: source_status == "suspect" under evaluation
         evaluation = model.get("evaluation", {})
         for bench_name, bench_data in evaluation.items():
             if isinstance(bench_data, dict) and bench_data.get("source_status") == "suspect":

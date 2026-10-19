@@ -31,6 +31,11 @@ def _clear_experiment_runs(tmp_path, monkeypatch):
     monkeypatch.setattr(lab_portal, "OUTPUTS_DIR", outputs)
     monkeypatch.setattr(lab_portal, "DX_APP_ROOT", tmp_path)
 
+    # The start route launches the worker; keep the DX-RT tools out of these state-machine tests.
+    def _no_tools(cmd, **kwargs):
+        raise OSError("DX-RT tools are not run in unit tests")
+    monkeypatch.setattr(lab_portal, "_experiment_popen", _no_tools)
+
     yield
 
     lab_portal._experiment_runs.clear()
@@ -42,7 +47,7 @@ def test_start_experiment_run_returns_safe_run_id():
     res, code = start_experiment_run({"source_path": "outputs/model.dxnn", "model_name": "demo"})
     assert code == 200
     assert res["id"].startswith("run_")
-    assert res["current_step"] in {"compile", "register", "smoke", "benchmark", "package"}
+    assert res["current_step"] in {"inspect", "smoke", "benchmark"}
 
 
 def test_start_experiment_run_status_is_pending():
@@ -50,7 +55,7 @@ def test_start_experiment_run_status_is_pending():
     res, code = start_experiment_run({"source_path": "outputs/model.dxnn", "model_name": "demo"})
     assert code == 200
     assert res["status"] == "pending"
-    assert res["current_step"] == "compile"
+    assert res["current_step"] == "inspect"
 
 
 def test_start_experiment_run_has_required_fields():
@@ -66,7 +71,7 @@ def test_start_experiment_run_steps_structure():
     res, code = start_experiment_run({"source_path": "outputs/model.dxnn", "model_name": "demo"})
     assert code == 200
     step_ids = [s["id"] for s in res["steps"]]
-    assert step_ids == ["compile", "register", "smoke", "benchmark", "package"]
+    assert step_ids == ["inspect", "smoke", "benchmark"]
     # First step should be current, rest pending
     assert res["steps"][0]["status"] == "current"
     for s in res["steps"][1:]:
@@ -161,52 +166,52 @@ def test_cancel_unknown_safe_run_id_returns_404():
 def test_experiment_rejects_invalid_step_transition():
     from lab_portal import start_experiment_run, advance_experiment_step
     run, _ = start_experiment_run({"source_path": "outputs/model.dxnn", "model_name": "demo"})
-    # Skip from compile to smoke (should fail — must go compile -> register)
-    res, code = advance_experiment_step(run["id"], "smoke")
+    # Skip from inspect to benchmark (should fail — must go inspect -> smoke)
+    res, code = advance_experiment_step(run["id"], "benchmark")
     assert code == 400
     assert res["error_code"] == "invalid_step_transition"
 
 
-def test_valid_step_transition_compile_to_register():
+def test_valid_step_transition_inspect_to_smoke():
     from lab_portal import start_experiment_run, advance_experiment_step
     run, _ = start_experiment_run({"source_path": "outputs/model.dxnn", "model_name": "demo"})
-    res, code = advance_experiment_step(run["id"], "register")
+    res, code = advance_experiment_step(run["id"], "smoke")
     assert code == 200
-    assert res["current_step"] == "register"
+    assert res["current_step"] == "smoke"
 
 
 def test_advance_bad_run_id_returns_400():
     from lab_portal import advance_experiment_step
-    res, code = advance_experiment_step("../bad", "register")
+    res, code = advance_experiment_step("../bad", "smoke")
     assert code == 400
 
 
 def test_advance_unknown_safe_run_id_returns_404():
     from lab_portal import advance_experiment_step
-    res, code = advance_experiment_step("run_nonexistent_abc123", "register")
+    res, code = advance_experiment_step("run_nonexistent_abc123", "smoke")
     assert code == 404
     assert res["error_code"] == "run_not_found"
 
 
 
-def test_pipeline_stops_at_compile_failure_with_blocker():
+def test_pipeline_stops_at_inspect_failure_with_blocker():
     from lab_portal import start_experiment_run, mark_experiment_step_failed
     run, _ = start_experiment_run({"source_path": "outputs/model.dxnn", "model_name": "demo"})
-    res, code = mark_experiment_step_failed(run["id"], "compile", "dxcom missing")
+    res, code = mark_experiment_step_failed(run["id"], "inspect", "dxcom missing")
     assert code == 200
     assert res["status"] == "failed"
-    assert res["blockers"][0]["code"] == "compile_failed"
+    assert res["blockers"][0]["code"] == "inspect_failed"
 
 
 def test_mark_step_failed_bad_run_id_returns_400():
     from lab_portal import mark_experiment_step_failed
-    res, code = mark_experiment_step_failed("../bad", "compile", "err")
+    res, code = mark_experiment_step_failed("../bad", "inspect", "err")
     assert code == 400
 
 
 def test_mark_step_failed_unknown_safe_run_id_returns_404():
     from lab_portal import mark_experiment_step_failed
-    res, code = mark_experiment_step_failed("run_nonexistent_abc123", "compile", "err")
+    res, code = mark_experiment_step_failed("run_nonexistent_abc123", "inspect", "err")
     assert code == 404
     assert res["error_code"] == "run_not_found"
 
@@ -270,7 +275,7 @@ def test_advance_cancelled_run_returns_409_and_state_unchanged():
     cancel_experiment_run(run["id"])
 
     snapshot_before, _ = get_experiment_run(run["id"])
-    res, code = advance_experiment_step(run["id"], "register")
+    res, code = advance_experiment_step(run["id"], "smoke")
     snapshot_after, _ = get_experiment_run(run["id"])
 
     assert code == 409
@@ -283,10 +288,10 @@ def test_advance_failed_run_returns_409_and_state_unchanged():
     """Advancing a failed run must return 409 run_terminal; state must not change."""
     from lab_portal import start_experiment_run, mark_experiment_step_failed, advance_experiment_step, get_experiment_run
     run, _ = start_experiment_run({"source_path": "outputs/model.dxnn", "model_name": "demo"})
-    mark_experiment_step_failed(run["id"], "compile", "broken")
+    mark_experiment_step_failed(run["id"], "inspect", "broken")
 
     snapshot_before, _ = get_experiment_run(run["id"])
-    res, code = advance_experiment_step(run["id"], "register")
+    res, code = advance_experiment_step(run["id"], "smoke")
     snapshot_after, _ = get_experiment_run(run["id"])
 
     assert code == 409
@@ -300,7 +305,7 @@ def test_fail_non_current_step_returns_400_invalid_step():
     """Failing a step that is not the current step must return 400 invalid_step."""
     from lab_portal import start_experiment_run, mark_experiment_step_failed, get_experiment_run
     run, _ = start_experiment_run({"source_path": "outputs/model.dxnn", "model_name": "demo"})
-    # current_step is "compile"; trying to fail "benchmark" must be rejected
+    # current_step is "inspect"; trying to fail "benchmark" must be rejected
     snapshot_before, _ = get_experiment_run(run["id"])
     res, code = mark_experiment_step_failed(run["id"], "benchmark", "shouldn't work")
     snapshot_after, _ = get_experiment_run(run["id"])
@@ -316,15 +321,15 @@ def test_double_fail_current_step_rejected_no_duplicate_blockers():
     """Second failure of the same step must be rejected (409); blockers must not duplicate."""
     from lab_portal import start_experiment_run, mark_experiment_step_failed, get_experiment_run
     run, _ = start_experiment_run({"source_path": "outputs/model.dxnn", "model_name": "demo"})
-    mark_experiment_step_failed(run["id"], "compile", "first failure")
+    mark_experiment_step_failed(run["id"], "inspect", "first failure")
 
-    res, code = mark_experiment_step_failed(run["id"], "compile", "second failure")
+    res, code = mark_experiment_step_failed(run["id"], "inspect", "second failure")
     assert code == 409
     assert res["error_code"] == "run_terminal"
 
     final, _ = get_experiment_run(run["id"])
-    compile_blockers = [b for b in final["blockers"] if b["code"] == "compile_failed"]
-    assert len(compile_blockers) == 1
+    inspect_blockers = [b for b in final["blockers"] if b["code"] == "inspect_failed"]
+    assert len(inspect_blockers) == 1
 
 
 
@@ -332,7 +337,7 @@ def test_cancel_failed_run_returns_409_and_preserves_state():
     """Cancelling a failed run must return 409 run_terminal; status and blockers unchanged."""
     from lab_portal import start_experiment_run, mark_experiment_step_failed, cancel_experiment_run, get_experiment_run
     run, _ = start_experiment_run({"source_path": "outputs/model.dxnn", "model_name": "demo"})
-    mark_experiment_step_failed(run["id"], "compile", "dxcom missing")
+    mark_experiment_step_failed(run["id"], "inspect", "dxcom missing")
 
     snapshot_before, _ = get_experiment_run(run["id"])
     res, code = cancel_experiment_run(run["id"])
@@ -477,10 +482,14 @@ def test_experiment_start_does_not_accept_dev_token():
     assert captured["code"] == 403
 
 
-def test_experiment_start_rejects_duplicate_active_source():
+def test_experiment_start_rejects_duplicate_active_source(monkeypatch):
     """Second start for same active source_path returns 409 run_in_progress."""
+    import server
     from developer import lab_session
     tok = lab_session()["token"]
+    # Without tools the worker fails the first run at once, making it terminal; whether the second start then sees
+    # it active would depend on the thread's timing. The run stays pending here.
+    monkeypatch.setattr(server, "launch_experiment_run", lambda run_id: None)
 
     def post_start(source_path):
         h, c = _make_handler(
@@ -733,6 +742,6 @@ def test_start_experiment_run_allows_same_source_after_failure():
     from lab_portal import start_experiment_run, mark_experiment_step_failed
     first, code1 = start_experiment_run({"source_path": "outputs/model.dxnn", "model_name": "demo"})
     assert code1 == 200
-    mark_experiment_step_failed(first["id"], "compile", "build error")
+    mark_experiment_step_failed(first["id"], "inspect", "build error")
     second, code2 = start_experiment_run({"source_path": "outputs/model.dxnn", "model_name": "demo"})
     assert code2 == 200

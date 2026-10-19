@@ -1,11 +1,22 @@
 #!/usr/bin/env bash
-# DX AI Studio CI runner — dx_app/run_tc.sh 패턴 (폐쇄망 self-hosted PR gate).
+# DX AI Studio CI runner, following the dx_app/run_tc.sh pattern (air-gapped self-hosted PR gate).
 #
 # Usage:
 #   bash scripts/run_ci.sh              # blocking PR gate (default)
 #   bash scripts/run_ci.sh --coverage # + Python coverage report (non-blocking threshold)
 #   bash scripts/run_ci.sh --browser    # + Playwright browser/UX audits (needs chromium)
 #   bash scripts/run_ci.sh --ux         # + full UX acceptance gate (slow, release only)
+#   bash scripts/run_ci.sh --npu        # + real-NPU inference tier (nightly / run-npu)
+#   bash scripts/run_ci.sh --visual     # + pixel visual-regression vs committed baselines
+#   bash scripts/run_ci.sh --offline    # + blocking suite with external network blocked
+#   bash scripts/run_ci.sh --browser --shard=1/3   # browser suites, shard 1 of 3
+#   bash scripts/run_ci.sh --acceptance=all        # SQA acceptance suite only (no developer stages)
+#   bash scripts/run_ci.sh --acceptance=474,stream # tickets by number, key (SDKREQ-474) or alias
+#   bash scripts/run_ci.sh --acceptance=all --list # print tickets, AC and mapped tests; run nothing
+#   bash scripts/run_ci.sh --acceptance=all --strict  # NOT RUN (missing hardware) also fails
+#
+# Cross-browser is env-driven: DX_BROWSER_ENGINES=chromium,firefox[,webkit].
+# Default is chromium alone so the blocking gate stays single-engine and fast.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -14,14 +25,42 @@ cd "$ROOT"
 RUN_COVERAGE=0
 RUN_BROWSER=0
 RUN_UX=0
+RUN_NPU=0
+RUN_VISUAL=0
+RUN_OFFLINE=0
+SHARD_INDEX=""
+SHARD_TOTAL=""
+ACCEPTANCE=""
+ACCEPT_ARGS=()
 
 for arg in "$@"; do
   case "$arg" in
     --coverage) RUN_COVERAGE=1 ;;
     --browser) RUN_BROWSER=1 ;;
     --ux) RUN_UX=1 ;;
+    --npu) RUN_NPU=1 ;;
+    --visual) RUN_VISUAL=1 ;;
+    --offline) RUN_OFFLINE=1 ;;
+    --acceptance=*) ACCEPTANCE="${arg#--acceptance=}" ;;
+    --acceptance) ACCEPTANCE="all" ;;
+    --strict) ACCEPT_ARGS+=(--strict) ;;
+    --list) ACCEPT_ARGS+=(--list); ACCEPTANCE="${ACCEPTANCE:-all}" ;;
+    --shard=*)
+      _spec="${arg#--shard=}"
+      SHARD_INDEX="${_spec%%/*}"
+      SHARD_TOTAL="${_spec##*/}"
+      case "$SHARD_INDEX/$SHARD_TOTAL" in
+        [1-9]*/[1-9]*) ;;
+        *) echo "--shard expects i/N with 1-based i (got '$_spec')" >&2; exit 2 ;;
+      esac
+      if [ "$SHARD_INDEX" -gt "$SHARD_TOTAL" ]; then
+        echo "--shard index $SHARD_INDEX exceeds total $SHARD_TOTAL" >&2; exit 2
+      fi
+      ;;
     -h|--help)
-      sed -n '2,9p' "$0"
+      # Print the whole leading comment block, so a newly added flag shows up in
+      # --help without anyone remembering to bump a hard-coded line range.
+      sed -n '2,/^set -euo pipefail/p' "$0" | sed '/^set -euo pipefail/d'
       exit 0
       ;;
     *)
@@ -44,14 +83,103 @@ if ! "$PY" -c "import pytest" 2>/dev/null; then
   exit 1
 fi
 
+# SQA acceptance suite: one command per Jira acceptance ticket (tests/acceptance/manifest.json).
+# It runs ONLY the acceptance selection, never the developer stages below; scripts/acceptance.py
+# writes var/acceptance/<timestamp>/ (report.md, report.html, junit.xml) and exits 0 only when every
+# AC that ran passed. docs/testing.md "Acceptance (SQA)".
+if [ -n "$ACCEPTANCE" ]; then
+  exec "$PY" scripts/acceptance.py "$ACCEPTANCE" "${ACCEPT_ARGS[@]}"
+fi
+if [ ${#ACCEPT_ARGS[@]} -gt 0 ]; then
+  echo "--strict/--list go with --acceptance=<selection>" >&2
+  exit 2
+fi
+
 # Playwright browser suites — excluded from the default PR gate. Browser suites are
 # run individually with --browser because sync Playwright owns an event loop per
 # process; sharing one pytest process lets one suite contaminate another's loop.
 BROWSER_TESTS=(
   tests/i18n_audit/test_browser_copy_audit.py
+  tests/launcher/test_home_hierarchy_browser.py
+  tests/launcher/test_home_draft_browser.py
+  tests/launcher/test_home_workspace_browser.py
+  tests/launcher/test_home_reattach_browser.py
+  tests/launcher/test_home_density_browser.py
+  tests/launcher/test_home_router_browser.py
+  tests/launcher/test_home_icons_browser.py
+  tests/launcher/test_boot_assets_browser.py
+  tests/launcher/test_intro_stream_browser.py
+  tests/launcher/test_intro_app_compile_browser.py
+  tests/launcher/test_home_agent_run_browser.py
+  tests/dx_agent_dev/test_attach_browser.py
+  tests/dx_agent_dev/test_failed_run_badge_browser.py
+  tests/launcher/test_home_stage_browser.py
+  tests/launcher/test_home_widgets_browser.py
+  tests/launcher/test_home_hero_browser.py
+  tests/launcher/test_home_bar_browser.py
+  tests/launcher/test_home_effects_browser.py
+  tests/launcher/test_home_motion_browser.py
+  tests/launcher/test_home_entry_browser.py
+  tests/launcher/test_home_open_browser.py
+  tests/launcher/test_home_tutorial_browser.py
+  tests/shared/test_shared_chrome_browser.py
+  tests/shared/test_text_contrast_browser.py
+  tests/shared/test_accessible_names_browser.py
+  tests/launcher/test_home_facts_deferred_browser.py
+  tests/shared/test_browser_language_default_browser.py
+  tests/dx_agent_dev/test_studio_agent_console_browser.py
+  tests/launcher/test_home_studio_agent_browser.py
+  tests/launcher/test_home_posters_keyboard_browser.py
+  tests/shared/test_chat_settings_browser.py
+  tests/dx_app/test_setup_steps_browser.py
+  tests/dx_stream/test_setup_steps_browser.py
+  tests/dx_compiler/test_setup_steps_browser.py
+  tests/shared/test_task_icons_browser.py
+  tests/dx_app/test_rundemo_cards_browser.py
+  tests/dx_app/test_outputs_lang_browser.py
+  tests/dx_app/test_modelzoo_load_error_browser.py
+  tests/dx_app/test_compare_browser.py
+  tests/shared/test_toolbar_lang_a11y_browser.py
+  tests/shared/test_chat_widget_lang_browser.py
+  tests/shared/test_chat_local_provider_browser.py
+  tests/dx_stream/test_pipeline_canvas_theme_browser.py
+  tests/dx_app/test_reference_browser.py
+  tests/dx_stream/test_reference_browser.py
+  tests/dx_stream/test_stream_audit_browser.py
+  tests/dx_stream/test_dashboard_live_browser.py
+  tests/test_tutorial_placement_browser.py
+  tests/dx_stream/test_demo_cards_browser.py
+  tests/shared/test_icon_label_browser.py
   tests/launcher/test_sdk_library_module_nav_browser.py
+  tests/launcher/test_connected_browsers_browser.py
+  tests/shared/test_i18n_placeholder_merge_browser.py
+  tests/launcher/test_escape_layers_browser.py
+  tests/launcher/test_about_nav_first_paint_browser.py
   tests/shared/test_browser_runtime.py
+  tests/shared/test_font_rendering_browser.py
+  tests/shared/test_demo_stage_browser.py
+  tests/shared/test_hw_widget_rail_browser.py
+  tests/dx_app/test_catalog_task_labels_browser.py
+  tests/dx_app/test_lab_flows_browser.py
+  tests/shared/test_graph_canvas_browser.py
+  tests/dx_app/test_graph_composer_browser.py
+  tests/dx_app/test_graph_logic_browser.py
+  tests/dx_app/test_graph_export_browser.py
+  tests/dx_app/test_graph_tutorial_browser.py
+  tests/dx_app/test_rtsp_address_browser.py
+  tests/dx_benchmark/test_phone_layout_browser.py
+  tests/dx_edge/test_chat_browser.py
+  tests/dx_compiler/test_compiler_audit_browser.py
+  tests/dx_compiler/test_auto_compile_model_browser.py
+  tests/dx_planner/test_lang_summary_browser.py
+  tests/dx_planner/test_recommend_engine_browser.py
+  tests/dx_planner/test_recommend_explain_browser.py
+  tests/dx_modelzoo/test_model_card_export_browser.py
+  tests/dx_modelzoo/test_model_card_layout_browser.py
+  tests/test_catalog_virtual_scroll_browser.py
   tests/test_iframe_lang_sync_browser.py
+  tests/test_toolbar_reachable_when_narrow.py
+  tests/test_tutorial_stale_step.py
   tests/test_tutorial_e2e_journey.py
   tests/test_tutorial_spotlight_spot_check.py
   tests/test_ux_visual_gate.py
@@ -81,7 +209,29 @@ for _root_test in tests/test_*.py; do
   fi
 done
 
-echo "== 0/6 Infra + release contracts =="
+echo "== CSS token ratchet =="
+"$PY" scripts/css_token_gate.py || exit 1
+
+echo "== i18n lang-span ratchet =="
+"$PY" -m scripts.i18n_span_gate || exit 1
+
+echo "== breakpoint ratchet =="
+"$PY" -m scripts.breakpoint_gate || exit 1
+
+echo "== 간격 스케일 ratchet =="
+"$PY" -m scripts.spacing_scale_gate || exit 1
+
+echo "== comment language ratchet =="
+"$PY" -m scripts.comment_language_gate || exit 1
+
+echo "== UI 이모지 ratchet =="
+"$PY" -m scripts.emoji_gate || exit 1
+
+echo "== 글꼴 coverage (한중일 subset) =="
+"$PY" -m scripts.font_coverage_gate || exit 1
+
+echo ""
+echo "== 0/7 Infra + release contracts =="
 "$PY" -m pytest \
   tests/test_pytest_infra_contract.py \
   tests/shared/test_ci_contracts.py \
@@ -90,25 +240,34 @@ echo "== 0/6 Infra + release contracts =="
   -q --tb=short
 
 echo ""
-echo "== 1/6 Collection gate =="
+echo "== 1/7 Collection gate =="
 "$PY" -m pytest tests/ --collect-only -q \
   --ignore=tests/dx_stream/benchmark \
+  --ignore=tests/e2e \
   "${IGNORE_BROWSER[@]}"
 
 echo ""
-echo "== 2/6 Launcher suite (isolated — port collision) =="
+echo "== 2/7 Launcher suite (isolated — port collision) =="
 "$PY" -m pytest tests/launcher/ -q --tb=short "${IGNORE_BROWSER[@]}"
 
 echo ""
-echo "== 3/6 Agent Dev suite (isolated — port collision) =="
+echo "== 3/7 Agent Dev suite (isolated — port collision) =="
 "$PY" -m pytest tests/dx_agent_dev/ -q --tb=short
 
 echo ""
-echo "== 4/6 i18n audit gate =="
+echo "== 4/7 i18n audit gate =="
 bash scripts/i18n_audit_gate.sh
 
 echo ""
-echo "== 5/6 Module + shared + root contract suites (no browser) =="
+# Pre-existing failures quarantined from the BLOCKING gate. Each one is a real
+# content/upstream defect that needs a product decision, NOT a skip guard — so they
+# are deselected here (visible, greppable, counted) instead of being silenced inside
+# the test files. tests/shared/test_ci_contracts.py pins the size of this list, so it
+# can only ever SHRINK. See docs/testing.md "Quarantined pre-existing failures".
+# Currently empty.
+QUARANTINE=()
+
+echo "== 5/7 Module + shared + root contract suites (no browser) =="
 "$PY" -m pytest \
   tests/dx_app/ \
   tests/dx_stream/ \
@@ -117,23 +276,122 @@ echo "== 5/6 Module + shared + root contract suites (no browser) =="
   tests/dx_planner/ \
   tests/dx_benchmark/ \
   tests/dx_monitor/ \
+  tests/dx_edge/ \
   tests/shared/ \
   tests/i18n_audit/ \
   "${ROOT_TESTS[@]}" \
   -q \
   --ignore=tests/dx_stream/benchmark \
+  --ignore=tests/e2e \
   "${IGNORE_BROWSER[@]}" \
+  "${QUARANTINE[@]}" \
   --tb=short
+
+echo ""
+echo "== 6/7 Inference E2E triple gate (e2e_mock, isolated) =="
+# Own pytest process on purpose: tests/e2e/conftest.py rebinds DX_APP_ROOT at
+# import time (and dx_app.core.config freezes paths on first import), so sharing
+# a process with the module suites would pin the wrong tree for one of them.
+# Skips itself when playwright/chromium are unavailable rather than failing.
+# `env -u` is load-bearing, not defensive: tests/e2e/conftest.py binds DX_APP_ROOT
+# at import time and picks the NPU overlay whenever DX_E2E_NPU_MODEL is set, so with
+# `run_ci.sh --npu` the mock tier would look for its fixture model in the real dx_app
+# tree. The blocking stage must be hermetic no matter what the caller exported.
+env -u DX_E2E_NPU_MODEL -u DX_E2E_NPU_MODEL_FILE -u DX_E2E_NPU_STRICT \
+  "$PY" -m pytest tests/e2e/ -q --tb=short -m e2e_mock
+
+if [ "$RUN_OFFLINE" = "1" ]; then
+  echo ""
+  echo "== Optional: offline contract (external network blocked) =="
+  # Catches code that depends on the internet before it reaches the air-gapped PR
+  # machine, in about 30 seconds. Customers deploy air-gapped too, so this is a
+  # product requirement: docs/offline-contract.md
+  # launcher and dx_agent_dev run in their own processes for the same reason as in
+  # the default gate (port collisions, and dx_agent_dev imports its package as the
+  # top-level `core`, which clashes with other modules' `core`).
+  DX_OFFLINE_GUARD=1 "$PY" -m pytest \
+    tests/dx_app/ tests/dx_stream/ tests/dx_compiler/ tests/dx_modelzoo/ \
+    tests/dx_planner/ tests/dx_benchmark/ tests/dx_monitor/ tests/dx_edge/ \
+    tests/shared/ tests/release/ tests/i18n_audit/ \
+    -q --tb=short \
+    --ignore=tests/dx_stream/benchmark \
+    "${IGNORE_BROWSER[@]}"
+  DX_OFFLINE_GUARD=1 "$PY" -m pytest tests/launcher/ -q --tb=short "${IGNORE_BROWSER[@]}"
+  DX_OFFLINE_GUARD=1 "$PY" -m pytest tests/dx_agent_dev/ -q --tb=short
+fi
+
+if [ "$RUN_VISUAL" = "1" ]; then
+  echo ""
+  echo "== Optional: pixel visual regression =="
+  # Advisory, not blocking: baselines are per-host (font rendering differs across
+  # machines), so a green run only means "matches the baselines captured on THIS
+  # runner". Refresh with DX_VISUAL_UPDATE=1 after an intentional design change.
+  "$PY" -m pytest tests/visual/ -q --tb=short -m visual
+fi
+
+if [ "$RUN_NPU" = "1" ]; then
+  echo ""
+  echo "== Optional: real-NPU inference tier (e2e_npu) =="
+  # DX_E2E_NPU_STRICT turns "no NPU / no model" from a skip into a failure. Asking
+  # for this tier and getting a silent green would defeat the point of scheduling it.
+  if [ -z "${DX_E2E_NPU_MODEL:-}" ]; then
+    echo "--npu requires DX_E2E_NPU_MODEL=<registry model name>" >&2
+    echo "(optionally DX_E2E_NPU_MODEL_FILE=<path to .dxnn> when it is not installed" >&2
+    echo " under dx-runtime/dx_app/assets/models)" >&2
+    exit 2
+  fi
+  DX_E2E_NPU_STRICT=1 "$PY" -m pytest tests/e2e/ -q --tb=short -m e2e_npu
+fi
 
 if [ "$RUN_COVERAGE" = "1" ]; then
   echo ""
-  echo "== Optional: Python coverage =="
-  "$PY" -m pytest tests/shared/ tests/launcher/ \
-    --cov=shared --cov=launcher \
-    --cov-config=.coveragerc \
+  echo "== Optional: Python coverage (all modules) =="
+  # Measure every source .coveragerc declares (all ten modules).
+  #
+  # The suites cannot share one pytest process (launcher and dx_agent_dev collide
+  # on the 18xxx test ports, and tests/e2e rebinds DX_APP_ROOT), so each group runs
+  # separately and appends into one data file, reported once at the end.
+  # --cov=. (ONE root), not ten --cov=<pkg> flags: a per-package flag OVERRIDES
+  # .coveragerc's `source`, which re-creates the ten-root problem — coverage.xml
+  # then renders every module's server.py as filename="server.py" and nine files
+  # collapse into one entry. With a single root the module stays in the path, so
+  # the XML is usable by SonarQube and by scripts/coverage_gate.py alike.
+  # The omit list in .coveragerc is what keeps tools/ and scripts/ out.
+  COV_ARGS=(
+    --cov=.
+    --cov-config=.coveragerc
+  )
+  rm -f .coverage coverage.xml
+
+  echo "-- coverage 1/4: launcher (isolated) --"
+  "$PY" -m pytest tests/launcher/ -q --tb=short \
+    "${COV_ARGS[@]}" --cov-report= "${IGNORE_BROWSER[@]}"
+
+  echo "-- coverage 2/4: agent dev (isolated) --"
+  "$PY" -m pytest tests/dx_agent_dev/ -q --tb=short \
+    "${COV_ARGS[@]}" --cov-append --cov-report=
+
+  echo "-- coverage 3/4: modules + shared + root --"
+  "$PY" -m pytest \
+    tests/dx_app/ tests/dx_stream/ tests/dx_compiler/ tests/dx_modelzoo/ \
+    tests/dx_planner/ tests/dx_benchmark/ tests/dx_monitor/ tests/shared/ \
+    tests/i18n_audit/ "${ROOT_TESTS[@]}" \
+    -q --tb=short \
+    --ignore=tests/dx_stream/benchmark --ignore=tests/e2e \
+    "${IGNORE_BROWSER[@]}" "${QUARANTINE[@]}" \
+    "${COV_ARGS[@]}" --cov-append --cov-report=
+
+  echo "-- coverage 4/4: inference E2E (isolated) --"
+  "$PY" -m pytest tests/e2e/ -q --tb=short -m e2e_mock \
+    "${COV_ARGS[@]}" --cov-append \
     --cov-report=term-missing:skip-covered \
-    --cov-report=xml:coverage.xml \
-    -q --tb=short
+    --cov-report=xml:coverage.xml
+
+  echo ""
+  echo "-- coverage vs baseline --"
+  # Report-only during the staged rollout; DX_COVERAGE_ENFORCE=1 turns a drop into
+  # a failure once the numbers have settled.
+  "$PY" scripts/coverage_gate.py
 fi
 
 if [ "$RUN_BROWSER" = "1" ]; then
@@ -143,11 +401,66 @@ if [ "$RUN_BROWSER" = "1" ]; then
     echo "SKIP browser (playwright not installed)" >&2
     exit 1
   fi
-  bash scripts/i18n_browser_audit.sh
-  for _bt in "${BROWSER_TESTS[@]}"; do
-    echo "== Browser suite: $_bt =="
-    "$PY" -m pytest "$_bt" -q --tb=short
+  # Shard by FILE, not by test: each browser suite owns a sync-Playwright event
+  # loop for its whole process, so splitting a single file across workers would
+  # have them fight over it. File-level shards stay process-isolated for free.
+  _shard_suites=()
+  for _i in "${!BROWSER_TESTS[@]}"; do
+    if [ -n "$SHARD_TOTAL" ]; then
+      # 0-based array index vs 1-based shard index
+      if [ "$(( _i % SHARD_TOTAL ))" -ne "$(( SHARD_INDEX - 1 ))" ]; then
+        continue
+      fi
+    fi
+    _shard_suites+=("${BROWSER_TESTS[$_i]}")
   done
+
+  if [ -n "$SHARD_TOTAL" ]; then
+    echo "shard ${SHARD_INDEX}/${SHARD_TOTAL}: ${#_shard_suites[@]} of ${#BROWSER_TESTS[@]} browser suites"
+    # The i18n copy audit is one indivisible job — pin it to shard 1 so it runs
+    # exactly once across the matrix instead of once per shard.
+    if [ "$SHARD_INDEX" = "1" ]; then
+      bash scripts/i18n_browser_audit.sh
+    else
+      echo "SKIP i18n browser audit (runs on shard 1)"
+    fi
+  else
+    bash scripts/i18n_browser_audit.sh
+  fi
+
+  # NOTE: these ten suites call pw.chromium.launch() directly, so they are
+  # chromium-ONLY regardless of DX_BROWSER_ENGINES. Do not print the engine list
+  # next to them — it would claim coverage that does not exist. Only tests/e2e is
+  # engine-parameterised (see the cross-engine step below). Migrating a legacy
+  # suite means swapping its fixture for tests.browser_support.launch_browser.
+  # Known defects are carried explicitly, with the same discipline as the blocking
+  # gate's QUARANTINE: tests/shared/test_ci_contracts.py pins the list size so it can
+  # only shrink, and each entry must be justified in docs/testing.md. Currently empty.
+  BROWSER_QUARANTINE=()
+
+  # Keep running the remaining suites when one fails. Calling pytest bare under set -e
+  # would end the script at the first failure and leave the later suites unreported,
+  # and new regressions would get lost in the noise.
+  _browser_failed=()
+  for _bt in "${_shard_suites[@]}"; do
+    echo "== Browser suite: $_bt (chromium) =="
+    if ! "$PY" -m pytest "$_bt" -q --tb=short "${BROWSER_QUARANTINE[@]}"; then
+      _browser_failed+=("$_bt")
+    fi
+  done
+  if [ ${#_browser_failed[@]} -gt 0 ]; then
+    echo ""
+    echo "FAILED browser suites: ${_browser_failed[*]}" >&2
+    exit 1
+  fi
+
+  # The genuinely cross-browser part. Pinned to shard 1 so the matrix runs it once.
+  if [ -z "$SHARD_TOTAL" ] || [ "$SHARD_INDEX" = "1" ]; then
+    echo "== Inference E2E triple gate across engines: ${DX_BROWSER_ENGINES:-chromium} =="
+    "$PY" -m pytest tests/e2e/ -q --tb=short -m e2e_mock
+  else
+    echo "SKIP cross-engine E2E (runs on shard 1)"
+  fi
 fi
 
 if [ "$RUN_UX" = "1" ]; then

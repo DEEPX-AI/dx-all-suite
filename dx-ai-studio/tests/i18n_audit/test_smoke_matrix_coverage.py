@@ -14,6 +14,7 @@ REQUIRED_MODULES = frozenset(
         "dx_benchmark",
         "dx_monitor",
         "dx_agent_dev",
+        "dx_edge",
         "shared",
     }
 )
@@ -26,5 +27,5 @@ def test_copy_audit_matrix_covers_entry_modules():
 
 
 def test_copy_audit_state_count_matches_smoke_plan():
-    assert len(COPY_AUDIT_STATES) == 13
+    assert len(COPY_AUDIT_STATES) == 14
     assert len(LANGUAGES) == 6

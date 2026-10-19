@@ -1,4 +1,4 @@
-"""elements.py 테스트 — 엘리먼트 레퍼런스"""
+"""elements.py — element reference"""
 import pytest
 
 from tests.dx_stream._stream_import import pin_stream_core
@@ -51,8 +51,8 @@ class TestElements:
                     f"{e['name']}.{p['name']} missing description_en"
 
     def test_vnpu_elements_present_and_phantom_removed(self):
-        """staging(v3.1.0)에 실제 등록된 VNPU HW 코덱 엘리먼트는 노출하고, 실제 플러그인에
-        존재하지 않던 팬텀 엘리먼트(run 시 'no element' 실패)는 제거되어야 한다."""
+        """Expose the VNPU HW codec elements registered in staging (v3.1.0) and drop phantom elements the
+        plugins never had (they fail at run time with 'no element')."""
         names = [e["name"] for e in get_elements()]
         for expected in ["DxVnpuDec", "DxVnpuEnc", "DxVnpuPipeline", "DxVnpuOverlay", "tee", "webrtcbin"]:
             assert expected in names, f"{expected} missing from elements"
@@ -181,3 +181,35 @@ class TestConnectionValidation:
         assert "element_overrides" in rules
         assert "semantic_warnings" in rules
         assert "auto_converter_rules" in rules
+
+
+# ── Property names and defaults must match the installed plugins ──
+import shutil
+import subprocess
+
+from core.elements import _ELEMENTS, _GST_DEFAULTS
+
+
+def test_gst_defaults_only_name_listed_properties():
+    for name, defaults in _GST_DEFAULTS.items():
+        listed = {p["name"] for p in get_element_by_name(name)["properties"]}
+        assert set(defaults) <= listed, (name, set(defaults) - listed)
+
+
+def test_element_detail_carries_default_for_table():
+    props = {p["name"]: p for p in get_element_by_name("DxPreprocess")["properties"]}
+    assert props["keep-ratio"]["default"] == "true"
+    assert props["target-class-id"]["default"] == "-1"
+
+
+@pytest.mark.skipif(not shutil.which("gst-inspect-1.0"), reason="GStreamer not installed")
+def test_dx_element_properties_exist_in_installed_plugin():
+    for e in _ELEMENTS:
+        if not e["name"].startswith("Dx"):
+            continue
+        out = subprocess.run(["gst-inspect-1.0", e["name"].lower()], capture_output=True, text=True, timeout=30).stdout
+        if "Element Properties" not in out:
+            continue  # plugin not installed on this PC (DxVnpu*)
+        body = out.split("Element Properties:", 1)[1]
+        for prop in e.get("properties", []):
+            assert f"\n  {prop['name']} " in body, (e["name"], prop["name"])

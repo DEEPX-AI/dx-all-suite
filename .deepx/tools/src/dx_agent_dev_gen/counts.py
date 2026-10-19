@@ -25,8 +25,15 @@ def task_names(app_root: Path) -> list[str] | None:
 
 
 def model_count(app_root: Path) -> int | None:
-    """Number of entries in config/model_registry.json (list or name→info dict), or
-    None if the file is missing, unparsable, or not a list/dict."""
+    """Number of distinct published models in config/model_registry.json, or None if
+    the file is missing, unparsable, or not a list/dict.
+
+    A model is a published `.dxnn`, not a registry row: two rows may point at the
+    same binary (an alias — e.g. deit_base384_distilled and deit_base_distilled_2
+    both ship deit-b_384x384_distilled.dxnn), and that is one model. Counting rows
+    instead made the generated files say 498 while the KB said 497. Rows with no
+    `dxnn_file` cannot be de-duplicated that way, so the row count is used when no
+    row carries one."""
     registry = app_root / REGISTRY_REL
     if not registry.is_file():
         return None
@@ -36,7 +43,9 @@ def model_count(app_root: Path) -> int | None:
         return None
     if not isinstance(data, (list, dict)):
         return None
-    return len(data)
+    rows = list(data.values()) if isinstance(data, dict) else data
+    dxnn = {r.get("dxnn_file") for r in rows if isinstance(r, dict) and r.get("dxnn_file")}
+    return len(dxnn) if dxnn else len(rows)
 
 
 def task_model_counts(app_root: Path) -> Counter | None:

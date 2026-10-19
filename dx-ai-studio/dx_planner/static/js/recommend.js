@@ -9,7 +9,7 @@ const RecommendEngine = {
       parts.push('H1 ×' + topo.h1_cards);
     }
     if (Number(topo.device_count) > 1) {
-      parts.push(topo.device_count + ' DXRT devices');
+      parts.push((typeof T === 'function' ? T('{n} DXRT devices') : '{n} DXRT devices').replace('{n}', topo.device_count));
     }
     if (topo.pcie) {
       const pcie = String(topo.pcie).split('[')[0].trim();
@@ -18,16 +18,25 @@ const RecommendEngine = {
     return parts.join(' · ');
   },
 
+  // An estimate never claims more than this many times the highest stream count we measured.
+  EXTRAPOLATION_CAP: 2,
+  // NPU busy share at the most loaded measured point above which the NPU, not the host, is the limit.
+  NPU_BOUND_PCT: 85,
+
   /**
-   * Pure-benchmark recommendation. Everything below is derived from MEASURED
-   * benchmark rows only — no FPS headroom, no confidence tiers, no CPU gate,
-   * and no extrapolation beyond measured stream counts.
+   * Channel capacity from the multi-stream benchmark.
    *
-   * A stream_count is "sustainable" iff it was measured at per_channel_fps >=
-   * targetFps AND the NPU did not thermally throttle at that point. maxChannels
-   * is the largest sustainable stream_count. If host CPU saturation actually
-   * hurt throughput it already shows up as per_channel_fps < target, so avg_cpu
-   * is informational only.
+   * The benchmark measured only the stream counts that bracket ~30 FPS per channel. Around that
+   * point the pipeline is throughput-bound: total FPS stays roughly flat as streams are added and
+   * falls when oversubscribed. So:
+   *   T_sat = the lowest measured total FPS (the most loaded, most conservative figure)
+   *   M     = the largest measured stream count that held the target per channel
+   *   E     = floor(T_sat / target)
+   * A measured failure above M → M (measured). Every row held the target → max(M, E) capped at
+   * 2× the highest tested count (estimated; '+' when capped). No row held it → E (estimated).
+   * E with the minimum T_sat never contradicts a measured row: a failing row has total < target·n.
+   * Throttling does not zero a platform — the measured FPS already ran at throttled clocks —
+   * it is reported (throttled) and ranks after an equal cool result.
    *
    * @param {Object} inputs - {task, size, cameras, targetFps, priority, ort, maxLatencyMs}
    * @param {Array} platforms - DataLoader.getPlatforms()
@@ -46,43 +55,49 @@ const RecommendEngine = {
         m => m.size === inputs.size && m.task === inputs.task && m.ort === ort
       );
 
-      const channelCalc = this._calcMaxChannels(bench, multiAll, inputs.targetFps);
-      const maxChannels = channelCalc.maxChannels;
-      const boundaryFlag = channelCalc.boundaryFlag;
-
-      const latencyMs = bench.latency_ms || 0;
+      const cap = this._calcMaxChannels(bench, multiAll, inputs.targetFps);
+      const maxChannels = cap.maxChannels;
+      const latencyMs = Number(bench.latency_ms) > 0 ? Number(bench.latency_ms) : null;
       const meetsChannels = maxChannels >= inputs.cameras;
       const meetsLatency = this._meetsLatency(latencyMs, inputs.maxLatencyMs);
-      const meetsRequirement = meetsChannels && meetsLatency;
-
-      const topsPerWatt = platform.npu.tdp_w > 0
-        ? platform.npu.tops / platform.npu.tdp_w
-        : 0;
+      let status = 'short';
+      if (meetsChannels && meetsLatency !== false) {
+        status = (cap.evidence === 'measured' && meetsLatency === true) ? 'meets' : 'meets-estimated';
+      }
+      const tdp = Number(platform.npu.tdp_w) || 0;
+      const topsPerWatt = tdp > 0 ? platform.npu.tops / tdp : 0;
 
       return {
         platform,
-        throughputFps: bench.throughput_fps || 0,
+        throughputFps: bench.throughput_fps || 0,     // single-model NPU throughput (benchmark tool)
+        pipelineFps: cap.tSat,                        // end-to-end camera pipeline total FPS (measured)
         latencyMs,
         maxChannels,
-        boundaryFlag,
+        boundaryFlag: cap.boundaryFlag,
+        evidence: cap.evidence,
+        why: cap.why,
+        throttled: cap.throttled,
+        bottleneck: cap.bottleneck,
+        npuPct: cap.npuPct,                          // NPU load at the most loaded measured count (limit chip)
         meetsChannels,
         meetsLatency,
-        meetsRequirement,
-        // Informational only (never affects ranking): smallest measured stream
-        // where the NPU throttled, i.e. "sustains up to maxChannels, throttles
-        // at throttleOnset and beyond". null when no measured point throttled.
+        status,
+        meetsRequirement: status !== 'short',
+        // Informational: smallest measured stream count where the NPU throttled.
         throttleOnset: this._throttleOnset(multiAll),
         topsPerWatt: Math.round(topsPerWatt * 100) / 100,
+        fpsPerWatt: tdp > 0 ? Math.round((cap.tSat / tdp) * 10) / 10 : 0,
       };
     }).filter(Boolean);
 
     return this._sort(results, inputs.priority);
   },
 
+  /** true / false, or null when a budget is set but no latency was measured (never a silent pass). */
   _meetsLatency(latencyMs, maxLatencyMs) {
     const budget = Number(maxLatencyMs);
-    if (!Number.isFinite(budget) || budget <= 0) return true;
-    if (!latencyMs) return true;
+    if (maxLatencyMs == null || !Number.isFinite(budget) || budget <= 0) return true;
+    if (!latencyMs) return null;
     return latencyMs <= budget;
   },
 
@@ -104,36 +119,68 @@ const RecommendEngine = {
   },
 
   /**
-   * Largest MEASURED, sustainable stream_count. Sustainable = per_channel_fps
-   * meets targetFps AND not npu_throttled. No headroom, no extrapolation.
-   * boundaryFlag: '+' when even the top tested stream sustains (so real max is
-   * "at least this many"), otherwise 'measured'.
-   * @returns {{maxChannels:number, boundaryFlag:('measured'|'+')}}
+   * @returns {{maxChannels:number, boundaryFlag:('measured'|'estimated'|'+'), evidence:('measured'|'estimated'|'none'),
+   *            tSat:number, throttled:boolean, bottleneck:('npu'|'host'|null), npuPct:(number|null), why:Object}}
    */
   _calcMaxChannels(bench, multiAll, targetFps) {
-    const sorted = this._sortedMulti(multiAll);
-    const target = Number(targetFps) || 0;
-
-    const sustainable = sorted.filter(
-      m => m.per_channel_fps != null && m.per_channel_fps >= target && m.npu_throttled !== true
+    const rows = this._sortedMulti(multiAll).filter(
+      m => Number(m.stream_count) > 0 && Number.isFinite(Number(m.total_fps)) && m.per_channel_fps != null
     );
+    const target = Number(targetFps) || 0;
+    if (!rows.length || target <= 0) {
+      return { maxChannels: 0, boundaryFlag: 'measured', evidence: 'none', tSat: 0, throttled: false,
+               bottleneck: null, npuPct: null, why: { kind: 'none' } };
+    }
 
-    const streamMax = (rows) => rows.reduce((max, m) => {
-      const sc = m.stream_count ?? null;
-      return sc !== null && sc > max ? sc : max;
-    }, 0);
+    const satRow = rows.reduce((lo, m) => (Number(m.total_fps) < Number(lo.total_fps) ? m : lo), rows[0]);
+    const tSat = Number(satRow.total_fps);
+    const maxTested = rows[rows.length - 1].stream_count;
+    const held = rows.filter(m => m.per_channel_fps >= target);
+    const mRow = held.length ? held[held.length - 1] : null;
+    const measured = mRow ? mRow.stream_count : 0;
+    const failAbove = rows.find(m => m.stream_count > measured && m.per_channel_fps < target);
+    const estimate = Math.floor(tSat / target);
 
-    const maxChannels = streamMax(sustainable);
-    const maxTested = streamMax(sorted);
-    const boundaryFlag = (maxChannels > 0 && maxChannels === maxTested) ? '+' : 'measured';
-    return { maxChannels, boundaryFlag };
+    let maxChannels; let evidence; let capped = false; let basis;
+    if (mRow && failAbove) {
+      maxChannels = measured; evidence = 'measured'; basis = mRow;
+    } else if (mRow) {
+      const limit = this.EXTRAPOLATION_CAP * maxTested;
+      capped = estimate > limit;
+      maxChannels = Math.max(measured, Math.min(estimate, limit));
+      evidence = maxChannels > measured ? 'estimated' : 'measured';
+      basis = evidence === 'measured' ? mRow : satRow;
+    } else {
+      maxChannels = estimate; evidence = 'estimated'; basis = satRow;
+    }
+
+    const loaded = rows[rows.length - 1];
+    const npuPct = Number(loaded.npu_total_avg_pct);
+    // target and raw (T_sat / target) let the card show its arithmetic
+    const why = evidence === 'measured'
+      ? { kind: 'measured', n: measured, atFps: mRow.per_channel_fps, target,
+          nextN: failAbove ? failAbove.stream_count : null, nextFps: failAbove ? failAbove.per_channel_fps : null }
+      : { kind: 'estimated', n: maxChannels, tSat, target, raw: tSat / target, maxTested, capped };
+    return {
+      maxChannels,
+      boundaryFlag: capped ? '+' : evidence,
+      evidence,
+      tSat,
+      throttled: basis.npu_throttled === true,
+      bottleneck: Number.isFinite(npuPct) ? (npuPct >= this.NPU_BOUND_PCT ? 'npu' : 'host') : null,
+      npuPct: Number.isFinite(npuPct) ? npuPct : null,
+      why,
+    };
+  },
+
+  _tier(r) {
+    return r.status === 'meets' ? 0 : r.status === 'meets-estimated' ? 1 : 2;
   },
 
   _sort(results, priority) {
     return results.sort((a, b) => {
-      if (a.meetsRequirement !== b.meetsRequirement) {
-        return a.meetsRequirement ? -1 : 1;
-      }
+      if (this._tier(a) !== this._tier(b)) return this._tier(a) - this._tier(b);
+      if (a.throttled !== b.throttled) return a.throttled ? 1 : -1;
 
       let primary = 0;
       switch (priority) {
@@ -141,20 +188,19 @@ const RecommendEngine = {
           primary = b.maxChannels - a.maxChannels;
           break;
         case 'performance':
-          primary = b.throughputFps - a.throughputFps;
+          primary = (b.pipelineFps - a.pipelineFps) || ((a.latencyMs || Infinity) - (b.latencyMs || Infinity));
           break;
         case 'power':
-          primary = a.platform.npu.tdp_w - b.platform.npu.tdp_w;
+          primary = (a.platform.npu.tdp_w - b.platform.npu.tdp_w) || (b.fpsPerWatt - a.fpsPerWatt);
           break;
         default:
           primary = 0;
       }
-      if (primary !== 0) return primary;
+      if (primary) return primary;
 
-      // Deterministic tiebreak (ties are common at the all-fail tail):
-      // more channels -> higher throughput -> stable platform id.
+      // Deterministic tiebreak: more channels -> higher pipeline FPS -> stable platform id.
       if (a.maxChannels !== b.maxChannels) return b.maxChannels - a.maxChannels;
-      if (a.throughputFps !== b.throughputFps) return b.throughputFps - a.throughputFps;
+      if (a.pipelineFps !== b.pipelineFps) return b.pipelineFps - a.pipelineFps;
       return String(a.platform.id).localeCompare(String(b.platform.id));
     });
   },

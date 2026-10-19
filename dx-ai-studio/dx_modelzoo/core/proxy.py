@@ -1,23 +1,23 @@
-"""DX Model Zoo — dx_app(8080) HTTP 프록시."""
+"""DX Model Zoo — HTTP proxy to dx_app (8080)."""
 import re
 import json
 import http.client
 import socket
-from dx_modelzoo.core.config import DX_APP_PORT
+from dx_modelzoo.core.config import DX_APP_PORT, dx_app_port
 
 _SAFE_ID_RE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9._\-]{0,127}$")
 
 
 def is_safe_model_id(model_id):
-    """모델 ID 안전성 검증 (path traversal / injection 방지)."""
+    """Validate a model id (guards against path traversal / injection)."""
     if not model_id or ".." in model_id:
         return False
     return bool(_SAFE_ID_RE.match(model_id))
 
 
 def is_dx_app_alive(port=None, timeout=1):
-    """dx_app TCP 연결 가능 여부."""
-    port = port or DX_APP_PORT
+    """Whether dx_app accepts TCP connections."""
+    port = port or dx_app_port()
     try:
         sock = socket.create_connection(("127.0.0.1", port), timeout=timeout)
         sock.close()
@@ -36,12 +36,12 @@ def _json_error_response(status, code, detail):
 
 
 def proxy_request(method, path, query=None, body=None, headers=None, port=None):
-    """dx_app(8080)으로 HTTP 요청 프록시.
+    """Proxy an HTTP request to dx_app (8080).
 
     Returns:
         (status_code, response_headers, response_body)
     """
-    port = port or DX_APP_PORT
+    port = port or dx_app_port()
     url = path
     if query:
         url = f"{path}?{query}"

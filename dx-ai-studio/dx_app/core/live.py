@@ -8,18 +8,39 @@ layer) — that one upward dependency is resolved with a local import inside
 the function body (see below) so module-load time stays acyclic.
 """
 
-import os, re, math, time, uuid, subprocess, tempfile, threading, atexit
+import os, re, sys, math, shutil, time, uuid, subprocess, tempfile, threading, atexit
 from pathlib import Path
-from dx_app.core import config
-from dx_app.core.config import DX_APP_ROOT, BUILD_DIR
+from dx_app.core import config, npu_jobs
+from dx_app.core.config import DX_APP_ROOT, BUILD_DIR, resolve_model_path
 from shared.runtime import ld_library_path
+from shared import dxrt
 from dx_app.core.performance import _parse_perf
 from dx_app.core.inference_exec import _err, _TMP
-from dx_app.core.camera import _start_cam_mux, _stop_cam_mux, _ensure_xvfb, _XVFB_BASE, _UDP_BASE_PORT
+from dx_app.core.camera import _start_cam_mux, _stop_cam_mux, _ensure_xvfb, _XVFB_BASE, _UDP_BASE_PORT, _XVFB_RES
 
 _live_jobs = {}              # job_id -> {proc, log_file, start_time, slot_idx, ...}
 _live_procs = {}             # slot_idx -> running inference proc
 _live_procs_lock = threading.Lock()
+
+
+def _video_frame_count(path):
+    """Frame count of a video (ffprobe: the container's value, else count packets). None if unknown. Used as the floor
+    for live 'Loop' counting, since many runners (segmentation etc.) do not print 'Total frames'."""
+    import shutil
+    if not shutil.which("ffprobe") or not Path(path).is_file():
+        return None
+    for extra in ([], ["-count_packets"]):
+        field = "nb_read_packets" if extra else "nb_frames"
+        try:
+            out = subprocess.run(["ffprobe", "-v", "error", *extra, "-select_streams", "v:0",
+                                  "-show_entries", f"stream={field}", "-of", "csv=p=0", str(path)],
+                                 capture_output=True, text=True, timeout=15).stdout.strip().split(",")[0]
+            n = int(out)
+            if n > 0:
+                return n
+        except (ValueError, OSError, subprocess.SubprocessError):
+            continue
+    return None
 
 
 def run_inference_live(model_name, category, model_file, lang="cpp", variant="sync",
@@ -34,20 +55,56 @@ def run_inference_live(model_name, category, model_file, lang="cpp", variant="sy
     Performance stays the example's own stdout log (poll_inference parses it)."""
     if not model_file:
         return _err("no_model_file", "No model file configured")
+    # One NPU job at a time (npu_jobs.py): the Graph Composer's run once and Live load their own engines on the NPU.
+    # Each slot holds the NPU under its own id; the Run page's slots run side by side.
+    hold = _slot_hold(slot_idx)
+    holder = npu_jobs.acquire("live", hold)
+    if holder is not None:
+        return _err(*_BUSY[holder])
+    try:
+        return _start_live(model_name, category, model_file, lang, variant, input_type, camera_id, rtsp_url,
+                           video_path, slot_idx, n_total_slots)
+    finally:
+        npu_jobs.release_if_idle(hold)       # an error before the runner started gives the NPU back
 
-    # Live streaming needs a virtual display (Xvfb) + a screen grabber (mss) — the only
-    # non-stdlib pieces of the live path. Without them frame capture is blank and
-    # _ensure_xvfb raises deep inside, surfacing as a cryptic 500. Fail fast + actionable.
+
+def _slot_hold(slot_idx):
+    return f"live-slot-{slot_idx}"
+
+
+# Why the Run page's Live cannot start, by the kind of job holding the NPU (npu_jobs.py)
+_BUSY = {"graph_live": ("graph_live_busy", "The Graph Composer has a Live run. Stop it before starting one here."),
+         "graph_run": ("graph_run_busy", "The Graph Composer is running a graph. Wait for it or stop it first."),
+         "gallery": ("gallery_busy", "The Graph Composer is building a gallery. Wait for it to finish.")}
+
+
+def _start_live(model_name, category, model_file, lang, variant, input_type, camera_id, rtsp_url, video_path,
+                slot_idx, n_total_slots):
+    """run_inference_live once this slot holds the NPU."""
+
+    # Live streaming needs a virtual display (Xvfb), libX11/libxcb to drive and grab it and Pillow to encode the
+    # frames — the only non-stdlib pieces of the live path (all OS packages). Without them frame
+    # capture is blank and _ensure_xvfb raises deep inside, surfacing as a cryptic 500. Fail fast
+    # + actionable. (No mss — tests/dx_app/test_live_grab.py.)
     import shutil
+    from dx_app.core import camera as _camera
     _missing = []
     if not shutil.which("Xvfb"):
         _missing.append("Xvfb (sudo apt install xvfb)")
+    if _camera._xlib() is None or _camera._xcb() is None:
+        _missing.append("libX11 / libxcb (sudo apt install libx11-6)")
     try:
-        import mss  # noqa: F401
+        import PIL  # noqa: F401
     except Exception:
-        _missing.append("mss (pip install mss)")
+        _missing.append("Pillow (sudo apt install python3-pil)")
     if _missing:
         return _err("live_deps_missing", "Live streaming requires: " + ", ".join(_missing))
+
+    # Runners that do not take video (arcface, CLIP, ReID, VPR, DOPE, SFA3D, …) reject -v and exit at once,
+    # leaving only a black screen, so refuse with a reason (the UI does not block camera / RTSP for continuous runs)
+    if config.model_image_only(category, model_name):
+        return _err("live_image_only", "This model takes still images only — live (camera / RTSP / video) "
+                    "is not supported. Use Run Inference with an image.")
 
     is_multi_model = model_file.startswith("-")
     if is_multi_model:
@@ -60,7 +117,7 @@ def run_inference_live(model_name, category, model_file, lang="cpp", variant="sy
                     return _err("model_not_found", f"Model file not found: {arg}")
                 model_args[i] = str(mfp)
     else:
-        mp = DX_APP_ROOT / model_file
+        mp = resolve_model_path(model_file, DX_APP_ROOT)
         if not mp.exists():
             return _err("model_not_found", f"Model file not found: {model_file}")
 
@@ -70,7 +127,10 @@ def run_inference_live(model_name, category, model_file, lang="cpp", variant="sy
             # Multi-slot: ffmpeg reads camera once → N UDP streams
             if slot_idx == 0:
                 if not _start_cam_mux(_cam_idx, n_total_slots):
-                    return _err("failed_camera_mux", "Failed to start camera multiplexer (ffmpeg). Is ffmpeg installed?")
+                    from dx_app.core.camera import cam_mux_last_error
+                    why = cam_mux_last_error() or ("ffmpeg not found" if not shutil.which("ffmpeg") else "")
+                    return _err("failed_camera_mux", "Failed to share the camera between slots (ffmpeg)"
+                                + (f": {why}" if why else ""))
             else:
                 # Give ffmpeg a moment to stabilize for later slots
                 time.sleep(0.5)
@@ -109,10 +169,17 @@ def run_inference_live(model_name, category, model_file, lang="cpp", variant="sy
     _display = f":{_XVFB_BASE + slot_idx}"
     _loop = 999999  # effectively infinite until SIGTERM
     _ld = ld_library_path()
-    env = {**os.environ, "DISPLAY": _display, "LD_LIBRARY_PATH": _ld}
+    env = dxrt.run_env({**os.environ, "DISPLAY": _display, "LD_LIBRARY_PATH": _ld})
     env.pop("QT_QPA_PLATFORM", None)  # allow real X11 rendering
+    # The runner reports the frame count itself ([PROGRESS]). dx_app opens its window at half the screen, so
+    # report twice the Xvfb size as the screen and the window fills Xvfb from the start (window fitting stays).
+    env["DXAPP_PROGRESS"] = "1"
+    _xw, _xh = (int(v) for v in _XVFB_RES.split("x")[:2])
+    env["DXAPP_SCREEN_W"], env["DXAPP_SCREEN_H"] = str(2 * _xw), str(2 * _xh)
 
-    inf = "-v"
+    # The runner needs the -v path to exist on disk: RTSP and the multi-slot camera's udp:// would end at once
+    # with "Input file not found" and a black screen. URLs go through -r (C++ rtsp_url, opened by OpenCV).
+    inf = "-r" if "://" in _inp_str else "-v"
     if lang == "cpp":
         bp = BUILD_DIR / f"{model_name}_{variant}"
         if not bp.exists():
@@ -121,6 +188,9 @@ def run_inference_live(model_name, category, model_file, lang="cpp", variant="sy
             cmd = [str(bp)] + model_args + [inf, _inp_str, "-l", str(_loop)]
         else:
             cmd = [str(bp), "-m", str(mp), inf, _inp_str, "-l", str(_loop)]
+        # The runner prints per-frame lines such as [DET] and [CLS] only with --show-log; without them the poll sees
+        # frames 0 and FPS 0 (every runner accepts it; contract: tests/dx_app/test_live_display.py)
+        cmd.append("--show-log")
     else:
         return _err("live_cpp_only", "Live mode currently supports C++ only")
 
@@ -130,6 +200,10 @@ def run_inference_live(model_name, category, model_file, lang="cpp", variant="sy
     with open(log_file, "w") as fout:
         proc = subprocess.Popen(cmd, stdout=fout, stderr=subprocess.STDOUT,
                                 cwd=str(DX_APP_ROOT), env=env, text=True, close_fds=True)
+    if not npu_jobs.attach(_slot_hold(slot_idx), proc, kind="live"):
+        proc.kill()
+        proc.wait()
+        return _err(npu_jobs.LOST["error_key"], npu_jobs.LOST["error"])
     with _live_procs_lock:
         _live_procs[slot_idx] = proc
     # keep config._running_proc for slot 0 backward compat
@@ -141,6 +215,7 @@ def run_inference_live(model_name, category, model_file, lang="cpp", variant="sy
         "proc": proc, "log_file": log_file,
         "start_time": time.time(), "model_name": model_name,
         "category": category, "slot_idx": slot_idx,
+        "total_frames": _video_frame_count(_inp_str) if input_type == "video" else None,
     }
     print(f"[LIVE] Started job {job_id} slot={slot_idx} PID={proc.pid} model={model_name}")
     return {"job_id": job_id, "status": "started", "slot_idx": slot_idx}
@@ -166,7 +241,8 @@ def _parse_detections(stdout_text):
     return dets
 
 
-_CLS_VERBOSE_RE = re.compile(r'^\s*(\d+)\.\s*\(class\s+(\d+)\)\s*:\s*([-\d.]+)', re.M)
+# A score must end in one number; skip lines garbled by concurrent async callbacks ('3.50273.5913')
+_CLS_VERBOSE_RE = re.compile(r'^\s*(\d+)\.\s*\(class\s+(\d+)\)\s*:\s*(-?\d+(?:\.\d+)?)[ \t]*$', re.M)
 
 def _softmax(xs):
     if not xs:
@@ -199,6 +275,9 @@ def _parse_classification_frames(content):
         out.append([(idx, p) for (idx, _), p in zip(fr, probs)])
     return out
 
+_PER_OBJECT_TAGS = ("DET", "OBB", "ISEG")
+
+
 def _parse_task_tags(content):
     """Parse all task-specific stdout tags from C++ runner output.
     Returns dict: {tag: str, lines: list, frame_count: int, last_pred: list, summary: dict}
@@ -223,6 +302,18 @@ def _parse_task_tags(content):
     frame_count = len(tag_lines)
     if frame_count == 0:
         return {"tag": "", "lines": [], "frame_count": 0, "last_pred": [], "summary": {}}
+    if tag in _PER_OBJECT_TAGS:
+        # [DET], [OBB] and [ISEG] are one line per object with no frame number. Objects within a frame come in
+        # descending confidence, so a rise in confidence starts a new frame. Runs of empty or single-object
+        # frames cannot be counted, so this is a lower bound.
+        confs = []
+        for tl in tag_lines:
+            try:
+                confs.append(float(tl.split()[2]))
+            except (IndexError, ValueError):
+                continue
+        if confs:
+            frame_count = 1 + sum(1 for a, b in zip(confs, confs[1:]) if b > a)
 
     # Build last_pred (human-readable, last 5 lines)
     last_pred = []
@@ -361,6 +452,29 @@ def _parse_task_tags(content):
             "last_pred": last_pred, "summary": summary}
 
 
+_STAGES = ("read", "pre", "infer", "post")
+_PROGRESS_LINE = re.compile(r"^\[PROGRESS\] frames=\d+(.*)$", re.M)
+
+
+def _progress_measurements(content):
+    """The fields of the last '[PROGRESS] frames=N key=value ...' line that carries any.
+
+    dx_app's runner measures fps (the last second), avg_fps (since its first frame) and the read / pre / infer / post
+    averages itself (src/cpp_example/common/utility/progress.hpp); an older dx_app prints frames only -> {}.
+    """
+    for rest in reversed(_PROGRESS_LINE.findall(content)):
+        fields = {}
+        for part in rest.split():
+            key, _, value = part.partition("=")
+            try:
+                fields[key] = float(value)
+            except ValueError:
+                pass
+        if fields:
+            return fields
+    return {}
+
+
 def poll_inference(job_id):
     """Poll live job for stats."""
     job = _live_jobs.get(job_id)
@@ -377,21 +491,21 @@ def poll_inference(job_id):
     except Exception:
         content = ""
 
-    # ── Frame / detection counting (모든 태스크 태그 통합) ──
+    # ── Frame / detection counting (all task tags combined) ──
     task = _parse_task_tags(content)
     task_tag = task["tag"]
     tag_frame_count = task["frame_count"]
 
-    # 분류(sync): "video - Top predictions:" 또는 "Top predictions:" 마커
+    # Classification (sync): the "video - Top predictions:" or "Top predictions:" marker
     frame_markers = content.count("Top predictions:")
     if frame_markers == 0:
         frame_markers = content.count("video -")
 
-    # 검출(async/sync): [DET] 줄 수를 detections으로 사용
+    # Detection (async/sync): the number of [DET] lines is the detection count
     det_lines = task["lines"] if task_tag == "DET" else []
     det_count = len(det_lines)
 
-    # Source FPS 파싱 (로그에서 추출)
+    # Parse the source FPS (from the log)
     src_fps = 0.0
     m_fps = re.search(r"\[INFO\] Input source FPS:\s*([\d.]+)", content)
     if m_fps:
@@ -400,27 +514,43 @@ def poll_inference(job_id):
 
     is_det_mode = det_count > 0 and frame_markers == 0
     has_tag_mode = tag_frame_count > 0  # any task tag found
-    # check if inference started (for models that don't print per-frame logs)
-    has_started = "Starting" in content and src_fps > 0
 
-    if has_tag_mode:
-        # Tag-based frame counting (works for ALL task types)
-        est_frames = tag_frame_count
-        fps_est = round(est_frames / elapsed, 1) if elapsed > 0.5 else 0
-        display_frames = est_frames
-    elif frame_markers > 0:
-        fps_est = round(frame_markers / elapsed, 1) if elapsed > 0.5 else 0
-        display_frames = frame_markers
-    elif has_started and running:
-        # Models that don't print per-frame logs (restoration, embedding)
-        est_frames = int(elapsed * src_fps) if elapsed > 0.5 else 0
-        fps_est = round(est_frames / elapsed, 1) if elapsed > 0.5 else 0
-        display_frames = est_frames
+    # 'Loop k/N' is printed each time the video wraps; finished loops × total frames is a floor on frames processed.
+    # Many runners (segmentation etc.) do not print 'Total frames', so the video length measured at start is used.
+    loops = [int(x) for x in re.findall(r"\bLoop (\d+)/\d+", content)]
+    m_total = re.search(r"\[INFO\] Total frames:\s*(\d+)", content)
+    total = int(m_total.group(1)) if m_total else job.get("total_frames")
+    done = (max(loops) - 1) if loops else 0
+    loop_frames = done * int(total) if total and done > 0 else None
+
+    # If the runner prints '[PROGRESS] frames=N' (dx_app with DXAPP_PROGRESS=1), that is the frame count;
+    # the estimates below (tags, Loop) are for runners that do not
+    progress = [int(x) for x in re.findall(r"^\[PROGRESS\] frames=(\d+)", content, re.M)]
+    measured = _progress_measurements(content)
+
+    if progress:
+        frame_basis, display_frames = "progress", max(progress)
+    elif has_tag_mode or frame_markers > 0:
+        frame_basis = "tag"
+        display_frames = tag_frame_count if has_tag_mode else frame_markers
+        # Tasks that tag only some frames (the hand detector only when a hand is visible) get a larger Loop count
+        if loop_frames and loop_frames > display_frames:
+            frame_basis, display_frames = "loop", loop_frames
+    elif loop_frames:
+        frame_basis, display_frames = "loop", loop_frames
     else:
-        fps_est = 0
-        display_frames = 0
+        # segmentation, depth, denoise, SR, matting and anomaly runners print no per-frame line. 'Source FPS × elapsed'
+        # is not a frame count (PP-Matting would show 24 FPS for a real 0.2 FPS), so unknown stays unknown (None).
+        frame_basis, display_frames = "none", None
+    if display_frames is None:
+        fps_est = None
+    elif "avg_fps" in measured:
+        # The runner's average starts at its first frame; frames / process time also counts start-up and model load
+        fps_est = measured["avg_fps"]
+    else:
+        fps_est = round(display_frames / elapsed, 1) if elapsed > 0.5 else 0
 
-    # ── Last prediction / detection (태스크 태그 기반) ──
+    # ── Last prediction / detection (from the task tags) ──
     last_pred = task["last_pred"] if task["last_pred"] else []
     if not last_pred and not has_tag_mode:
         # Fallback: legacy "Top predictions:" parsing
@@ -450,9 +580,11 @@ def poll_inference(job_id):
                     class_counts[cls]["conf_sum"] += conf
                 except Exception: pass
 
-    return {"running": running, "frames": display_frames,
+    stage_ms = {k: measured[k + "_ms"] for k in _STAGES if k + "_ms" in measured} or None
+    return {"running": running, "frames": display_frames, "frame_basis": frame_basis,
             "det_count": det_count, "class_counts": class_counts,
             "elapsed": round(elapsed, 1), "fps_est": fps_est,
+            "runner_fps": measured.get("fps"), "stage_ms": stage_ms,
             "src_fps": src_fps, "is_det_mode": is_det_mode,
             "last_pred": last_pred,
             "task_tag": task_tag, "task_summary": task["summary"]}
@@ -475,6 +607,10 @@ def stop_inference_live(slot_idx=None):
     # Stop camera multiplexer when stopping all slots
     if slot_idx is None:
         _stop_cam_mux()
+    # Also stop the stopped slot's Xvfb, otherwise it would stay until the server exits
+    from dx_app.core import camera as _camera
+    for s in targets:
+        _camera.stop_xvfb(s)
     return {"status": "stopping", "slots": stopped}
 
 
@@ -494,18 +630,25 @@ def _terminate_proc(p, timeout=3):
 def shutdown_live_processes():
     """Terminate every live-mode child (live inference, Xvfb, ffmpeg cam-mux) plus
     any in-flight run_multi children. Called on server shutdown AND watchdog restart
-    so nothing is left as an orphan (F-13 / F-14a). Safe to call repeatedly."""
+    so nothing is left as an orphan. Safe to call repeatedly."""
     # Local import: inference.py (top layer) owns stop_multi/stop_inference, and
     # imports this module — importing it at module load time here would create a
     # circular import. Deferred so it only resolves when this function actually runs.
     from dx_app.core import inference as _inference
     from dx_app.core import camera
+    # The graph Live draws on its own Xvfb display (graph_live.SLOT), which the loop below kills with the others:
+    # stop its runner first, so it ends by SIGTERM and records how it ended (only when it was ever loaded).
+    graph_live = sys.modules.get("dx_app.core.graph_live")
+    if graph_live is not None:
+        try: graph_live.stop_all()
+        except Exception: pass
     try: stop_inference_live(None)
     except Exception: pass
     with _live_procs_lock:
         for slot, p in list(_live_procs.items()):
             _terminate_proc(p)
             _live_procs.pop(slot, None)
+            npu_jobs.release(_slot_hold(slot))
     with camera._xvfb_lock:
         for slot, p in list(camera._xvfb_procs.items()):
             _terminate_proc(p)
@@ -568,6 +711,20 @@ def get_inference_result(job_id):
         for cls in det_summary:
             c = det_summary[cls]; c["conf_avg"] = round(c["conf_sum"] / c["count"], 3) if c["count"] else 0
 
+    # The runner exited on its own: it rejected the video (e.g. CLIP ViT-B/32, where config.json and the C++
+    # example differ) or crashed. 'error' is the API error slot (the UI covers it with the merged result), so use run_error.
+    run_error_key = run_error = None
+    if "Interrupted by user" not in content and not perf.get("overall_fps") and not task["frame_count"]:
+        plain = re.sub(r"\x1b\[[0-9;]*m", "", content)
+        hint = next((l.strip() for l in plain.splitlines() if "image-only" in l or "supports image input only" in l), None)
+        err = next((l.strip() for l in plain.splitlines()
+                    if re.search(r"\[ERROR\]|does not exist|Abort|Segmentation|terminate called", l)), None)
+        if hint:
+            run_error_key, run_error = "live_image_only", hint
+        elif err or (proc.returncode not in (0, None)):
+            run_error_key = "live_runner_failed"
+            run_error = err or f"The example exited with code {proc.returncode}"
+
     result = {
         "job_id": job_id, "exit_code": proc.returncode,
         "model": job["model_name"], "category": job["category"],
@@ -584,6 +741,8 @@ def get_inference_result(job_id):
         "task_frames": task["frame_count"],
         "output": content[-4000:],
     }
+    if run_error_key:
+        result["run_error_key"], result["run_error"] = run_error_key, run_error
 
     slot = job.get("slot_idx", 0)
     try: os.unlink(job["log_file"])

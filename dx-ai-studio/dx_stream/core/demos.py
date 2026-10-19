@@ -1,7 +1,7 @@
-"""11개 프리셋 데모 정의 + GStreamer 파이프라인 문자열 생성.
+"""The 11 preset demos and their GStreamer pipeline strings.
 
-run_demo.sh의 11개 데모 매핑을 Python으로 재구성.
-fpsdisplaysink를 videoconvert ! encoder ! rtph264pay ! webrtcbin으로 교체.
+Mirrors the 11 demos in run_demo.sh, with fpsdisplaysink replaced by
+videoconvert ! encoder ! rtph264pay ! webrtcbin so the browser can show the stream.
 """
 from __future__ import annotations
 
@@ -75,7 +75,7 @@ def _format_reason_item(item: dict) -> str:
     path = item.get("path")
     return f"{label}: {path}" if path else label
 
-# 11개 프리셋 데모 정의 (run_demo.sh 매핑)
+# The 11 preset demos (mirrors run_demo.sh)
 DEMOS = [
     {
         "id": 0,
@@ -243,6 +243,27 @@ DEMOS = [
         "required_files": ["tracker_config.json"],
         "required_videos": ["dance-group.mov"],
     },
+    {
+        "id": 11,
+        "name_ko": "깊이 추정",
+        "name_en": "Depth Estimation",
+        "category": "depth_estimation",
+        "model": "yolo26-depth-n_768x768.dxnn",
+        "description_ko": "YOLOv26n 기반 깊이 추정",
+        "description_en": "Depth estimation with YOLOv26n",
+        "pipeline_type": "standard",
+        "preprocess_id": 1,
+        # 768x768 (not the usual 640) — matches dx-runtime's
+        # pipelines/single_network/depth_estimation/run_yolo26n-depth.sh.
+        "resize": (768, 768),
+        # Matches the runtime script, which is the ONLY single_network pipeline that
+        # turns letterboxing off (dxpreprocess keep-ratio defaults to true).
+        "keep_ratio": False,
+        "postproc_lib": f"{_POSTPROC_LIB_DIR}/libpostprocess_yolo26depth.so",
+        "postproc_func": "PostProcess",
+        "runtime_script": "single_network/depth_estimation/run_yolo26n-depth.sh",
+        "required_videos": ["blackbox-city-road.mp4"],
+    },
 ]
 
 _DEMO_I18N = {
@@ -307,14 +328,14 @@ _DEMO_I18N = {
         "description_zh-TW": "使用 YOLOV5Pose PPU 的姿勢估計",
     },
     6: {
-        "name_ja": "セマンティックセグメンテーション",
-        "name_es": "Segmentación semántica",
-        "name_zh-CN": "语义分割",
-        "name_zh-TW": "語意分割",
-        "description_ja": "YOLOv26nによるセマンティックセグメンテーション",
-        "description_es": "Segmentación semántica con YOLOv26n",
-        "description_zh-CN": "使用 YOLOv26n 的语义分割",
-        "description_zh-TW": "使用 YOLOv26n 的語意分割",
+        "name_ja": "インスタンスセグメンテーション",
+        "name_es": "Segmentación de instancias",
+        "name_zh-CN": "实例分割",
+        "name_zh-TW": "實例分割",
+        "description_ja": "YOLOv26n によるインスタンスセグメンテーション",
+        "description_es": "Segmentación de instancias con YOLOv26n",
+        "description_zh-CN": "使用 YOLOv26n 的实例分割",
+        "description_zh-TW": "使用 YOLOv26n 的實例分割",
     },
     7: {
         "name_ja": "複数物体追跡",
@@ -356,6 +377,16 @@ _DEMO_I18N = {
         "description_zh-CN": "主检测后的二次分类和人脸识别",
         "description_zh-TW": "主要偵測後的二次分類與人臉辨識",
     },
+    11: {
+        "name_ja": "深度推定",
+        "name_es": "Estimación de profundidad",
+        "name_zh-CN": "深度估计",
+        "name_zh-TW": "深度估計",
+        "description_ja": "YOLOv26nによる深度推定",
+        "description_es": "Estimación de profundidad con YOLOv26n",
+        "description_zh-CN": "基于 YOLOv26n 的深度估计",
+        "description_zh-TW": "基於 YOLOv26n 的深度估計",
+    },
 }
 
 for _demo in DEMOS:
@@ -370,7 +401,7 @@ _NATIVE_SINK = "videoconvert ! fpsdisplaysink sync=false"
 
 
 def _get_sink(encoder: dict, webrtc_ok: bool = True) -> str:
-    """WebRTC 가용 시 webrtcbin, 아니면 fpsdisplaysink 반환."""
+    """webrtcbin when WebRTC is available, otherwise fpsdisplaysink."""
     if webrtc_ok:
         values = dict(encoder)
         values["payloader"] = payloader_with_payload_type(
@@ -381,13 +412,20 @@ def _get_sink(encoder: dict, webrtc_ok: bool = True) -> str:
 
 
 def _standard_pipeline(demo: dict, encoder: dict, video_uri: str, webrtc_ok: bool = True) -> str:
-    """일반 파이프라인 (개별 속성 방식) — 데모 0,2,3,4,5,6"""
+    """Plain pipeline with per-element properties — demos 0,2,3,4,5,6."""
     w, h = demo["resize"]
     model_path = str(MODELS_DIR / _model_file(demo["model"]))
     sink = _get_sink(encoder, webrtc_ok)
+    # dxpreprocess keep-ratio defaults to TRUE (letterbox). A demo only sets this
+    # when it must differ — depth estimation stretches to the full square because a
+    # dense depth map covers the whole frame, so letterbox padding would misalign it
+    # against the source. Every other demo omits the property and keeps the default.
+    keep_ratio = demo.get("keep_ratio")
+    keep_ratio_arg = "" if keep_ratio is None else f"keep-ratio={str(bool(keep_ratio)).lower()} "
     return (
         f"urisourcebin uri={video_uri} ! decodebin ! "
         f"dxpreprocess preprocess-id={demo['preprocess_id']} "
+        f"{keep_ratio_arg}"
         f"resize-width={w} resize-height={h} ! "
         f"queue max-size-buffers=1 ! "
         f"dxinfer preprocess-id={demo['preprocess_id']} "
@@ -402,7 +440,7 @@ def _standard_pipeline(demo: dict, encoder: dict, video_uri: str, webrtc_ok: boo
 
 
 def _config_pipeline(demo: dict, encoder: dict, video_uri: str, webrtc_ok: bool = True) -> str:
-    """PPU 설정 파일 방식 파이프라인 — 데모 1"""
+    """PPU pipeline driven by a config file — demo 1."""
     cfg = str(CONFIGS_DIR / demo["config_dir"])
     sink = _get_sink(encoder, webrtc_ok)
     return (
@@ -415,7 +453,7 @@ def _config_pipeline(demo: dict, encoder: dict, video_uri: str, webrtc_ok: bool 
 
 
 def _tracking_pipeline(demo: dict, encoder: dict, video_uri: str, webrtc_ok: bool = True) -> str:
-    """트래킹 파이프라인 — 데모 7"""
+    """Tracking pipeline — demo 7."""
     cfg = str(CONFIGS_DIR / demo["config_dir"])
     tracker_cfg = str(CONFIGS_DIR / "tracker_config.json")
     sink = _get_sink(encoder, webrtc_ok)
@@ -430,7 +468,7 @@ def _tracking_pipeline(demo: dict, encoder: dict, video_uri: str, webrtc_ok: boo
 
 
 def _get_video_files(max_count: int = 4) -> list[str]:
-    """VIDEOS_DIR에서 영상 파일을 최대 max_count개 반환."""
+    """Up to max_count video files from VIDEOS_DIR."""
     files = sorted(
         f for f in VIDEOS_DIR.rglob("*")
         if f.is_file() and f.suffix.lower() in _VIDEO_EXTS
@@ -440,7 +478,7 @@ def _get_video_files(max_count: int = 4) -> list[str]:
 
 
 def _multi_pipeline(demo: dict, encoder: dict, video_uri: str, webrtc_ok: bool = True) -> str:
-    """멀티스트림 파이프라인 — 데모 8 (compositor 4채널 합성)"""
+    """Multi-stream pipeline — demo 8 (compositor joins 4 channels)."""
     cfg = str(CONFIGS_DIR / "YoloV5S_PPU")
     sink = _get_sink(encoder, webrtc_ok)
 
@@ -474,10 +512,10 @@ def _multi_pipeline(demo: dict, encoder: dict, video_uri: str, webrtc_ok: bool =
 
 
 def _rtsp_pipeline(demo: dict, encoder: dict, video_uri: str, webrtc_ok: bool = True) -> str:
-    """RTSP 멀티스트림 파이프라인 — 데모 9
+    """RTSP multi-stream pipeline — demo 9.
 
-    Runtime run_RTSP.sh와 동일 아키텍처:
-    4×rtspsrc → dxinputselector → 공유 추론 → dxoutputselector → compositor → webrtcbin
+    Same layout as the runtime's run_RTSP.sh:
+    4×rtspsrc → dxinputselector → shared inference → dxoutputselector → compositor → webrtcbin
     """
     cfg = str(CONFIGS_DIR / "YoloV5S_PPU")
     sink = _get_sink(encoder, webrtc_ok)
@@ -492,7 +530,7 @@ def _rtsp_pipeline(demo: dict, encoder: dict, video_uri: str, webrtc_ok: bool = 
         num, cols, rows = 4, 2, 2
     sw, sh = 1280 // cols, 720 // rows
 
-    # 입력 브랜치: RTSP → dxinputselector
+    # Input branches: RTSP → dxinputselector
     input_parts = []
     for i in range(num):
         if use_cctv_format:
@@ -501,13 +539,13 @@ def _rtsp_pipeline(demo: dict, encoder: dict, video_uri: str, webrtc_ok: bool = 
             uri = base_rtsp  # user's single-camera URL, used verbatim
         # timeout / tcp-timeout (µs) so an UNREACHABLE source fails in ~5s instead of hanging
         # forever — the built-in default is a public internet CCTV that an offline/air-gapped
-        # board can't reach, which previously showed as an infinite spinner.
+        # board can't reach, which would otherwise show as an endless spinner.
         input_parts.append(
             f"rtspsrc location={uri} latency=100 timeout=5000000 tcp-timeout=5000000 ! "
             f"decodebin ! queue max-size-buffers=2 ! in.sink_{i}"
         )
 
-    # 공유 추론 파이프라인
+    # Shared inference pipeline
     shared = (
         f"dxinputselector name=in ! "
         f"dxpreprocess config-file-path={cfg}/preprocess_config.json ! "
@@ -519,7 +557,7 @@ def _rtsp_pipeline(demo: dict, encoder: dict, video_uri: str, webrtc_ok: bool = 
         f"dxosd ! dxoutputselector name=out"
     )
 
-    # 출력 브랜치: dxoutputselector → dxscale → compositor
+    # Output branches: dxoutputselector → dxscale → compositor
     output_parts = []
     comp_props = []
     for i in range(num):
@@ -538,7 +576,7 @@ def _rtsp_pipeline(demo: dict, encoder: dict, video_uri: str, webrtc_ok: bool = 
 
 
 def _secondary_pipeline(demo: dict, encoder: dict, video_uri: str, webrtc_ok: bool = True) -> str:
-    """2차 추론 파이프라인 — 데모 10 (1차 감지 + 2차 분류 + 2차 얼굴)"""
+    """Secondary inference pipeline — demo 10 (primary detection + secondary classification + secondary face)."""
     _SECONDARY_PREFERRED = ["dance-group.mov", "dance-group2.mov", "dance-solo.mov"]
     actual_uri = video_uri
     if actual_uri == _DEFAULT_VIDEO and VIDEOS_DIR.is_dir():
@@ -593,44 +631,47 @@ _BUILDERS = {
 }
 
 
+def demo_video_uri(demo: dict) -> str:
+    """The demo's OWN task-appropriate sample video as a file:// URI (matching dx-runtime's
+    reference run_*.sh — face/pose demos use people videos, not a road clip). The first
+    available video only when the demo's own is missing. The demo run and the Pipeline
+    Builder preset both use this, so a preset plays what the demo plays."""
+    for name in demo.get("required_videos", []):
+        found = _video_path(name)  # a bare Path (or None)
+        if found:
+            return f"file://{found}"  # urisourcebin needs a file:// URI, not a bare path
+    return _first_video()
+
+
 def build_pipeline_str(demo_id: int, encoder: dict, video_uri: str | None = None,
                        webrtc_ok: bool = True) -> str:
-    """데모별 GStreamer 파이프라인 문자열 생성.
+    """Build the GStreamer pipeline string for a demo.
 
-    webrtc_ok=True: encoder + webrtcbin, False: fpsdisplaysink 폴백.
+    webrtc_ok=True: encoder + webrtcbin, False: fpsdisplaysink fallback.
     """
     demo = DEMOS[demo_id]
-    # Default to the demo's OWN task-appropriate sample video (matching dx-runtime's
-    # reference run_*.sh — e.g. face/pose demos use people videos, not a boat clip).
-    # Fall back to the first available video only if the demo's video is missing.
-    demo_vid = None
-    for _name in demo.get("required_videos", []):
-        _vp = _video_path(_name)  # returns a bare Path (or None)
-        if _vp:
-            demo_vid = f"file://{_vp}"  # GStreamer urisourcebin needs a file:// URI, not a bare path
-            break
-    uri = video_uri or demo_vid or _DEFAULT_VIDEO
+    uri = video_uri or demo_video_uri(demo)
     builder = _BUILDERS[demo["pipeline_type"]]
     return builder(demo, encoder, uri, webrtc_ok)
 
 
 def _npu_exists() -> bool:
-    """NPU 장치 존재 여부 확인 (테스트에서 monkeypatch 가능)."""
+    """Whether an NPU device exists (tests monkeypatch this)."""
     return len(list(Path("/dev").glob("dxrt*"))) > 0
 
 
 def _plugin_exists() -> bool:
-    """DxStream GStreamer 플러그인 존재 여부 확인 (테스트에서 monkeypatch 가능).
+    """Whether the DxStream GStreamer plugins exist (tests monkeypatch this).
 
     Delegates to the unified finder (core.gst_env) so every call site agrees on the set of
-    locations checked (previously this only looked under /usr/local/lib)."""
+    locations checked."""
     from dx_stream.core import gst_env
 
     return gst_env.plugin_available()
 
 
 def check_demo_available(demo_id: int) -> dict:
-    """데모 실행 가능 여부 확인 — 모델·설정·스크립트·비디오·NPU·플러그인 확인"""
+    """Whether a demo can run — checks model, config, script, video, NPU and plugins."""
     demo = DEMOS[demo_id]
     reason_items = []
 
@@ -676,7 +717,7 @@ def list_demo_entries() -> list[dict]:
     demo_list = []
     for demo in DEMOS:
         entry = dict(demo)
-        entry["default_video"] = _DEFAULT_VIDEO
+        entry["default_video"] = demo_video_uri(demo)
         entry["availability"] = check_demo_available(demo["id"])
         entry["available"] = entry["availability"].get("available", False)
         # Resolved on-disk model filename(s) — the logical demo["model"] (e.g. "yolo26n.dxnn")
@@ -687,5 +728,24 @@ def list_demo_entries() -> list[dict]:
             entry["model_file"] = _model_file(demo["model"])
         if demo.get("models"):
             entry["model_files"] = [_model_file(m) for m in demo["models"]]
+        entry["thumbnail"] = _demo_thumb(demo["id"])
         demo_list.append(entry)
     return demo_list
+
+
+# Card · stage preview: the demo's own model run on the official sample video on a DX-M1
+# (scripts/demo/bake_stream_thumbs.py). ?v= is the content hash so a
+# re-bake reaches browsers that cached the old image.
+_THUMB_DIR = Path(__file__).resolve().parents[1] / "static" / "img" / "demo"
+_THUMB_CACHE: dict = {}
+
+
+def _demo_thumb(demo_id: int):
+    if demo_id not in _THUMB_CACHE:
+        p = _THUMB_DIR / f"{demo_id}.webp"
+        try:
+            import hashlib
+            _THUMB_CACHE[demo_id] = f"/static/img/demo/{demo_id}.webp?v=" + hashlib.sha1(p.read_bytes()).hexdigest()[:10]
+        except OSError:
+            _THUMB_CACHE[demo_id] = None
+    return _THUMB_CACHE[demo_id]

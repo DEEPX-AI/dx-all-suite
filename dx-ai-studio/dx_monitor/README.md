@@ -18,4 +18,5 @@ versions.
 - **System stats** — CPU cores, load, memory.
 - **Version info** — DX-RT / DX-APP / SDK / driver versions.
 - **6-language UI** (English / 한국어 / 日本語 / 简体中文 / 繁體中文 / Español).
-- Falls back to mock telemetry when no NPU is present (for exploring the UI).
+- With no NPU, shows **NPU telemetry unavailable** — never made-up values; CPU and memory are always
+  real. Mock telemetry appears only with `DX_MONITOR_EXPLICIT_MOCK=1` (marked Mock).

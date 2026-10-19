@@ -4,7 +4,8 @@ import subprocess,threading,webbrowser,mimetypes,collections
 from http.server import HTTPServer,SimpleHTTPRequestHandler
 from socketserver import ThreadingMixIn
 from urllib.parse import urlparse,parse_qs
-from pathlib import Path
+import os as _os
+from pathlib import Path, PurePosixPath
 from concurrent.futures import ThreadPoolExecutor,as_completed
 
 SCRIPT_DIR  = Path(__file__).resolve().parent.parent   # dx_app/ (one level above core/)
@@ -15,6 +16,47 @@ CPP_DIR     = DX_APP_ROOT/"src"/"cpp_example"
 PY_DIR      = DX_APP_ROOT/"src"/"python_example"
 ASSETS_DIR  = DX_APP_ROOT/"assets"
 SAMPLE_DIR  = DX_APP_ROOT/"sample"
+
+# Where models are installed is configurable. Some .dxnn files are 85MB, so keeping them on another disk is a
+# natural need, and tests get **determinism** from this setting: the dx_app landing model table changes five
+# columns with local install state and reflows as a whole. Pointing the harness at an empty directory gives the
+# same picture on any machine, for the same reason dx_monitor turns off hardware reads with
+# DX_MONITOR_SKIP_HARDWARE_INIT. The path is made configurable instead of planting a test flag in production code.
+# Contract: tests/dx_app/test_models_dir_is_configurable.py
+_MODELS_DIR_ENV = _os.environ.get("DX_APP_MODELS_DIR") or ""
+MODELS_DIR  = Path(_MODELS_DIR_ENV) if _MODELS_DIR_ENV else ASSETS_DIR/"models"
+
+# conf/registry write models as 'assets/models/foo.dxnn'. Only that prefix is swapped for MODELS_DIR;
+# things outside the model tree, such as assets/videos, are left alone.
+_MODEL_PREFIX = ("assets", "models")
+
+
+def resolve_model_path(model_file: str, root=None):
+    """model_file (relative path) -> real file path.
+
+    **Without the environment variable it behaves exactly as root/model_file.**
+    This matters: several tests monkeypatch the caller module's `DX_APP_ROOT` attribute to swap the path.
+    Always using MODELS_DIR would cut that seam.
+
+    So the redirect happens **only when the setting is explicit**. `root` lets the caller pass its own module
+    attribute and keep that seam.
+    """
+    base = root if root is not None else DX_APP_ROOT
+    if _MODELS_DIR_ENV:
+        parts = PurePosixPath(model_file).parts
+        if parts[:2] == _MODEL_PREFIX:
+            return MODELS_DIR.joinpath(*parts[2:])
+    p = base/model_file
+    # If missing (or 0 bytes, a partial download), also look in the suite's workspace/res/models: the same order as
+    # dx_app's run_demo.sh and run_demo.py.
+    try:
+        if p.is_file() and p.stat().st_size > 0:
+            return p
+    except OSError:
+        return p
+    from shared import dx_app_layout as _lay
+    alt = _lay.find_model(model_file, base, _SUITE_ROOT)
+    return alt if alt is not None else p
 CONFIG_FILE = DX_APP_ROOT/"config"/"test_models.conf"
 # C++ binary location varies by how dx_app was provisioned: a source build lands
 # under build_<arch>/src/cpp_example, while the dx-runtime tree ships prebuilt
@@ -32,12 +74,21 @@ STATIC_DIR  = SCRIPT_DIR/"static"
 TEMPLATES_DIR = SCRIPT_DIR/"templates"
 OUTPUTS_DIR = outputs_dir("dx_app")
 
-SKIP_CAT={"common","build","sample","__pycache__","utils","factory"}
+# multi_model and multi_model_graph hold multi-model examples (pipelines, graphs), not one task's models.
+SKIP_CAT={"common","build","sample","__pycache__","utils","factory","multi_model","multi_model_graph"}
 _HARDCODED_CATEGORIES=["object_detection","face_detection","pose_estimation","obb_detection",
  "classification","instance_segmentation","semantic_segmentation","depth_estimation",
  "image_denoising","super_resolution","image_enhancement","embedding","ppu",
  "face_alignment","hand_landmark","object_detection_x_semantic_segmentation"]
 _VIRTUAL_CATEGORIES={"object_detection_x_semantic_segmentation"}
+
+from shared import dx_app_layout as _layout
+from shared.tasks import TaskTable as _TaskTable, TaskSet as _TaskSet, canonical as _canonical_task
+# With dx_app's per-model layout, the task folder names are the new keys; mixing in old keys adds empty
+# categories to the list. ppu is not a task; its models are spread across tasks.
+LAYOUT=_layout.detect(DX_APP_ROOT)
+if LAYOUT==_layout.PER_MODEL:
+    _HARDCODED_CATEGORIES=sorted({_canonical_task(c) for c in _HARDCODED_CATEGORIES if c!="ppu"})
 
 def _scan_categories():
     cats=set(_HARDCODED_CATEGORIES)
@@ -59,7 +110,8 @@ def _make_label(c):
 CAT_LABEL={c:_make_label(c) for c in CATEGORIES}
 _DEFAULT_IMAGE="sample/img/sample_street.jpg"
 _DEFAULT_VIDEO="assets/videos/dance-group.mov"
-_CAT_IMAGE_OVERRIDES={"object_detection":"sample/img/sample_street.jpg",
+_CAT_IMAGE_OVERRIDES=_TaskTable({"object_detection":"sample/img/sample_street.jpg",
+ "mainbody_detection":"sample/img/sample_street.jpg",
  "face_detection":"sample/img/sample_face.jpg",
  "pose_estimation":"sample/img/sample_people.jpg","obb_detection":"sample/img/sample_airport_satellite_view.png",
  "classification":"sample/img/sample_dog.jpg","instance_segmentation":"sample/img/sample_street.jpg",
@@ -74,10 +126,16 @@ _CAT_IMAGE_OVERRIDES={"object_detection":"sample/img/sample_street.jpg",
  "hand_detection":"sample/img/sample_hand.jpg","keypoint_detection":"sample/img/sample_street.jpg",
  "object_pose_estimation":"sample/dope/000000.png","panoptic_driving_perception":"sample/img/sample_parking.jpg",
  "3d_object_detection":"sample/kitti/velodyne/000049.bin",
- "object_detection_x_semantic_segmentation":"sample/img/sample_parking.jpg"}
+ "object_detection_x_semantic_segmentation":"sample/img/sample_parking.jpg",
+ # new tasks of the per-model layout (default_image from those examples' config.json)
+ "anomaly_detection":"sample/img/sample_parking.jpg","zero_shot_image_classification":"sample/img/sample_dog.jpg",
+ "zero_shot_instance_segmentation":"sample/img/sample_street.jpg","image_matting":"sample/img/sample_person_b.jpg",
+ "image_retrieval":"sample/img/sample_person_a2.jpg","visual_place_recognition":"sample/vpr/queries/q1.jpg",
+ "face_attribute":"sample/img/sample_person_a1.jpg"})
 # Canonical per-category demo videos — synced to dx_app-dev scripts/run_demo.py (v3.1.x).
 # Each maps to a task-appropriate clip present in assets/videos (sample_videos_v3.1.0).
-_CAT_VIDEO_OVERRIDES={"object_detection":"assets/videos/snowboard.mp4",
+_CAT_VIDEO_OVERRIDES=_TaskTable({"object_detection":"assets/videos/snowboard.mp4",
+ "mainbody_detection":"assets/videos/snowboard.mp4",
  "face_detection":"assets/videos/dance-group.mov","obb_detection":"assets/videos/obb.mp4",
  "pose_estimation":"assets/videos/dance-solo.mov","hand_landmark":"assets/videos/hand.mp4",
  "hand_detection":"assets/videos/hand.mp4","face_alignment":"assets/videos/face-alignment-closeup.mp4",
@@ -89,9 +147,11 @@ _CAT_VIDEO_OVERRIDES={"object_detection":"assets/videos/snowboard.mp4",
  "keypoint_detection":"assets/videos/snowboard.mp4","object_pose_estimation":"assets/videos/snowboard.mp4",
  "panoptic_driving_perception":"assets/videos/blackbox-city-road.mp4",
  "3d_object_detection":"assets/videos/blackbox-city-road.mp4",
- "object_detection_x_semantic_segmentation":"assets/videos/blackbox-city-road.mp4"}
-CAT_IMAGE={c:_CAT_IMAGE_OVERRIDES.get(c,_DEFAULT_IMAGE) for c in CATEGORIES}
-CAT_VIDEO={c:_CAT_VIDEO_OVERRIDES.get(c,_DEFAULT_VIDEO) for c in CATEGORIES}
+ "object_detection_x_semantic_segmentation":"assets/videos/blackbox-city-road.mp4",
+ "anomaly_detection":"assets/videos/blackbox-city-road.mp4","image_matting":"assets/videos/blackbox-city-road.mp4",
+ "zero_shot_instance_segmentation":"assets/videos/dogs.mp4"})
+CAT_IMAGE=_TaskTable({c:_CAT_IMAGE_OVERRIDES.get(c,_DEFAULT_IMAGE) for c in CATEGORIES})
+CAT_VIDEO=_TaskTable({c:_CAT_VIDEO_OVERRIDES.get(c,_DEFAULT_VIDEO) for c in CATEGORIES})
 # Categories whose runners accept image input ONLY (exact mirror of dx_app
 # _IMAGE_ONLY_TASKS in common/runner/sync_runner.py:178 — {embedding, reid,
 # attribute_recognition, object_pose_estimation, 3d_detection}). The run tab disables
@@ -99,9 +159,24 @@ CAT_VIDEO={c:_CAT_VIDEO_OVERRIDES.get(c,_DEFAULT_VIDEO) for c in CATEGORIES}
 # NOTE: hand_detection / hand_landmark are NOT image-only — their runners process video
 # per-frame (verified: hand video save produced 855 frames), so they were removed here;
 # gating them off video was a bug that hid a working mode.
-IMAGE_ONLY_CATEGORIES={"embedding","reid","attribute_recognition",
- "object_pose_estimation","3d_object_detection"}
-_TASK_TYPES_EXCLUDE={"face_alignment","hand_landmark","object_detection_x_semantic_segmentation"}
+IMAGE_ONLY_CATEGORIES=_TaskSet({"embedding","reid","attribute_recognition",
+ "object_pose_estimation","3d_object_detection",
+ # image-only new tasks of the per-model layout (registry image_only). Per-model config.json values are more precise.
+ "image_retrieval","visual_place_recognition","face_attribute"})
+
+
+def model_image_only(category, model_name):
+    """Whether this model's runner rejects video (video, camera, RTSP). The per-model example's config.json image_only
+    comes first (some models, like CAS-ViT, are not in the task table), then the task table (contract: tests/dx_app/test_live_display.py)."""
+    try:
+        cfg = _layout.load_config(DX_APP_ROOT, category, model_name) if model_name else {}
+    except Exception:
+        cfg = {}
+    if isinstance(cfg, dict) and "image_only" in cfg:
+        return bool(cfg["image_only"])
+    return category in IMAGE_ONLY_CATEGORIES
+
+_TASK_TYPES_EXCLUDE={"face_alignment","face_landmark","hand_landmark","object_detection_x_semantic_segmentation"}
 TASK_TYPES=[c for c in CATEGORIES if c not in _TASK_TYPES_EXCLUDE]
 POSTPROCESSORS={"object_detection":["yolov5","yolov7","yolov8","yolov9","yolov10","yolov11",
  "yolov12","yolov26","yolox","ssd","nanodet","damoyolo","centernet","efficientdet"],
@@ -155,7 +230,7 @@ def _load_dx():
     except Exception:_dx_ok=False;print("[INFO] dx_engine unavailable — mock NPU data")
 _load_dx()
 
-# shared/hardware.py 초기화 — DX App 내 inference/developer에서 get_hw() 사용
+# Initialise shared/hardware.py so inference/developer in DX App can use get_hw()
 from shared.hardware import init_hw as _init_hw
 _init_hw(ds=_DS, dx_ok=_dx_ok, npu_stats_bin=_NPU_STATS_BIN, app_root=DX_APP_ROOT)
 

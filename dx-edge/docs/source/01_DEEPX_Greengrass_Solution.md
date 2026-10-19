@@ -1,6 +1,11 @@
-# DEEPX Greengrass Solution
+# DEEPX Greengrass Solution <picture><source media="(prefers-color-scheme: dark)" srcset="img/badges/available-in-aws-marketplace-dark.png"><img src="img/badges/available-in-aws-marketplace-light.png" alt="Available in AWS Marketplace" height="40" align="right"></picture><picture><source media="(prefers-color-scheme: dark)" srcset="img/badges/powered-by-aws-dark.png"><img src="img/badges/powered-by-aws-light.png" alt="Powered by AWS" height="32" align="right"></picture>
 
 **Simplifying Edge AI Deployment — Over-the-Air Deployment with the DEEPX DX-M1 NPU and AWS IoT**
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="img/badges/aws-qualified-software-dark.png">
+  <img src="img/badges/aws-qualified-software-light.png" alt="AWS Qualified Software" width="120" align="right">
+</picture>
 
 Edge AI delivers value only when models run reliably in the field. It is not enough to run a model once. You must be able to deploy the same runtime environment to different pieces of equipment and manage operational status and versions consistently across all of them.
 

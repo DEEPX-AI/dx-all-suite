@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+from dataclasses import dataclass
 import html
 import json
 import re
@@ -276,8 +277,29 @@ def extract_inventory(root: Path) -> list[AuditRecord]:
     return records
 
 
+def _placeholder_region(source: str) -> tuple[int, int]:
+    """Span of the _DX_I18N_PLACEHOLDERS object literal, or an empty range.
+
+    Placeholder entries are keyed by placeholder text and feed the placeholder
+    attribute, so the same English string can legitimately key both maps
+    ("Class" is a table header and a filter placeholder). Recording both under
+    one surface made every such pair read as a duplicated dictionary key.
+    """
+    at = source.find("_DX_I18N_PLACEHOLDERS")
+    if at < 0:
+        return (0, 0)
+    brace = source.find("{", at)
+    if brace < 0:
+        return (0, 0)
+    body = _scan_balanced_brace(source, brace)
+    if body is None:
+        return (0, 0)
+    return (brace, brace + len(body) + 2)
+
+
 def extract_js_i18n_entries(source: str, *, module: str, source_file: str) -> list[AuditRecord]:
     records: list[AuditRecord] = []
+    ph_start, ph_end = _placeholder_region(source)
     for match in _JS_KEY_OPEN_RE.finditer(source):
         raw_key = match.group("key_s") if match.group("key_s") is not None else match.group("key_d")
         key = html.unescape(decode_js_string_value(raw_key))
@@ -299,9 +321,10 @@ def extract_js_i18n_entries(source: str, *, module: str, source_file: str) -> li
             continue
         texts = {"en": key}
         texts.update(lang_values)
+        in_placeholders = ph_start <= match.start() < ph_end
         records.append(_attach_brand_terms(AuditRecord(
             module=module,
-            surface="js-i18n-dictionary",
+            surface="js-i18n-placeholder" if in_placeholders else "js-i18n-dictionary",
             route_or_state="source",
             source_file=source_file,
             selector_or_key=key,
@@ -370,3 +393,66 @@ def extract_from_python_source(source: str, *, module: str, source_file: str) ->
             extract_from_json_obj(obj, module=module, source_file=source_file, path=prefix)
         )
     return records
+
+
+# ── English strings the server builds and the page shows as is ───────────────────
+#
+# extract_from_python_source sees only dict/list literal **assignments**. That finds the
+# translation tables but cannot see strings passed as call arguments, such as
+# `send_error_json(400, "...")`. Those still reach the screen:
+#     config_wizard.js  alert(T('Config generation failed: ') + data.error)
+# where the first half is translated and the second half is English.
+#
+# Only calls that reach the screen count; logging and internal exceptions would bury the signal.
+_USER_FACING_CALLS = frozenset({
+    "send_error_json",   # HTTP error body; the frontend shows it as data.error
+    "ValidationError",   # boundary validation; turned into send_error_json and shown in the same place
+})
+
+# Count only sentences people read. Identifiers, paths and code values are not translated.
+_MIN_MESSAGE_LEN = 4
+
+
+@dataclass(frozen=True)
+class ServerMessage:
+    module: str
+    source_file: str
+    line: int
+    text: str
+
+
+def _literal_parts(node) -> str:
+    """Join only the **literal parts** of an f-string.
+
+    Substituted values (`{raw!r}`) are not translated and are only known at run time.
+    The sentence skeleton is enough to tell whether it needs translating.
+    """
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        return node.value
+    if isinstance(node, ast.JoinedStr):
+        return "".join(v.value for v in node.values
+                       if isinstance(v, ast.Constant) and isinstance(v.value, str))
+    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
+        return _literal_parts(node.left) + _literal_parts(node.right)
+    return ""
+
+
+def extract_server_messages(source: str, *, module: str, source_file: str) -> list[ServerMessage]:
+    """Find server-side English strings that users see as is."""
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return []
+    out: list[ServerMessage] = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        name = getattr(node.func, "attr", None) or getattr(node.func, "id", None)
+        if name not in _USER_FACING_CALLS:
+            continue
+        for arg in node.args:
+            text = _literal_parts(arg).strip()
+            if len(text) >= _MIN_MESSAGE_LEN and any(c.isalpha() for c in text):
+                out.append(ServerMessage(module=module, source_file=source_file,
+                                         line=getattr(node, "lineno", 0), text=text))
+    return out

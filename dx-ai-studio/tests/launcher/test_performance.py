@@ -38,7 +38,7 @@ def start_server(handler_cls):
 
 EXPECTED_MODULE_KEYS = sorted([
     "app", "benchmark", "compiler", "monitor",
-    "planner", "stream", "zoo", "agent",
+    "planner", "stream", "zoo", "agent", "edge",
 ])
 EXPECTED_ITEM_KEYS = {"port", "alive"}
 
@@ -91,9 +91,9 @@ def test_health_response_shape_and_ttl_caching():
         # Responses should be equal (cached)
         assert data1 == data2
 
-        # With TTL caching, only 8 calls (one per service) on first request
-        assert call_count == 8, (
-            f"Expected 8 _is_port_open calls (cached second call), got {call_count}"
+        # With TTL caching, only 9 calls (one per service) on first request
+        assert call_count == 9, (
+            f"Expected 9 _is_port_open calls (cached second call), got {call_count}"
         )
 
         # Advance fake time past 2 s TTL
@@ -103,8 +103,8 @@ def test_health_response_shape_and_ttl_caching():
         data3 = json.loads(resp3.read())
 
         assert sorted(k for k in data3 if k not in meta_keys) == EXPECTED_MODULE_KEYS
-        assert call_count == 16, (
-            f"Expected 16 _is_port_open calls after TTL expiry, got {call_count}"
+        assert call_count == 18, (
+            f"Expected 18 _is_port_open calls after TTL expiry, got {call_count}"
         )
     finally:
         if server:

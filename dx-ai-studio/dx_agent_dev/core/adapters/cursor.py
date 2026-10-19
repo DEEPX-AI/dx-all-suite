@@ -1,4 +1,4 @@
-"""cursor-agent 어댑터(stream-json). 실존·플래그 provisional — 일반망 검증(spec §11 #2)."""
+"""cursor-agent adapter (stream-json). Binary name and flags are provisional."""
 import json
 import re
 import subprocess
@@ -11,7 +11,7 @@ _MODEL_LINE = re.compile(r"^(\S+)\s+-\s+")  # `auto - Auto`, `gpt-5.3-codex - Co
 class CursorAdapter(SubprocessAdapter):
     cli_bin = "cursor-agent"
     cwd_mode = "harness"
-    creds_relpath = (".cursor", "cli-config.json")  # authInfo 포함(일반망 검증)
+    creds_relpath = (".cursor", "cli-config.json")  # contains authInfo
     creds_key = "authInfo"
     login_cmd_hint = "cursor-agent login"
 
@@ -35,7 +35,7 @@ class CursorAdapter(SubprocessAdapter):
 
     @staticmethod
     def _parse_models(text: str) -> list:
-        """`cursor-agent --list-models` 출력에서 모델 id 추출(헤더/빈줄 제외)."""
+        """Extract model ids from `cursor-agent --list-models` output (skipping headers and blank lines)."""
         out = []
         for line in (text or "").splitlines():
             m = _MODEL_LINE.match(line.strip())
@@ -44,7 +44,7 @@ class CursorAdapter(SubprocessAdapter):
         return out
 
     def list_models(self):
-        """`cursor-agent --list-models`로 실제 모델 목록 조회(실패 시 None → 정적 폴백)."""
+        """Query the real model list via `cursor-agent --list-models` (None on failure -> static fallback)."""
         if not self._cli:
             return None
         try:

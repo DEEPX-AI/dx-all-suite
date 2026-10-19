@@ -1,72 +1,88 @@
 <!-- DX HW Float Widget — auto-injected by launcher proxy -->
 <style>
 /* Fixed width + own box-sizing so the float renders identically in EVERY module
-   iframe. It used to be min-width only (content-driven), so its size drifted per
-   tab as values populated (--→numbers), the MOCK badge toggled, or a module's
-   font fallback differed. A fixed width pins the outer box regardless of host CSS
-   or content; slightly-long values just fit/wrap instead of widening it. */
-.hw-float{box-sizing:border-box;position:fixed;bottom:20px;right:20px;z-index:9000;
-  background:rgba(15,23,42,.85);backdrop-filter:blur(12px);
-  border:1px solid rgba(99,140,255,.15);border-radius:12px;
-  padding:10px 14px;box-shadow:0 4px 24px rgba(0,0,0,.4);
+   iframe — a content-driven width would drift as values populate (--→numbers), the
+   MOCK badge toggles, or a module's font fallback differs. A fixed width pins the
+   outer box regardless of host CSS or content; slightly-long values just fit/wrap
+   instead of widening it. */
+/* Bottom left, starting collapsed — bottom right belongs to the chat button, and the expanded widget
+   (≈210×340) would cover buttons, tables and Run. Expanded/collapsed state and the dragged position are remembered. */
+.hw-float{box-sizing:border-box;position:fixed;bottom:20px;left:20px;z-index:9000;
+  background:var(--surface-overlay);backdrop-filter:saturate(1.8) blur(20px);
+  border:1px solid var(--border-subtle);border-radius:12px;
+  padding:10px 14px;box-shadow:var(--shadow);
   width:212px;font-size:11px;transition:opacity .3s;
-  user-select:none;font-family:Inter,-apple-system,'Segoe UI',Roboto,system-ui,sans-serif;color:#e2e8f0}
+  user-select:none;font-family:Inter,-apple-system,'Segoe UI',Roboto,system-ui,sans-serif;color:var(--text-primary)}
 .hw-float *{box-sizing:border-box}
+/* On module screens, start right of the left rail (56px) so the widget does not cover the rail's bottom buttons. */
+body:has(.dx-shell-rail) .hw-float{left:calc(var(--dx-rail-w,56px) + var(--sp-3,12px))}
 .hw-float.dragging{opacity:.85;transition:none;box-shadow:0 8px 32px rgba(0,0,0,.5)}
 .hw-float.minimized .hw-float-body{display:none}
+.hw-float.minimized{width:max-content}
+/* On screens with a module rail, the collapsed widget becomes a rail button above Hub — a bottom-left pill would
+   cover page content even when scrolled to the end.
+   The dot colour is the NPU temperature state (grey with no data). */
+.hw-float.hw-docked.minimized{display:none}
+.dx-shell-rail-foot:has(.hw-rail-btn){flex-direction:column;align-items:center;gap:4px}
+.hw-rail-dot{position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;
+  background:var(--text-faint);box-shadow:0 0 0 2px var(--surface-panel)}
+.hw-rail-btn[data-state="ok"] .hw-rail-dot{background:var(--status-ok)}
+.hw-rail-btn[data-state="warn"] .hw-rail-dot{background:var(--status-warn)}
+.hw-rail-btn[data-state="crit"] .hw-rail-dot{background:var(--status-error)}
+.hw-rail-btn[aria-expanded="true"]{color:var(--accent);background:var(--accent-dim)}
 .hw-float-header{display:flex;justify-content:space-between;align-items:center;
   cursor:grab;touch-action:none;padding:0;gap:8px}
 .hw-float-header:active{cursor:grabbing}
-.hw-float-title{font-size:11px;font-weight:700;color:#638cff;
+.hw-float-title{font-size:11px;font-weight:700;color:var(--accent);
   text-transform:uppercase;letter-spacing:.5px;flex:1}
-.hw-float-toggle{font-size:14px;color:#94a3b8;background:none;
+.hw-float-toggle{font-size:14px;color:var(--text-muted);background:none;
   border:none;cursor:pointer;padding:2px 6px;border-radius:4px}
-.hw-float-toggle:hover{color:#e2e8f0;background:rgba(255,255,255,.08)}
+.hw-float-toggle:hover{color:#f5f5f7;background:rgba(255,255,255,.08)}
 .hw-float-body{margin-top:8px}
 .hw-float-row{display:flex;justify-content:space-between;align-items:center;
   padding:3px 0;border-bottom:1px solid rgba(42,52,65,.4);font-size:11px}
 .hw-float-row:last-child{border-bottom:none}
-.hf-k{color:#94a3b8}.hf-v{font-weight:600}
+.hf-k{color:var(--text-muted)}.hf-v{font-weight:600}
 .hw-spark{margin-top:6px;cursor:pointer;border-top:1px solid rgba(42,52,65,.4);padding-top:6px}
 .hw-spark canvas{display:block;width:100%;height:20px}
-.hw-spark-label{font-size:9px;color:#94a3b8;text-align:right;margin-top:2px}
-.hw-float-status{font-size:9px;color:#f59e0b;text-align:center;padding:4px 0}
+.hw-spark-label{font-size:9px;color:var(--text-muted);text-align:right;margin-top:2px}
+.hw-float-status{font-size:9px;color:var(--status-warn);text-align:center;padding:4px 0}
 .hw-npu-selector{display:flex;gap:4px;margin:8px 0 6px}
 .hw-npu-selector[hidden]{display:none}
-.hw-npu-selector button{flex:1;padding:3px 6px;border-radius:6px;border:1px solid rgba(99,140,255,.18);background:rgba(15,23,42,.6);color:#94a3b8;font-size:10px;cursor:pointer}
-.hw-npu-selector button.active{background:rgba(99,140,255,.18);color:#e2e8f0;border-color:rgba(99,140,255,.45)}
+.hw-npu-selector button{flex:1;padding:3px 6px;border-radius:6px;border:1px solid rgba(41,151,255,.18);background:rgba(15,23,42,.6);color:var(--text-muted);font-size:10px;cursor:pointer}
+.hw-npu-selector button.active{background:rgba(41,151,255,.18);color:#f5f5f7;border-color:rgba(41,151,255,.45)}
 .hw-float-section{border-top:1px solid rgba(42,52,65,.4);padding-top:6px;margin-top:6px}
 #hf-npu-section{border-top:none;padding-top:0;margin-top:0}
-.hw-section-title{font-size:9px;color:#638cff;text-transform:uppercase;letter-spacing:.45px;margin-bottom:3px}
-.hf-v.warn{color:#f59e0b}.hf-v.crit{color:#ef4444}.hf-v.ok{color:#22c55e}
-.hf-mock-badge{display:inline-block;margin-left:5px;padding:0 4px;border-radius:3px;background:#f59e0b;color:#1a1a1a;font-size:8px;font-weight:700;letter-spacing:.4px;vertical-align:middle}
+.hw-section-title{font-size:9px;color:var(--accent);text-transform:uppercase;letter-spacing:.45px;margin-bottom:3px}
+.hf-v.warn{color:var(--status-warn)}.hf-v.crit{color:var(--status-error)}.hf-v.ok{color:var(--status-ok)}
+.hf-mock-badge{display:inline-block;margin-left:5px;padding:0 4px;border-radius:3px;background:var(--status-warn);color:#1a1a1a;font-size:8px;font-weight:700;letter-spacing:.4px;vertical-align:middle}
 </style>
-<div class="hw-float" id="hw-float">
+<div class="hw-float minimized" id="hw-float">
   <div class="hw-float-header" id="hw-float-drag">
-    <span class="hw-float-title">☰ <span class="ko">NPU 모니터</span><span class="en">NPU Monitor</span><span class="es">Monitor NPU</span><span class="ja">NPU モニター</span><span class="zh-CN">NPU 监控器</span><span class="zh-TW">NPU 監控器</span></span>
-    <button class="hw-float-toggle" onclick="document.getElementById('hw-float').classList.toggle('minimized')">&#9662;</button>
+    <span class="hw-float-title"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#menu"></use></svg> <span data-i18n="NPU Monitor">NPU Monitor</span></span>
+    <button class="hw-float-toggle" aria-label="Minimize" data-i18n-aria-label="Minimize" onclick="_hwFloatToggle()"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#chevd"></use></svg></button>
   </div>
   <div class="hw-float-body">
     <div id="hf-npu-selector" class="hw-npu-selector" hidden></div>
     <div id="hf-npu-section" class="hw-float-section">
       <div class="hw-section-title" id="hf-npu-title">NPU</div>
-      <div class="hw-float-row"><span class="hf-k">🌡️ <span class="ko">평균 온도</span><span class="en">Avg Temp</span><span class="es">Temp. promedio</span><span class="ja">平均温度</span><span class="zh-CN">平均温度</span><span class="zh-TW">平均溫度</span></span><span class="hf-v" id="hf-temp">--°C</span></div>
+      <div class="hw-float-row"><span class="hf-k"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#thermometer"></use></svg> <span data-i18n="Avg Temp">Avg Temp</span></span><span class="hf-v" id="hf-temp">--°C</span></div>
       <div id="hf-ctemps"></div>
-      <div class="hw-float-row"><span class="hf-k">⚙️ <span class="ko">NPU 사용률</span><span class="en">NPU Util</span><span class="es">Util. NPU</span><span class="ja">NPU 使用率</span><span class="zh-CN">NPU 利用率</span><span class="zh-TW">NPU 使用率</span></span><span class="hf-v" id="hf-util">--%</span></div>
-      <div class="hw-float-row"><span class="hf-k">💾 NPU DRAM</span><span class="hf-v" id="hf-dram">--%</span></div>
-      <div class="hw-float-row"><span class="hf-k">🔄 <span class="ko">클럭</span><span class="en">Clock</span><span class="es">Reloj</span><span class="ja">クロック</span><span class="zh-CN">时钟</span><span class="zh-TW">時脈</span></span><span class="hf-v" id="hf-clock">-- MHz</span></div>
-      <div class="hw-float-row"><span class="hf-k">⚡ <span class="ko">전압</span><span class="en">Voltage</span><span class="es">Voltaje</span><span class="ja">電圧</span><span class="zh-CN">电压</span><span class="zh-TW">電壓</span></span><span class="hf-v" id="hf-volt">-- mV</span></div>
+      <div class="hw-float-row"><span class="hf-k"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#bench"></use></svg> <span data-i18n="NPU Util">NPU Util</span></span><span class="hf-v" id="hf-util">--%</span></div>
+      <div class="hw-float-row"><span class="hf-k"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#memory"></use></svg> NPU DRAM</span><span class="hf-v" id="hf-dram">--%</span></div>
+      <div class="hw-float-row"><span class="hf-k"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#clock"></use></svg> <span data-i18n="Clock">Clock</span></span><span class="hf-v" id="hf-clock">-- MHz</span></div>
+      <div class="hw-float-row"><span class="hf-k"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#bolt"></use></svg> <span data-i18n="Voltage">Voltage</span></span><span class="hf-v" id="hf-volt">-- mV</span></div>
     </div>
     <div id="hf-system-section" class="hw-float-section">
-      <div class="hw-section-title"><span class="ko">시스템</span><span class="en">System</span><span class="es">Sistema</span><span class="ja">システム</span><span class="zh-CN">系统</span><span class="zh-TW">系統</span></div>
-      <div class="hw-float-row"><span class="hf-k">🖥️ CPU</span><span class="hf-v" id="hf-cpu">--</span></div>
-      <div class="hw-float-row"><span class="hf-k">💾 <span class="ko">메모리</span><span class="en">Memory</span><span class="es">Memoria</span><span class="ja">メモリ</span><span class="zh-CN">内存</span><span class="zh-TW">記憶體</span></span><span class="hf-v" id="hf-mem">--%</span></div>
-      <div class="hw-float-row"><span class="hf-k">📀 <span class="ko">디스크</span><span class="en">Disk</span><span class="es">Disco</span><span class="ja">ディスク</span><span class="zh-CN">磁盘</span><span class="zh-TW">磁碟</span></span><span class="hf-v" id="hf-disk">--%</span></div>
+      <div class="hw-section-title"><span data-i18n="System">System</span></div>
+      <div class="hw-float-row"><span class="hf-k"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#cpu"></use></svg> <span data-i18n="CPU Load">CPU Load</span></span><span class="hf-v" id="hf-cpu">--</span></div>
+      <div class="hw-float-row"><span class="hf-k"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#memory"></use></svg> <span data-i18n="Memory">Memory</span></span><span class="hf-v" id="hf-mem">--%</span></div>
+      <div class="hw-float-row"><span class="hf-k"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#disk"></use></svg> <span data-i18n="Disk">Disk</span></span><span class="hf-v" id="hf-disk">--%</span></div>
     </div>
-    <div class="hw-float-status" id="hf-status" style="display:none"><span class="ko">연결 중...</span><span class="en">Connecting...</span><span class="es">Conectando...</span><span class="ja">接続中...</span><span class="zh-CN">连接中...</span><span class="zh-TW">連線中...</span></div>
+    <div class="hw-float-status" id="hf-status" style="display:none"><span data-i18n="Connecting...">Connecting...</span></div>
     <div class="hw-spark" id="hf-spark" onclick="_hwSparkNext()">
       <canvas id="hf-spark-canvas" height="20"></canvas>
-      <div class="hw-spark-label" id="hf-spark-label">NPU Temp</div>
+      <div class="hw-spark-label" id="hf-spark-label" data-i18n="NPU Temp">NPU Temp</div>
     </div>
   </div>
 </div>
@@ -75,6 +91,48 @@
   /* ── Widget self-contained JS ── */
   var _hf = document.getElementById('hw-float');
   if (!_hf) return;
+  /* Remember expanded/collapsed — collapsed at first. 'hw-float-open' = '1' means expanded. */
+  var _OPEN_KEY = 'hw-float-open';
+  try { if (localStorage.getItem(_OPEN_KEY) === '1') _hf.classList.remove('minimized'); } catch (e) {}
+  window._hwFloatToggle = function () {
+    var minimized = _hf.classList.toggle('minimized');
+    try { localStorage.setItem(_OPEN_KEY, minimized ? '0' : '1'); } catch (e) {}
+    _syncRailBtn();
+  };
+
+  /* ── Rail dock: with a module rail, the collapsed widget is a rail button ── */
+  var _railFoot = document.querySelector ? document.querySelector('.dx-shell-rail-foot') : null;
+  var _railBtn = null, _railTemp = '';
+  var _railW = 0;
+  if (_railFoot) {
+    _hf.classList.add('hw-docked');
+    _railBtn = document.createElement('button');
+    _railBtn.type = 'button';
+    _railBtn.className = 'dx-rail-btn hw-rail-btn';
+    _railBtn.setAttribute('aria-controls', 'hw-float');
+    _railBtn.dataset.state = 'offline';
+    _railBtn.innerHTML = '<svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#thermometer"></use></svg>'
+      + '<span class="hw-rail-dot" aria-hidden="true"></span>';
+    _railBtn.addEventListener('click', function () { window._hwFloatToggle(); });
+    _railFoot.insertBefore(_railBtn, _railFoot.firstChild);
+    var _rail = _railFoot.parentElement;
+    _railW = _rail ? Math.round(_rail.getBoundingClientRect().right) : 0;
+  }
+  function _syncRailBtn() {
+    if (!_railBtn) return;
+    _railBtn.setAttribute('aria-expanded', _hf.classList.contains('minimized') ? 'false' : 'true');
+    var label = (window.T ? T('NPU Monitor') : 'NPU Monitor') + (_railTemp ? ' · ' + _railTemp : '');
+    _railBtn.title = label;
+    _railBtn.setAttribute('aria-label', label);
+  }
+  function _syncRailState(n) {
+    if (!_railBtn) return;
+    var t = n && _isNum(n.temp_avg) ? n.temp_avg : null;
+    _railTemp = t === null ? '' : t.toFixed(1) + '°C';
+    _railBtn.dataset.state = t === null ? 'offline' : (_statusFor('npu_temp', t) || 'ok');
+    _syncRailBtn();
+  }
+  _syncRailBtn();
   var _drag = {active:false, ox:0, oy:0};
   var _sparkData = [], _sparkMode = 0;
   var _MODES = ['temp','volt','clock','ctemp','cpu','mem','dram','util'];
@@ -188,7 +246,7 @@
   }
   function dMove(cx, cy) {
     if (!_drag.active) return;
-    _hf.style.left = Math.max(0, Math.min(window.innerWidth - _hf.offsetWidth, cx - _drag.ox)) + 'px';
+    _hf.style.left = Math.max(_railW, Math.min(window.innerWidth - _hf.offsetWidth, cx - _drag.ox)) + 'px';
     _hf.style.top = Math.max(0, Math.min(window.innerHeight - _hf.offsetHeight, cy - _drag.oy)) + 'px';
   }
   function dEnd() {
@@ -221,7 +279,7 @@
       var pos = JSON.parse(saved);
       requestAnimationFrame(function() {
         _hf.style.right = 'auto'; _hf.style.bottom = 'auto';
-        _hf.style.left = Math.max(0, Math.min(pos.x, window.innerWidth - 220)) + 'px';
+        _hf.style.left = Math.max(_railW, Math.min(pos.x, window.innerWidth - 220)) + 'px';
         _hf.style.top = Math.max(0, Math.min(pos.y, window.innerHeight - 200)) + 'px';
       });
     }
@@ -240,13 +298,14 @@
     var npus=Array.isArray(_lastPayload.npus)?_lastPayload.npus:[];
     var n=_selectedNpu(npus);
     _renderSelector(npus);
+    _syncRailState(n);
 
     /* NPU title (+ MOCK badge when the source is serving simulated data — otherwise
        the sin-wave demo values look like real telemetry and get mistaken for a bug). */
     var titleEl=document.getElementById('hf-npu-title');
     if(titleEl){
       var _isMock=!!(_lastPayload&&_lastPayload.mock)||!!(n&&n.mock);
-      var _title=n?('NPU '+((n.id!=null)?n.id:_selectedNpuIdx)):'No NPU';
+      var _title=n?('NPU '+((n.id!=null)?n.id:_selectedNpuIdx)):(window.T?T('No NPU'):'No NPU');
       titleEl.innerHTML=_escHtml(_title)+(_isMock?' <span class="hf-mock-badge" title="'+_escHtml(_mockBadgeTitle())+'">MOCK</span>':'');
     }
 
@@ -266,7 +325,7 @@
     }
 
     /* System values */
-    _setValue('hf-cpu',_fmt(_lastPayload.cpu_load,1),'');
+    _setValue('hf-cpu',_fmt(_lastPayload.cpu_load,2),'');
     _setValue('hf-mem',_fmt(_lastPayload.mem_pct,1,'%'),'');
     _setValue('hf-disk',_fmt(_lastPayload.disk_pct,1,'%'),'');
 
@@ -304,7 +363,8 @@
     if (max === min) max = min + 1;
     var step = canvas.width / Math.max(data.length - 1, 1);
     ctx.beginPath();
-    ctx.strokeStyle = '#638cff'; ctx.lineWidth = 2;
+    // Canvas cannot read CSS variables ('var(--accent)' would be ignored and draw black), so resolve it first.
+    ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim(); ctx.lineWidth = 2;
     for (var i = 0; i < data.length; i++) {
       var x = i * step;
       var y = canvas.height - ((data[i] - min) / (max - min)) * (canvas.height - 4) - 2;
@@ -318,7 +378,10 @@
     _sparkMode = (_sparkMode + 1) % _MODES.length;
     _sparkData = [];
     var lbl = document.getElementById('hf-spark-label');
-    if (lbl) lbl.textContent = _LABELS[_MODES[_sparkMode]];
+    if (lbl) {
+      lbl.setAttribute('data-i18n', _LABELS[_MODES[_sparkMode]]);
+      lbl.textContent = window.T ? T(_LABELS[_MODES[_sparkMode]]) : _LABELS[_MODES[_sparkMode]];
+    }
   };
 
   /* ── Threshold loading ── */
@@ -354,5 +417,35 @@
   }
 
   _loadThresholds();
+})();
+</script>
+
+<script>
+// The launcher proxy injects this widget into the host page. Dictionaries are
+// per module, so instead of copying the labels into every module dictionary the
+// widget brings and registers its own translations. A module's own key wins.
+(function () {
+  var DICT = {
+    'Avg Temp': { ko: '평균 온도', ja: '平均温度', 'zh-CN': '平均温度', 'zh-TW': '平均溫度', es: 'Temp. promedio' },
+    'Minimize': { ko: '접기', ja: '最小化', 'zh-CN': '最小化', 'zh-TW': '最小化', es: 'Minimizar' },
+    'Clock': { ko: '클럭', ja: 'クロック', 'zh-CN': '时钟', 'zh-TW': '時脈', es: 'Reloj' },
+    'Connecting...': { ko: '연결 중...', ja: '接続中...', 'zh-CN': '连接中...', 'zh-TW': '連線中...', es: 'Conectando...' },
+    'Disk': { ko: '디스크', ja: 'ディスク', 'zh-CN': '磁盘', 'zh-TW': '磁碟', es: 'Disco' },
+    'Memory': { ko: '메모리', ja: 'メモリ', 'zh-CN': '内存', 'zh-TW': '記憶體', es: 'Memoria' },
+    'NPU Monitor': { ko: 'NPU 모니터', ja: 'NPU モニター', 'zh-CN': 'NPU 监控器', 'zh-TW': 'NPU 監控器', es: 'Monitor NPU' },
+    'NPU Util': { ko: 'NPU 사용률', ja: 'NPU 使用率', 'zh-CN': 'NPU 利用率', 'zh-TW': 'NPU 使用率', es: 'Util. NPU' },
+    'System': { ko: '시스템', ja: 'システム', 'zh-CN': '系统', 'zh-TW': '系統', es: 'Sistema' },
+    'Voltage': { ko: '전압', ja: '電圧', 'zh-CN': '电压', 'zh-TW': '電壓', es: 'Voltaje' },
+    'CPU Load': { ko: 'CPU 부하', ja: 'CPU 負荷', 'zh-CN': 'CPU 负载', 'zh-TW': 'CPU 負載', es: 'Carga de CPU' },
+    'NPU Temp': { ko: 'NPU 온도', ja: 'NPU 温度', 'zh-CN': 'NPU 温度', 'zh-TW': 'NPU 溫度', es: 'Temp. NPU' },
+    'Core Temp': { ko: '코어 온도', ja: 'コア温度', 'zh-CN': '核心温度', 'zh-TW': '核心溫度', es: 'Temp. del núcleo' },
+    'NPU DRAM': { ko: 'NPU DRAM', ja: 'NPU DRAM', 'zh-CN': 'NPU DRAM', 'zh-TW': 'NPU DRAM', es: 'DRAM NPU' },
+    'No NPU': { ko: 'NPU 없음', ja: 'NPU なし', 'zh-CN': '无 NPU', 'zh-TW': '無 NPU', es: 'Sin NPU' },
+  };
+  function _register() {
+    if (window.DXI18n && window.DXI18n.register) window.DXI18n.register(DICT);
+    else setTimeout(_register, 120);
+  }
+  _register();
 })();
 </script>

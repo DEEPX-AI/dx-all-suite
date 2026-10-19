@@ -1,4 +1,4 @@
-"""config.py 경로 계산 테스트"""
+"""config.py path computation"""
 import sys, os, pytest, importlib
 from pathlib import Path
 

@@ -15,6 +15,11 @@ except Exception:
     _IMAGE_ONLY_CATEGORIES = {"embedding", "reid", "attribute_recognition",
                               "object_pose_estimation", "3d_object_detection"}
 
+def _drop_suffix(text: str, suffix: str) -> str:
+    """str.removesuffix is 3.9+, but pyproject supports 3.8 (tests/shared/test_python_floor.py)."""
+    return text[: -len(suffix)] if suffix and text.endswith(suffix) else text
+
+
 def _demo_image_only(category, curated):
     """image-only iff the category's runner truly rejects video (config is the single
     source of truth). Ignores the stale curated column for correctness."""
@@ -52,10 +57,17 @@ def parse_run_demo(run_demo_path: Path) -> list[dict]:
         n = len(cols["DEMO_LABELS"])
         if n == 0 or any(len(v) != n for v in cols.values()):
             return []
+        # per-model layout: DEMO_PY_DIR is task/family and the model is DEMO_MODEL's stem; the studio's
+        # model name and run path use the stem too.
+        from shared import dx_app_layout as _layout
+        per_model = _layout.detect(Path(run_demo_path).parent) == _layout.PER_MODEL
         demos = []
         for i in range(n):
             py_dir = cols["DEMO_PY_DIR"][i]
             category, _, model_name = py_dir.partition("/")
+            family = None
+            if per_model:
+                family, model_name = model_name, _drop_suffix(cols["DEMO_MODEL"][i].rsplit("/", 1)[-1], ".dxnn")
             demos.append({
                 "idx": i,
                 "label": cols["DEMO_LABELS"][i],
@@ -63,6 +75,7 @@ def parse_run_demo(run_demo_path: Path) -> list[dict]:
                 "model": cols["DEMO_MODEL"][i],
                 "category": category,
                 "model_name": model_name,
+                "family": family,
                 "py_base": cols["DEMO_PY_BASE"][i],
                 "cpp_base": cols["DEMO_CPP_BASE"][i],
                 "default_video": cols["DEMO_VIDEO"][i],
@@ -78,15 +91,20 @@ def parse_run_demo(run_demo_path: Path) -> list[dict]:
         return []
 
 
+def _dx_app_root():
+    """dx_app root (follows the DX_APP_ROOT setting): run_demo.sh lives here and sample media paths are relative to it."""
+    try:
+        from dx_app.core.config import DX_APP_ROOT
+    except Exception:
+        from config import DX_APP_ROOT  # dx_app/core on sys.path (studio runtime)
+    return Path(DX_APP_ROOT)
+
+
 def list_demos() -> dict:
     """Public entry: parse the real run_demo.sh (path from config) → grouped payload.
     {"demos": [], "groups": [], "ok": False} on any failure (import, path, or parse)."""
     try:
-        try:
-            from dx_app.core.config import DX_RT_ROOT
-        except Exception:
-            from config import DX_RT_ROOT  # dx_app/core on sys.path (studio runtime)
-        path = DX_RT_ROOT.parent / "dx_app" / "run_demo.sh"
+        path = _dx_app_root() / "run_demo.sh"
         demos = parse_run_demo(path)
         groups = list(dict.fromkeys(d["group"] for d in demos))
         return {"demos": demos, "groups": groups, "ok": bool(demos)}
@@ -122,9 +140,45 @@ def build_demos_payload() -> dict:
         d["run_ref"] = {"model_name": m.get("name") or d["model_name"],
                         "category": m.get("category") or d["category"],
                         "model_file": m.get("model_file") or d["model"]}
-        thumb = _resolve_thumb(d["model_name"], d["run_ref"]["model_name"], d.get("model"))
+        # A per-model stem (yolov7_640x640) is far from the Model Zoo thumbnail name (yolov7d6.jpg), so also look
+        # up the family and the registry's old name.
+        thumb = _resolve_thumb(d["model_name"], d["run_ref"]["model_name"], d.get("model"),
+                               _legacy_name(d["model_name"]), d.get("family"))
         d["thumbnail"] = ("/api/demo-thumb?f=" + thumb) if thumb else None
+        d["media"] = {"video": _media_exists(d.get("default_video")), "image": _media_exists(d.get("default_image"))}
     return base
+
+
+_LEGACY_NAMES = None
+
+
+def _legacy_name(stem):
+    """per-model registry stem -> old model_name (yolov7_640x640 -> yolov7). None if unknown."""
+    global _LEGACY_NAMES
+    if _LEGACY_NAMES is None:
+        _LEGACY_NAMES = {}
+        try:
+            import json as _json
+            rows = _json.loads((_dx_app_root() / "config" / "model_registry.json").read_text(encoding="utf-8"))
+            for r in rows if isinstance(rows, list) else []:
+                if isinstance(r, dict) and r.get("variant") and r.get("model_name"):
+                    _LEGACY_NAMES[r["variant"]] = r["model_name"]
+        except (OSError, ValueError):
+            pass
+    return _LEGACY_NAMES.get(stem)
+
+
+def _media_exists(rel) -> bool:
+    """Is a demo's sample file on disk? Unknown root → True (never hide an input we can't check).
+    The Run Demo stage defaults away from, and disables, a sample that isn't downloaded."""
+    if not rel:
+        return False
+    try:
+        p = Path(rel)
+        q = p if p.is_absolute() else _dx_app_root() / p
+        return q.is_file() or q.is_dir()    # face_pair and person_pair are folders of image pairs
+    except Exception:
+        return True
 
 
 # ── Model preview thumbnails (dx_modelzoo/data/thumbnails/*.jpg) ─────────────────────
@@ -132,6 +186,9 @@ def build_demos_payload() -> dict:
 # don't always equal a thumbnail filename (yolov7 → yolov7d6.jpg), so match by a normalized
 # key: exact first, then the shortest thumbnail whose name starts with the demo key.
 _THUMBS_DIR = Path(__file__).resolve().parents[2] / "dx_modelzoo" / "data" / "thumbnails"
+# The original folder is gitignored; a clone only has the repo copy the Model Zoo screen uses (<stem>-jpg.webp)
+# (contract: tests/dx_app/test_demo_thumbs_committed.py)
+_OPT_THUMBS_DIR = Path(__file__).resolve().parents[2] / "dx_modelzoo" / "data" / "optimized" / "thumbnails"
 _THUMB_INDEX = None
 
 
@@ -146,6 +203,8 @@ def _thumb_index() -> dict:
         try:
             for p in sorted(_THUMBS_DIR.glob("*.jpg")):
                 _THUMB_INDEX.setdefault(_thumb_norm(p.stem), p.name)
+            for p in sorted(_OPT_THUMBS_DIR.glob("*-jpg.webp")):
+                _THUMB_INDEX.setdefault(_thumb_norm(p.name[:-len("-jpg.webp")]), p.name)
         except OSError:
             _THUMB_INDEX = {}
     return _THUMB_INDEX
@@ -167,9 +226,12 @@ def _resolve_thumb(*names):
 def thumbnail_path(fname: str):
     """Resolve a requested thumbnail filename to a real file under the thumbnails dir, or None
     if it escapes the directory or does not exist (path-traversal safe)."""
-    try:
-        p = (_THUMBS_DIR / fname).resolve()
-        p.relative_to(_THUMBS_DIR.resolve())
-    except (ValueError, OSError):
-        return None
-    return p if (p.is_file() and p.suffix.lower() in (".jpg", ".jpeg", ".png", ".webp")) else None
+    for base in (_THUMBS_DIR, _OPT_THUMBS_DIR):
+        try:
+            p = (base / fname).resolve()
+            p.relative_to(base.resolve())
+        except (ValueError, OSError):
+            continue
+        if p.is_file() and p.suffix.lower() in (".jpg", ".jpeg", ".png", ".webp"):
+            return p
+    return None

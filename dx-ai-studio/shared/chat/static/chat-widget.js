@@ -1,6 +1,6 @@
 /**
  * DX Chat Widget — Shared AI Chat UI Component
- * 5개 DX 앱에서 공통으로 사용하는 채팅 위젯.
+ * The chat widget every DX module shares.
  *
  * Usage:
  *   <link rel="stylesheet" href="/static/shared/chat-widget.css">
@@ -24,7 +24,7 @@ window._DX_CHAT_I18N = window._DX_CHAT_I18N || {
   'Ask a question...': { ko: '질문을 입력하세요...', ja: '質問を入力...', es: 'Escriba su pregunta...', 'zh-CN': '输入您的问题...', 'zh-TW': '輸入您的問題...' },
   'Custom…': { ko: '직접 입력…', ja: 'カスタム…', es: 'Personalizado…', 'zh-CN': '自定义…', 'zh-TW': '自訂…' },
   '(No response)': { ko: '(응답 없음)', ja: '(応答なし)', es: '(Sin respuesta)', 'zh-CN': '(无响应)', 'zh-TW': '(無回應)' },
-  '⚠️ Connection error: Unable to reach server.': { ko: '⚠️ 연결 오류: 서버에 연결할 수 없습니다.', ja: '⚠️ 接続エラー: サーバーに接続できません。', es: '⚠️ Error de conexión: no se puede acceder al servidor.', 'zh-CN': '⚠️ 连接错误：无法访问服务器。', 'zh-TW': '⚠️ 連線錯誤：無法連線至伺服器。' },
+  'Connection error: Unable to reach server.': { ko: '연결 오류: 서버에 연결할 수 없습니다.', ja: '接続エラー: サーバーに接続できません。', es: 'Error de conexión: no se puede acceder al servidor.', 'zh-CN': '连接错误：无法访问服务器。', 'zh-TW': '連線錯誤：無法連線至伺服器。' },
   'Unable to load settings.': { ko: '설정을 불러올 수 없습니다.', ja: '設定を読み込めません。', es: 'No se pudieron cargar los ajustes.', 'zh-CN': '无法加载设置。', 'zh-TW': '無法載入設定。' },
   'Uses your logged-in coding-agent CLI — pick the agent below.': { ko: '로그인된 코딩 에이전트 CLI를 사용합니다 — 아래에서 에이전트를 선택하세요.', ja: 'ログイン済みコーディングエージェントCLIを使用します — 下でエージェントを選択してください。', es: 'Usa su CLI de agente de codificación con sesión iniciada — elija el agente abajo.', 'zh-CN': '使用已登录的编码智能体 CLI — 请在下方选择智能体。', 'zh-TW': '使用已登入的編碼智能體 CLI — 請在下方選擇智能體。' },
   'Found models: ': { ko: '발견된 모델: ', ja: '検出されたモデル: ', es: 'Modelos encontrados: ', 'zh-CN': '发现的模型：', 'zh-TW': '發現的模型：' },
@@ -40,14 +40,34 @@ window._DX_CHAT_I18N = window._DX_CHAT_I18N || {
   'Refresh failed.': { ko: '새로고침 실패.', ja: '更新に失敗しました。', es: 'Error al actualizar.', 'zh-CN': '刷新失败。', 'zh-TW': '重新整理失敗。' },
   'Testing...': { ko: '테스트 중...', ja: 'テスト中...', es: 'Probando...', 'zh-CN': '测试中...', 'zh-TW': '測試中...' },
   'Connected: ': { ko: '연결 성공: ', ja: '接続成功: ', es: 'Conectado: ', 'zh-CN': '已连接：', 'zh-TW': '已連線：' },
+  'Open DEEPX Agent on the web': { ko: '웹에서 DEEPX Agent 열기', ja: 'Web で DEEPX Agent を開く', es: 'Abrir DEEPX Agent en la web', 'zh-CN': '在网页中打开 DEEPX Agent', 'zh-TW': '在網頁中開啟 DEEPX Agent' },
+  'Chat': { ko: '채팅', ja: 'チャット', es: 'Chat', 'zh-CN': '聊天', 'zh-TW': '聊天' },
+  'Send': { ko: '보내기', ja: '送信', es: 'Enviar', 'zh-CN': '发送', 'zh-TW': '傳送' },
+  'API Key': { ko: 'API 키', ja: 'API キー', es: 'Clave de API', 'zh-CN': 'API 密钥', 'zh-TW': 'API 金鑰' },
+  'Model': { ko: '모델', ja: 'モデル', es: 'Modelo', 'zh-CN': '模型', 'zh-TW': '模型' },
+  'Endpoint': { ko: '엔드포인트', ja: 'エンドポイント', es: 'Endpoint', 'zh-CN': '端点', 'zh-TW': '端點' },
+  'Custom endpoint': { ko: '직접 지정한 엔드포인트', ja: 'カスタムエンドポイント', es: 'Endpoint personalizado', 'zh-CN': '自定义端点', 'zh-TW': '自訂端點' },
+  'Answering with your {agent} login': { ko: '{agent} 계정으로 답합니다', ja: '{agent} のログインで回答します', es: 'Responde con su sesión de {agent}', 'zh-CN': '使用您的 {agent} 登录回答', 'zh-TW': '使用您的 {agent} 登入回答' },
+  'Basic guidance only': { ko: '기본 안내만 할 수 있습니다', ja: '基本ガイドのみ', es: 'Solo guía básica', 'zh-CN': '仅基本指南', 'zh-TW': '僅基本指南' },
+  'Change': { ko: '변경', ja: '変更', es: 'Cambiar', 'zh-CN': '更改', 'zh-TW': '變更' },
+  'Connect AI': { ko: 'AI 연결', ja: 'AI を接続', es: 'Conectar IA', 'zh-CN': '连接 AI', 'zh-TW': '連接 AI' },
+  'Which AI should answer?': { ko: '어떤 AI 로 답할까요?', ja: 'どの AI で回答しますか?', es: '¿Qué IA debe responder?', 'zh-CN': '由哪个 AI 回答?', 'zh-TW': '由哪個 AI 回答?' },
+  'Coding agent on this PC': { ko: '이 PC 의 coding agent', ja: 'この PC のコーディングエージェント', es: 'Agente de codificación de este PC', 'zh-CN': '本机的编码智能体', 'zh-TW': '本機的編碼智能體' },
+  'No API key — uses your CLI login. Recommended': { ko: 'API key 불필요 — CLI 로그인을 씁니다. 추천', ja: 'API key 不要 — CLI のログインを使用。おすすめ', es: 'Sin API key: usa su sesión de la CLI. Recomendado', 'zh-CN': '无需 API key — 使用 CLI 登录。推荐', 'zh-TW': '無需 API key — 使用 CLI 登入。推薦' },
+  'My local LLM server': { ko: '내 local LLM server', ja: '自分のローカル LLM サーバー', es: 'Mi servidor LLM local', 'zh-CN': '我的本地 LLM 服务器', 'zh-TW': '我的本機 LLM 伺服器' },
+  'Ollama, LM Studio, llama.cpp …': { ko: 'Ollama, LM Studio, llama.cpp …', ja: 'Ollama, LM Studio, llama.cpp …', es: 'Ollama, LM Studio, llama.cpp …', 'zh-CN': 'Ollama, LM Studio, llama.cpp …', 'zh-TW': 'Ollama, LM Studio, llama.cpp …' },
+  'Cloud API key': { ko: 'cloud API key', ja: 'クラウド API key', es: 'API key en la nube', 'zh-CN': '云 API key', 'zh-TW': '雲端 API key' },
+  'OpenAI, Anthropic, Google, GitHub Models …': { ko: 'OpenAI, Anthropic, Google, GitHub Models …', ja: 'OpenAI, Anthropic, Google, GitHub Models …', es: 'OpenAI, Anthropic, Google, GitHub Models …', 'zh-CN': 'OpenAI, Anthropic, Google, GitHub Models …', 'zh-TW': 'OpenAI, Anthropic, Google, GitHub Models …' },
+  'Agent': { ko: '에이전트', ja: 'エージェント', es: 'Agente', 'zh-CN': '智能体', 'zh-TW': '代理程式' },
+  'signed in': { ko: '로그인됨', ja: 'ログイン済み', es: 'sesión iniciada', 'zh-CN': '已登录', 'zh-TW': '已登入' },
+  'sign in: {cmd}': { ko: '로그인 필요: {cmd}', ja: 'ログインが必要: {cmd}', es: 'inicie sesión: {cmd}', 'zh-CN': '需要登录: {cmd}', 'zh-TW': '需要登入: {cmd}' },
+  'Advanced': { ko: '고급', ja: '詳細', es: 'Avanzado', 'zh-CN': '高级', 'zh-TW': '進階' },
+  'Checking the connection…': { ko: '연결을 확인하는 중…', ja: '接続を確認しています…', es: 'Comprobando la conexión…', 'zh-CN': '正在检查连接…', 'zh-TW': '正在檢查連線…' },
+  'Save anyway': { ko: '그래도 저장', ja: 'それでも保存', es: 'Guardar de todos modos', 'zh-CN': '仍然保存', 'zh-TW': '仍然儲存' },
+  'Back to automatic': { ko: '자동으로 되돌리기', ja: '自動に戻す', es: 'Volver a automático', 'zh-CN': '恢复自动', 'zh-TW': '恢復自動' },
+  'Saved without a test.': { ko: '테스트 없이 저장했습니다.', ja: 'テストせずに保存しました。', es: 'Guardado sin prueba.', 'zh-CN': '已保存（未测试）。', 'zh-TW': '已儲存（未測試）。' },
+  'Leave blank to keep the saved key': { ko: '비워 두면 저장된 key 를 씁니다', ja: '空欄なら保存済みの key を使います', es: 'Déjelo vacío para conservar la key guardada', 'zh-CN': '留空则使用已保存的 key', 'zh-TW': '留空則使用已儲存的 key' },
   'DX Assistant': { ko: 'DX 어시스턴트', ja: 'DXアシスタント', es: 'Asistente DX', 'zh-CN': 'DX 助手', 'zh-TW': 'DX 助手' },
-  '⚠️ AI assistant is not configured. Open chat settings to register your API key. Basic guidance is available without AI. <button type="button" class="dx-chat-banner-action" data-action="settings-open">Open settings</button>': {
-    ko: '⚠️ AI 어시스턴트가 설정되지 않았습니다. 채팅 설정에서 API 키를 등록하세요. 기본 안내는 AI 없이도 가능합니다. <button type="button" class="dx-chat-banner-action" data-action="settings-open">설정 열기</button>',
-    ja: '⚠️ AIアシスタントが設定されていません。チャット設定でAPIキーを登録してください。基本ガイドはAIなしでも利用できます。<button type="button" class="dx-chat-banner-action" data-action="settings-open">設定を開く</button>',
-    es: '⚠️ El asistente de IA no está configurado. Abra la configuración del chat para registrar su clave API. La guía básica está disponible sin IA. <button type="button" class="dx-chat-banner-action" data-action="settings-open">Abrir ajustes</button>',
-    'zh-CN': '⚠️ AI 助手未配置。请在聊天设置中注册 API 密钥。基本指南无需 AI 也可使用。<button type="button" class="dx-chat-banner-action" data-action="settings-open">打开设置</button>',
-    'zh-TW': '⚠️ AI 助手未設定。請在聊天設定中註冊 API 金鑰。基本指南無需 AI 也可使用。<button type="button" class="dx-chat-banner-action" data-action="settings-open">開啟設定</button>',
-  },
 };
 
 /** Per-module chat panel titles (6 languages). Keyed by DXChat.init appName. */
@@ -124,6 +144,14 @@ window._DX_CHAT_HEADER_TITLES = window._DX_CHAT_HEADER_TITLES || {
     'zh-CN': 'Agent Dev 帮助',
     'zh-TW': 'Agent Dev 說明',
   },
+  dx_edge: {
+    en: 'DX Cloud Help',
+    ko: 'DX Cloud 도움말',
+    ja: 'DX Cloudヘルプ',
+    es: 'Ayuda DX Cloud',
+    'zh-CN': 'DX Cloud 帮助',
+    'zh-TW': 'DX Cloud 說明',
+  },
   sdk_library: {
     en: 'SDK Library Help',
     ko: 'SDK Library 도움말',
@@ -141,7 +169,7 @@ const DXChat = (() => {
   let _pendingContext = null;
   let _history = [];
   let _appName = '';
-  let _configured = false;
+  let _status = null;      // the last GET /api/chat/config — what is saved, who answers now, the CLIs here
   let _els = {};
   let _headerTitle = null;
 
@@ -149,6 +177,11 @@ const DXChat = (() => {
     return (typeof DXI18n !== 'undefined' && DXI18n.lang)
       || (typeof localStorage !== 'undefined' && localStorage.getItem('dx-lang'))
       || 'en';
+  }
+
+  /* Shared icons (shared/static/dx-icon.js). Missing icons render as nothing so chat never breaks on them. */
+  function _ico(name) {
+    return (window.DXIcon && typeof window.DXIcon === 'function') ? window.DXIcon(name) : '';
   }
 
   function _t(en, ko) {
@@ -166,6 +199,20 @@ const DXChat = (() => {
 
 
   function init(opts) {
+    /* A second init (SDK Library does this) only changes the target app and title — building another widget
+       would stack two chat buttons in the same spot. */
+    if (_els.fab && document.body.contains(_els.fab)) {
+      _appName = (opts && opts.appName) || _appName;
+      _headerTitle = (opts && opts.headerTitle)
+        || (window._DX_CHAT_HEADER_TITLES && window._DX_CHAT_HEADER_TITLES[_appName])
+        || _headerTitle;
+      var titleEl = _els.win && _els.win.querySelector('.dx-chat-header-title');
+      if (titleEl && _headerTitle) {
+        var lang = (typeof DXI18n !== 'undefined') ? DXI18n.lang : 'en';
+        titleEl.textContent = _headerTitle[lang] || _headerTitle.en || titleEl.textContent;
+      }
+      return;
+    }
     _appName = (opts && opts.appName) || 'dx_app';
     _headerTitle = (opts && opts.headerTitle)
       || (window._DX_CHAT_HEADER_TITLES && window._DX_CHAT_HEADER_TITLES[_appName])
@@ -181,11 +228,34 @@ const DXChat = (() => {
   }
 
 
+  /* Text and names carry their key so a language change can translate them again.
+     data-chat-t → text, data-chat-tip → title + aria-label, data-chat-title → title, data-chat-ph → placeholder. */
+  function _relabel() {
+    var win = _els.win;
+    if (!win) return;
+    win.querySelectorAll('[data-chat-t]').forEach(function (el) { el.textContent = _t(el.dataset.chatT); });
+    win.querySelectorAll('[data-chat-tip]').forEach(function (el) {
+      el.title = _t(el.dataset.chatTip);
+      el.setAttribute('aria-label', el.title);
+    });
+    win.querySelectorAll('[data-chat-title]').forEach(function (el) { el.title = _t(el.dataset.chatTitle); });
+    win.querySelectorAll('[data-chat-ph]').forEach(function (el) {
+      el.placeholder = _t(el.dataset.chatPh);
+      el.setAttribute('aria-label', el.placeholder);   // a placeholder is not an accessible name
+    });
+    if (_els.fab) _els.fab.setAttribute('aria-label', _open ? _t('Close', '닫기') : _t('Chat'));
+    if (_headerTitle) {
+      var titleEl = win.querySelector('.dx-chat-header-title');
+      if (titleEl) titleEl.textContent = _headerTitle[_chatLang()] || _headerTitle.en || titleEl.textContent;
+    }
+  }
+
+
   function _buildDOM() {
     const fab = document.createElement('button');
     fab.className = 'dx-chat-fab';
-    fab.setAttribute('aria-label', 'Chat');
-    fab.innerHTML = '💬';
+    fab.setAttribute('aria-label', _t('Chat'));
+    fab.innerHTML = _ico('chat');
     fab.addEventListener('click', toggle);
     document.body.appendChild(fab);
     _els.fab = fab;
@@ -196,64 +266,91 @@ const DXChat = (() => {
       '<div class="dx-chat-header">',
       '  <span class="dx-chat-header-title">' + _t('DX Assistant') + '</span>',
       '  <div class="dx-chat-header-actions">',
-      '    <button class="dx-chat-header-btn" data-action="settings" title="' + _t('AI settings', 'AI 설정') + '" aria-label="' + _t('AI settings', 'AI 설정') + '">⚙️</button>',
-      '    <button class="dx-chat-header-btn" data-action="clear" title="' + _t('Clear chat', '대화 초기화') + '">🗑️</button>',
-      '    <button class="dx-chat-header-btn" data-action="close" title="' + _t('Close', '닫기') + '">✕</button>',
+      /* The web chatbot (DEEPX Agent) is another way to ask, so it is linked from the chat of every module. */
+      '    <a class="dx-chat-header-link" href="https://deepx.rapidflare.ai/" target="_blank" rel="noopener noreferrer" data-chat-tip="Open DEEPX Agent on the web">DEEPX Agent <span aria-hidden="true">↗</span></a>',
+      '    <button class="dx-chat-header-btn" data-action="settings" data-chat-tip="AI settings">' + _ico('gear') + '</button>',
+      '    <button class="dx-chat-header-btn" data-action="clear" data-chat-tip="Clear chat">' + _ico('trash') + '</button>',
+      '    <button class="dx-chat-header-btn" data-action="close" data-chat-tip="Close">' + _ico('x') + '</button>',
       '  </div>',
       '</div>',
-      '<div class="dx-chat-banner" style="display:none"></div>',
+      '<div class="dx-chat-source" aria-live="polite"></div>',
       '<div class="dx-chat-settings-panel" hidden>',
       '  <form class="dx-chat-settings-form">',
-      '    <div class="dx-chat-settings-title">' + _t('AI Assistant Settings', 'AI 어시스턴트 설정') + '</div>',
-      '    <label class="dx-chat-settings-field">',
-      '      <span>' + _t('Provider', '제공자') + '</span>',
+      '    <div class="dx-chat-settings-title" data-chat-t="AI Assistant Settings"></div>',
+      /* One question: which AI answers. The provider select shows only for cloud; for agent and local the
+         radio sets the value. */
+      '    <fieldset class="dx-chat-settings-kind">',
+      '      <legend data-chat-t="Which AI should answer?"></legend>',
+      '      <label class="dx-chat-kind-card"><input type="radio" name="dx-chat-kind" value="agent">',
+      '        <span><b data-chat-t="Coding agent on this PC"></b><small data-chat-t="No API key — uses your CLI login. Recommended"></small></span></label>',
+      '      <label class="dx-chat-kind-card"><input type="radio" name="dx-chat-kind" value="local">',
+      '        <span><b data-chat-t="My local LLM server"></b><small data-chat-t="Ollama, LM Studio, llama.cpp …"></small></span></label>',
+      '      <label class="dx-chat-kind-card"><input type="radio" name="dx-chat-kind" value="cloud">',
+      '        <span><b data-chat-t="Cloud API key"></b><small data-chat-t="OpenAI, Anthropic, Google, GitHub Models …"></small></span></label>',
+      '    </fieldset>',
+      '    <label class="dx-chat-settings-field dx-chat-field-agent">',
+      '      <span data-chat-t="Agent"></span>',
+      '      <select class="dx-chat-settings-agent"></select>',
+      '    </label>',
+      '    <label class="dx-chat-settings-field dx-chat-field-provider">',
+      '      <span data-chat-t="Provider"></span>',
       '      <select class="dx-chat-settings-provider">',
       '        <option value="openai">OpenAI</option>',
-      '        <option value="github">GitHub Models</option>',
-      '        <option value="custom">Custom endpoint</option>',
-      '        <option value="local">' + _t('Local / Self-hosted', '로컬 / 자체 호스팅') + '</option>',
-      '        <option value="agent-cli">' + _t('Coding agent (CLI login)', '코딩 에이전트 (CLI 로그인)') + '</option>',
       '        <option value="anthropic">Anthropic</option>',
       '        <option value="google">Google</option>',
+      '        <option value="github">GitHub Models</option>',
+      '        <option value="custom" data-chat-t="Custom endpoint"></option>',
+      '        <option value="local" hidden data-chat-t="Local / Self-hosted"></option>',
+      '        <option value="agent-cli" hidden data-chat-t="Coding agent (CLI login)"></option>',
       '      </select>',
       '    </label>',
       '    <label class="dx-chat-settings-field">',
-      '      <span>API Key</span>',
+      '      <span data-chat-t="API Key"></span>',
       '      <input class="dx-chat-settings-api-key" type="password" autocomplete="off" placeholder="sk-...">',
       '    </label>',
-      '    <label class="dx-chat-settings-field">',
-      '      <span>Model</span>',
+      '    <label class="dx-chat-settings-field dx-chat-field-model">',
+      '      <span data-chat-t="Model"></span>',
       '      <select class="dx-chat-settings-model-select" hidden></select>',
-      '      <select class="dx-chat-settings-agentmodel-select" hidden></select>',
-      '      <input class="dx-chat-settings-model" type="text" placeholder="gpt-4o-mini" autocomplete="off" hidden>',
+      '      <select class="dx-chat-settings-agentmodel-select" data-chat-tip="Model" hidden></select>',
+      '      <input class="dx-chat-settings-model" type="text" data-chat-tip="Model" placeholder="gpt-4o-mini" autocomplete="off" hidden>',
       '    </label>',
       '    <label class="dx-chat-settings-field dx-chat-settings-endpoint-field" hidden>',
-      '      <span>Endpoint</span>',
+      '      <span data-chat-t="Endpoint"></span>',
       '      <input class="dx-chat-settings-endpoint" type="url" placeholder="https://api.example.com/v1/chat/completions">',
       '    </label>',
-      '    <label class="dx-chat-settings-field">',
-      '      <span>' + _t('Temperature', '온도') + ' <strong class="dx-chat-settings-temp-value">0.7</strong></span>',
-      '      <input class="dx-chat-settings-temp" type="range" min="0" max="2" step="0.1" value="0.7">',
-      '    </label>',
+      '    <details class="dx-chat-settings-advanced">',
+      '      <summary data-chat-t="Advanced"></summary>',
+      '      <label class="dx-chat-settings-field">',
+      '        <span><span data-chat-t="Temperature"></span> <strong class="dx-chat-settings-temp-value">0.7</strong></span>',
+      '        <input class="dx-chat-settings-temp" type="range" min="0" max="2" step="0.1" value="0.7">',
+      '      </label>',
+      '      <button type="button" class="dx-chat-settings-refresh-kb" data-chat-title="Re-sync SDK knowledge from .deepx" data-chat-t="Refresh knowledge"></button>',
+      '    </details>',
       '    <div class="dx-chat-settings-actions">',
-      '      <button type="button" class="dx-chat-settings-test">' + _t('Test', '테스트') + '</button>',
-      '      <button type="button" class="dx-chat-settings-refresh-kb" title="' + _t('Re-sync SDK knowledge from .deepx', '.deepx에서 SDK 지식 재동기화') + '">' + _t('Refresh knowledge', '지식 새로고침') + '</button>',
-      '      <button type="submit" class="dx-chat-settings-save">' + _t('Save', '저장') + '</button>',
-      '      <button type="button" class="dx-chat-settings-close" data-action="settings-close">' + _t('Close', '닫기') + '</button>',
+      '      <button type="submit" class="dx-chat-settings-save" data-chat-t="Save"></button>',
+      '      <button type="button" class="dx-chat-settings-close" data-action="settings-close" data-chat-t="Close"></button>',
+      '      <button type="button" class="dx-chat-settings-reset" hidden data-chat-t="Back to automatic"></button>',
       '    </div>',
       '    <div class="dx-chat-settings-status" aria-live="polite"></div>',
+      '    <button type="button" class="dx-chat-settings-force" hidden data-chat-t="Save anyway"></button>',
       '  </form>',
       '</div>',
       '<div class="dx-chat-messages"></div>',
       '<div class="dx-chat-suggestions"></div>',
       '<div class="dx-chat-input-area">',
-      '  <textarea class="dx-chat-input" placeholder="' + _t('Ask a question...', '질문을 입력하세요...') + '" rows="1"></textarea>',
-      '  <button class="dx-chat-send-btn" aria-label="Send">➤</button>',
+      '  <textarea class="dx-chat-input" data-chat-ph="Ask a question..." rows="1"></textarea>',
+      '  <button class="dx-chat-send-btn" data-chat-tip="Send">' + _ico('send') + '</button>',
       '</div>',
     ].join('\n');
     document.body.appendChild(win);
     _els.win = win;
-    _els.banner = win.querySelector('.dx-chat-banner');
+    _relabel();
+    _els.source = win.querySelector('.dx-chat-source');
+    _els.agentSelect = win.querySelector('.dx-chat-settings-agent');
+    _els.fieldAgent = win.querySelector('.dx-chat-field-agent');
+    _els.fieldProvider = win.querySelector('.dx-chat-field-provider');
+    _els.forceBtn = win.querySelector('.dx-chat-settings-force');
+    _els.resetBtn = win.querySelector('.dx-chat-settings-reset');
     _els.settingsPanel = win.querySelector('.dx-chat-settings-panel');
     _els.settingsForm = win.querySelector('.dx-chat-settings-form');
     _els.settingsProvider = win.querySelector('.dx-chat-settings-provider');
@@ -266,7 +363,6 @@ const DXChat = (() => {
     _els.settingsTemp = win.querySelector('.dx-chat-settings-temp');
     _els.settingsTempVal = win.querySelector('.dx-chat-settings-temp-value');
     _els.settingsStatus = win.querySelector('.dx-chat-settings-status');
-    _els.settingsTestBtn = win.querySelector('.dx-chat-settings-test');
     _els.settingsRefreshKb = win.querySelector('.dx-chat-settings-refresh-kb');
     _els.messages = win.querySelector('.dx-chat-messages');
     _els.suggestions = win.querySelector('.dx-chat-suggestions');
@@ -289,13 +385,30 @@ const DXChat = (() => {
       }
     });
     _els.input.addEventListener('input', _autoResize);
+    /* Escape closes settings, then the window. Capture phase runs before the launcher's Escape (close module)
+       and marks the event handled, so Escape in chat does not leave the module and cut off an answer. */
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape' || e.defaultPrevented) return;
+      if (_els.settingsPanel && _els.settingsPanel.classList.contains('open')) {
+        _closeSettingsPanel();
+        e.preventDefault();
+      } else if (_open) {
+        toggle();
+        _els.fab.focus();
+        e.preventDefault();
+      }
+    }, true);
 
     win.querySelector('[data-action="close"]').addEventListener('click', toggle);
     win.querySelector('[data-action="clear"]').addEventListener('click', _clearHistory);
     win.querySelector('[data-action="settings"]').addEventListener('click', _openSettingsPanel);
     win.querySelector('[data-action="settings-close"]').addEventListener('click', _closeSettingsPanel);
     _els.settingsForm.addEventListener('submit', _saveSettings);
-    _els.settingsTestBtn.addEventListener('click', _testSettingsConnection);
+    win.querySelectorAll('input[name=dx-chat-kind]').forEach(function (r) {
+      r.addEventListener('change', function () { _setKind(r.value); });
+    });
+    _els.agentSelect.addEventListener('change', function () { _updateModelChooser('agent-cli'); });
+    _els.resetBtn.addEventListener('click', _resetToAuto);
     if (_els.settingsRefreshKb) _els.settingsRefreshKb.addEventListener('click', _refreshKnowledge);
     _els.settingsProvider.addEventListener('change', () => {
       if (_els.settingsModel) _els.settingsModel.value = '';  // clear stale model on provider switch
@@ -303,26 +416,29 @@ const DXChat = (() => {
       _setApiKeyPlaceholder();
     });
     if (_els.settingsModelSelect) _els.settingsModelSelect.addEventListener('change', _onModelSelectChange);
+    // Local: look up models at the endpoint as typed, so LM Studio, llama.cpp and Ollama on another host
+    // all list their models (not just whatever endpoint was set when the provider changed).
+    if (_els.settingsEndpoint) {
+      var _endpointTimer = null;
+      var _lookupLocal = function () {
+        clearTimeout(_endpointTimer);
+        _endpointTimer = null;
+        if (_els.settingsProvider.value === 'local') _updateModelChooser('local');
+      };
+      _els.settingsEndpoint.addEventListener('change', _lookupLocal);
+      _els.settingsEndpoint.addEventListener('input', function () {
+        clearTimeout(_endpointTimer);
+        _endpointTimer = setTimeout(_lookupLocal, 600);
+      });
+    }
     _els.settingsTemp.addEventListener('input', () => {
       _els.settingsTempVal.textContent = _els.settingsTemp.value;
     });
 
     if (typeof DXI18n !== 'undefined') {
       DXI18n.onLangChange(function() {
-        if (_els.input) _els.input.placeholder = _t('Ask a question...', '질문을 입력하세요...');
-        if (_headerTitle) {
-          const titleEl = _els.win && _els.win.querySelector('.dx-chat-header-title');
-          if (titleEl) {
-            titleEl.textContent = _headerTitle[DXI18n.lang] || _headerTitle.en || titleEl.textContent;
-          }
-        }
-        var settingsBtn = win.querySelector('[data-action="settings"]');
-        if (settingsBtn) settingsBtn.title = _t('AI settings', 'AI 설정');
-        var clearBtn = win.querySelector('[data-action="clear"]');
-        if (clearBtn) clearBtn.title = _t('Clear chat', '대화 초기화');
-        var closeBtn = win.querySelector('[data-action="close"]');
-        if (closeBtn) closeBtn.title = _t('Close', '닫기');
-        _renderConfigBanner();
+        _relabel();
+        _renderSource();
       });
     }
 
@@ -335,9 +451,13 @@ const DXChat = (() => {
     _open = !_open;
     _els.win.classList.toggle('open', _open);
     _els.fab.classList.toggle('open', _open);
+    /* Open shows a close icon (rotating the chat icon would only give a tilted bubble). */
+    _els.fab.innerHTML = _ico(_open ? 'x' : 'chat');
+    _els.fab.setAttribute('aria-label', _open ? _t('Close', '닫기') : _t('Chat'));
     if (_open) {
       _els.input.focus();
       _scrollBottom();
+      _checkConfig();   // who answers can change elsewhere (Home · Agent Dev pick the Studio agent) — read it again
     }
   }
 
@@ -389,7 +509,7 @@ const DXChat = (() => {
 
       if (!resp.ok) {
         const err = await resp.json().catch(() => ({ error: 'Unknown error' }));
-        _finishAI(aiEl, '⚠️ ' + (err.error || 'Error'));
+        _finishAI(aiEl, err.error || 'Error', { error: true });
         return;
       }
 
@@ -437,7 +557,7 @@ const DXChat = (() => {
       _finishAI(aiEl, fullText);
 
     } catch (err) {
-      _finishAI(aiEl, _t('⚠️ Connection error: Unable to reach server.', '⚠️ 연결 오류: 서버에 연결할 수 없습니다.'));
+      _finishAI(aiEl, _t('Connection error: Unable to reach server.', '연결 오류: 서버에 연결할 수 없습니다.'), { error: true });
     }
   }
 
@@ -462,8 +582,13 @@ const DXChat = (() => {
     _scrollBottom();
   }
 
-  function _finishAI(el, text) {
+  function _finishAI(el, text, opts) {
     el.innerHTML = _renderMarkdown(text);
+    /* Errors show as a bubble colour and a warning icon. */
+    if (opts && opts.error) {
+      el.classList.add('is-error');
+      el.insertAdjacentHTML('afterbegin', _ico('alert') + ' ');
+    }
     _history.push({ role: 'assistant', content: text });
     _scrollBottom();
   }
@@ -529,31 +654,37 @@ const DXChat = (() => {
   }
 
 
-  function _renderConfigBanner() {
-    if (!_els.banner) return;
-    if (!_configured) {
-      _els.banner.innerHTML = _t(
-        '⚠️ AI assistant is not configured. Open chat settings to register your API key. Basic guidance is available without AI. <button type="button" class="dx-chat-banner-action" data-action="settings-open">Open settings</button>',
-        '⚠️ AI 어시스턴트가 설정되지 않았습니다. 채팅 설정에서 API 키를 등록하세요. 기본 안내는 AI 없이도 가능합니다. <button type="button" class="dx-chat-banner-action" data-action="settings-open">설정 열기</button>'
-      );
-      const bannerBtn = _els.banner.querySelector('[data-action="settings-open"]');
-      if (bannerBtn) bannerBtn.addEventListener('click', _openSettingsPanel);
-      _els.banner.style.display = 'block';
-    } else {
-      _els.banner.style.display = 'none';
-    }
+  var _PROVIDER_LABEL = { openai: 'OpenAI', anthropic: 'Anthropic', google: 'Google', github: 'GitHub Models',
+                          custom: 'Custom endpoint', local: 'Local / Self-hosted' };
+
+  /* One line always says who is answering — not an "add an API key" warning, since a logged-in coding agent
+     answers without a key. */
+  function _renderSource() {
+    var el = _els.source;
+    if (!el || !_status) return;
+    var src = _status.source || { kind: 'none' };
+    var label;
+    if (src.kind === 'none') label = _t('Basic guidance only');
+    else if (src.provider === 'agent-cli') label = _t('Answering with your {agent} login').replace('{agent}', src.agent || 'CLI');
+    else label = _t(_PROVIDER_LABEL[src.provider] || src.provider) + (src.model ? ' · ' + src.model : '');
+    el.className = 'dx-chat-source' + (src.kind === 'none' ? ' is-none' : '');
+    el.innerHTML = '<span class="dx-chat-source-dot" aria-hidden="true"></span><span class="dx-chat-source-text"></span>' +
+      '<button type="button" class="dx-chat-source-change"></button>';
+    el.querySelector('.dx-chat-source-text').textContent = label;
+    var btn = el.querySelector('button');
+    btn.textContent = src.kind === 'none' ? _t('Connect AI') : _t('Change');
+    btn.addEventListener('click', _openSettingsPanel);
   }
 
   function _checkConfig() {
-    fetch(_apiUrl('/api/chat/config'))
+    return fetch(_apiUrl('/api/chat/config'))
       .then(r => r.json())
       .then(data => {
-        _configured = data.configured;
-        _renderConfigBanner();
+        _status = data || {};
+        _renderSource();
+        return _status;
       })
-      .catch(() => {
-        // Config endpoint not available — hide banner
-      });
+      .catch(() => null);   // config endpoint not available — no status line
   }
 
 
@@ -571,32 +702,62 @@ const DXChat = (() => {
     _els.settingsPanel.hidden = true;
   }
 
+  function _kindOf(provider) {
+    return provider === 'agent-cli' ? 'agent' : provider === 'local' ? 'local' : 'cloud';
+  }
+
+  function _setKind(kind) {
+    var r = _els.win.querySelector('input[name=dx-chat-kind][value=' + kind + ']');
+    if (r) r.checked = true;
+    if (_els.fieldAgent) _els.fieldAgent.hidden = kind !== 'agent';
+    if (_els.fieldProvider) _els.fieldProvider.hidden = kind !== 'cloud';
+    if (kind === 'agent') _els.settingsProvider.value = 'agent-cli';
+    else if (kind === 'local') _els.settingsProvider.value = 'local';
+    else if (_els.settingsProvider.value === 'agent-cli' || _els.settingsProvider.value === 'local') {
+      _els.settingsProvider.value = 'openai';
+    }
+    _setApiKeyPlaceholder(_savedKeyFor(_els.settingsProvider.value));
+    _toggleSettingsEndpoint();
+  }
+
+  function _savedKeyFor(provider) {
+    return (_status && _status.configured && _status.provider === provider) ? _status.api_key : null;
+  }
+
+  /* Installed CLIs only, with their login state. If a login is needed, show the command for it. */
+  function _fillAgents(current) {
+    var sel = _els.agentSelect;
+    if (!sel) return;
+    var rows = ((_status && _status.agents) || []).filter(function (a) { return a.installed; });
+    sel.innerHTML = rows.map(function (a) {
+      var state = a.authenticated === false ? _t('sign in: {cmd}').replace('{cmd}', a.login_hint)
+        : a.authenticated === true ? _t('signed in') : '';
+      return '<option value="' + _escapeHtml(a.name) + '"' + (a.name === current ? ' selected' : '') + '>' +
+        _escapeHtml(a.name + (state ? ' — ' + state : '')) + '</option>';
+    }).join('');
+  }
+
   function _loadSettings() {
-    fetch(_apiUrl('/api/chat/config'))
-      .then(r => r.json())
-      .then(data => {
-        const chatApiKey = _els.settingsApiKey;
-        if (data.configured) {
-          _els.settingsProvider.value = data.provider || 'openai';
-          _els.settingsModel.value = data.model || '';
-          _els.settingsEndpoint.value = data.endpoint || '';
-          const temp = data.temperature != null ? data.temperature : 0.7;
-          _els.settingsTemp.value = temp;
-          _els.settingsTempVal.textContent = temp;
-          chatApiKey.value = '';
-          _setApiKeyPlaceholder(data.api_key);
-        } else {
-          if (!_els.settingsProvider.value) _els.settingsProvider.value = 'openai';
-          if (!_els.settingsModel.value) _els.settingsModel.value = '';
-          _els.settingsEndpoint.value = '';
-          _els.settingsTemp.value = 0.7;
-          _els.settingsTempVal.textContent = '0.7';
-          chatApiKey.value = '';
-          _setApiKeyPlaceholder();
-        }
-        _toggleSettingsEndpoint();
-      })
-      .catch(() => _showSettingsStatus(_t('Unable to load settings.', '설정을 불러올 수 없습니다.'), 'error'));
+    _checkConfig().then(function (data) {
+      if (!data) { _showSettingsStatus(_t('Unable to load settings.', '설정을 불러올 수 없습니다.'), 'error'); return; }
+      var src = data.source || {};
+      var saved = !!data.configured;
+      var provider = saved ? (data.provider || 'openai') : null;
+      var model = saved ? (data.model || '') : '';
+      var agent = provider === 'agent-cli' ? (model.split('::')[0] || src.agent) : src.agent;
+      _fillAgents(agent);
+      _els.settingsModel.value = provider === 'agent-cli' ? (model.split('::')[1] || '') : model;
+      _els.settingsEndpoint.value = saved ? (data.endpoint || '') : '';
+      var temp = saved && data.temperature != null ? data.temperature : 0.7;
+      _els.settingsTemp.value = temp;
+      _els.settingsTempVal.textContent = temp;
+      _els.settingsApiKey.value = '';
+      if (provider) _els.settingsProvider.value = provider;
+      var anyAgent = (data.agents || []).some(function (a) { return a.installed; });
+      _setKind(provider ? _kindOf(provider) : (anyAgent ? 'agent' : 'local'));
+      if (_els.resetBtn) _els.resetBtn.hidden = !saved;
+      if (_els.forceBtn) _els.forceBtn.hidden = true;
+    });
   }
 
   function _isKeylessProvider(provider) {
@@ -643,7 +804,6 @@ const DXChat = (() => {
   function _toggleSettingsEndpoint() {
     const provider = _els.settingsProvider ? _els.settingsProvider.value : '';
     const isLocal = provider === 'local';
-    const isAgentCli = provider === 'agent-cli';
     // Endpoint field shown for custom and local (local = base URL); not for agent-cli.
     if (_els.settingsEndpointField) {
       _els.settingsEndpointField.hidden = !(provider === 'custom' || isLocal);
@@ -668,12 +828,6 @@ const DXChat = (() => {
       };
       _els.settingsModel.placeholder = modelHints[provider] || 'gpt-4o-mini';
     }
-    if (isAgentCli) {
-      _showSettingsStatus(
-        _t('Uses your logged-in coding-agent CLI — pick the agent below.',
-           '로그인된 코딩 에이전트 CLI를 사용합니다 — 아래에서 에이전트를 선택하세요.'),
-        '');
-    }
     _updateModelChooser(provider);
   }
 
@@ -688,9 +842,13 @@ const DXChat = (() => {
     fetch('/agent/api/agent/models?agent=' + encodeURIComponent(agent))
       .then(function (r) { return r.json(); })
       .then(function (d) {
+        /* Drop a list that arrives late for another agent — otherwise a slow copilot list could land under
+           cursor and save copilot's model for it. */
+        if (_els.agentSelect && _els.agentSelect.value && _els.agentSelect.value !== agent) return;
         var models = (d && d.models) || [];
         if (!models.length) { sel.hidden = true; sel.innerHTML = ''; return; }
-        _fillSelect(sel, models, (current && models.indexOf(current) !== -1) ? current : models[0]);
+        _fillSelect(sel, models, (current && models.indexOf(current) !== -1) ? current
+          : (d.default_model && models.indexOf(d.default_model) !== -1 ? d.default_model : models[0]));
         sel.hidden = false;
       })
       .catch(function () { sel.hidden = true; sel.innerHTML = ''; });
@@ -702,13 +860,11 @@ const DXChat = (() => {
     if (_els.agentModelSelect) _els.agentModelSelect.hidden = true;
 
     if (provider === 'agent-cli') {
-      // cur encodes "<agent>::<submodel>" (submodel optional)
-      var parts = cur.split('::');
-      var agent = parts[0] || 'claude';
-      _fillSelect(modelSel, ['claude', 'opencode', 'cursor', 'copilot', 'codex'], agent);
-      if (modelSel) modelSel.hidden = false;
+      // The agent comes from its own select; the model row shows that agent's models (settingsModel = sub-model).
+      var agent = (_els.agentSelect && _els.agentSelect.value) || 'claude';
+      if (modelSel) modelSel.hidden = true;
       if (_els.settingsModel) _els.settingsModel.hidden = true;
-      _fetchAgentModels(agent, parts[1] || '');
+      _fetchAgentModels(agent, cur);
       return;
     }
 
@@ -764,9 +920,7 @@ const DXChat = (() => {
   function _onModelSelectChange() {
     var provider = _els.settingsProvider ? _els.settingsProvider.value : '';
     var val = _els.settingsModelSelect ? _els.settingsModelSelect.value : '';
-    if (provider === 'agent-cli') {
-      _fetchAgentModels(val, '');
-    } else if (provider !== 'local' && provider !== 'custom') {
+    if (provider !== 'agent-cli' && provider !== 'local' && provider !== 'custom') {
       if (_els.settingsModel) _els.settingsModel.hidden = (val !== _CUSTOM_OPT);
     }
   }
@@ -775,8 +929,10 @@ const DXChat = (() => {
     if (!_els.settingsApiKey) return;
     if (maskedKey) {
       _els.settingsApiKey.placeholder = maskedKey;
+      _els.settingsApiKey.title = _t('Leave blank to keep the saved key');
       return;
     }
+    _els.settingsApiKey.title = '';
     _els.settingsApiKey.placeholder = _els.settingsProvider && _els.settingsProvider.value === 'github'
       ? 'ghp_...'
       : 'sk-...';
@@ -791,7 +947,7 @@ const DXChat = (() => {
     let model;
     if (provider === 'agent-cli') {
       // Encode "<agent>::<submodel>" (submodel optional → agent default).
-      const agent = selVal || 'claude';
+      const agent = (_els.agentSelect && _els.agentSelect.value) || 'claude';
       const sub = (_els.agentModelSelect && !_els.agentModelSelect.hidden)
         ? (_els.agentModelSelect.value || '').trim() : '';
       model = sub ? (agent + '::' + sub) : agent;
@@ -800,7 +956,7 @@ const DXChat = (() => {
     } else {
       model = (_els.settingsModel.value || '').trim(); // free-text (Custom… / custom endpoint)
     }
-    if (!keyless && !apiKey) {
+    if (!keyless && !apiKey && !_savedKeyFor(provider)) {   // blank keeps the saved key of the same provider
       _showSettingsStatus(_t('Please enter an API key.', 'API 키를 입력해주세요.'), 'error');
       return null;
     }
@@ -817,29 +973,44 @@ const DXChat = (() => {
     };
   }
 
-  function _saveSettings(e) {
-    if (e) e.preventDefault();
-    const body = _settingsPayload();
-    if (!body) return false;
-    _showSettingsStatus(_t('Saving...', '저장 중...'), '');
-    fetch(_apiUrl('/api/chat/config'), {
+  /* Saving tests the connection first. On failure show why and offer "save anyway" (for setting up while the network is blocked). */
+  function _postConfig(body) {
+    if (_els.forceBtn) _els.forceBtn.hidden = true;
+    _showSettingsStatus(body.force ? _t('Saving...', '저장 중...') : _t('Checking the connection…'), '');
+    return fetch(_apiUrl('/api/chat/config'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     })
-      .then(r => r.json().then(data => ({ ok: r.ok, data })))
-      .then(({ ok, data }) => {
-        if (ok && data.ok) {
-          _showSettingsStatus(_t('Saved.', '저장 완료.'), 'success');
-          _configured = true;
+      .then(r => r.json().then(d => ({ ok: r.ok, d: d })))
+      .then(({ ok, d }) => {
+        if (ok && d.ok) {
+          _showSettingsStatus(d.tested ? _t('Connected: ', '연결 성공: ') + (d.response || '').slice(0, 80)
+                                       : _t('Saved without a test.'), 'success');
           _checkConfig();
-          setTimeout(_closeSettingsPanel, 800);
+          setTimeout(_closeSettingsPanel, 900);
         } else {
-          _showSettingsStatus('❌ ' + (data.error || 'Error'), 'error');
+          _showSettingsStatus(d.error || 'Error', 'error');
+          if (d.tested && _els.forceBtn) {
+            _els.forceBtn.hidden = false;
+            _els.forceBtn.onclick = function () { _postConfig(Object.assign({}, body, { force: true })); };
+          }
         }
       })
       .catch(() => _showSettingsStatus(_t('Connection failed.', '연결 실패.'), 'error'));
+  }
+
+  function _saveSettings(e) {
+    if (e) e.preventDefault();
+    const body = _settingsPayload();
+    if (body) _postConfig(body);
     return false;
+  }
+
+  function _resetToAuto() {
+    fetch(_apiUrl('/api/chat/config'), { method: 'DELETE' })
+      .then(() => _checkConfig())
+      .then(() => _closeSettingsPanel());
   }
 
   function _refreshKnowledge() {
@@ -852,35 +1023,16 @@ const DXChat = (() => {
             _t('Knowledge updated (', '지식 갱신됨 (') + data.sources + _t(' sources).', '개 소스).'),
             'success');
         } else {
-          _showSettingsStatus('❌ ' + ((data && data.error) || 'Error'), 'error');
+          _showSettingsStatus(((data && data.error) || 'Error'), 'error');
         }
       })
       .catch(() => _showSettingsStatus(_t('Refresh failed.', '새로고침 실패.'), 'error'));
   }
 
-  function _testSettingsConnection() {
-    const body = _settingsPayload();
-    if (!body) return;
-    _showSettingsStatus(_t('Testing...', '테스트 중...'), '');
-    fetch(_apiUrl('/api/chat/config/test'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
-      .then(r => r.json())
-      .then(data => {
-        if (data.ok) {
-          _showSettingsStatus(_t('Connected: ', '연결 성공: ') + (data.response || '').slice(0, 80), 'success');
-        } else {
-          _showSettingsStatus('❌ ' + (data.error || 'Failed'), 'error');
-        }
-      })
-      .catch(() => _showSettingsStatus(_t('Connection failed.', '연결 실패.'), 'error'));
-  }
-
   function _showSettingsStatus(msg, cls) {
     if (!_els.settingsStatus) return;
     _els.settingsStatus.textContent = msg;
+    if (cls === 'error') _els.settingsStatus.insertAdjacentHTML('afterbegin', _ico('alert') + ' ');
     _els.settingsStatus.className = 'dx-chat-settings-status' + (cls ? ' ' + cls : '');
   }
 

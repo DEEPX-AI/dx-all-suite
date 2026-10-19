@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DX AI Studio — Design System</title>
+<link rel="stylesheet" href="/static/shared/dx-fonts.css">
+<link rel="stylesheet" href="/static/shared/dx-tokens.css">
+<link rel="stylesheet" href="/static/shared/dx-semantic.css">
+<link rel="stylesheet" href="/static/shared/dx-theme-light.css">
+<link rel="stylesheet" href="/static/shared/dx-base.css">
+<link rel="stylesheet" href="/static/shared/dx-utilities.css">
+<link rel="stylesheet" href="/static/shared/dx-components.css">
+<link rel="stylesheet" href="/static/shared/dx-shell.css">
+<script src="/static/shared/dx-theme.js"></script>
+<style>
+  /* This page defines no colors of its own: the moment it did, the catalog
+     would drift from the product and stop being useful. Everything is var(). */
+  body{background:var(--surface-page);color:var(--text-primary)}
+  .ds-wrap{max-width:1100px;margin:0 auto;padding:var(--sp-6) var(--sp-5) var(--sp-7)}
+  .ds-h{font-size:var(--fs-3xl);font-weight:var(--fw-bold);letter-spacing:-.02em}
+  .ds-sub{color:var(--text-muted);margin:var(--sp-2) 0 0;max-width:62ch}
+  .ds-bar{display:flex;align-items:center;gap:var(--sp-3);margin-top:var(--sp-5);
+    padding-bottom:var(--sp-4);border-bottom:1px solid var(--border-subtle)}
+  .ds-state{font-family:var(--mono);font-size:var(--fs-xs);color:var(--text-faint)}
+  .ds-sec{margin-top:var(--sp-6)}
+  .ds-sec h2{font-size:var(--fs-lg);font-weight:var(--fw-semibold);
+    margin-bottom:var(--sp-3);color:var(--text-secondary)}
+  .ds-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));
+    gap:var(--sp-3)}
+  .ds-sw{border:1px solid var(--border-subtle);border-radius:var(--radius);overflow:hidden}
+  .ds-chip{height:52px}
+  .ds-meta{padding:var(--sp-2) var(--sp-3);background:var(--surface-panel)}
+  .ds-name{font-size:var(--fs-xs);color:var(--text-secondary);background:none;padding:0}
+  .ds-row{display:flex;flex-wrap:wrap;gap:var(--sp-3);align-items:center}
+  .ds-note{color:var(--text-muted);font-size:var(--fs-base);margin-top:var(--sp-3)}
+</style>
+</head>
+<body>
+<div class="ds-wrap">
+  <h1 class="ds-h">DX AI Studio Design System</h1>
+  <p class="ds-sub">
+    이 페이지는 문서가 아니라 <b>실행 결과</b>다. 공유 파운데이션 CSS만 로드하므로
+    여기 보이는 것이 제품에서 보이는 것이다.
+  </p>
+
+  <div class="ds-bar">
+    <button class="btn btn-ghost" onclick="DXTheme.cycle()">테마 전환</button>
+    <span class="ds-state" id="dsState"></span>
+  </div>
+
+  <section class="ds-sec">
+    <h2>Surface</h2>
+    <div class="ds-grid">
+      <div class="ds-sw"><div class="ds-chip" style="background:var(--surface-page)"></div>
+        <div class="ds-meta"><code class="ds-name">--surface-page</code></div></div>
+      <div class="ds-sw"><div class="ds-chip" style="background:var(--surface-panel)"></div>
+        <div class="ds-meta"><code class="ds-name">--surface-panel</code></div></div>
+      <div class="ds-sw"><div class="ds-chip" style="background:var(--surface-raised)"></div>
+        <div class="ds-meta"><code class="ds-name">--surface-raised</code></div></div>
+      <div class="ds-sw"><div class="ds-chip" style="background:var(--surface-sunken)"></div>
+        <div class="ds-meta"><code class="ds-name">--surface-sunken</code></div></div>
+      <div class="ds-sw"><div class="ds-chip" style="background:var(--surface-overlay)"></div>
+        <div class="ds-meta"><code class="ds-name">--surface-overlay</code></div></div>
+      <div class="ds-sw"><div class="ds-chip" style="background:var(--surface-hover)"></div>
+        <div class="ds-meta"><code class="ds-name">--surface-hover</code></div></div>
+      <div class="ds-sw"><div class="ds-chip" style="background:var(--surface-hover-strong)"></div>
+        <div class="ds-meta"><code class="ds-name">--surface-hover-strong</code></div></div>
+    </div>
+  </section>
+
+  <section class="ds-sec">
+    <h2>Text</h2>
+    <div class="ds-grid">
+      <div class="ds-sw"><div class="ds-chip" style="background:var(--text-primary)"></div>
+        <div class="ds-meta"><code class="ds-name">--text-primary</code></div></div>
+      <div class="ds-sw"><div class="ds-chip" style="background:var(--text-secondary)"></div>
+        <div class="ds-meta"><code class="ds-name">--text-secondary</code></div></div>
+      <div class="ds-sw"><div class="ds-chip" style="background:var(--text-muted)"></div>
+        <div class="ds-meta"><code class="ds-name">--text-muted</code></div></div>
+      <div class="ds-sw"><div class="ds-chip" style="background:var(--text-faint)"></div>
+        <div class="ds-meta"><code class="ds-name">--text-faint</code></div></div>
+      <div class="ds-sw"><div class="ds-chip" style="background:var(--text-on-accent)"></div>
+        <div class="ds-meta"><code class="ds-name">--text-on-accent</code></div></div>
+    </div>
+  </section>
+
+  <section class="ds-sec">
+    <h2>Border / Control</h2>
+    <div class="ds-grid">
+      <div class="ds-sw"><div class="ds-chip" style="background:var(--border-subtle)"></div>
+        <div class="ds-meta"><code class="ds-name">--border-subtle</code></div></div>
+      <div class="ds-sw"><div class="ds-chip" style="background:var(--border-strong)"></div>
+        <div class="ds-meta"><code class="ds-name">--border-strong</code></div></div>
+      <div class="ds-sw"><div class="ds-chip" style="background:var(--control-bg)"></div>
+        <div class="ds-meta"><code class="ds-name">--control-bg</code></div></div>
+      <div class="ds-sw"><div class="ds-chip" style="background:var(--control-border)"></div>
+        <div class="ds-meta"><code class="ds-name">--control-border</code></div></div>
+      <div class="ds-sw"><div class="ds-chip" style="background:var(--control-border-focus)"></div>
+        <div class="ds-meta"><code class="ds-name">--control-border-focus</code></div></div>
+      <div class="ds-sw"><div class="ds-chip" style="background:var(--control-ring)"></div>
+        <div class="ds-meta"><code class="ds-name">--control-ring</code></div></div>
+    </div>
+  </section>
+
+  <section class="ds-sec">
+    <h2>Status</h2>
+    <div class="ds-grid">
+      <div class="ds-sw"><div class="ds-chip" style="background:var(--status-ok)"></div>
+        <div class="ds-meta"><code class="ds-name">--status-ok</code></div></div>
+      <div class="ds-sw"><div class="ds-chip" style="background:var(--status-warn)"></div>
+        <div class="ds-meta"><code class="ds-name">--status-warn</code></div></div>
+      <div class="ds-sw"><div class="ds-chip" style="background:var(--status-error)"></div>
+        <div class="ds-meta"><code class="ds-name">--status-error</code></div></div>
+      <div class="ds-sw"><div class="ds-chip" style="background:var(--status-info)"></div>
+        <div class="ds-meta"><code class="ds-name">--status-info</code></div></div>
+    </div>
+  </section>
+
+  <section class="ds-sec">
+    <h2>Components</h2>
+    <div class="ds-row">
+      <button class="btn btn-ghost">Ghost</button>
+      <button class="btn btn-ghost btn-sm">Ghost small</button>
+      <button class="btn btn-ghost" disabled>Disabled</button>
+      <span class="badge">Badge</span>
+    </div>
+    <div class="fg" style="max-width:320px;margin-top:var(--sp-4)">
+      <label>Field group</label>
+      <input type="text" value="YOLOv9-S">
+    </div>
+    <p class="ds-note">
+      dx-components.css가 소유한 것은 여기까지다 —
+      <code>.card</code>는 아직 소유자가 없고 4개 모듈이 제각각 정의한다.
+    </p>
+  </section>
+
+  <section class="ds-sec">
+    <h2>Shell — Option A</h2>
+    <div style="height:220px;border:1px solid var(--border-subtle);
+                border-radius:var(--radius);overflow:hidden">
+      <div class="dx-shell" style="height:100%">
+        <!-- Decorative preview, not a real nav landmark, so no role/aria
+             (a second nav landmark on the page would confuse screen readers). -->
+        <div class="dx-shell-rail">
+          <div class="dx-shell-rail-mark">
+            <svg aria-hidden="true"><use href="/static/shared/dx-icons.svg#app"></use></svg></div>
+          <div class="dx-shell-rail-list">
+            <a class="dx-rail-btn" href="#" aria-current="page">
+              <svg aria-hidden="true"><use href="/static/shared/dx-icons.svg#app"></use></svg></a>
+            <a class="dx-rail-btn" href="#">
+              <svg aria-hidden="true"><use href="/static/shared/dx-icons.svg#stream"></use></svg></a>
+            <a class="dx-rail-btn" href="#">
+              <svg aria-hidden="true"><use href="/static/shared/dx-icons.svg#compiler"></use></svg></a>
+          </div>
+        </div>
+        <div class="dx-shell-body">
+          <header class="dx-shell-header">
+            <div class="dx-shell-header-left">
+              <span class="dx-shell-module">DX App</span>
+              <span class="dx-shell-sep">
+                <svg aria-hidden="true"><use href="/static/shared/dx-icons.svg#chev"></use></svg></span>
+              <span class="dx-shell-page">Run Inference</span>
+            </div>
+          </header>
+          <nav class="dx-shell-tabs" aria-label="Pages" data-i18n-aria-label="Pages">
+            <button class="dx-tab" type="button">
+              <svg aria-hidden="true"><use href="/static/shared/dx-icons.svg#setup"></use></svg>
+              <span>Setup</span></button>
+            <button class="dx-tab" type="button" aria-current="page">
+              <svg aria-hidden="true"><use href="/static/shared/dx-icons.svg#run"></use></svg>
+              <span>Run Inference</span></button>
+            <button class="dx-tab" type="button">
+              <svg aria-hidden="true"><use href="/static/shared/dx-icons.svg#bench"></use></svg>
+              <span>Benchmark</span></button>
+          </nav>
+          <main class="dx-shell-main"></main>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+<script>
+(function () {
+  var el = document.getElementById('dsState');
+  function paint() {
+    el.textContent = 'dx-theme = ' + DXTheme.getTheme()
+      + '  \u2192  resolved ' + DXTheme.resolved();
+  }
+  DXTheme.onThemeChange(paint);
+  paint();
+})();
+</script>
+</body>
+</html>

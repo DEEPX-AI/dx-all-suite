@@ -1,4 +1,4 @@
-"""쇼케이스 카탈로그 로드. 번들 폴백 JSON 사용(LOW-11)."""
+"""Load the showcase catalog. Uses the bundled fallback JSON."""
 import json
 
 from dx_agent_dev.core.config import STATIC_DIR

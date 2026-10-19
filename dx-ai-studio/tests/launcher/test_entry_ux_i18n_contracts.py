@@ -159,19 +159,26 @@ class TestLauncherAppFrameContracts:
         assert "STATUS_DOT_LABELS" in source
         assert "statusLabelZoo" in source
 
-    def test_status_dot_labels_have_ids_in_index_html(self):
+    def test_every_module_card_carries_its_own_health_dot(self):
+        """State belongs on the card it describes.
+
+        A top-bar strip repeating all eight modules as dots, next to eight cards
+        that each carry a status dot, means two navigations and two health readouts
+        for one set of modules. The per-card dot, attached to the thing you click,
+        is the one that stays.
+        """
         html = (STATIC / "index.html").read_text(encoding="utf-8")
-        for label_id in (
-            "statusLabelApp",
-            "statusLabelStream",
-            "statusLabelZoo",
-            "statusLabelCompiler",
-            "statusLabelPlanner",
-            "statusLabelBenchmark",
-            "statusLabelMonitor",
-            "statusLabelAgent",
+        for status_id in (
+            "orbStatusApp",
+            "orbStatusStream",
+            "orbStatusZoo",
+            "orbStatusCompiler",
+            "orbStatusPlanner",
+            "orbStatusBenchmark",
+            "orbStatusMonitor",
+            "orbStatusAgent",
         ):
-            assert f'id="{label_id}"' in html, f"missing {label_id} in index.html"
+            assert f'id="{status_id}"' in html, f"missing {status_id} in index.html"
 
 
 
@@ -932,50 +939,31 @@ class TestWave2D_SdkLibrarySpanishSupport:
             )
 
 
-class TestWave2D_SplashSpanishSpans:
-    """launcher-splash.js must include Spanish spans in proceed prompt and replay."""
+class TestWave2D_SplashIsTranslatable:
+    """The intro's copy must be reachable by the dictionary, in every language.
 
-    def test_showProceedPrompt_has_es_span(self):
-        src = (STATIC / "launcher-splash.js").read_text(encoding="utf-8")
-        fn_match = re.search(
-            r"function\s+_showProceedPrompt\b(.*?)(\n\s*function\b)",
-            src, re.DOTALL
-        )
-        assert fn_match, "_showProceedPrompt function not found"
-        body = fn_match.group(1)
-        assert 'class="es"' in body, (
-            "_showProceedPrompt must include a <span class='es'> for Spanish"
-        )
+    The intro shows one line of copy, "Click to skip", and like all visible
+    copy it must not hard-code English.
+    """
 
-    def test_replaySplash_skip_has_es_span(self):
+    def test_intro_copy_goes_through_the_dictionary(self):
         src = (STATIC / "launcher-splash.js").read_text(encoding="utf-8")
-        fn_match = re.search(
-            r"function\s+replaySplash\b(.*?)(\n\s*\/\*|$)",
-            src, re.DOTALL
-        )
+        fn_match = re.search(r"function\s+replaySplash\b(.*?)(\n\s*/\*|$)", src, re.DOTALL)
         assert fn_match, "replaySplash function not found"
         body = fn_match.group(1)
-        assert 'class="es"' in body, (
-            "replaySplash must include <span class='es'> for Spanish"
+        assert 'data-i18n="Click to skip"' in body, (
+            "the intro's only line must carry a dictionary key"
+        )
+        assert 'class="es"' not in body, (
+            "sibling language spans are the pattern the studio migrated away from"
         )
 
-    def test_replaySplash_core_text_has_es_span(self):
+    def test_the_cinematic_props_are_gone(self):
+        """Their absence is the point — leaving them invites switching them back on."""
         src = (STATIC / "launcher-splash.js").read_text(encoding="utf-8")
-        fn_match = re.search(
-            r"function\s+replaySplash\b(.*?)(\n\s*\/\*|$)",
-            src, re.DOTALL
-        )
-        assert fn_match, "replaySplash function not found"
-        body = fn_match.group(1)
-        # splash-core-text section must have es span
-        core_text_pos = body.find("splash-core-text")
-        assert core_text_pos != -1, "replaySplash must contain splash-core-text"
-        core_text_section = body[core_text_pos:core_text_pos + 500]
-        assert 'class="es"' in core_text_section, (
-            "splash-core-text in replaySplash must include Spanish span"
-        )
-
-
+        for prop in ("_showProceedPrompt", "_triggerWarpJump", "_activateCore",
+                     "_createCircuitTraces", "_createParticles", "_animateLogoGlitch"):
+            assert prop not in src, f"{prop} outlived the sequence that called it"
 
 
 class TestAboutSubtitleLocalization:
@@ -1104,14 +1092,14 @@ class TestLandingPosterKeyboardAccess:
         return (STATIC / "index.html").read_text(encoding="utf-8")
 
     def test_landing_poster_has_role_button(self, html_source):
-        match = re.search(r'<div[^>]*id="landingPoster"[^>]*>', html_source)
+        match = re.search(r'<\w+[^>]*id="landingPoster"[^>]*>', html_source)
         assert match, "landingPoster element must exist"
         assert 'role="button"' in match.group(0), (
             "landingPoster must have role=\"button\""
         )
 
     def test_landing_poster_has_tabindex(self, html_source):
-        match = re.search(r'<div[^>]*id="landingPoster"[^>]*>', html_source)
+        match = re.search(r'<\w+[^>]*id="landingPoster"[^>]*>', html_source)
         assert match, "landingPoster element must exist"
         assert 'tabindex="0"' in match.group(0), (
             "landingPoster must have tabindex=\"0\""

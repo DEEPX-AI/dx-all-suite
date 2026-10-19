@@ -263,7 +263,7 @@ class TestModuleKeyAliases(unittest.TestCase):
 
 
 class TestWatchdogRestartFiring(unittest.TestCase):
-    """C-1 / C-2 regression: restart_at must not be reset on every poll."""
+    """restart_at must not be reset on every poll."""
 
     def setUp(self):
         os.environ["DX_WATCHDOG_POLL_SECONDS"] = "0.1"
@@ -276,7 +276,7 @@ class TestWatchdogRestartFiring(unittest.TestCase):
         os.environ.pop("DX_WATCHDOG_RESTART_DEADLINE_SECONDS", None)
 
     def test_repeated_check_cycles_fire_restart(self):
-        """C-1: Repeated _watchdog_check_once + _watchdog_do_restarts must
+        """Repeated _watchdog_check_once + _watchdog_do_restarts must
         eventually call _do_module_restart when the deadline elapses."""
         from launcher.launcher import (
             _register_module, _watchdog_check_once, _watchdog_do_restarts,
@@ -326,7 +326,7 @@ class TestWatchdogConcurrencySafety(unittest.TestCase):
         os.environ.pop("DX_WATCHDOG_RESTART_DEADLINE_SECONDS", None)
 
     def test_double_do_restarts_calls_restart_only_once(self):
-        """I-A: Two concurrent _watchdog_do_restarts for the same due entry
+        """Two concurrent _watchdog_do_restarts for the same due entry
         must invoke _do_module_restart exactly once (no double-restart)."""
         from launcher.launcher import (
             _register_module, _watchdog_registry,
@@ -382,7 +382,7 @@ class TestWatchdogConcurrencySafety(unittest.TestCase):
                              "Only one thread should win the restart race")
 
     def test_check_once_does_not_overwrite_restarting_to_dead(self):
-        """I-B: _watchdog_check_once must not change a 'restarting' entry to
+        """_watchdog_check_once must not change a 'restarting' entry to
         'dead' or schedule a restart_at for it."""
         from launcher.launcher import (
             _register_module, _watchdog_check_once, _watchdog_registry,
@@ -449,8 +449,7 @@ class TestWatchdogConcurrencySafety(unittest.TestCase):
                          "overwrite 'restarting' back to 'dead'")
 
     def test_c2_regression_direct_restart_at_preserved(self):
-        """I-C: Directly test that an already-set restart_at is not pushed out
-        by _watchdog_check_once. This replaces the vacuous C-2 test."""
+        """An already-set restart_at must not be pushed out by _watchdog_check_once."""
         from launcher.launcher import (
             _register_module, _watchdog_check_once, _watchdog_registry,
             _watchdog_lock, _WATCHDOG_RESTART_DEADLINE_SECONDS,
@@ -476,8 +475,44 @@ class TestWatchdogConcurrencySafety(unittest.TestCase):
                              "restart_at must not be pushed to now + deadline; "
                              "existing value must be preserved")
 
+    def test_a_recovered_module_does_not_keep_a_stale_restart(self):
+        """A module that fails one check and then answers again must lose its pending restart_at. Otherwise the
+        next single blip finds that deadline already past and restarts (SIGTERM to its process group) a module that was
+        healthy the whole time, with no grace."""
+        from launcher.launcher import (
+            _register_module, _watchdog_check_once, _watchdog_registry, _WATCHDOG_RESTART_DEADLINE_SECONDS,
+        )
+        import launcher.launcher as lmod
+        proc = MagicMock(pid=77111)
+        proc.poll.return_value = None
+        _register_module("test_blip", port=59811, cwd="/fake", proc=proc)
+        entry = _watchdog_registry["test_blip"]
+        with patch.object(lmod, "_is_port_open", return_value=False):
+            _watchdog_check_once()
+        self.assertEqual(entry["status"], "dead")
+        with patch.object(lmod, "_is_port_open", return_value=True):
+            _watchdog_check_once()
+        self.assertEqual(entry["status"], "alive")
+        self.assertIsNone(entry["restart_at"])
+        t0 = time.monotonic()
+        with patch.object(lmod, "_is_port_open", return_value=False):
+            _watchdog_check_once()
+        self.assertGreaterEqual(entry["restart_at"], t0 + _WATCHDOG_RESTART_DEADLINE_SECONDS() - 0.1)
+
+    def test_a_manual_restart_of_a_live_module_is_not_cancelled(self):
+        from launcher.launcher import _register_module, _watchdog_check_once, _watchdog_registry, _handle_module_restart
+        import launcher.launcher as lmod
+        proc = MagicMock(pid=77112)
+        proc.poll.return_value = None
+        _register_module("dx_app", port=59812, cwd="/fake", proc=proc)
+        with patch.object(lmod, "_is_port_open", return_value=True), \
+                patch.object(lmod, "_do_module_restart") as restart:
+            _watchdog_check_once()
+            _handle_module_restart("dx_app")
+        restart.assert_called_once()
+
     def test_handle_restart_skips_when_already_restarting(self):
-        """I-1: _handle_module_restart must not stomp an in-flight restart.
+        """_handle_module_restart must not stomp an in-flight restart.
         If status is 'restarting', it should return ok without scheduling
         another restart_at or calling _watchdog_do_restarts."""
         from launcher.launcher import (
@@ -578,7 +613,7 @@ class TestStopAllSafety(unittest.TestCase):
 
 
 class TestProcsKeyConsistency(unittest.TestCase):
-    """I-2: _procs must not accumulate stale display-name entries after restart."""
+    """_procs must not accumulate stale display-name entries after restart."""
 
     def setUp(self):
         os.environ["DX_WATCHDOG_POLL_SECONDS"] = "0.1"
@@ -628,7 +663,7 @@ class TestProcsKeyConsistency(unittest.TestCase):
 
 
 class TestRetryModuleLaunchContract(unittest.TestCase):
-    """I-1: retryModuleLaunch must only call restartModule for watchdog-unavailable."""
+    """retryModuleLaunch must only call restartModule for watchdog-unavailable."""
 
     JS_PATH = Path(__file__).resolve().parents[2] / "launcher" / "static" / "launcher-app-frame.js"
 

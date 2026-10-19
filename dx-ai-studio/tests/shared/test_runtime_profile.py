@@ -111,20 +111,31 @@ def test_profile_rejects_unsigned_install_or_rollback_artifact(tmp_path, monkeyp
 
 
 def test_bundled_manifest_uses_verified_staging_and_rollback_artifacts():
+    """target = the runtime the shipping suite pins (v2.4.3 → dx-runtime v2.4.2: DX-RT 3.4.2 · driver 2.6.0).
+
+    Digests were taken from the git blobs at those revisions and re-checked against the downloaded files
+    2.4.1 and 2.3.0 stay as verified rollback profiles."""
     api = _api()
     manifest = api.load_runtime_manifest(PROFILE_MANIFEST)
-    target = manifest.profile("2.4.1", "x86_64")
+    target = manifest.profile("2.4.2", "x86_64")
+    arm = manifest.profile("2.4.2", "aarch64")
+    previous = manifest.profile("2.4.1", "x86_64")
     rollback = manifest.profile("2.3.0", "x86_64")
 
     assert target.runtime.uri == (
         "https://raw.githubusercontent.com/DEEPX-AI/dx_rt/"
-        "b10bda2fabc4e26645e919861b79bedbcd88071a/"
-        "release/3.4.0/libdxrt-bin_3.4.0_amd64.deb"
+        "ed4e8fdb4166e069176870f85a43b10dcbbf35eb/"
+        "release/3.4.2/libdxrt-bin_3.4.2_amd64.deb"
     )
-    assert target.runtime.sha256 == "736cfef009ce9e974ab1ab610d867239d19d72a426a53e367ddcbd53297b6e20"
-    assert target.driver.sha256 == "b686c1d83acc0bd5ada7808fc913516ae0db6cceaff757c5cbf05914e0871d64"
+    assert (target.runtime.version, target.driver.version) == ("3.4.2", "2.6.0")
+    assert target.runtime.sha256 == "da782deac10acb1c997b52ea6d0160c06f112a68ad5e25035cfc8e16de0a8bdc"
+    assert arm.runtime.sha256 == "161223058938c54efadc581b33499210194da58e55cd5ade332e692ca0d649c2"
+    assert target.driver.sha256 == arm.driver.sha256 == (
+        "6ab417956d2abd70c181c4aa0bae71bc60e0961ccf37eac9fc82d0e6a8314468")
+    assert previous.runtime.sha256 == "736cfef009ce9e974ab1ab610d867239d19d72a426a53e367ddcbd53297b6e20"
+    assert previous.driver.sha256 == "b686c1d83acc0bd5ada7808fc913516ae0db6cceaff757c5cbf05914e0871d64"
     assert rollback.runtime.sha256 == "6bf79ef9c504a91a4ab84cfb482d72c7d4fad83cad5582d52f483133848c6a59"
     assert rollback.driver.sha256 == "3182d0ae59f69aad7b8ee6efdc13adf737abab8c0d90bd8ac9caddca9dd840e7"
 
     persisted = json.loads(PROFILE_MANIFEST.read_text(encoding="utf-8"))
-    assert persisted["target_runtime_version"] == "2.4.1"
+    assert persisted["target_runtime_version"] == "2.4.2"

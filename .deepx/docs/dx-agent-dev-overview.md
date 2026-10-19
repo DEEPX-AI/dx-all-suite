@@ -18,7 +18,7 @@ The DEEPX Agent-Driven Development (dx-agent-dev) feature treats **`.deepx/` as 
 Generate DEEPX SDK-based AI applications from natural-language prompts. The AI agent understands the following:
 
 - **dx_app**: IFactory · SyncRunner · AsyncRunner-based standalone inference (Python/C++)
-- **dx_stream**: 13 GStreamer elements × 6 pipeline categories
+- **dx_stream**: GStreamer elements (`gst-dxstream-plugin/src/`) × pipeline categories (`dx_stream/pipelines/`)
 - **dx-compiler**: ONNX → DXNN conversion (DX-COM, PPU auto-detection)
 - **cross-project**: compile + app build + verification chain
 
@@ -161,7 +161,7 @@ on `subrepo_check.sh` (usage, exit codes, remediation).
 Grounding document to prevent API hallucination. Lists only verified symbols:
 - `IFactory` 5 methods, `SyncRunner`, `AsyncRunner`
 - `dx_com.compile(...)` (the `from dxcom import dxcom` pattern is forbidden)
-- 13 GStreamer elements
+- GStreamer elements (`gst-dxstream-plugin/src/`)
 - All API names in every instruction must be cross-validated against this document
 
 ### 3.4 templates/fragments/ — 16 Shared Rule Fragments (EN+KO 32 total)
@@ -298,7 +298,7 @@ Mapping from verification patterns (regex) → `.deepx/` file updates. 8 action 
 |------|---------|
 | `MEMORY.md` | Index + update protocol + domain tags |
 | `common_pitfalls.md` (32KB) | 10 core pitfalls (`[UNIVERSAL]`, `[DX_APP]`, `[PPU]`) |
-| `model_zoo.md` | 353 models (classification 111, object_detection 97, instance_seg 23, pose 19, face 18 …) — for exact counts, use jq query on `model_registry.json` |
+| `model_zoo.md` | dx_app's model inventory — counts and per-task distribution come from `config/model_registry.json`: `jq 'length'`, `jq -r '.[].add_model_task' \| sort \| uniq -c` |
 | `platform_api.md` | DX-M1 NPU, DX-RT 3.0.x, cold boot requirement, `DXRT_DYNAMIC_CPU_THREAD=ON` |
 | `performance_patterns.md` | 7-field metrics (read/preprocess/inference/postprocess/render/save/display) + optimization techniques |
 
@@ -358,7 +358,7 @@ Mapping from verification patterns (regex) → `.deepx/` file updates. 8 action 
 | **`dx-model-manager`** | `model_list.json` query, download, PPU/non-PPU compatibility verification |
 | **`dx-validator`** | preprocess-id/inference-id matching, queue placement, model/library path existence, element registration check |
 
-### 6.2 13 GStreamer Elements (toolsets/`dx-stream-elements.md`)
+### 6.2 GStreamer Elements (toolsets/`dx-stream-elements.md`)
 
 | # | Element | Role |
 |---|---------|------|
@@ -378,7 +378,7 @@ Mapping from verification patterns (regex) → `.deepx/` file updates. 8 action 
 
 Additional messaging elements (`architecture.md`): `DxMsgConv`, `DxMsgBroker`.
 
-### 6.3 6 Pipeline Categories
+### 6.3 Pipeline Categories
 
 | Category | Core chain | Domain skill |
 |----------|-----------|--------------|
@@ -409,13 +409,13 @@ Additional messaging elements (`architecture.md`): `DxMsgConv`, `DxMsgBroker`.
 
 ### 6.6 instructions/ (6 files)
 
-`architecture.md`, `agent-protocols.md`, `coding-standards.md`, **`gstreamer-pipeline.md`** (13 elements in detail, each 15-25 lines), `orchestration.md`, `testing-patterns.md`
+`architecture.md`, `agent-protocols.md`, `coding-standards.md`, **`gstreamer-pipeline.md`** (every element in detail, each 15-25 lines), `orchestration.md`, `testing-patterns.md`
 
 ### 6.7 toolsets/ (4 files)
 
 | File | Scope |
 |------|-------|
-| `dx-stream-elements.md` | All 13 elements (properties / Pads / examples / pitfalls) |
+| `dx-stream-elements.md` | Every element (properties / Pads / examples / pitfalls) |
 | `dx-stream-metadata.md` | `pydxs` Python bindings (`DXFrameMeta`, `DXObjectMeta`, `DXTensorMeta`) |
 | `dx-engine-api.md` | Common with dx_app |
 | `model-registry.md` | v2.3.0 / 14 models / task ↔ postprocess `.so` mapping <!-- kb-counts: ignore --> |

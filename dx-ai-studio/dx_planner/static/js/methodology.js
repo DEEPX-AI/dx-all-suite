@@ -59,20 +59,24 @@ const MethodologyDialog = {
     }
 
     const top = results[0];
+    // In the user's language and in the card's own words: the translated task name, not the raw task id.
+    const t = key => (typeof T === 'function' ? T(key) : key);
+    const fill = (key, vals) => Object.keys(vals).reduce((out, k) => out.split('{' + k + '}').join(vals[k]), t(key));
+    const taskBtn = document.querySelector('.task-btn[data-task="' + inputs.task + '"]');
+    const taskName = taskBtn ? taskBtn.textContent.trim() : inputs.task;
     const flag = top.boundaryFlag || 'measured';
+    const evidence = t({ measured: 'Measured', estimated: 'Estimated', '+': 'Estimated+' }[flag] || 'Measured');
+    const topChannels = fill('{n} ch', { n: top.maxChannels + (flag === '+' ? '+' : '') });
 
     this.liveSummary.hidden = false;
     this.liveSummary.innerHTML =
-      '<p class="methodology-live-kicker panel-kicker">' +
-        '<span class="ko">현재 세션</span><span class="en">This session</span><span class="ja">このセッション</span>' +
-        '<span class="zh-CN">当前会话</span><span class="zh-TW">目前工作階段</span><span class="es">Esta sesión</span>' +
-      '</p>' +
+      '<p class="methodology-live-kicker panel-kicker">' + this._esc(t('This session')) + '</p>' +
       '<ul class="methodology-live-list">' +
-        '<li><code>yolo26' + this._esc(inputs.size) + '</code> · ' + this._esc(inputs.task) +
-          ' · ' + inputs.cameras + ' ch · ' + inputs.targetFps + ' FPS</li>' +
-        '<li><span class="ko">1순위</span><span class="en">Top pick</span>: ' +
+        '<li><code>yolo26' + this._esc(inputs.size) + '</code> · ' + this._esc(taskName) +
+          ' · ' + this._esc(fill('{n} ch', { n: inputs.cameras })) + ' · ' + this._esc(inputs.targetFps) + ' FPS</li>' +
+        '<li>' + this._esc(t('Top pick')) + ': ' +
           this._esc(top.platform.npu.model + ' + ' + top.platform.host.name) +
-          ' — max ' + top.maxChannels + ' ch · ' + flag + '</li>' +
+          ' — ' + this._esc(topChannels) + ' · ' + this._esc(evidence) + '</li>' +
       '</ul>';
 
     if (typeof DXI18n !== 'undefined' && DXI18n.applyLang) {

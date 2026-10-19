@@ -1,0 +1,343 @@
+"""graph_memory: parse_model and dxrt-cli output (recorded) turned into a per-node NPU memory estimate."""
+from __future__ import annotations
+
+import json
+import shutil
+import stat
+import subprocess
+import time
+
+import pytest
+
+from dx_app.core import graph_memory
+from tests.dx_app import graph_fakes
+
+FASTDEPTH = {"total_bytes": 118262080, "buffers_bytes": 116551680, "pool": 6}
+YOLO26N = {"total_bytes": 123528064, "buffers_bytes": 120109056, "pool": 6}
+
+
+@pytest.fixture(autouse=True)
+def _fresh_caches():
+    for c in (graph_memory._hash_cache, graph_memory._mem_cache):
+        c.clear()
+    graph_memory._device_cache.update(at=0.0, value=None)
+    yield
+
+
+def _script(tmp_path, name, body):
+    p = tmp_path / name
+    p.write_text(f'#!/usr/bin/env bash\necho "$@" >> "{tmp_path}/{name}.calls"\n{body}\n', encoding="utf-8")
+    p.chmod(p.stat().st_mode | stat.S_IXUSR)
+    return str(p)
+
+
+def test_parse_model_memory_lines_are_read_in_bytes():
+    assert graph_memory.parse_model_text(graph_fakes.fixture("parse_model_fastdepth.txt")) == FASTDEPTH
+    assert graph_memory.parse_model_text(graph_fakes.fixture("parse_model_yolo26n.txt")) == YOLO26N
+
+
+def test_an_unreadable_model_has_no_figure():
+    with pytest.raises(ValueError):
+        graph_memory.parse_model_text(graph_fakes.fixture("parse_model_invalid.txt"))
+
+
+def test_fewer_buffers_shrink_only_the_buffer_part():
+    assert graph_memory.engine_bytes(FASTDEPTH) == 118262080
+    # (Total - Buffers) + Buffers * 2 / 6 = 1,710,400 + 38,850,560
+    assert graph_memory.engine_bytes(FASTDEPTH, 2) == 40560960
+
+
+def test_device_size_from_dxrt_cli():
+    assert graph_memory.parse_dxrt_status(graph_fakes.fixture("dxrt_cli_status.txt")) == int(3.92 * 1024 ** 3)
+    assert graph_memory.parse_dxrt_status("no memory line") is None
+
+
+def test_model_memory_runs_parse_model_once_per_file_content(tmp_path, monkeypatch):
+    fix = graph_fakes.FIX / "parse_model_fastdepth.txt"
+    monkeypatch.setattr(graph_memory, "parse_model_binary", lambda: _script(tmp_path, "parse_model", f'cat "{fix}"'))
+    a = tmp_path / "a.dxnn"
+    a.write_bytes(b"DXNN" + b"\0" * 64)
+    assert graph_memory.model_memory(a) == FASTDEPTH
+    b = tmp_path / "b.dxnn"
+    shutil.copy(a, b)
+    assert graph_memory.model_memory(b) == FASTDEPTH
+    assert len((tmp_path / "parse_model.calls").read_text().splitlines()) == 1, "same content, same figure"
+    (tmp_path / "empty.dxnn").write_bytes(b"")
+    assert graph_memory.model_memory(tmp_path / "empty.dxnn") is None
+    assert graph_memory.model_memory(tmp_path / "missing.dxnn") is None
+
+
+def test_device_memory_prefers_device_status(monkeypatch):
+    import shared.hardware as hw
+    monkeypatch.setattr(hw, "get_hw", lambda: {"mock": False, "npus": [{"dram_total_mb": 4000.0, "dram_used_mb": 1000.0}]})
+    d = graph_memory.device_memory()
+    assert d == {"total_bytes": 4000 * graph_memory.MB, "used_bytes": 1000 * graph_memory.MB,
+                 "free_bytes": 3000 * graph_memory.MB, "source": "device_status"}
+
+
+def test_device_memory_falls_back_to_dxrt_cli(tmp_path, monkeypatch):
+    import shared.hardware as hw
+    monkeypatch.setattr(hw, "get_hw", lambda: {"mock": True, "npus": [{"dram_total_mb": 4000.0}]})
+    monkeypatch.setattr(graph_memory, "runtime_python", lambda: None)
+    fix = graph_fakes.FIX / "dxrt_cli_status.txt"
+    monkeypatch.setattr(graph_memory, "dxrt_cli_binary", lambda: _script(tmp_path, "dxrt-cli", f'cat "{fix}"'))
+    d = graph_memory.device_memory()
+    assert (d["source"], d["total_bytes"], d["free_bytes"]) == ("dxrt_cli", int(3.92 * 1024 ** 3), int(3.92 * 1024 ** 3))
+
+
+
+# The Studio's own venv has no dx_engine, so get_hw() is mocked there; DeviceStatus is read in the DX-RT runtime venv.
+REAL_USED, REAL_FREE = 3668037632, 543043584        # one DX-M1 on 2026-10-14 (used + free = 3.92 GiB)
+
+
+def _runtime(tmp_path, monkeypatch, answer, dxrt_cli=True):
+    """get_hw() mocked, a runtime python found, the probe answered by `answer` (text, or an exception to raise)."""
+    import shared.hardware as hw
+    monkeypatch.setattr(hw, "get_hw", lambda: {"mock": True, "npus": []})
+    monkeypatch.setattr(graph_memory, "runtime_python", lambda: "/fake/venv-dx-runtime/bin/python3")
+    seen = []
+
+    def runner(python):
+        seen.append(python)
+        if isinstance(answer, Exception):
+            raise answer
+        return answer
+    monkeypatch.setattr(graph_memory, "_probe_runner", runner)
+    fix = graph_fakes.FIX / "dxrt_cli_status.txt"
+    monkeypatch.setattr(graph_memory, "dxrt_cli_binary",
+                        lambda: _script(tmp_path, "dxrt-cli", f'cat "{fix}"') if dxrt_cli else None)
+    return seen
+
+
+def _devices(*rows):
+    return json.dumps([{"id": i, "valid": v, "used": u, "free": f} for i, (v, u, f) in enumerate(rows)]) + "\n"
+
+
+def test_device_memory_reads_device_status_in_the_runtime_venv(tmp_path, monkeypatch):
+    seen = _runtime(tmp_path, monkeypatch, _devices((True, REAL_USED, REAL_FREE)))
+    assert graph_memory.device_memory() == {"total_bytes": int(3.92 * 1024 ** 3), "used_bytes": REAL_USED,
+                                            "free_bytes": REAL_FREE, "source": "device_status"}
+    assert seen == ["/fake/venv-dx-runtime/bin/python3"]
+
+
+def test_the_device_with_the_least_free_memory_is_the_budget_and_stale_ones_are_skipped(tmp_path, monkeypatch):
+    _runtime(tmp_path, monkeypatch, _devices((True, 1000, 3000), (False, 3900, 100), (True, 2500, 1500)))
+    d = graph_memory.device_memory()
+    assert (d["used_bytes"], d["free_bytes"], d["source"]) == (2500, 1500, "device_status")
+
+
+def test_without_dxrt_cli_the_total_is_used_plus_free(tmp_path, monkeypatch):
+    _runtime(tmp_path, monkeypatch, _devices((True, REAL_USED, REAL_FREE)), dxrt_cli=False)
+    assert graph_memory.device_memory()["total_bytes"] == REAL_USED + REAL_FREE
+
+
+@pytest.mark.parametrize("answer", [RuntimeError("No module named 'dx_engine'"),
+                                    subprocess.TimeoutExpired("python", 10), "not json\n", "[]\n",
+                                    _devices((False, 1, 2))])
+def test_a_failed_runtime_query_falls_back_to_the_whole_device(tmp_path, monkeypatch, answer):
+    _runtime(tmp_path, monkeypatch, answer)
+    d = graph_memory.device_memory()
+    assert (d["source"], d["used_bytes"], d["free_bytes"]) == ("dxrt_cli", None, int(3.92 * 1024 ** 3))
+
+
+def test_the_runtime_answer_is_cached_for_a_few_seconds(tmp_path, monkeypatch):
+    seen = _runtime(tmp_path, monkeypatch, _devices((True, REAL_USED, REAL_FREE)))
+    graph_memory.device_memory()
+    graph_memory.device_memory()
+    assert len(seen) == 1
+    graph_memory._device_cache["at"] -= 10
+    graph_memory.device_memory()
+    assert len(seen) == 2
+
+
+def test_the_runtime_python_is_the_dx_runtime_venv(tmp_path, monkeypatch):
+    import shared.runtime as rt
+    monkeypatch.setattr(rt, "runtime_venv_roots", lambda: [tmp_path / "none", tmp_path / "venv-dx-runtime"])
+    assert graph_memory.runtime_python() is None
+    py = tmp_path / "venv-dx-runtime" / "bin" / "python3"
+    py.parent.mkdir(parents=True)
+    py.write_text("")
+    assert graph_memory.runtime_python() == str(py)
+
+
+def test_the_probe_script_compiles_and_names_the_device_status_calls():
+    compile(graph_memory.DEVICE_PROBE, "probe", "exec")
+    for call in ("get_device_count", "get_current_status", "get_memory_used", "get_memory_free", "is_valid"):
+        assert call in graph_memory.DEVICE_PROBE
+
+def _estimate(monkeypatch, graph, free, files=None, checked=None):
+    sizes = {"yolo26-n_640x640": YOLO26N, "fastdepth_224x224": FASTDEPTH}
+    monkeypatch.setattr(graph_memory, "model_memory", lambda p: sizes.get(p.stem))
+    monkeypatch.setattr(graph_memory, "model_files", lambda: dict(files or {}))
+    monkeypatch.setattr(graph_memory, "checked_files", lambda g: dict(checked or {}))
+    monkeypatch.setattr(graph_memory, "device_memory", lambda: {"total_bytes": free, "used_bytes": 0,
+                                                                 "free_bytes": free, "source": "device_status"})
+    return graph_memory.estimate(graph)
+
+
+def _g(od_engine=None, od2_engine=None, depth_engine=None):
+    def node(i, m, e):
+        n = {"id": i, "model": m}
+        if e is not None:
+            n["engine"] = e
+        return n
+    return {"nodes": [{"id": "cam", "type": "source", "uri": "x.jpg"}, node("od", "yolo26-n_640x640", od_engine),
+                      node("od2", "yolo26-n_640x640", od2_engine), node("depth", "fastdepth_224x224", depth_engine),
+                      {"id": "ghost", "model": "not_installed_224x224"}], "edges": []}
+
+
+def test_every_node_holds_its_own_engine_by_default(monkeypatch):
+    r = _estimate(monkeypatch, _g(), free=300 * graph_memory.MB)
+    assert r["total_bytes"] == 2 * YOLO26N["total_bytes"] + FASTDEPTH["total_bytes"]
+    assert r["nodes"]["od"]["bytes"] == r["nodes"]["od2"]["bytes"] == YOLO26N["total_bytes"]
+    assert r["unknown_models"] == ["not_installed_224x224"]
+    assert r["over_budget"] is True
+    kinds = [(s["kind"], s["model"]) for s in r["suggestions"]]
+    assert kinds[0] == ("share", "yolo26-n_640x640"), "sharing saves the most"
+    assert r["suggestions"][0]["saves_bytes"] == YOLO26N["total_bytes"]
+    assert ("buffers", "fastdepth_224x224") in kinds
+
+
+def test_shared_engines_count_once_and_buffers_shrink_the_sum(monkeypatch):
+    r = _estimate(monkeypatch, _g({"share": True}, {"share": True, "buffers": 2}, {"buffers": 2}),
+                  free=4000 * graph_memory.MB)
+    assert r["nodes"]["od"]["bytes"] == YOLO26N["total_bytes"], "the larger buffer count of the group wins"
+    assert r["nodes"]["od2"] == {"model": "yolo26-n_640x640", "bytes": 0, "shared_with": ["od"], "buffers": 6}
+    assert r["nodes"]["depth"]["bytes"] == 40560960
+    assert r["total_bytes"] == YOLO26N["total_bytes"] + 40560960
+    assert r["over_budget"] is False
+    assert not [s for s in r["suggestions"] if s["kind"] == "share"]
+
+
+# dx_app refuses nodes that share an engine with different "params" or "buffers" (GRAPH_SCHEMA on node "<id>"
+# "engine"), so a share suggestion carries the patch that makes them equal: the first node's params and buffers.
+def test_a_share_suggestion_aligns_params_and_buffers_on_the_first_node(monkeypatch):
+    g = {"nodes": [{"id": "cam", "type": "source", "uri": "x.jpg"},
+                   {"id": "od", "model": "yolo26-n_640x640", "params": {"score_threshold": 0.4},
+                    "engine": {"buffers": 3}},
+                   {"id": "od2", "model": "yolo26-n_640x640", "params": {"score_threshold": 0.25}},
+                   {"id": "od3", "model": "yolo26-n_640x640", "engine": {"share": True, "buffers": 2}}],
+         "edges": []}
+    r = _estimate(monkeypatch, g, free=100 * graph_memory.MB)
+    (s,) = [s for s in r["suggestions"] if s["kind"] == "share"]
+    assert s["nodes"] == ["od", "od2", "od3"]
+    same = {"engine": {"share": True, "buffers": 3}, "params": {"score_threshold": 0.4}}
+    assert s["patch"] == {"od": same, "od2": same, "od3": same}
+    sizes = [graph_memory.engine_bytes(YOLO26N, 3), YOLO26N["total_bytes"], graph_memory.engine_bytes(YOLO26N, 2)]
+    assert s["saves_bytes"] == sum(sizes) - graph_memory.engine_bytes(YOLO26N, 3), "one engine with od's buffers"
+    assert g["nodes"][1]["params"] == {"score_threshold": 0.4} and "share" not in g["nodes"][1]["engine"], \
+        "the caller's graph is not changed"
+    s["patch"]["od"]["params"]["score_threshold"] = 0.9
+    assert s["patch"]["od2"]["params"]["score_threshold"] == 0.4, "each node gets its own copy"
+
+
+def test_a_share_patch_removes_params_and_buffers_the_first_node_does_not_set(monkeypatch):
+    g = _g(od2_engine={"buffers": 2})
+    g["nodes"][2]["params"] = {"score_threshold": 0.3}
+    r = _estimate(monkeypatch, g, free=100 * graph_memory.MB)
+    (s,) = [s for s in r["suggestions"] if s["kind"] == "share"]
+    assert s["patch"] == {"od": {"engine": {"share": True}, "params": None},
+                          "od2": {"engine": {"share": True}, "params": None}}
+    assert s["saves_bytes"] == graph_memory.engine_bytes(YOLO26N, 2)
+
+
+
+# Review fixes: model files come from dx_app (catalog rows, aliases, old names), never from a path in the node.
+def test_a_node_s_model_is_found_through_the_catalog_and_through_check(monkeypatch):
+    seen = []
+    g = {"nodes": [{"id": "cam", "type": "source", "uri": "x.jpg"},
+                   {"id": "cls", "model": "deit_base384_distilled"}, {"id": "od", "model": "yolov8n"}],
+         "edges": []}
+    r = _estimate(monkeypatch, g, free=4000 * graph_memory.MB,
+                  files={"deit_base384_distilled": "deit-b_384x384_distilled.dxnn"},
+                  checked={"od": "yolov8-n_640x640.dxnn"})
+    monkeypatch.setattr(graph_memory, "model_memory", lambda p: seen.append(p.name) or YOLO26N)
+    r = graph_memory.estimate(g)
+    assert sorted(seen) == ["deit-b_384x384_distilled.dxnn", "yolov8-n_640x640.dxnn"]
+    assert r["unknown_models"] == [] and r["nodes"]["od"]["model"] == "yolov8n"
+
+
+@pytest.mark.parametrize("name", ["../../etc/passwd", "a/b", "..", ".hidden", "x\\y"])
+def test_a_crafted_model_name_never_reaches_the_file_system(monkeypatch, name):
+    seen = []
+    g = {"nodes": [{"id": "m", "model": name}], "edges": []}
+    _estimate(monkeypatch, g, free=1, files={name: "yolo26-n_640x640.dxnn"}, checked={"m": "../x.dxnn"})
+    monkeypatch.setattr(graph_memory, "model_memory", lambda p: seen.append(p) or YOLO26N)
+    r = graph_memory.estimate(g)
+    assert seen == [] and r["unknown_models"] == [name]
+
+
+def test_a_file_name_from_dx_app_must_be_a_plain_dxnn(monkeypatch):
+    seen = []
+    g = {"nodes": [{"id": "m", "model": "odd"}], "edges": []}
+    _estimate(monkeypatch, g, free=1, files={"odd": "../outside.dxnn"}, checked={"m": "sub/dir.dxnn"})
+    monkeypatch.setattr(graph_memory, "model_memory", lambda p: seen.append(p) or YOLO26N)
+    assert graph_memory.estimate(g)["unknown_models"] == ["odd"] and seen == []
+
+
+def test_check_files_come_from_the_check_table(tmp_path, monkeypatch):
+    graph_fakes.install(tmp_path, monkeypatch, graph_fakes.TEXT_CLI)
+    g = {"version": 1, "name": "g", "nodes": [{"id": "cam", "type": "source", "uri": "x.jpg"},
+                                              {"id": "od", "model": "yolov8n"}], "edges": []}
+    assert graph_memory.checked_files(g) == {"od": "yolov8-n_640x640.dxnn", "attr": "deepmar_resnet50_224x224.dxnn"}
+
+
+def test_model_files_are_the_catalog_s(monkeypatch):
+    from dx_app.core import graph_catalog
+    monkeypatch.setattr(graph_catalog, "list_models", lambda refresh=False: {"files": {"a": "a.dxnn"}, "models": []})
+    assert graph_memory.model_files() == {"a": "a.dxnn"}
+    monkeypatch.setattr(graph_catalog, "list_models", lambda refresh=False: {"models": [], "error": "x"})
+    assert graph_memory.model_files() == {}
+
+
+def test_zero_or_negative_buffers_mean_the_runtime_default(monkeypatch):
+    assert graph_memory.engine_bytes(FASTDEPTH, 0) == graph_memory.engine_bytes(FASTDEPTH, -3) == 118262080
+    r = _estimate(monkeypatch, _g(depth_engine={"buffers": 0}), free=4000 * graph_memory.MB)
+    assert r["nodes"]["depth"]["buffers"] == 6 and r["nodes"]["depth"]["bytes"] == FASTDEPTH["total_bytes"]
+    g = _g({"buffers": 0})
+    (s,) = [s for s in _estimate(monkeypatch, g, free=1)["suggestions"] if s["kind"] == "share"]
+    assert s["patch"]["od"]["engine"] == {"share": True}
+
+
+def test_device_status_from_the_studio_uses_the_device_with_the_least_free_memory(monkeypatch):
+    import shared.hardware as hw
+    monkeypatch.setattr(hw, "get_hw", lambda: {"mock": False, "npus": [
+        {"dram_total_mb": 4000.0, "dram_used_mb": 1000.0}, {"dram_total_mb": 4000.0, "dram_used_mb": 3500.0},
+        {"dram_total_mb": -1, "dram_used_mb": -1}]})
+    d = graph_memory.device_memory()
+    assert (d["used_bytes"], d["free_bytes"]) == (3500 * graph_memory.MB, 500 * graph_memory.MB)
+
+
+def test_parse_model_runs_in_parallel_for_many_models(monkeypatch):
+    def slow(p):
+        time.sleep(0.3)
+        return YOLO26N
+    g = {"nodes": [{"id": f"n{i}", "model": f"m{i}"} for i in range(4)], "edges": []}
+    _estimate(monkeypatch, g, free=1)
+    monkeypatch.setattr(graph_memory, "model_memory", slow)
+    t0 = time.time()
+    r = graph_memory.estimate(g)
+    assert time.time() - t0 < 0.9 and r["total_bytes"] == 4 * YOLO26N["total_bytes"]
+
+
+# Phase 1 follow-up: a graph posted by hand may carry any JSON in "model" and "buffers".
+@pytest.mark.parametrize("model", [["yolo26-n_640x640"], {"name": "yolo26-n_640x640"}, 7, True, None, ""])
+def test_a_model_that_is_not_a_name_is_skipped(monkeypatch, model):
+    g = {"nodes": [{"id": "cam", "type": "source", "uri": "x.jpg"}, {"id": "od", "model": "yolo26-n_640x640"},
+                   {"id": "odd", "model": model}, {"id": 5, "model": "yolo26-n_640x640"}], "edges": []}
+    r = _estimate(monkeypatch, g, free=4000 * graph_memory.MB)
+    assert list(r["nodes"]) == ["od"] and r["total_bytes"] == YOLO26N["total_bytes"]
+    assert r["unknown_models"] == []
+
+
+@pytest.mark.parametrize("buffers", [float("inf"), float("-inf"), float("nan"), "2x", [2], {"n": 2}])
+def test_buffers_that_are_not_a_count_mean_the_runtime_default(monkeypatch, buffers):
+    g = _g(od_engine={"buffers": buffers})
+    r = _estimate(monkeypatch, g, free=4000 * graph_memory.MB)
+    assert r["nodes"]["od"]["buffers"] == 6 and r["nodes"]["od"]["bytes"] == YOLO26N["total_bytes"]
+
+
+def test_infinity_as_dx_app_s_json_parser_reads_it_does_not_raise(monkeypatch):
+    g = json.loads('{"nodes": [{"id": "od", "model": "yolo26-n_640x640", "engine": {"buffers": Infinity}}],'
+                   ' "edges": []}')
+    assert _estimate(monkeypatch, g, free=4000 * graph_memory.MB)["nodes"]["od"]["buffers"] == 6

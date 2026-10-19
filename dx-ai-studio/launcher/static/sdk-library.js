@@ -2,6 +2,13 @@
 (function () {
   'use strict';
 
+  // Drawer, section and file icons are sprite names (sdk-library-data.json). Legacy text icons pass through as is.
+  function _sdkIco(name) {
+    if (/^[a-z0-9_-]+$/.test(name || '') && typeof window.DXIcon === 'function') return window.DXIcon(name);
+    return escHtmlSafe(name || '');
+  }
+  function escHtmlSafe(v) { return String(v).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
   function _sdkDebugLog() { if (window.DX_DEBUG_SDK === true) console.log.apply(console, arguments); }
 
   function _t(en, ko, ja, zhCN, zhTW, es) {
@@ -164,7 +171,10 @@
     try {
       // cache: 'no-cache' → always revalidate with the server (ETag), so catalog
       // updates show up immediately instead of being masked by the max-age cache.
-      const res = await fetch('/static/sdk-library-data.json', { cache: 'no-cache' });
+      // /api/sdk-library = the curated catalog + the suite's md on disk (live sizes, new docs in the
+      // registered docs folders); the static JSON is the fallback (launcher/sdk_library.py).
+      let res = await fetch('/api/sdk-library', { cache: 'no-cache' }).catch(() => null);
+      if (!res || !res.ok) res = await fetch('/static/sdk-library-data.json', { cache: 'no-cache' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       _libData = await res.json();
       return _libData;
@@ -177,6 +187,7 @@
   let _viewMode = 'list'; // 'cabinet' | 'list' — list is default
   let _selectedDrawer = null;
   let _selectedSection = null;
+  let _listData = null;   // Data the List view rendered — search looks through every doc (searchListView)
 
   function buildModuleHeader() {
     const header = document.createElement('header');
@@ -188,16 +199,16 @@
       </div>
       <div class="sdk-topbar-center">
         <div class="sdk-topbar-search">
-          <span class="sdk-topbar-search-icon">🔍</span>
-          <input type="text" id="sdkLibSearch" placeholder="${_t('Search documents…', '문서 검색…', 'ドキュメント検색…', '搜索文档…', '搜尋文件…', 'Buscar documentos…')}" autocomplete="off">
+          <span class="sdk-topbar-search-icon">${_sdkIco('search')}</span>
+          <input type="text" id="sdkLibSearch" placeholder="${_t('Search documents…', '문서 검색…', 'ドキュメントを検索…', '搜索文档…', '搜尋文件…', 'Buscar documentos…')}" autocomplete="off">
         </div>
       </div>
       <div class="sdk-topbar-right">
         <div class="sdk-topbar-toggle">
-          <button class="sdk-toggle-btn ${_viewMode === 'list' ? 'active' : ''}" data-mode="list" title="${_t('List View', '목록 보기', 'リストビュー', '列表视图', '列表檢視', 'Vista de lista')}">📋 ${_t('List', '목록', 'リスト', '列表', '列表', 'Lista')}</button>
-          <button class="sdk-toggle-btn ${_viewMode === 'cabinet' ? 'active' : ''}" data-mode="cabinet" title="${_t('Cabinet View', '캐비닛 보기', 'キャビネットビュー', '文件柜视图', '文件櫃檢視', 'Vista de archivador')}">🗄️ ${_t('Cabinet', '캐비닛', 'キャビネット', '文件柜', '文件櫃', 'Archivador')}</button>
+          <button class="sdk-toggle-btn ${_viewMode === 'list' ? 'active' : ''}" data-mode="list" title="${_t('List View', '목록 보기', 'リストビュー', '列表视图', '列表檢視', 'Vista de lista')}">${_sdkIco('menu')} ${_t('List', '목록', 'リスト', '列表', '列表', 'Lista')}</button>
+          <button class="sdk-toggle-btn ${_viewMode === 'cabinet' ? 'active' : ''}" data-mode="cabinet" title="${_t('Cabinet View', '캐비닛 보기', 'キャビネットビュー', '文件柜视图', '文件櫃檢視', 'Vista de archivador')}">${_sdkIco('folder')} ${_t('Cabinet', '캐비닛', 'キャビネット', '文件柜', '文件櫃', 'Archivador')}</button>
         </div>
-        <button class="sdk-topbar-btn" id="sdkArchBtn" title="${_t('Architecture', '아키텍처', 'アーキテクチャ', '架构', '架構', 'Arquitectura')}">🏗️</button>
+        <button class="sdk-topbar-btn" id="sdkArchBtn" title="${_t('Architecture', '아키텍처', 'アーキテクチャ', '架构', '架構', 'Arquitectura')}">${_sdkIco('dashboard')}</button>
       </div>`;
     header.querySelectorAll('.sdk-toggle-btn').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -315,7 +326,12 @@
     renderListContent(data, drawer, section);
   }
 
+  function _listPrompt() {
+    return '<div class="sdk-list-empty">' + _t('Select a category to see its documents', '카테고리를 고르면 문서가 보입니다', 'カテゴリを選ぶとドキュメントが表示されます', '选择分类即可查看文档', '選擇分類即可查看文件', 'Elija una categoría para ver sus documentos') + '</div>';
+  }
+
   function renderListView(data, container) {
+    _listData = data;
     const layout = document.createElement('div');
     layout.className = 'sdk-list-layout';
 
@@ -332,7 +348,7 @@
       groupHead.dataset.helpId = 'sidebar-group-' + drawer.id;
       const totalFiles = drawer.sections.reduce((s, sec) => s + sec.files.length, 0);
       groupHead.innerHTML = `
-        <span class="sdk-sidebar-icon">${drawer.icon}</span>
+        <span class="sdk-sidebar-icon">${_sdkIco(drawer.icon)}</span>
         <span class="sdk-sidebar-label">${escHtml(labelText(drawer.label))}</span>
         <span class="sdk-sidebar-count">${totalFiles}</span>`;
       if (isFlatDrawer) {
@@ -358,7 +374,7 @@
           secItem.dataset.sectionId = section.id;
           secItem.dataset.drawerId = drawer.id;
           secItem.innerHTML = `
-            <span class="sdk-sidebar-sec-icon">${section.icon}</span>
+            <span class="sdk-sidebar-sec-icon">${_sdkIco(section.icon)}</span>
             <span class="sdk-sidebar-sec-label">${escHtml(labelText(section.label))}</span>
             <span class="sdk-sidebar-sec-count">${section.files.length}</span>`;
           secItem.addEventListener('click', (e) => {
@@ -374,7 +390,7 @@
     const content = document.createElement('div');
     content.className = 'sdk-list-content';
     content.id = 'sdkListContent';
-    content.innerHTML = '<div class="sdk-list-empty">' + _t('← Select a category from the left', '← 좌측에서 카테고리를 선택하세요', '← 左側からカテゴリを選択してください', '← 请从左侧选择分类', '← 請從左側選擇分類', '← Seleccione una categoría de la izquierda') + '</div>';
+    content.innerHTML = _listPrompt();
 
     layout.appendChild(sidebar);
     layout.appendChild(content);
@@ -387,7 +403,7 @@
 
     content.innerHTML = `
       <div class="sdk-list-content-header">
-        <span class="sdk-list-breadcrumb">${drawer.icon} ${escHtml(labelText(drawer.label))} › ${escHtml(labelText(section.label))}</span>
+        <span class="sdk-list-breadcrumb">${_sdkIco(drawer.icon)} ${escHtml(labelText(drawer.label))} › ${escHtml(labelText(section.label))}</span>
         <span class="sdk-list-file-count">${section.files.length}${_t(' files', '개 파일', ' ファイル', ' 个文件', ' 個檔案', ' archivos')}</span>
       </div>
       <div class="sdk-list-files-grid"></div>`;
@@ -411,7 +427,7 @@
     face.innerHTML = `
       <div class="drawer-stripe"></div>
       <div class="drawer-label-plate">
-        <span class="drawer-label-icon">${drawer.icon}</span>
+        <span class="drawer-label-icon">${_sdkIco(drawer.icon)}</span>
         <span class="drawer-label-text">${escHtml(labelText(drawer.label))}</span>
       </div>
       <span class="drawer-label-count">${totalFiles}${_t(' files', '개 파일', ' ファイル', ' 个文件', ' 個檔案', ' archivos')}</span>
@@ -431,7 +447,7 @@
         const secHeader = document.createElement('div');
         secHeader.className = 'drawer-section-header';
         secHeader.innerHTML = `
-          <span class="section-icon">${section.icon}</span>
+          <span class="section-icon">${_sdkIco(section.icon)}</span>
           <span class="section-label">${escHtml(labelText(section.label))}</span>
           <span class="section-count">${section.files.length}</span>`;
         secEl.appendChild(secHeader);
@@ -470,7 +486,7 @@
     const colorClass = isPdf ? 'pdf' : (drawerColor || 'green');
 
     card.innerHTML = `
-      <div class="file-card-icon ${colorClass}">${isPdf ? '📄' : '📝'}</div>
+      <div class="file-card-icon ${colorClass}">${_sdkIco(isPdf ? 'file' : 'book')}</div>
       <div class="file-card-info">
         <div class="file-card-title">${escHtml(file.title)}</div>
         <div class="file-card-meta">
@@ -547,6 +563,11 @@
       if (e.key === 'Enter') {
         clearTimeout(_searchUrlTimeout);
         requestSdkUrlUpdate({ q: input.value.trim() }, 'replace');
+      } else if (e.key === 'Escape' && input.value) {
+        // Escape clears the search, as the tutorial says, instead of reaching the launcher and leaving SDK Library
+        input.value = '';
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        e.preventDefault();
       }
     });
   }
@@ -590,6 +611,8 @@
     else _clearEmptySearch(cabinet);
   }
 
+  /* List view search — looks through the whole doc list and draws the hits as cards in the content pane, not just
+     the sidebar section names and the cards already on screen. */
   function searchListView(q) {
     const listContent = document.getElementById('sdkListContent');
     const groups = document.querySelectorAll('.sdk-sidebar-group');
@@ -598,36 +621,54 @@
       clearSearchSummary();
       groups.forEach(g => {
         g.classList.remove('search-hidden');
-        g.querySelectorAll('.sdk-sidebar-section').forEach(s => s.classList.remove('search-hidden'));
-        g.classList.remove('expanded');
+        g.querySelectorAll('.sdk-sidebar-section').forEach(sec => sec.classList.remove('search-hidden'));
       });
-      document.querySelectorAll('.sdk-list-files-grid .file-card').forEach(c => c.classList.remove('search-hidden'));
+      // Back to the section that was selected
+      const drawer = _listData && _listData.drawers.find(d => d.id === _selectedDrawer);
+      const section = drawer && drawer.sections.find(sec => sec.id === _selectedSection);
+      if (drawer && section) renderListContent(_listData, drawer, section);
+      else if (listContent) listContent.innerHTML = _listPrompt();
       return;
     }
-    let matchCount = 0;
-    groups.forEach(g => {
-      let groupHasMatch = false;
-      const sections = g.querySelectorAll('.sdk-sidebar-section');
-      if (sections.length) {
-        sections.forEach(sec => {
-          const label = sec.querySelector('.sdk-sidebar-sec-label').textContent.toLowerCase();
-          if (label.includes(q)) { sec.classList.remove('search-hidden'); groupHasMatch = true; }
-          else sec.classList.add('search-hidden');
-        });
-      } else {
-        const labelEl = g.querySelector('.sdk-sidebar-label');
-        if (labelEl && labelEl.textContent.toLowerCase().includes(q)) groupHasMatch = true;
+    const hits = [];
+    const hitSections = new Set();
+    for (const drawer of ((_listData && _listData.drawers) || [])) {
+      for (const section of drawer.sections) {
+        for (const file of section.files) {
+          const title = String(file.title || '').toLowerCase();
+          const path = String(file.path || '').toLowerCase();
+          if (title.includes(q) || path.includes(q)) {
+            hits.push({ file, drawer });
+            hitSections.add(drawer.id + '/' + section.id);
+          }
+        }
       }
+    }
+    groups.forEach(g => {
+      const id = g.dataset.drawerId;
+      const sections = g.querySelectorAll('.sdk-sidebar-section');
+      let groupHasMatch = false;
+      sections.forEach(sec => {
+        const match = hitSections.has(id + '/' + sec.dataset.sectionId);
+        sec.classList.toggle('search-hidden', !match);
+        if (match) groupHasMatch = true;
+      });
+      if (!sections.length) groupHasMatch = Array.from(hitSections).some(k => k.indexOf(id + '/') === 0);
       g.classList.toggle('search-hidden', !groupHasMatch);
-      if (groupHasMatch && sections.length) { g.classList.add('expanded'); }
+      if (groupHasMatch && sections.length) g.classList.add('expanded');
     });
-    // Filter content panel cards — tracked separately for empty state
-    let contentCardMatch = false;
-    document.querySelectorAll('.sdk-list-files-grid .file-card').forEach(c => {
-      const match = c.dataset.title.includes(q) || c.dataset.path.includes(q);
-      c.classList.toggle('search-hidden', !match);
-      if (match) { contentCardMatch = true; matchCount++; }
-    });
+    if (listContent) {
+      listContent.innerHTML = `
+        <div class="sdk-list-content-header">
+          <span class="sdk-list-breadcrumb">${_sdkIco('search')} ${escHtml(_t('Search results', '검색 결과', '検索結果', '搜索结果', '搜尋結果', 'Resultados de búsqueda'))}</span>
+          <span class="sdk-list-file-count">${hits.length}${_t(' files', '개 파일', ' ファイル', ' 个文件', ' 個檔案', ' archivos')}</span>
+        </div>
+        <div class="sdk-list-files-grid"></div>`;
+      const grid = listContent.querySelector('.sdk-list-files-grid');
+      hits.forEach(h => grid.appendChild(buildFileCard(h.file, h.drawer.color)));
+    }
+    const matchCount = hits.length;
+    const contentCardMatch = matchCount > 0;   // The empty state depends on the cards in the content pane, not on sidebar matches
     renderSearchSummary(q, matchCount);
     if (!contentCardMatch) _showEmptySearch(listContent);
     else _clearEmptySearch(listContent);
@@ -664,14 +705,22 @@
   // Docs (e.g. Model Zoo architecture) use ```mermaid fences. The parser emits them as
   // <pre class="mermaid-source">; here we turn each into an SVG once the doc mounts, using
   // the offline vendored mermaid.min.js. On failure, the original code block is kept visible.
+  // The library (800 KB) loads the first time a doc has a diagram, so other launcher screens never pay for it.
   let _mermaidReady = null;
   function ensureMermaid() {
-    if (typeof mermaid === 'undefined') return null;
     if (!_mermaidReady) {
-      try {
-        mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', theme: 'dark', fontFamily: 'inherit' });
-      } catch (e) { /* already initialised */ }
-      _mermaidReady = Promise.resolve();
+      _mermaidReady = new Promise((resolve, reject) => {
+        if (typeof mermaid !== 'undefined') { resolve(); return; }
+        const s = document.createElement('script');
+        s.src = '/static/shared/vendor/mermaid.min.js';
+        s.onload = () => resolve();
+        s.onerror = () => { _mermaidReady = null; reject(new Error('mermaid failed to load')); };
+        document.head.appendChild(s);
+      }).then(() => {
+        try {
+          mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', theme: 'dark', fontFamily: 'inherit' });
+        } catch (e) { /* already initialised */ }
+      });
     }
     return _mermaidReady;
   }
@@ -679,9 +728,7 @@
     if (!root) return;
     const blocks = root.querySelectorAll('pre.mermaid-source');
     if (!blocks.length) return;
-    const ready = ensureMermaid();
-    if (!ready) return;  // mermaid lib absent → leave the code block visible
-    ready.then(() => {
+    ensureMermaid().then(() => {
       blocks.forEach((pre) => {
         if (pre.dataset.mmDone === '1') return;
         pre.dataset.mmDone = '1';
@@ -698,7 +745,7 @@
           }).catch(() => fallback(host, src));
         } catch (e) { fallback(host, src); }
       });
-    });
+    }).catch(() => { /* the library did not load — the code blocks stay visible */ });
     function fallback(host, src) {
       const pre = document.createElement('pre');
       const c = document.createElement('code');
@@ -714,7 +761,7 @@
     // Fenced code. Accept a full info string after the opening fence (e.g. ```python
     // title="x", ```py {.highlight}) — capture everything to end-of-line and derive the
     // language token from its first word, so attribute-carrying fences still pair correctly
-    // (an unmatched fence used to shift the pairing and leak code as plain text).
+    // (an unmatched fence would shift the pairing and leak code as plain text).
     let s = md.replace(/```[ \t]*([^\n]*)\n([\s\S]*?)```/g, (_, info, code) => {
       const idx = codeBlocks.length;
       const lang = ((info || '').trim().match(/^[\w+-]+/) || [''])[0];
@@ -752,8 +799,8 @@
       t = t.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (m, alt, src) => `<img src="${rewriteSrc(src)}" alt="${alt}">`);
       // Raw HTML <img src="rel"> → rewrite the src attribute (keep other attrs)
       t = t.replace(/(<img\b[^>]*?\bsrc\s*=\s*["'])([^"']+)(["'])/gi, (m, pre, src, post) => `${pre}${rewriteSrc(src)}${post}`);
-      // Doc-relative links to another .md open inside the viewer; everything else opens in a
-      // new tab. (Cross-doc links used to point at a raw .md path and 404.)
+      // Doc-relative links to another .md open inside the viewer (a raw .md path would 404);
+      // everything else opens in a new tab.
       const mkLink = (txt, url) => {
         const u = (url || '').trim();
         const base = u.split('#')[0].split('?')[0];
@@ -790,12 +837,13 @@
     const admRe = /^(!!!|\?\?\?\+?)\s+([\w-]+)(?:\s+"([^"]*)")?\s*$/;
     const tabRe = /^===\+?\s+"([^"]*)"\s*$/;
     const indentedRe = /^( {4}|\t)/;
+    // Admonition (!!! note …) icons — sprite names
     const ADM_ICONS = {
-      note:'📝', abstract:'📄', summary:'📄', tldr:'📄', info:'ℹ️', todo:'☑️',
-      tip:'💡', hint:'💡', important:'❗', success:'✅', check:'✅', done:'✅',
-      question:'❓', help:'❓', faq:'❓', warning:'⚠️', caution:'⚠️', attention:'⚠️',
-      failure:'❌', fail:'❌', missing:'❌', danger:'🛑', error:'🛑', bug:'🐛',
-      example:'📋', quote:'❝', cite:'❝',
+      note:'file', abstract:'clipboard', summary:'clipboard', tldr:'clipboard', info:'info', todo:'check',
+      tip:'info', hint:'info', important:'alert', success:'check', check:'check', done:'check',
+      question:'info', help:'info', faq:'info', warning:'alert', caution:'alert', attention:'alert',
+      failure:'x', fail:'x', missing:'x', danger:'alert', error:'x', bug:'alert',
+      example:'clipboard', quote:'chat', cite:'chat',
     };
     const isSpecial = (l) => headRe.test(l) || hrRe.test(l) || listRe.test(l) || bqRe.test(l) || htmlRe.test(l) || cbRe.test(l) || rowRe.test(l) || admRe.test(l) || tabRe.test(l);
 
@@ -821,7 +869,7 @@
           const title = (m[3] != null && m[3] !== '') ? m[3] : (m[2].charAt(0).toUpperCase() + m[2].slice(1));
           let inner; [inner, i] = takeIndentedBody(lines, i + 1);
           const body = renderBlocks(inner);
-          const icon = ADM_ICONS[type] || '📌';
+          const icon = _sdkIco(ADM_ICONS[type] || 'info');
           const titleHtml = `<span class="sdk-adm-icon">${icon}</span>${inline(title)}`;
           if (collapsible) {
             const open = m[1] === '???+' ? ' open' : '';
@@ -922,8 +970,8 @@
   const DRAWER_COLORS = {
     gold:  { accent: '#d4a853', bg: 'rgba(212,168,83,0.06)', border: 'rgba(212,168,83,0.25)' },
     red:   { accent: '#f47067', bg: 'rgba(244,112,103,0.06)', border: 'rgba(244,112,103,0.25)' },
-    green: { accent: '#3fb950', bg: 'rgba(63,185,80,0.06)', border: 'rgba(63,185,80,0.25)' },
-    blue:  { accent: '#58a6ff', bg: 'rgba(88,166,255,0.06)', border: 'rgba(88,166,255,0.25)' },
+    green: { accent: '#30d158', bg: 'rgba(63,185,80,0.06)', border: 'rgba(63,185,80,0.25)' },
+    blue:  { accent: '#2997ff', bg: 'rgba(88,166,255,0.06)', border: 'rgba(88,166,255,0.25)' },
     amber: { accent: '#d29922', bg: 'rgba(210,153,34,0.06)', border: 'rgba(210,153,34,0.25)' },
   };
 
@@ -1118,7 +1166,7 @@
     const titleEl = viewer.querySelector('.sdk-viewer-title');
     const pathEl = viewer.querySelector('.sdk-viewer-path');
     const body = document.getElementById('sdkViewerBody');
-    if (titleEl) titleEl.textContent = '📖 ' + book.title;
+    if (titleEl) DXIcon.label(titleEl, 'book', book.title);
     if (pathEl) pathEl.textContent = book.path;
     if (body) body.innerHTML = '<p class="sdk-viewer-loading">' + _t('Loading…', '로딩 중…', '読み込み中…', '加载中…', '載入中…', 'Cargando…') + '</p>';
 
@@ -1354,7 +1402,9 @@
     // and overlay branches, and as a safety net if registration order changes.
     const libView = document.getElementById('sdk-library-view');
     if (libView && libView.classList.contains('visible')) {
-      if (e.key === 'Escape') {
+      // The library search already used this Escape to clear itself; the launcher stays in SDK Library
+      // for it too, so hiding the view here would leave an empty page.
+      if (e.key === 'Escape' && !e.defaultPrevented) {
         hideSdkLibraryView();
         e.preventDefault();
         if (e.stopImmediatePropagation) e.stopImmediatePropagation();
@@ -1425,7 +1475,7 @@
       window.LauncherTutorial.connectToolbar();
       return;
     }
-    // Launcher tutorial engine이 없을 때만 튜토리얼 토글을 복구한다.
+    // Restore the tutorial toggle only when the launcher's tutorial engine is absent.
     DXToolbar.connectTutorial({
       toggleTOC: function() { if (window._dxTutorialMode) window._dxTutorialMode.toggle(); },
       _toggleBtnEl: null
@@ -1510,7 +1560,8 @@
     init: initSdkLibrary,
     refresh: function () { if (_libData) renderView(_libData); },
     reset: function () { _sdkInitialized = false; _libData = null; },
-    applyQuery: applyQuery
+    applyQuery: applyQuery,
+    _renderMermaid: renderMermaidBlocks   // test_home_facts_deferred_browser.py
   };
   window.showSdkLibrary = function () {
     if (window.LauncherRouter) window.LauncherRouter.navigate('sdk-library');

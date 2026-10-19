@@ -1,6 +1,11 @@
-# DEEPX Greengrass Solution
+# DEEPX Greengrass Solution <picture><source media="(prefers-color-scheme: dark)" srcset="img/badges/available-in-aws-marketplace-dark.png"><img src="img/badges/available-in-aws-marketplace-light.png" alt="Available in AWS Marketplace" height="40" align="right"></picture><picture><source media="(prefers-color-scheme: dark)" srcset="img/badges/powered-by-aws-dark.png"><img src="img/badges/powered-by-aws-light.png" alt="Powered by AWS" height="32" align="right"></picture>
 
 **엣지 AI 배포 단순화 — DEEPX DX-M1 NPU와 AWS IoT를 통한 OTA 배포**
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="img/badges/aws-qualified-software-dark.png">
+  <img src="img/badges/aws-qualified-software-light.png" alt="AWS Qualified Software" width="120" align="right">
+</picture>
 
 엣지 AI의 가치는 모델을 현장에서 안정적으로 실행할 때 완성됩니다. 모델을 한 번 실행하는 데서 그치지 않고, 서로 다른 장비에 같은 실행 환경을 배포하고 운영 상태와 버전을 일관되게 관리할 수 있어야 합니다.
 

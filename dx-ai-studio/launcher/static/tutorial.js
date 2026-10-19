@@ -7,9 +7,9 @@
   let _tutorialMode = _stored !== 'off';
   const _lang = () => localStorage.getItem('dx-lang') || 'en';
   let _engine = null;
-// Launcher 자체 화면을 위한 튜토리얼 섹션이다. iframe 모듈 튜토리얼은 각 모듈이 소유한다.
+// Tutorial sections for the launcher's own screens. Each iframe module owns its own tutorial.
   const sections = [
-    { id: 'home', icon: '🏠',
+    { id: 'home', icon: 'home',
       title: { en: 'Launcher Home', ko: '런처 홈', ja: 'ランチャーホーム', 'zh-CN': '启动器主页', 'zh-TW': '啟動器首頁', es: 'Inicio del iniciador' },
       description: { en: 'Open DX modules and shared resources from the launcher shell.', ko: '런처 셸에서 DX 모듈과 공유 리소스를 엽니다.', ja: 'ランチャーシェルからDXモジュールと共有リソースを開きます。', 'zh-CN': '从启动器外壳打开DX模块和共享资源。', 'zh-TW': '從啟動器殼層開啟DX模組和共用資源。', es: 'Abra módulos DX y recursos compartidos desde el shell del iniciador.' },
       beforeStart: function () {
@@ -31,49 +31,47 @@
         }
       },
       steps: [
-        { target: '#dxt-tutorial-card', position: 'right',
-          title: { en: 'Tutorial Mode', ko: '튜토리얼 모드', ja: 'チュートリアルモード', 'zh-CN': '教程模式', 'zh-TW': '教學模式', es: 'Modo tutorial' },
-          content: { en: 'This is <strong>Tutorial Mode</strong> — <strong>on by default</strong>, so interactive tutorials start automatically when you open a module. Don\'t want them? Turn it <strong>off</strong> here anytime.', ko: '여기가 <strong>튜토리얼 모드</strong>입니다 — <strong>기본으로 켜져</strong> 있어 모듈을 열면 인터랙티브 튜토리얼이 자동으로 시작됩니다. 원치 않으면 언제든 여기서 <strong>끄세요</strong>.', ja: 'これが<strong>チュートリアルモード</strong>です — <strong>デフォルトでオン</strong>なので、モジュールを開くとインタラクティブチュートリアルが自動的に始まります。不要ならいつでもここで<strong>オフ</strong>にできます。', 'zh-CN': '这是<strong>教程模式</strong>——<strong>默认开启</strong>，打开模块时会自动启动交互式教程。不需要？随时在此<strong>关闭</strong>。', 'zh-TW': '這是<strong>教學模式</strong>——<strong>預設開啟</strong>，開啟模組時會自動啟動互動式教學。不需要？隨時在此<strong>關閉</strong>。', es: 'Este es el <strong>modo tutorial</strong>: <strong>activado por defecto</strong>, así que los tutoriales interactivos se inician automáticamente al abrir un módulo. ¿No los quieres? Desactívalo <strong>aquí</strong> cuando quieras.' } },
-        { target: '.top-bar', position: 'bottom',
-          title: { en: 'Launcher Shell', ko: '런처 셸', ja: 'ランチャーシェル', 'zh-CN': '启动器外壳', 'zh-TW': '啟動器殼層', es: 'Shell del iniciador' },
-          content: { en: 'The launcher shell keeps <strong>DX AI Studio branding</strong>, module status, and shared controls visible while you browse home and SDK Library.', ko: '런처 셸은 홈과 SDK Library를 탐색하는 동안 <strong>DX AI Studio 브랜딩</strong>, 모듈 상태, 공유 컨트롤을 유지합니다.', ja: 'ランチャーシェルはホームとSDK Libraryを閲覧中も<strong>DX AI Studioブランド</strong>、モジュール状態、共通コントロールを表示します。', 'zh-CN': '启动器外壳在浏览主页和 SDK Library 时保持<strong>DX AI Studio 品牌</strong>、模块状态和共享控件可见。', 'zh-TW': '啟動器殼層在瀏覽首頁和 SDK Library 時保持<strong>DX AI Studio 品牌</strong>、模組狀態和共用控制項可見。', es: 'El shell del iniciador mantiene visibles la <strong>marca DX AI Studio</strong>, el estado de los módulos y los controles compartidos mientras navega por inicio y SDK Library.' } },
-        { target: '#launcherToolbar', position: 'bottom',
-          title: { en: 'Shared Top Toolbar', ko: '공유 상단 툴바', ja: '共通トップツールバー', 'zh-CN': '共享顶部工具栏', 'zh-TW': '共用頂部工具列', es: 'Barra superior compartida' },
-          content: { en: 'The top toolbar hosts <strong>language (🌏)</strong> and <strong>tutorial (🎓)</strong> for every launcher view.', ko: '상단 툴바에서 <strong>언어(🌏)</strong>, <strong>튜토리얼(🎓)</strong>을 사용합니다.', ja: '上部ツールバーで<strong>言語(🌏)</strong>、<strong>チュートリアル(🎓)</strong>を利用します。', 'zh-CN': '顶部工具栏提供<strong>语言(🌏)</strong>和<strong>教程(🎓)</strong>。', 'zh-TW': '頂部工具列提供<strong>語言(🌏)</strong>和<strong>教學(🎓)</strong>。', es: 'La barra superior incluye <strong>idioma (🌏)</strong> y <strong>tutorial (🎓)</strong>.' } },
-        { target: '.status-dots', position: 'bottom',
-          title: { en: 'Module Health Dots', ko: '모듈 상태 점', ja: 'モジュール状態ドット', 'zh-CN': '模块状态点', 'zh-TW': '模組狀態點', es: 'Indicadores de módulos' },
-          content: { en: '<strong>Green</strong> means the module server is reachable; <strong>red</strong> means it is offline or not installed yet.', ko: '<strong>초록</strong>은 모듈 서버 연결 가능, <strong>빨강</strong>은 오프라인 또는 미설치 상태입니다.', ja: '<strong>緑</strong>はモジュールサーバー到達可能、<strong>赤</strong>はオフラインまたは未インストールです。', 'zh-CN': '<strong>绿色</strong>表示模块服务器可访问；<strong>红色</strong>表示离线或未安装。', 'zh-TW': '<strong>綠色</strong>表示模組伺服器可連線；<strong>紅色</strong>表示離線或未安裝。', es: '<strong>Verde</strong> = servidor del módulo accesible; <strong>rojo</strong> = sin conexión o no instalado.' } },
-        { target: '#orbitalContainer', position: 'bottom',
-          title: { en: 'Launch DX Modules', ko: 'DX 모듈 실행', ja: 'DXモジュール起動', 'zh-CN': '启动DX模块', 'zh-TW': '啟動DX模組', es: 'Iniciar módulos DX' },
-          content: { en: 'Pick an orbital card to open App, Stream, Compiler, Monitor, and other DX AI Studio modules inside the shared frame.', ko: '오비탈 카드에서 App, Stream, Compiler, Monitor 등 DX AI Studio 모듈을 공유 프레임에서 실행합니다.', ja: 'オービタルカードからApp、Stream、Compiler、MonitorなどのDX AI Studioモジュールを共有フレームで開きます。', 'zh-CN': '从轨道卡片打开 App、Stream、Compiler、Monitor 等 DX AI Studio 模块。', 'zh-TW': '從軌道卡片開啟 App、Stream、Compiler、Monitor 等 DX AI Studio 模組。', es: 'Elija una tarjeta orbital para abrir App, Stream, Compiler, Monitor y otros módulos de DX AI Studio.' } },
-        { target: '#ecosystemPoster', position: 'right', skipScroll: true,
-          title: { en: 'Physical AI Ecosystem', ko: 'Physical AI 생태계', ja: 'Physical AI エコシステム', 'zh-CN': 'Physical AI 生态系统', 'zh-TW': 'Physical AI 生態系統', es: 'Ecosistema de IA física' },
-          content: { en: 'Click this poster to see how DEEPX connects the <strong>Physical AI ecosystem</strong> — Ultralytics YOLO, PaddlePaddle, and Raspberry Pi around the DEEPX NPU.', ko: '이 포스터를 클릭하면 DEEPX가 <strong>Physical AI 생태계</strong>(Ultralytics YOLO · PaddlePaddle · Raspberry Pi)를 어떻게 잇는지 볼 수 있습니다.', ja: 'このポスターをクリックすると、DEEPXが<strong>Physical AIエコシステム</strong>（Ultralytics YOLO・PaddlePaddle・Raspberry Pi）をどうつなぐかを確認できます。', 'zh-CN': '点击此海报，了解 DEEPX 如何连接<strong>Physical AI 生态系统</strong>——Ultralytics YOLO、PaddlePaddle 与树莓派。', 'zh-TW': '點擊此海報，了解 DEEPX 如何連接<strong>Physical AI 生態系統</strong>——Ultralytics YOLO、PaddlePaddle 與樹莓派。', es: 'Haga clic en este póster para ver cómo DEEPX conecta el <strong>ecosistema de IA física</strong>: Ultralytics YOLO, PaddlePaddle y Raspberry Pi en torno a la NPU de DEEPX.' } },
-        { target: '#landingPoster', position: 'right',
-          title: { en: 'Explore Platform', ko: '플랫폼 탐색', ja: 'プラットフォーム探索', 'zh-CN': '探索平台', 'zh-TW': '探索平台', es: 'Explorar plataforma' },
-          content: { en: 'Click the poster to open the <strong>platform overview</strong> with module specs and quick product context.', ko: '포스터를 클릭하면 <strong>플랫폼 개요</strong>와 모듈 사양을 볼 수 있습니다.', ja: 'ポスターをクリックすると<strong>プラットフォーム概要</strong>とモジュール仕様を開きます。', 'zh-CN': '点击海报打开<strong>平台概览</strong>和模块规格。', 'zh-TW': '點擊海報開啟<strong>平台概覽</strong>和模組規格。', es: 'Haga clic en el póster para abrir la <strong>visión general de la plataforma</strong> y las especificaciones de los módulos.' } },
+        // In stage order: input → examples → intro → modules → book → two widgets → bar → tour row → chat.
+        { target: '#homeAskForm .ask-box', position: 'bottom',
+          title: { en: 'Describe it', ko: '말로 설명하기', ja: '言葉で伝える', 'zh-CN': '用一句话描述', 'zh-TW': '用一句話描述', es: 'Descríbalo' },
+          content: { en: 'Type what you want in plain words and press <strong>Build it</strong>. The agent picks a model, compiles it, builds the app and measures it on this NPU. A request that names a tool — "compile yolo26n to DXNN" — opens that module directly.', ko: '만들고 싶은 것을 평소 말로 적고 <strong>만들기</strong> 를 누르세요. 에이전트가 모델을 고르고, 컴파일하고, 앱을 만들어 이 NPU에서 측정합니다. 도구를 콕 집은 요청 ("compile yolo26n to DXNN")은 그 모듈을 바로 엽니다.', ja: '作りたいものを普段の言葉で書き、<strong>作る</strong>を押します。エージェントがモデルを選び、コンパイルし、アプリを作ってこの NPU で測定します。ツールを名指しする依頼（"compile yolo26n to DXNN"）はそのモジュールを直接開きます。', 'zh-CN': '用平常的话写下你想做的东西，然后点<strong>开始构建</strong>。智能体会选模型、编译、构建应用，并在这块 NPU 上实测。点名某个工具的请求（如 "compile yolo26n to DXNN"）会直接打开对应模块。', 'zh-TW': '用平常的話寫下你想做的東西，然後按<strong>開始建構</strong>。智能體會選模型、編譯、建構應用，並在這塊 NPU 上實測。點名某個工具的請求（如 "compile yolo26n to DXNN"）會直接開啟對應模組。', es: 'Escriba lo que quiere con sus palabras y pulse <strong>Construir</strong>. El agente elige el modelo, lo compila, crea la app y la mide en esta NPU. Una petición que nombra una herramienta —"compile yolo26n to DXNN"— abre ese módulo directamente.' } },
+        { target: '#homeAskChips', position: 'bottom',
+          title: { en: 'Start from a real build', ko: '실제로 만든 예제에서 시작', ja: '実際に作った例から', 'zh-CN': '从真实案例开始', 'zh-TW': '從真實案例開始', es: 'Empiece por un caso real' },
+          content: { en: 'Each example fills in the exact prompt that built one of the DX Agent Dev showcases. Read it, change what you like, then build. <strong>+5</strong> shows the rest.', ko: '예시를 누르면 DX Agent Dev 쇼케이스 하나를 실제로 만든 요청 문장이 그대로 채워집니다. 읽고 원하는 대로 고친 뒤 만드세요. <strong>+5</strong> 로 나머지 예시를 봅니다.', ja: '例を押すと、DX Agent Dev のショーケースを実際に作ったプロンプトがそのまま入ります。読んで、好きに直してから作ってください。<strong>+5</strong> で残りの例を表示します。', 'zh-CN': '每个示例都会填入真正做出某个 DX Agent Dev 展示案例的原始提示词。读一读、按需修改，再构建。<strong>+5</strong> 显示其余示例。', 'zh-TW': '每個範例都會填入真正做出某個 DX Agent Dev 展示案例的原始提示詞。讀一讀、依需要修改，再建構。<strong>+5</strong> 顯示其餘範例。', es: 'Cada ejemplo rellena el prompt exacto con el que se creó uno de los casos de DX Agent Dev. Léalo, cambie lo que quiera y construya. <strong>+5</strong> muestra el resto.' } },
+        { target: '#homeStage .stage-films', position: 'bottom',
+          title: { en: 'Platform and ecosystem', ko: '플랫폼과 생태계', ja: 'プラットフォームとエコシステム', 'zh-CN': '平台与生态', 'zh-TW': '平台與生態', es: 'Plataforma y ecosistema' },
+          content: { en: 'The first opens the <strong>platform overview</strong> with every module; the second shows the <strong>Physical AI ecosystem</strong> — Ultralytics YOLO, PaddlePaddle and Raspberry Pi around the DEEPX NPU.', ko: '첫 번째는 모든 모듈을 담은 <strong>플랫폼 개요</strong>, 두 번째는 DEEPX NPU를 둘러싼 <strong>Physical AI 생태계</strong> (Ultralytics YOLO · PaddlePaddle · Raspberry Pi)를 엽니다.', ja: '1つ目は全モジュールをまとめた<strong>プラットフォーム概要</strong>、2つ目は DEEPX NPU を中心にした <strong>Physical AI エコシステム</strong>（Ultralytics YOLO・PaddlePaddle・Raspberry Pi）を開きます。', 'zh-CN': '第一个打开包含所有模块的<strong>平台概览</strong>，第二个展示以 DEEPX NPU 为中心的 <strong>Physical AI 生态</strong>（Ultralytics YOLO、PaddlePaddle、Raspberry Pi）。', 'zh-TW': '第一個開啟包含所有模組的<strong>平台概覽</strong>，第二個展示以 DEEPX NPU 為中心的 <strong>Physical AI 生態</strong>（Ultralytics YOLO、PaddlePaddle、Raspberry Pi）。', es: 'El primero abre la <strong>visión general de la plataforma</strong> con todos los módulos; el segundo muestra el <strong>ecosistema de IA física</strong>: Ultralytics YOLO, PaddlePaddle y Raspberry Pi alrededor de la NPU DEEPX.' } },
+        { target: '#studioGrid', position: 'bottom',
+          title: { en: 'Nine modules', ko: '아홉 개의 모듈', ja: '9つのモジュール', 'zh-CN': '九个模块', 'zh-TW': '九個模組', es: 'Nueve módulos' },
+          content: { en: 'Each icon opens its module in place — it grows from the icon and folds back into it when you return. Icons swell as your cursor nears them; a <strong>dimmed</strong> one means that module\'s server is offline or not installed. Hover to see what it does.', ko: '아이콘을 누르면 그 자리에서 모듈이 열립니다 — 아이콘에서 커지고, 돌아오면 다시 아이콘으로 접힙니다. 커서가 다가가면 아이콘이 커지고, <strong>흐린</strong> 아이콘은 그 모듈 서버가 꺼져 있거나 설치되지 않았다는 뜻입니다. 가리키면 하는 일이 보입니다.', ja: 'アイコンを押すとその場でモジュールが開きます。アイコンから広がり、戻るとアイコンへたたまれます。カーソルを近づけるとアイコンが大きくなり、<strong>薄い</strong>アイコンはそのモジュールのサーバーが停止中か未インストールです。ポイントすると役割が表示されます。', 'zh-CN': '点击图标会就地打开模块——从图标展开，返回时再收回图标。光标靠近时图标会放大；<strong>变暗</strong>的图标表示该模块的服务器未运行或未安装。悬停可查看它的用途。', 'zh-TW': '點擊圖示會就地開啟模組——從圖示展開，返回時再收回圖示。游標靠近時圖示會放大；<strong>變暗</strong>的圖示表示該模組的伺服器未執行或未安裝。停留可查看它的用途。', es: 'Cada icono abre su módulo en el sitio: crece desde el icono y vuelve a él al regresar. Los iconos se agrandan al acercar el cursor; uno <strong>atenuado</strong> indica que su servidor está apagado o no instalado. Pase el cursor para ver qué hace.' } },
+        { target: '.about-book-card.sdk-card', position: 'bottom',
+          title: { en: 'SDK Library', ko: 'SDK 라이브러리', ja: 'SDK ライブラリ', 'zh-CN': 'SDK 库', 'zh-TW': 'SDK 庫', es: 'Biblioteca SDK' },
+          content: { en: 'Open the <strong>SDK Library</strong> to browse technical documentation without leaving the launcher shell.', ko: '런처를 벗어나지 않고 <strong>SDK Library</strong>에서 기술 문서를 탐색합니다.', ja: 'ランチャーを離れずに<strong>SDK Library</strong>で技術ドキュメントを閲覧します。', 'zh-CN': '无需离开启动器即可在<strong>SDK Library</strong>中浏览技术文档。', 'zh-TW': '無需離開啟動器即可在<strong>SDK Library</strong>中瀏覽技術文件。', es: 'Abra <strong>SDK Library</strong> para explorar documentación técnica sin salir del launcher.' } },
         { target: '.about-book-card:not(.sdk-card)', position: 'bottom',
           title: { en: 'About DEEPX', ko: 'About DEEPX', ja: 'About DEEPX', 'zh-CN': 'About DEEPX', 'zh-TW': 'About DEEPX', es: 'About DEEPX' },
           content: { en: 'Open the <strong>interactive DEEPX encyclopedia</strong> — explore hotspots on the DX-M1/DX-M2 chip die and click through the company\'s technology, product, and vision stories.', ko: '<strong>인터랙티브 DEEPX 백과사전</strong>을 엽니다 — DX-M1/DX-M2 칩 다이의 핫스팟을 탐험하고 기술·제품·비전 스토리를 클릭으로 살펴보세요.', ja: '<strong>インタラクティブなDEEPX百科事典</strong>を開きます — DX-M1/DX-M2チップダイのホットスポットを探索し、技術・製品・ビジョンのストーリーをクリックで閲覧できます。', 'zh-CN': '打开<strong>DEEPX 交互式百科全书</strong>——探索 DX-M1/DX-M2 芯片裸片上的热点，点击浏览公司的技术、产品与愿景故事。', 'zh-TW': '開啟<strong>DEEPX 互動式百科全書</strong>——探索 DX-M1/DX-M2 晶片裸晶上的熱點，點擊瀏覽公司的技術、產品與願景故事。', es: 'Abra la <strong>enciclopedia interactiva de DEEPX</strong>: explore los puntos clave del die de los chips DX-M1/DX-M2 y recorra las historias de tecnología, producto y visión de la empresa.' } },
-        { target: '.about-book-card.sdk-card', position: 'bottom',
-          title: { en: 'SDK Library', ko: 'SDK Library', ja: 'SDK Library', 'zh-CN': 'SDK Library', 'zh-TW': 'SDK Library', es: 'SDK Library' },
-          content: { en: 'Open the <strong>SDK Library</strong> to browse technical documentation without leaving the launcher shell.', ko: '런처를 벗어나지 않고 <strong>SDK Library</strong>에서 기술 문서를 탐색합니다.', ja: 'ランチャーを離れずに<strong>SDK Library</strong>で技術ドキュメントを閲覧します。', 'zh-CN': '无需离开启动器即可在<strong>SDK Library</strong>中浏览技术文档。', 'zh-TW': '無需離開啟動器即可在<strong>SDK Library</strong>中瀏覽技術文件。', es: 'Abra <strong>SDK Library</strong> para explorar documentación técnica sin salir del launcher.' } },
-        { target: '#deepxLinks', position: 'top', skipScroll: true,
-          title: { en: 'DEEPX Resources', ko: 'DEEPX 리소스', ja: 'DEEPXリソース', 'zh-CN': 'DEEPX 资源', 'zh-TW': 'DEEPX 資源', es: 'Recursos DEEPX' },
-          content: { en: 'Quick links to DEEPX\'s official sites — docs, the <strong>DEEPX Agent</strong> (ask anything), Model Zoo, downloads, GitHub, and deepx.ai. Each opens in a new tab.', ko: 'DEEPX 공식 사이트 바로가기 — 문서, <strong>DEEPX Agent</strong>(무엇이든 질문), Model Zoo, 다운로드, GitHub, deepx.ai. 각 항목은 새 탭에서 열립니다.', ja: 'DEEPX公式サイトへのショートカット — ドキュメント、<strong>DEEPX Agent</strong>（何でも質問）、Model Zoo、ダウンロード、GitHub、deepx.ai。それぞれ新しいタブで開きます。', 'zh-CN': 'DEEPX 官方站点快捷入口 — 文档、<strong>DEEPX Agent</strong>（有问必答）、Model Zoo、下载、GitHub 和 deepx.ai。均在新标签页打开。', 'zh-TW': 'DEEPX 官方網站快捷入口 — 文件、<strong>DEEPX Agent</strong>（有問必答）、Model Zoo、下載、GitHub 和 deepx.ai。均在新分頁開啟。', es: 'Accesos directos a los sitios oficiales de DEEPX: documentación, el <strong>DEEPX Agent</strong> (pregunte lo que sea), Model Zoo, descargas, GitHub y deepx.ai. Cada uno se abre en una pestaña nueva.' } },
-        { target: '#replayBtn', position: 'top', skipScroll: true,
+        { target: '#homeDevice', position: 'right',
+          title: { en: 'This DX-M1', ko: '이 DX-M1', ja: 'この DX-M1', 'zh-CN': '这块 DX-M1', 'zh-TW': '這塊 DX-M1', es: 'Este DX-M1' },
+          content: { en: 'The live state of the NPU in this PC — one bar per core, then temperature, clock and power. The widget dims when no DX-M1 is connected. Click it to open <strong>Monitor</strong>.', ko: '이 PC에 꽂힌 NPU의 지금 상태 — 코어마다 막대 하나, 그리고 온도 · 클럭 · 전력. DX-M1이 연결되어 있지 않으면 위젯이 흐려집니다. 누르면 <strong>Monitor</strong> 가 열립니다.', ja: 'この PC の NPU の今の状態です。コアごとのバーと、温度・クロック・電力。DX-M1 が未接続だとウィジェットが暗くなります。クリックすると <strong>Monitor</strong> が開きます。', 'zh-CN': '这台电脑中 NPU 的实时状态——每个核心一根柱条，以及温度、时钟和功耗。未连接 DX-M1 时组件会变暗。点击打开 <strong>Monitor</strong>。', 'zh-TW': '這台電腦中 NPU 的即時狀態——每個核心一根長條，以及溫度、時脈和功耗。未連接 DX-M1 時元件會變暗。點擊開啟 <strong>Monitor</strong>。', es: 'Estado en vivo de la NPU de este PC: una barra por núcleo, más temperatura, reloj y consumo. El widget se atenúa si no hay un DX-M1 conectado. Haga clic para abrir <strong>Monitor</strong>.' } },
+        { target: '#homeMeasured', position: 'left',
+          title: { en: 'Measured here', ko: '여기서 잰 값', ja: 'ここで測った値', 'zh-CN': '在这里实测', 'zh-TW': '在這裡實測', es: 'Medido aquí' },
+          content: { en: 'The FPS of YOLO26n for each task, measured on this device. It moves to the next task every 5 seconds and waits while you point at it. The count below opens <strong>Benchmark</strong>.', ko: '작업마다 YOLO26n을 이 장치에서 잰 FPS 입니다. 5초마다 다음 작업으로 넘어가고, 가리키고 있으면 기다립니다. 아래 개수를 누르면 <strong>Benchmark</strong> 가 열립니다.', ja: 'タスクごとに YOLO26n をこのデバイスで測った FPS です。5秒ごとに次のタスクへ移り、ポイント中は待ちます。下の件数をクリックすると <strong>Benchmark</strong> が開きます。', 'zh-CN': '每个任务的 YOLO26n 在本设备上实测的 FPS。每 5 秒切换到下一个任务，悬停时暂停。点击下方的数量打开 <strong>Benchmark</strong>。', 'zh-TW': '每個任務的 YOLO26n 在本裝置上實測的 FPS。每 5 秒切換到下一個任務，停留時暫停。點擊下方的數量開啟 <strong>Benchmark</strong>。', es: 'FPS de YOLO26n para cada tarea, medidos en este dispositivo. Pasa a la siguiente tarea cada 5 segundos y espera mientras lo señala. El recuento de abajo abre <strong>Benchmark</strong>.' } },
+        { target: '#homeBar', position: 'top',
+          title: { en: 'DEEPX Developers', ko: 'DEEPX Developers', ja: 'DEEPX Developers', 'zh-CN': 'DEEPX Developers', 'zh-TW': 'DEEPX Developers', es: 'DEEPX Developers' },
+          content: { en: 'Links to <strong>DEEPX Developers</strong> — get started, software downloads, tech docs, documents, Model Zoo, GitHub and deepx.ai, each in a new tab. On a closed network they turn off and say <strong>Offline</strong>.', ko: '<strong>DEEPX Developers</strong> 바로가기 — 시작하기, 소프트웨어 다운로드, 기술 문서, 문서, Model Zoo, GitHub, deepx.ai. 새 탭에서 열립니다. 닫힌 망에서는 꺼지고 <strong>오프라인</strong> 이라고 알려줍니다.', ja: '<strong>DEEPX Developers</strong> へのリンク — はじめに、ソフトウェアダウンロード、技術ドキュメント、ドキュメント、Model Zoo、GitHub、deepx.ai。新しいタブで開きます。インターネットに届かない環境では無効になり<strong>オフライン</strong>と表示します。', 'zh-CN': '<strong>DEEPX Developers</strong> 快捷入口 — 快速开始、软件下载、技术文档、文档、Model Zoo、GitHub 和 deepx.ai，均在新标签页打开。在封闭网络中会停用并显示<strong>离线</strong>。', 'zh-TW': '<strong>DEEPX Developers</strong> 快捷入口 — 快速開始、軟體下載、技術文件、文件、Model Zoo、GitHub 和 deepx.ai，均在新分頁開啟。在封閉網路中會停用並顯示<strong>離線</strong>。', es: 'Enlaces a <strong>DEEPX Developers</strong>: primeros pasos, descargas de software, documentación técnica, documentos, Model Zoo, GitHub y deepx.ai, cada uno en una pestaña nueva. En una red cerrada se desactivan y muestran <strong>Sin conexión</strong>.' } },
+        { target: '#homeTour', position: 'bottom',
           beforeStep: function () {
             var rb = document.getElementById('replayBtn');
             if (rb) rb.style.display = '';
           },
-          title: { en: 'Replay Intro', ko: '인트로 재생', ja: 'イントロ再生', 'zh-CN': '重播介绍', 'zh-TW': '重播介紹', es: 'Repetir introducción' },
-          content: { en: 'Replay the DX AI Studio intro animation from the beginning.', ko: 'DX AI Studio 인트로 애니메이션을 처음부터 다시 재생합니다.', ja: 'DX AI Studioのイントロアニメーションを最初から再生します。', 'zh-CN': '从头重播 DX AI Studio 介绍动画。', 'zh-TW': '從頭重播 DX AI Studio 介紹動畫。', es: 'Repita la animación de introducción de DX AI Studio desde el inicio.' } },
+          title: { en: 'Tutorial and intro', ko: '튜토리얼과 인트로', ja: 'チュートリアルとイントロ', 'zh-CN': '教程与片头', 'zh-TW': '教學與片頭', es: 'Tutorial e intro' },
+          content: { en: '<strong>Tutorial Mode</strong> is on by default, so each module starts its own guided tour when you open it — switch it off here anytime. <strong>Replay Intro</strong> plays the opening animation again.', ko: '<strong>튜토리얼 모드</strong> 는 기본으로 켜져 있어 모듈을 열 때마다 그 모듈의 안내가 시작됩니다 — 언제든 여기서 끌 수 있습니다. <strong>인트로 재생</strong> 은 시작 애니메이션을 다시 보여줍니다.', ja: '<strong>チュートリアルモード</strong>は既定でオンで、モジュールを開くたびにそのガイドが始まります。ここでいつでもオフにできます。<strong>イントロ再生</strong>で冒頭のアニメーションをもう一度見られます。', 'zh-CN': '<strong>教程模式</strong>默认开启，每次打开模块都会启动该模块的引导——可随时在这里关闭。<strong>重播片头</strong>会再次播放开场动画。', 'zh-TW': '<strong>教學模式</strong>預設開啟，每次開啟模組都會啟動該模組的導覽——可隨時在這裡關閉。<strong>重播片頭</strong>會再次播放開場動畫。', es: 'El <strong>modo tutorial</strong> está activado por defecto: cada módulo inicia su recorrido guiado al abrirlo; desactívelo aquí cuando quiera. <strong>Repetir intro</strong> vuelve a reproducir la animación inicial.' } },
         { target: '.dx-chat-fab', position: 'left',
-          title: { en: '💬 AI Chatbot', ko: '💬 AI 챗봇', ja: '💬 AIチャットボット', 'zh-CN': '💬 AI聊天机器人', 'zh-TW': '💬 AI聊天機器人', es: '💬 Chatbot de IA' },
-          content: { en: 'The <strong>💬 assistant</strong> is available in every DX AI Studio module. Click it anytime to ask about DeepX models, the SDK, the compiler, or how any module works.', ko: '<strong>💬 어시스턴트</strong>는 모든 DX AI Studio 모듈에서 사용할 수 있습니다. 언제든 클릭하여 DeepX 모델, SDK, 컴파일러, 각 모듈 사용법에 대해 질문하세요.', ja: '<strong>💬 アシスタント</strong>はすべてのDX AI Studioモジュールで利用できます。いつでもクリックして、DeepXモデル、SDK、コンパイラ、各モジュールの使い方について質問できます。', 'zh-CN': '<strong>💬 助手</strong>在每个 DX AI Studio 模块中都可用。随时点击，询问关于 DeepX 模型、SDK、编译器或任意模块用法的问题。', 'zh-TW': '<strong>💬 助手</strong>在每個 DX AI Studio 模組中都可使用。隨時點擊，詢問關於 DeepX 模型、SDK、編譯器或任意模組用法的問題。', es: 'El <strong>asistente 💬</strong> está disponible en todos los módulos de DX AI Studio. Haga clic en cualquier momento para preguntar sobre modelos DeepX, el SDK, el compilador o el funcionamiento de cualquier módulo.' } },
-        { target: '.dx-chat-settings-provider', position: 'left',
-          title: { en: 'Choose a Provider', ko: '제공자 선택', ja: 'プロバイダーを選択', 'zh-CN': '选择提供商', 'zh-TW': '選擇提供商', es: 'Elegir un proveedor' },
-          content: { en: 'In chat settings (⚙️), pick an API-key provider — <strong>OpenAI, Anthropic, Google, GitHub Models, or a Custom endpoint</strong> — or go fully offline with no key at all: <strong>local</strong> (your own Ollama-compatible server) or <strong>agent-cli</strong> (reuse an already-logged-in claude/copilot/cursor/opencode CLI).', ko: '챗봇 설정(⚙️)에서 API 키 제공자 — <strong>OpenAI, Anthropic, Google, GitHub Models, 또는 Custom endpoint</strong> — 를 선택하거나, 키 없이 완전 오프라인으로 사용할 수 있는 <strong>local</strong>(자체 Ollama 호환 서버) 또는 <strong>agent-cli</strong>(이미 로그인된 claude/copilot/cursor/opencode CLI 재사용)를 선택하세요.', ja: 'チャット設定(⚙️)で API キー方式のプロバイダー — <strong>OpenAI、Anthropic、Google、GitHub Models、または Custom endpoint</strong> — を選択するか、キー不要で完全オフラインの <strong>local</strong>(自前の Ollama 互換サーバー)または <strong>agent-cli</strong>(ログイン済みの claude/copilot/cursor/opencode CLI を再利用)を選べます。', 'zh-CN': '在聊天设置(⚙️)中选择需要 API 密钥的提供商——<strong>OpenAI、Anthropic、Google、GitHub Models 或 Custom endpoint</strong>——或选择完全离线、无需密钥的 <strong>local</strong>(您自己的 Ollama 兼容服务器)或 <strong>agent-cli</strong>(复用已登录的 claude/copilot/cursor/opencode CLI)。', 'zh-TW': '在聊天設定(⚙️)中選擇需要 API 金鑰的提供商——<strong>OpenAI、Anthropic、Google、GitHub Models 或 Custom endpoint</strong>——或選擇完全離線、不需金鑰的 <strong>local</strong>(您自己的 Ollama 相容伺服器)或 <strong>agent-cli</strong>(重複使用已登入的 claude/copilot/cursor/opencode CLI)。', es: 'En la configuración del chat (⚙️), elija un proveedor con clave API — <strong>OpenAI, Anthropic, Google, GitHub Models o un endpoint personalizado</strong> — o use el modo totalmente sin conexión y sin clave: <strong>local</strong> (su propio servidor compatible con Ollama) o <strong>agent-cli</strong> (reutilice una CLI claude/copilot/cursor/opencode ya autenticada).' },
+          title: { en: 'AI Chatbot', ko: 'AI 챗봇', ja: 'AIチャットボット', 'zh-CN': 'AI聊天机器人', 'zh-TW': 'AI聊天機器人', es: 'Chatbot de IA' },
+          content: { en: 'The <strong>assistant</strong> is in every DX AI Studio module — ask about DEEPX models, the SDK, the compiler or how a module works. <strong>DEEPX Agent</strong> in its header opens the web version in a new tab.', ko: '<strong>어시스턴트</strong> 는 DX AI Studio의 모든 모듈에 있습니다 — DEEPX 모델, SDK, 컴파일러, 모듈 사용법을 물어보세요. 머리의 <strong>DEEPX Agent</strong> 는 웹 버전을 새 탭에서 엽니다.', ja: '<strong>アシスタント</strong>は DX AI Studio のすべてのモジュールにあります。DEEPX のモデル、SDK、コンパイラ、モジュールの使い方を聞いてください。ヘッダーの <strong>DEEPX Agent</strong> は Web 版を新しいタブで開きます。', 'zh-CN': '<strong>助手</strong>存在于 DX AI Studio 的每个模块中——可以询问 DEEPX 模型、SDK、编译器或模块用法。顶部的 <strong>DEEPX Agent</strong> 会在新标签页打开网页版。', 'zh-TW': '<strong>助手</strong>存在於 DX AI Studio 的每個模組中——可以詢問 DEEPX 模型、SDK、編譯器或模組用法。頂部的 <strong>DEEPX Agent</strong> 會在新分頁開啟網頁版。', es: 'El <strong>asistente</strong> está en todos los módulos de DX AI Studio: pregunte por los modelos DEEPX, el SDK, el compilador o cómo funciona un módulo. <strong>DEEPX Agent</strong> en su cabecera abre la versión web en una pestaña nueva.' } },
+        { target: '.dx-chat-settings-kind', position: 'left',
+          title: { en: 'Which AI answers', ko: '어떤 AI 가 답할지', ja: 'どの AI が答えるか', 'zh-CN': '由哪个 AI 回答', 'zh-TW': '由哪個 AI 回答', es: 'Qué IA responde' },
+          content: { en: 'The top line of the chat always says who answers. With nothing set, it is the <strong>coding agent you are signed in to</strong> (claude, copilot, cursor …) — no key needed, the same one Home and Agent Dev use. Settings ask one question: a <strong>coding agent</strong> on this PC, your <strong>local LLM server</strong>, or a <strong>cloud API key</strong> (OpenAI, Anthropic, Google, GitHub Models or a custom endpoint). Saving checks the connection first.', ko: '채팅 맨 위 한 줄이 늘 누가 답하는지 보여줍니다. 아무것도 정하지 않으면 <strong>로그인된 coding agent</strong> (claude, copilot, cursor …) 가 key 없이 답합니다 — Home 과 Agent Dev 가 쓰는 것과 같습니다. 설정은 질문 하나입니다: 이 PC 의 <strong>coding agent</strong>, 내 <strong>local LLM server</strong>, 또는 <strong>cloud API key</strong> (OpenAI, Anthropic, Google, GitHub Models, 직접 지정한 endpoint). 저장할 때 연결을 먼저 확인합니다.', ja: 'チャット上部の一行がいつも誰が答えるかを示します。何も設定しなければ、<strong>ログイン済みのコーディングエージェント</strong> (claude、copilot、cursor …) が key なしで答えます。Home と Agent Dev と同じものです。設定は質問ひとつです：この PC の<strong>コーディングエージェント</strong>、自分の<strong>ローカル LLM サーバー</strong>、または<strong>クラウド API key</strong> (OpenAI、Anthropic、Google、GitHub Models、カスタム endpoint)。保存時に接続を先に確認します。', 'zh-CN': '聊天顶部的一行始终显示由谁回答。未做任何设置时，由<strong>已登录的编码智能体</strong> (claude、copilot、cursor …) 无需 key 回答——与 Home 和 Agent Dev 使用的相同。设置只问一个问题：本机的<strong>编码智能体</strong>、您的<strong>本地 LLM 服务器</strong>，或<strong>云 API key</strong> (OpenAI、Anthropic、Google、GitHub Models 或自定义 endpoint)。保存时会先检查连接。', 'zh-TW': '聊天頂部的一行始終顯示由誰回答。未做任何設定時，由<strong>已登入的編碼智能體</strong> (claude、copilot、cursor …) 無需 key 回答——與 Home 和 Agent Dev 使用的相同。設定只問一個問題：本機的<strong>編碼智能體</strong>、您的<strong>本機 LLM 伺服器</strong>，或<strong>雲端 API key</strong> (OpenAI、Anthropic、Google、GitHub Models 或自訂 endpoint)。儲存時會先檢查連線。', es: 'La línea superior del chat siempre indica quién responde. Sin configurar nada, responde el <strong>agente de codificación con el que inició sesión</strong> (claude, copilot, cursor …), sin key: el mismo que usan Home y Agent Dev. Los ajustes hacen una sola pregunta: un <strong>agente de codificación</strong> de este PC, su <strong>servidor LLM local</strong> o una <strong>API key en la nube</strong> (OpenAI, Anthropic, Google, GitHub Models o un endpoint personalizado). Al guardar se comprueba primero la conexión.' },
           beforeStep: function () {
             var fab = document.querySelector('.dx-chat-fab');
             if (fab && !document.querySelector('.dx-chat-window.open')) fab.click();
@@ -86,12 +84,16 @@
             var closeBtn = document.querySelector('.dx-chat-settings-close');
             if (closeBtn) closeBtn.click();
           } },
-        { target: '.dx-chat-suggestions', position: 'left',
+        /* The suggested-questions area is often empty (zero height), so point at the whole window. Close the window the tour opened when it moves on */
+        { target: '.dx-chat-window.open', position: 'left',
           title: { en: 'Ask & Refresh Knowledge', ko: '질문하기 & 지식 새로고침', ja: '質問と知識の更新', 'zh-CN': '提问与刷新知识', 'zh-TW': '提問與刷新知識', es: 'Preguntar y actualizar conocimiento' },
-          content: { en: 'Click a <strong>suggested question</strong> to get started quickly, or type your own — e.g. "ask the chatbot to explain a failed compile error" in DX Compiler. Use <strong>Refresh knowledge</strong> (⚙️) to re-sync the bot\'s SDK knowledge with the latest .deepx docs.', ko: '<strong>추천 질문</strong>을 클릭해 빠르게 시작하거나 직접 입력하세요 — 예: DX Compiler에서 "컴파일 실패 오류를 챗봇에게 설명해달라고 요청". <strong>지식 새로고침</strong>(⚙️)으로 챗봇의 SDK 지식을 최신 .deepx 문서와 재동기화할 수 있습니다.', ja: '<strong>おすすめの質問</strong>をクリックしてすぐに始めるか、自分で入力してください — 例：DX Compilerで「コンパイル失敗エラーをチャットボットに説明してもらう」。<strong>知識を更新</strong>(⚙️)でボットのSDK知識を最新の.deepxドキュメントと再同期できます。', 'zh-CN': '点击<strong>推荐问题</strong>快速开始，或自行输入——例如在 DX Compiler 中「让聊天机器人解释一次编译失败的错误」。使用<strong>刷新知识</strong>(⚙️)可将机器人的 SDK 知识与最新的 .deepx 文档重新同步。', 'zh-TW': '點擊<strong>推薦問題</strong>快速開始，或自行輸入——例如在 DX Compiler 中「請聊天機器人解釋一次編譯失敗的錯誤」。使用<strong>刷新知識</strong>(⚙️)可將機器人的 SDK 知識與最新的 .deepx 文件重新同步。', es: 'Haga clic en una <strong>pregunta sugerida</strong> para empezar rápido, o escriba la suya — por ejemplo, en DX Compiler: "pídale al chatbot que explique un error de compilación fallido". Use <strong>Actualizar conocimiento</strong> (⚙️) para resincronizar el conocimiento del SDK del bot con la documentación .deepx más reciente.' },
+          content: { en: 'Click a <strong>suggested question</strong> to get started quickly, or type your own — e.g. "ask the chatbot to explain a failed compile error" in DX Compiler. <strong>Refresh knowledge</strong> (under <strong>Advanced</strong> in settings) re-syncs the bot\'s SDK knowledge with the latest .deepx docs.', ko: '<strong>추천 질문</strong>을 클릭해 빠르게 시작하거나 직접 입력하세요 — 예: DX Compiler에서 "컴파일 실패 오류를 챗봇에게 설명해달라고 요청". 설정의 <strong>고급</strong> 안 <strong>지식 새로고침</strong>으로 챗봇의 SDK 지식을 최신 .deepx 문서와 재동기화할 수 있습니다.', ja: '<strong>おすすめの質問</strong>をクリックしてすぐに始めるか、自分で入力してください — 例：DX Compilerで「コンパイル失敗エラーをチャットボットに説明してもらう」。設定の<strong>詳細</strong>にある<strong>知識を更新</strong>でボットのSDK知識を最新の.deepxドキュメントと再同期できます。', 'zh-CN': '点击<strong>推荐问题</strong>快速开始，或自行输入——例如在 DX Compiler 中「让聊天机器人解释一次编译失败的错误」。设置中<strong>高级</strong>里的<strong>刷新知识</strong>可将机器人的 SDK 知识与最新的 .deepx 文档重新同步。', 'zh-TW': '點擊<strong>推薦問題</strong>快速開始，或自行輸入——例如在 DX Compiler 中「請聊天機器人解釋一次編譯失敗的錯誤」。設定中<strong>進階</strong>裡的<strong>刷新知識</strong>可將機器人的 SDK 知識與最新的 .deepx 文件重新同步。', es: 'Haga clic en una <strong>pregunta sugerida</strong> para empezar rápido, o escriba la suya — por ejemplo, en DX Compiler: "pídale al chatbot que explique un error de compilación fallido". <strong>Actualizar conocimiento</strong> (en <strong>Avanzado</strong>, dentro de los ajustes) resincroniza el conocimiento del SDK del bot con la documentación .deepx más reciente.' },
           beforeStep: function () {
             var fab = document.querySelector('.dx-chat-fab');
             if (fab && !document.querySelector('.dx-chat-window.open')) fab.click();
+          },
+          afterStep: function () {
+            if (window.DXChat && typeof DXChat.toggle === 'function' && document.querySelector('.dx-chat-window.open')) DXChat.toggle();
           } }
       ] }
   ];
@@ -105,13 +107,16 @@
 
   function updateTutorialUI() {
     const sw = document.getElementById('dxt-mode-switch');
-    if (sw) sw.className = 'dxt-lc-switch' + (_tutorialMode ? ' on' : '');
+    if (sw) {
+      sw.className = 'dxt-lc-switch' + (_tutorialMode ? ' on' : '');
+      sw.setAttribute('aria-checked', String(_tutorialMode));
+    }
     const label = document.getElementById('dxt-mode-label');
     if (label) {
       label.textContent = _tutorialMode ? 'ON' : 'OFF';
-      label.style.color = _tutorialMode ? '#58a6ff' : '#888';
+      label.className = 'dxt-lc-mode' + (_tutorialMode ? ' is-on' : '');
     }
-    // 네비 버튼 피드백
+    // Nav button feedback
     const navBtn = document.querySelector('.dxt-toggle-btn');
     if (navBtn) {
       navBtn.style.opacity = _tutorialMode ? '1' : '0.5';
@@ -131,8 +136,8 @@
   }
 
   function buildTutorialCard() {
-    // orbital 레이아웃: footer 위에 삽입
-    const footer = document.querySelector('.landing-footer');
+    // The tour slot on the stage; without it, the end of #landing.
+    const tour = document.getElementById('homeTour');
     const landing = document.getElementById('landing');
     if (!landing) return;
 
@@ -141,31 +146,21 @@
     card.id = 'dxt-tutorial-card';
     card.onclick = toggleTutorialMode;
     card.innerHTML = `
-      <span class="dxt-lc-icon">🎓</span>
+      <span class="dxt-lc-icon">${(typeof DXIcon === 'function') ? DXIcon('graduation') : ''}</span>
       <div class="dxt-lc-text">
         <div class="dxt-lc-title">
-          <span class="ko">Tutorial Mode</span>
-          <span class="en">Tutorial Mode</span>
-          <span class="ja">Tutorial Mode</span>
-          <span class="zh-CN">Tutorial Mode</span>
-          <span class="zh-TW">Tutorial Mode</span>
-          <span class="es">Modo tutorial</span>
-          <span id="dxt-mode-label" style="margin-left:6px;font-size:12px;color:${_tutorialMode ? '#58a6ff' : '#888'}">${_tutorialMode ? 'ON' : 'OFF'}</span>
+          <span id="dxt-mode-title" data-i18n="Tutorial Mode">Tutorial Mode</span>
+          <span id="dxt-mode-label" aria-hidden="true" class="dxt-lc-mode${_tutorialMode ? ' is-on' : ''}">${_tutorialMode ? 'ON' : 'OFF'}</span>
         </div>
-        <div class="dxt-lc-desc">
-          <span class="ko">앱 실행 시 인터랙티브 튜토리얼을 자동으로 시작합니다</span>
-          <span class="en">Automatically start interactive tutorials when launching apps</span>
-          <span class="ja">アプリ起動時にインタラクティブチュートリアルを自動的に開始します</span>
-          <span class="zh-CN">启动应用时自动开始交互式教程</span>
-          <span class="zh-TW">啟動應用程式時自動開始互動式教學</span>
-          <span class="es">Inicia automáticamente tutoriales interactivos al abrir aplicaciones</span>
+        <div class="dxt-lc-desc" data-i18n="Automatically start interactive tutorials when launching apps">Automatically start interactive tutorials when launching apps
         </div>
       </div>
-      <button class="dxt-lc-switch ${_tutorialMode ? 'on' : ''}" id="dxt-mode-switch"
+      <button type="button" class="dxt-lc-switch ${_tutorialMode ? 'on' : ''}" id="dxt-mode-switch"
+              role="switch" aria-checked="${_tutorialMode}" aria-labelledby="dxt-mode-title"
               onclick="event.stopPropagation()"></button>
     `;
 
-    if (footer) landing.insertBefore(card, footer);
+    if (tour) tour.insertBefore(card, tour.firstChild);
     else landing.appendChild(card);
 
     const sw = card.querySelector('.dxt-lc-switch');
@@ -174,40 +169,44 @@
       toggleTutorialMode();
     });
 
-    // CSS 주입
+    // Inject CSS
     if (!document.getElementById('dxt-card-style')) {
       const style = document.createElement('style');
       style.id = 'dxt-card-style';
       style.textContent = `
+        /* The card is already inserted into #homeTour, inside #landing —
+           position:fixed was the only thing lifting it out of the page, onto
+           the hero. In flow it sits where the DOM already put it. Colours come
+           from the theme; the hard-coded dark ones survived light mode as a
+           dark panel with dark text. */
         .dxt-launcher-card {
-          position: fixed; top: 64px; left: 14px;
-          display: flex; align-items: center; gap: 10px;
-          background: rgba(30, 35, 50, 0.92); backdrop-filter: blur(12px);
-          border: 1px solid rgba(88, 166, 255, 0.25); border-radius: 10px;
-          padding: 10px 18px; cursor: pointer; z-index: 100;
-          box-shadow: 0 4px 24px rgba(0,0,0,0.3);
-          transition: border-color 0.2s, box-shadow 0.2s;
-          max-width: 360px;
+          display: flex; align-items: center; gap: 12px;
+          width: 100%; max-width: 1680px;
+          margin: var(--sp-5) auto 0; box-sizing: border-box;
+          background: var(--ap-panel);
+          border: 0; border-radius: 18px;
+          box-shadow: var(--ap-shadow);
+          padding: 13px 16px; cursor: pointer;
         }
-        .dxt-launcher-card:hover {
-          border-color: rgba(88, 166, 255, 0.5);
-          box-shadow: 0 4px 32px rgba(88, 166, 255, 0.15);
-        }
-        .dxt-lc-icon { font-size: 28px; }
-        .dxt-lc-title { font-size: 15px; font-weight: 600; color: #e6edf3; }
-        .dxt-lc-desc { font-size: 12px; color: #8b949e; margin-top: 2px; }
-        .dxt-lc-switch {
-          width: 44px; height: 24px; border-radius: 12px; border: none;
-          background: #484f58; cursor: pointer; position: relative;
+        .dxt-launcher-card:hover { background: var(--ap-panel); }
+        .dxt-launcher-card .dxt-lc-text { flex: 1; min-width: 0; }
+        .dxt-launcher-card .dxt-lc-icon { display: none; }
+        .dxt-launcher-card .dxt-lc-title { font-size: var(--ap-t-lead); font-weight: 500; color: var(--ap-ink); }
+        .dxt-launcher-card .dxt-lc-desc { font-size: var(--ap-t-body); color: var(--ap-ink-3); margin-top: 1px; }
+        .dxt-launcher-card .dxt-lc-mode { margin-left: 6px; font-size: var(--ap-t-body); color: var(--ap-ink-3); }
+        .dxt-launcher-card .dxt-lc-mode.is-on { color: var(--ap-blue); }
+        .dxt-launcher-card .dxt-lc-switch {
+          width: 40px; height: 22px; border-radius: 11px; border: none;
+          background: var(--ap-fill); cursor: pointer; position: relative;
           transition: background 0.2s; flex-shrink: 0;
         }
-        .dxt-lc-switch::after {
+        .dxt-launcher-card .dxt-lc-switch::after {
           content: ''; position: absolute; top: 3px; left: 3px;
-          width: 18px; height: 18px; border-radius: 50%;
-          background: #fff; transition: transform 0.2s;
+          width: 16px; height: 16px; border-radius: 50%;
+          background: var(--ap-on-blue); transition: transform 0.2s;
         }
-        .dxt-lc-switch.on { background: #58a6ff; }
-        .dxt-lc-switch.on::after { transform: translateX(20px); }
+        .dxt-launcher-card .dxt-lc-switch.on { background: var(--ap-green); }
+        .dxt-launcher-card .dxt-lc-switch.on::after { transform: translateX(18px); }
 
       `;
       document.head.appendChild(style);
@@ -221,7 +220,8 @@
     btn.className = 'dx-toolbar-btn dxt-toggle-btn';
     var _tutorialLabels = {en:'Tutorial Mode',ko:'튜토리얼 모드',ja:'チュートリアルモード','zh-CN':'教程模式','zh-TW':'教學模式',es:'Modo tutorial'};
     btn.title = _tutorialLabels[_lang()] || _tutorialLabels.en;
-    btn.innerHTML = '🎓';
+    /* SF Symbols-style line glyphs — emoji clash with the chrome */
+    btn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8l9-4 9 4-9 4-9-4z"/><path d="M7 10.5V16c0 1.1 2.2 2 5 2s5-.9 5-2v-5.5"/></svg>';
     btn.addEventListener('click', toggleTutorialMode);
     topRight.insertBefore(btn, topRight.firstChild);
   }
@@ -242,6 +242,8 @@
       console.warn('[LauncherTutorial] toolbar restore skipped: tutorial engine is not ready');
       return;
     }
+    if (window.DXLauncher && window.DXLauncher.currentApp) return;
+    window._dxTutorial = _engine;
     if (typeof DXToolbar !== 'undefined' && typeof DXToolbar.connectTutorial === 'function') {
       DXToolbar.connectTutorial(_engine, { owner: 'launcher' });
     }
@@ -270,6 +272,9 @@
       }
       DXTutorial.create({
       appId: 'launcher',
+      isActive: function () {
+        return !window.DXLauncher || !DXLauncher.currentApp;
+      },
       sections: sections,
       getLang: function () {
         return (typeof DXI18n !== 'undefined' && DXI18n.lang) || _lang();

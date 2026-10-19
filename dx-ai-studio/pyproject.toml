@@ -4,13 +4,18 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "dxstudio"
-version = "0.1.0"
+version = "0.1.1"
 requires-python = ">=3.8"
 # ZERO third-party runtime dependencies — the entire studio, including the dx_app
 # ModelZoo tab (portal fetch via urllib + HTML parse via a stdlib html.parser DOM,
 # see dx_app/core/_html_dom.py), runs on the Python standard library alone. This is
 # deliberate: air-gapped boards bootstrap via `pip install -e .` with no PyPI access.
 dependencies = []
+
+[project.optional-dependencies]
+# DX Cloud compile talks to AWS through boto3. Optional: without it the DX Cloud page still
+# loads and shows an install hint; nothing else in the studio needs it.
+aws = ["boto3"]
 
 [tool.setuptools]
 packages = [
@@ -23,12 +28,12 @@ packages = [
   "dx_monitor", "dx_monitor.core",
   "dx_planner", "dx_planner.core",
   "dx_agent_dev", "dx_agent_dev.core", "dx_agent_dev.core.adapters",
+  "dx_edge", "dx_edge.core",
 ]
 
 [tool.setuptools.package-data]
-"*" = ["templates/*", "templates/**/*", "static/**/*", "knowledge/*.md", "*.json"]
+"*" = ["templates/*", "templates/**/*", "static/**/*", "knowledge/*.md", "*.json", "cfn/*.json"]
 
-[tool.pytest.ini_options]
-markers = [
-  "runtime_lifecycle: fixture-local Managed Runtime Host bootstrap, migration, and rollback scenarios",
-]
+# pytest configuration lives in pytest.ini (single source of truth).
+# pytest.ini takes precedence over pyproject.toml, so a [tool.pytest.ini_options]
+# block here would be dead config that silently drifts from the real one.

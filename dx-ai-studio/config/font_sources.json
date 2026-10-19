@@ -1,0 +1,71 @@
+{
+  "inter": {
+    "lang": "latin",
+    "file": "Inter-4.1.zip",
+    "url": "https://github.com/rsms/inter/releases/download/v4.1/Inter-4.1.zip",
+    "sha256": "9883fdd4a49d4fb66bd8177ba6625ef9a64aa45899767dde3d36aa425756b11e",
+    "member": "InterVariable.ttf",
+    "output": "inter-4.1-var-latin.woff2",
+    "license": {
+      "file": "Inter-4.1.zip",
+      "member": "LICENSE.txt"
+    },
+    "license_output": "LICENSE-Inter.txt"
+  },
+  "pretendard": {
+    "lang": "ko",
+    "file": "Pretendard-1.3.9.zip",
+    "url": "https://github.com/orioncactus/pretendard/releases/download/v1.3.9/Pretendard-1.3.9.zip",
+    "sha256": "04be351a74d6bf7d60c480a3087e51d185485d35a52023142af1df19eb8c428a",
+    "member": "public/variable/PretendardVariable.ttf",
+    "output": "pretendard-1.3.9-var-ko.woff2",
+    "license": {
+      "file": "Pretendard-1.3.9.zip",
+      "member": "LICENSE.txt"
+    },
+    "license_output": "LICENSE-Pretendard.txt"
+  },
+  "pretendard-jp": {
+    "lang": "ja",
+    "file": "PretendardJP-1.3.9.zip",
+    "url": "https://github.com/orioncactus/pretendard/releases/download/v1.3.9/PretendardJP-1.3.9.zip",
+    "sha256": "8dab678c371a1530106ca643b76b2b80d47653d5ba670b01265b48e4c6615d63",
+    "member": "public/variable/PretendardJPVariable.ttf",
+    "output": "pretendard-jp-1.3.9-var-ja.woff2",
+    "license": {
+      "file": "PretendardJP-1.3.9.zip",
+      "member": "LICENSE.txt"
+    },
+    "license_output": "LICENSE-PretendardJP.txt"
+  },
+  "noto-sans-sc": {
+    "lang": "zh-CN",
+    "file": "NotoSansSC[wght].ttf",
+    "url": "https://raw.githubusercontent.com/google/fonts/a85815a42757630ce188fdad368c2dfc444d4773/ofl/notosanssc/NotoSansSC%5Bwght%5D.ttf",
+    "sha256": "a3041811a78c361b1de50f953c805e0244951c21c5bd412f7232ef0d899af0da",
+    "member": null,
+    "output": "noto-sans-sc-var-zh-cn.woff2",
+    "license": {
+      "file": "OFL-SC.txt",
+      "url": "https://raw.githubusercontent.com/google/fonts/a85815a42757630ce188fdad368c2dfc444d4773/ofl/notosanssc/OFL.txt",
+      "sha256": "1c05c68c34f9708415aada51f17e1b0092d2cea709bf4a94cd38114f9e73d7d9",
+      "member": null
+    },
+    "license_output": "LICENSE-NotoSansSC.txt"
+  },
+  "noto-sans-tc": {
+    "lang": "zh-TW",
+    "file": "NotoSansTC[wght].ttf",
+    "url": "https://raw.githubusercontent.com/google/fonts/3be1884c48c3e45b52ecc725676a08f87776373e/ofl/notosanstc/NotoSansTC%5Bwght%5D.ttf",
+    "sha256": "864727d210d54f2537bbe23b3a839436c3992af72de9322af5270897246bd44f",
+    "member": null,
+    "output": "noto-sans-tc-var-zh-tw.woff2",
+    "license": {
+      "file": "OFL-TC.txt",
+      "url": "https://raw.githubusercontent.com/google/fonts/3be1884c48c3e45b52ecc725676a08f87776373e/ofl/notosanstc/OFL.txt",
+      "sha256": "1c05c68c34f9708415aada51f17e1b0092d2cea709bf4a94cd38114f9e73d7d9",
+      "member": null
+    },
+    "license_output": "LICENSE-NotoSansTC.txt"
+  }
+}

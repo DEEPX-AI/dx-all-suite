@@ -150,13 +150,13 @@ def test_compiler_service_has_submit_resume():
 
 
 def test_finalize_success_records_diagnosis_before_status_done(tmp_path):
-    """Regression: the diagnosis report must be recorded BEFORE status flips to "done".
+    """The diagnosis report must be recorded BEFORE status flips to "done".
 
     The /progress SSE loop emits the terminal `complete` event (carrying the quant
-    payload) the instant it polls job.status == "done", then stops polling. When the
+    payload) the instant it polls job.status == "done", then stops polling. If the
     artifact stores ran *after* _finalize_success set status="done", a poll landing in
-    that window shipped `complete` with the report still unrecorded — so a
-    diagnosis_report.html that genuinely exists on disk was surfaced as "not generated".
+    that window would ship `complete` with the report still unrecorded — so a
+    diagnosis_report.html that genuinely exists on disk would show as "not generated".
     _finalize_success must therefore leave diagnosis_report_path set by the time it
     returns True (i.e. before the status write that the SSE loop keys off).
     """

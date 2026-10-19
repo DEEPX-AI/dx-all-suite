@@ -1,38 +1,40 @@
 """Visual Shell Header Contract Tests.
 
-모든 surface의 shell header가 공유 토큰 계약을 준수하는지 검증한다.
+Checks that every surface's shell header follows the shared token contract.
 """
 from pathlib import Path
 import re
 
 import pytest
+from tests.css_rules import css_rule as _css_rule
 
 ROOT = Path(__file__).resolve().parent.parent
 
 SURFACES = {
     "launcher": ("launcher/static/index.html", "launcher/static/style.css"),
-    "dx_app": ("dx_app/templates/index.html", "dx_app/static/css/style.css"),
-    "dx_stream": ("dx_stream/templates/index.html", "dx_stream/static/css/stream.css"),
-    "dx_compiler": ("dx_compiler/templates/base.html", "dx_compiler/static/css/style.css"),
-    "dx_monitor": ("dx_monitor/templates/index.html", "dx_monitor/static/css/style.css"),
-    "dx_planner": ("dx_planner/templates/index.html", "dx_planner/static/css/style.css"),
-    "dx_benchmark": ("dx_benchmark/templates/index.html", "dx_benchmark/static/css/style.css"),
-    "dx_modelzoo": ("dx_modelzoo/templates/index.html", "dx_modelzoo/static/css/style.css"),
+    # Modules on the shared App Shell have their header owned by dx-shell.css.
+    "dx_app": ("dx_app/templates/index.html", "shared/static/dx-shell.css"),
+    "dx_stream": ("dx_stream/templates/index.html", "shared/static/dx-shell.css"),
+    "dx_compiler": ("dx_compiler/templates/base.html", "shared/static/dx-shell.css"),
+    "dx_monitor": ("dx_monitor/templates/index.html", "shared/static/dx-shell.css"),
+    "dx_planner": ("dx_planner/templates/index.html", "shared/static/dx-shell.css"),
+    "dx_benchmark": ("dx_benchmark/templates/index.html", "shared/static/dx-shell.css"),
+    "dx_modelzoo": ("dx_modelzoo/templates/index.html", "shared/static/dx-shell.css"),
 }
 
-# 모듈별 topbar 셀렉터
+# Topbar selector per module
 HEADER_SELECTORS = {
     "launcher": ".top-bar",
-    "dx_app": ".topbar",
-    "dx_stream": ".topbar",
-    "dx_compiler": "#header",
-    "dx_monitor": ".top-bar",
-    "dx_planner": ".planner-topbar",
-    "dx_benchmark": ".top-bar",
-    "dx_modelzoo": ".mz-topbar",
+    "dx_app": ".dx-shell-header",
+    "dx_stream": ".dx-shell-header",
+    "dx_compiler": ".dx-shell-header",
+    "dx_monitor": ".dx-shell-header",
+    "dx_planner": ".dx-shell-header",
+    "dx_benchmark": ".dx-shell-header",
+    "dx_modelzoo": ".dx-shell-header",
 }
 
-# DXBrand.mount를 사용하는 모듈 (launcher는 커스텀 .logo 허용)
+# Modules that use DXBrand.mount (the launcher may keep its custom .logo)
 BRAND_MODULES = [
     "dx_app", "dx_stream", "dx_compiler",
     "dx_monitor", "dx_planner", "dx_benchmark", "dx_modelzoo",
@@ -49,31 +51,49 @@ def read_text(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
-def _css_rule(css: str, selector: str) -> str:
-    """selector에 해당하는 CSS 규칙 본문을 추출한다."""
-    escaped = re.escape(selector)
-    # 중첩되지 않은 단순 셀렉터 매칭
-    pattern = escaped + r"\s*\{([^}]+)\}"
-    matches = list(re.finditer(pattern, css))
-    assert matches, f"selector {selector!r} not found in CSS"
-    return matches[0].group(1)
+# Modules on the shared App Shell — header/brand/toolbar are injected at server render
+# time, so reading the template file alone does not show them. Add a line per migrated module.
+MIGRATED_SHELL_MODULES = {
+    "dx_app": ("dx_app.server", "DX_APP_SHELL"),
+    "dx_stream": ("dx_stream.server", "DX_STREAM_SHELL"),
+    "dx_benchmark": ("dx_benchmark.server", "DX_BENCHMARK_SHELL"),
+    "dx_monitor": ("dx_monitor.server", "DX_MONITOR_SHELL"),
+    "dx_agent_dev": ("dx_agent_dev.server", "DX_AGENT_DEV_SHELL"),
+    "dx_modelzoo": ("dx_modelzoo.server", "DX_MODELZOO_SHELL"),
+    "dx_planner": ("dx_planner.server", "DX_PLANNER_SHELL"),
+    "dx_compiler": ("dx_compiler.server", "DX_COMPILER_SHELL"),
+}
 
+
+def surface_html(name: str) -> str:
+    """The HTML the server actually serves."""
+    template_rel, _ = SURFACES[name]
+    html = read_text(ROOT / template_rel)
+    if name not in MIGRATED_SHELL_MODULES:
+        return html
+
+    import importlib
+
+    mod_path, spec_name = MIGRATED_SHELL_MODULES[name]
+    from shared.shell import apply as apply_shell
+
+    return apply_shell(html, getattr(importlib.import_module(mod_path), spec_name))
 
 
 class TestSharedCSSLoadOrder:
-    """모든 템플릿이 module-chrome.css, brand.css, toolbar.css를 로컬 CSS보다 먼저 로드한다."""
+    """Every template loads module-chrome.css, brand.css and toolbar.css before its local CSS."""
 
     @pytest.mark.parametrize("name", SURFACES.keys())
     def test_shared_css_before_local(self, name):
         template_rel, css_rel = SURFACES[name]
         html = read_text(ROOT / template_rel)
 
-        # 공유 CSS 파일들이 존재하는지 확인
+        # The shared CSS files are referenced
         for href in SHARED_CSS_ORDER:
             base = href.split("?")[0]
             assert base in html, f"{name}: {href} missing from template"
 
-        # 로컬 CSS href 패턴 (모듈별 로컬 경로로 정확히 매칭)
+        # Local CSS href (matched exactly against each module's local path)
         LOCAL_CSS_TOKENS = {
             "launcher": '/style.css',
             "dx_app": '/static/css/style.css',
@@ -86,12 +106,12 @@ class TestSharedCSSLoadOrder:
         }
         local_token = LOCAL_CSS_TOKENS[name]
 
-        # 공유 CSS가 로컬 CSS보다 먼저 등장하는지 확인
+        # Shared CSS appears before local CSS
         toolbar_base = "/static/shared/toolbar.css"
         toolbar_pos = html.find(toolbar_base)
         assert toolbar_pos >= 0, f"{name}: toolbar.css not found"
 
-        # href="<local_token>" 형태로 정확히 찾기
+        # Find it exactly as href="<local_token>"
         local_href = f'href="{local_token}'
         local_pos = html.find(local_href)
         if local_pos >= 0:
@@ -101,12 +121,11 @@ class TestSharedCSSLoadOrder:
 
 
 class TestDXBrandSlot:
-    """DXBrand.mount를 사용하는 모든 모듈이 id='dxBrand'를 가진다."""
+    """Every module that uses DXBrand.mount has id='dxBrand'."""
 
     @pytest.mark.parametrize("name", BRAND_MODULES)
     def test_brand_slot_has_id(self, name):
-        template_rel, _ = SURFACES[name]
-        html = read_text(ROOT / template_rel)
+        html = surface_html(name)
 
         assert 'id="dxBrand"' in html, (
             f"{name}: id='dxBrand' 슬롯이 반드시 존재해야 한다"
@@ -127,14 +146,14 @@ class TestDXBrandSlot:
 
 
 class TestShellHeightUsesSharedToken:
-    """모든 모듈의 shell height가 --dx-module-header-h 또는 문서화된 반응형 별칭을 사용한다."""
+    """Every module's shell height uses --dx-module-header-h or a documented responsive alias."""
 
-    # 허용되는 height 값 패턴
+    # Allowed height value patterns
     ALLOWED_HEIGHT_TOKENS = [
         "var(--dx-module-header-h)",
     ]
 
-    # 각 모듈의 허용되는 로컬 별칭 (값이 --dx-module-header-h를 참조해야 함)
+    # Allowed local aliases per module (the value must reference --dx-module-header-h)
     ALLOWED_LOCAL_ALIASES = {
         "launcher": "--launcher-topbar-h",
         "dx_benchmark": "--benchmark-topbar-h",
@@ -149,7 +168,7 @@ class TestShellHeightUsesSharedToken:
 
         body = _css_rule(css, selector)
 
-        # height 또는 min-height 속성을 찾는다
+        # Find the height or min-height property
         height_match = re.search(
             r"(?:min-)?height\s*:\s*([^;]+)", body
         )
@@ -158,15 +177,15 @@ class TestShellHeightUsesSharedToken:
 
         height_val = height_match.group(1).strip()
 
-        # 직접 --dx-module-header-h 사용은 항상 허용
+        # Using --dx-module-header-h directly is always allowed
         if "var(--dx-module-header-h)" in height_val:
             return
 
-        # 로컬 별칭 사용 시, 별칭이 --dx-module-header-h를 참조하는지 확인
+        # A local alias must itself reference --dx-module-header-h
         if name in self.ALLOWED_LOCAL_ALIASES:
             alias = self.ALLOWED_LOCAL_ALIASES[name]
             if f"var({alias})" in height_val:
-                # 별칭 정의에서 --dx-module-header-h 참조 확인
+                # The alias definition references --dx-module-header-h
                 alias_pattern = re.escape(alias) + r"\s*:\s*([^;]+)"
                 alias_match = re.search(alias_pattern, css)
                 assert alias_match, f"{name}: alias {alias} not defined"
@@ -184,7 +203,7 @@ class TestShellHeightUsesSharedToken:
 
 
 class TestShellStylesUseSharedTokens:
-    """모든 모듈의 shell 스타일이 공유 배경/테두리/엘리베이션 토큰을 사용한다."""
+    """Every module's shell style uses the shared background/border/elevation tokens."""
 
     REQUIRED_TOKENS = [
         ("background", "var(--dx-module-header-bg)"),
@@ -207,9 +226,9 @@ class TestShellStylesUseSharedTokens:
 
 
 class TestBackdropFilterOnShellHeaders:
-    """compiler를 제외한 모듈 shell header에 backdrop-filter가 존재한다.
+    """Module shell headers other than the compiler's have a backdrop-filter.
 
-    compiler의 #header는 별도 TestKnownExceptions에서 검증하므로 여기서 제외한다.
+    The compiler is excluded here; TestKnownExceptions checks it separately.
     """
 
     MODULES_REQUIRING_BACKDROP = [
@@ -230,7 +249,7 @@ class TestBackdropFilterOnShellHeaders:
 
 
 class TestLanguageDropdownStacking:
-    """app/stream의 공유 언어 드롭다운이 콘텐츠 카드 위에 표시된다."""
+    """The shared language dropdown in app/stream shows above content cards."""
 
     CONTENT_LAYER_MAX = 100
     POPUP_LAYER_MIN = 300
@@ -239,25 +258,29 @@ class TestLanguageDropdownStacking:
     def test_topbar_stacks_language_menu_between_content_and_popups(self, name):
         _, css_rel = SURFACES[name]
         css = read_text(ROOT / css_rel)
-        topbar = _css_rule(css, ".topbar")
-        toolbar_host = _css_rule(css, ".topbar-right")
+        header_sel = HEADER_SELECTORS[name]
+        host_sel = (
+            ".dx-shell-header-right" if header_sel == ".dx-shell-header" else ".topbar-right"
+        )
+        topbar = _css_rule(css, header_sel)
+        toolbar_host = _css_rule(css, host_sel)
 
         normalized_topbar = topbar.replace(" ", "")
         topbar_z = re.search(r"z-index\s*:\s*(\d+)\s*;", topbar)
         assert "position:relative" in normalized_topbar, (
-            f"{name}: .topbar must be positioned so z-index lifts "
+            f"{name}: {header_sel} must be positioned so z-index lifts "
             "the language dropdown above page cards"
         )
-        assert topbar_z, f"{name}: .topbar must declare explicit z-index"
+        assert topbar_z, f"{name}: {header_sel} must declare explicit z-index"
         topbar_z_value = int(topbar_z.group(1))
         assert topbar_z_value > self.CONTENT_LAYER_MAX, (
-            f"{name}: .topbar must stack above page content layers"
+            f"{name}: {header_sel} must stack above page content layers"
         )
         assert topbar_z_value < self.POPUP_LAYER_MIN, (
-            f"{name}: .topbar must stay below popup/modal layers"
+            f"{name}: {header_sel} must stay below popup/modal layers"
         )
         assert "overflow:visible" in normalized_topbar, (
-            f"{name}: .topbar must not clip the language dropdown menu"
+            f"{name}: {header_sel} must not clip the language dropdown menu"
         )
 
         normalized_host = toolbar_host.replace(" ", "")
@@ -271,45 +294,79 @@ class TestLanguageDropdownStacking:
 
 
 
-class TestMonitorZIndexLayerLadder:
-    """DX Monitor z-index layers must not conflict with shared toolbar popup layers."""
+class TestShellHeaderZIndexLayerLadder:
+    """The shared shell header sits above page content and below popups/modals.
+
+    There is one header for every module, so the z-index ladder is checked in one place.
+    """
 
     SHARED_POPUP_Z = 10000  # shared toolbar.css .dx-lang-menu
+    CONTENT_LAYER_MAX = 100
 
-    def test_monitor_topbar_below_shared_popup(self):
-        """Monitor .top-bar z-index must be < shared popup layer (10000)."""
-        _, css_rel = SURFACES["dx_monitor"]
-        css = read_text(ROOT / css_rel)
-        topbar = _css_rule(css, ".top-bar")
-        z = re.search(r"z-index\s*:\s*(\d+)", topbar)
-        assert z, ".top-bar must declare z-index"
-        val = int(z.group(1))
-        assert val < self.SHARED_POPUP_Z, (
-            f".top-bar z-index ({val}) must be below shared popup layer ({self.SHARED_POPUP_Z})"
-        )
-        assert val >= 1000, (
-            f".top-bar z-index ({val}) must be >= 1000 to stay above page content"
-        )
+    def _shell_header_z(self) -> int:
+        css = read_text(ROOT / "shared/static/dx-shell.css")
+        body = _css_rule(css, ".dx-shell-header")
+        z = re.search(r"z-index\s*:\s*(\d+)", body)
+        assert z, ".dx-shell-header must declare z-index"
+        return int(z.group(1))
 
-    def test_monitor_toolbar_does_not_tie_shared_popup(self):
-        """Monitor .toolbar z-index must not equal shared .dx-lang-menu popup (10000)."""
-        _, css_rel = SURFACES["dx_monitor"]
-        css = read_text(ROOT / css_rel)
-        toolbar = _css_rule(css, ".toolbar")
-        z = re.search(r"z-index\s*:\s*(\d+)", toolbar)
-        if z:
-            assert int(z.group(1)) != self.SHARED_POPUP_Z, (
-                ".toolbar z-index must not tie with shared popup layer"
+    def test_shell_header_sits_above_page_content(self):
+        assert self._shell_header_z() > self.CONTENT_LAYER_MAX
+
+    def test_shell_header_sits_below_the_shared_popup_layer(self):
+        """A header above popups would hide the language dropdown behind it."""
+        assert self._shell_header_z() < self.SHARED_POPUP_Z
+
+    def test_shell_rail_sits_below_the_header(self):
+        """A rail above the header would clip the header's dropdowns."""
+        css = read_text(ROOT / "shared/static/dx-shell.css")
+        rail = _css_rule(css, ".dx-shell-rail")
+        z = re.search(r"z-index\s*:\s*(\d+)", rail)
+        assert z, ".dx-shell-rail must declare z-index"
+        assert int(z.group(1)) < self._shell_header_z()
+
+    @pytest.mark.parametrize("name", sorted(MIGRATED_SHELL_MODULES))
+    def test_migrated_module_content_stays_below_the_shell_header(self, name):
+        """Module content above the header would cover it.
+
+        Overlays (toast, modal, chat picker) belong above the header and are excluded —
+        only the content layer is checked.
+        """
+        module_css_rel = {
+            "dx_app": "dx_app/static/css/style.css",
+            "dx_stream": "dx_stream/static/css/stream.css",
+            "dx_benchmark": "dx_benchmark/static/css/style.css",
+            "dx_monitor": "dx_monitor/static/css/style.css",
+            "dx_agent_dev": "dx_agent_dev/static/css/console.css",
+            "dx_modelzoo": "dx_modelzoo/static/css/style.css",
+            "dx_planner": "dx_planner/static/css/style.css",
+            "dx_compiler": "dx_compiler/static/css/style.css",
+        }[name]
+        css = read_text(ROOT / module_css_rel)
+        header_z = self._shell_header_z()
+        # Allowed above the header: popups/modals and floating widgets (chat FAB,
+        # NPU monitor float). Covering the header is their intended behavior.
+        overlay = re.compile(
+            r"toast|modal|overlay|picker|menu|dropdown|lightbox|tooltip|drawer|popup"
+            r"|chat|fab|float|widget|banner|spotlight|backdrop"
+        )
+        for m in re.finditer(r"([^{}]+)\{([^}]*z-index\s*:\s*(\d+)[^}]*)\}", css):
+            selector, _body, z = m.group(1).strip().splitlines()[-1], m.group(2), int(m.group(3))
+            if z <= header_z or overlay.search(selector.lower()):
+                continue
+            raise AssertionError(
+                f"{name}: {selector!r} has z-index {z} above the shell header "
+                f"({header_z}) but is not an overlay — it would cover the header"
             )
 
 
 class TestKnownExceptions:
-    """문서화된 예외가 올바르게 유지되는지 확인한다."""
+    """The documented exceptions hold."""
 
     def test_launcher_custom_logo_allowed_but_topbar_h_references_shared(self):
-        """launcher의 커스텀 .logo는 허용되나 --launcher-topbar-h는 --dx-module-header-h를 참조해야 한다."""
+        """The launcher may keep its custom .logo, but --launcher-topbar-h must reference --dx-module-header-h."""
         css = read_text(ROOT / "launcher/static/style.css")
-        # --launcher-topbar-h가 --dx-module-header-h를 참조하는지 확인
+        # --launcher-topbar-h references --dx-module-header-h
         match = re.search(r"--launcher-topbar-h\s*:\s*([^;]+)", css)
         assert match, "--launcher-topbar-h not defined"
         val = match.group(1).strip()
@@ -317,26 +374,30 @@ class TestKnownExceptions:
             f"--launcher-topbar-h must reference --dx-module-header-h, got: {val}"
         )
 
-    def test_compiler_hash_header_selector_allowed(self):
-        """compiler의 #header 셀렉터는 허용된다."""
+    def test_compiler_no_longer_needs_the_hash_header_exception(self):
+        """The compiler needs no #header exception: the shared shell owns its header.
+
+        An exception kept without a reason gets copied by the next author, so none is kept.
+        """
         css = read_text(ROOT / "dx_compiler/static/css/style.css")
-        body = _css_rule(css, "#header")
-        assert "var(--dx-module-header-bg)" in body
+        assert not re.search(r"^\s*#header\s*\{", css, re.M), (
+            "#header 가 다시 생겼다 — 헤더는 shared/static/dx-shell.css 가 소유한다"
+        )
 
     def test_benchmark_responsive_88px_via_named_alias(self):
-        """benchmark의 반응형 88px 동작은 명명된 로컬 별칭 또는 명시적 미디어 규칙을 통해서만 허용된다."""
+        """The benchmark's responsive 88px height is allowed only via a named local alias or an explicit media rule."""
         css = read_text(ROOT / "dx_benchmark/static/css/style.css")
 
-        # 88px가 존재한다면, @media 규칙 안에서만 허용
+        # If 88px appears, it is allowed only inside an @media rule
         if "88px" in css:
-            # 88px가 @media 규칙 내부에 있는지 확인
+            # 88px is inside an @media rule
             media_blocks = re.findall(r"@media[^{]*\{([^}]*(?:\{[^}]*\}[^}]*)*)\}", css)
             found_in_media = any("88px" in block for block in media_blocks)
             assert found_in_media, (
                 "benchmark 88px must appear only inside @media rule"
             )
 
-            # 88px는 명명된 별칭 변수에 할당되어야 함
+            # 88px must be assigned to a named alias variable
             alias_pattern = r"--(?:benchmark-topbar-h|topbar-h)\s*:\s*88px"
             assert re.search(alias_pattern, css), (
                 "benchmark 88px must be assigned to a named alias variable"

@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "name": "zone-intrusion",
+  "nodes": [
+    { "id": "cam",    "type": "source", "uri": "sample/img/sample_people.jpg" },
+    { "id": "od",     "model": "yolov8-n_640x640",
+      "params": { "score_threshold": 0.35 },
+      "track":  { "algo": "iou", "iou": 0.3, "max_age": 30 } },
+    { "id": "person", "type": "logic", "op": "filter", "params": { "classes": ["person"] } },
+    { "id": "zone",   "type": "logic", "op": "zone",
+      "params": { "polygon": [0.45, 0.35, 1.0, 0.35, 1.0, 1.0, 0.45, 1.0] } },
+    { "id": "alarm",  "type": "logic", "op": "condition",
+      "params": { "value": "count", "comparator": ">", "threshold": 0,
+                  "cooldown_s": 10, "event": "intrusion" } }
+  ],
+  "edges": [
+    { "from": "cam",    "to": "od" },
+    { "from": "od",     "to": "person", "carry": "result" },
+    { "from": "person", "to": "zone",   "carry": "result" },
+    { "from": "zone",   "to": "alarm",  "carry": "result" }
+  ]
+}

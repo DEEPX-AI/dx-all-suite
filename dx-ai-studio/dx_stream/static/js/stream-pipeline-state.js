@@ -1,6 +1,6 @@
 /**
- * DX Stream Pipeline — 상태 & 상수 모듈
- * 네임스페이스, 공유 상태, 테마 헬퍼, 스케줄링 유틸리티, 카테고리 정보
+ * DX Stream Pipeline — state & constants module
+ * Namespace, shared state, theme helpers, scheduling utilities, category info
  */
 
 window.DXStreamPipeline = window.DXStreamPipeline || {};
@@ -15,9 +15,9 @@ var _draftSaveTimer = null;
 function _cachePipelineThemeColors() {
     var cs = getComputedStyle(document.documentElement);
     _pipelineThemeColors = {
-        bg0: cs.getPropertyValue('--bg-0').trim() || '#0f0f1a',
-        success: cs.getPropertyValue('--success').trim(),
-        warning: cs.getPropertyValue('--warning').trim(),
+        bg0: cs.getPropertyValue('--surface-page').trim() || '#0f0f1a',
+        success: cs.getPropertyValue('--status-ok').trim(),
+        warning: cs.getPropertyValue('--status-warn').trim(),
         raw: {},
     };
     return _pipelineThemeColors;
@@ -29,13 +29,38 @@ function _themeColor(name) {
 
 function _cv(k) {
     var colors = _pipelineThemeColors || _cachePipelineThemeColors();
-    if (k === '--bg-0') return colors.bg0;
-    if (k === '--success') return colors.success;
-    if (k === '--warning') return colors.warning;
+    if (k === '--surface-page') return colors.bg0;
+    if (k === '--status-ok') return colors.success;
+    if (k === '--status-warn') return colors.warning;
     if (!colors.raw[k]) {
         colors.raw[k] = getComputedStyle(document.documentElement).getPropertyValue(k).trim();
     }
     return colors.raw[k];
+}
+
+/* Canvas color from a color token with alpha (hex · rgb() → rgba(…, a)). Unknown formats pass through. */
+function _cvAlpha(k, a) {
+    var c = _cv(k) || '';
+    var m = c.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+    if (m) {
+        var h = m[1].length === 3 ? m[1].replace(/./g, function (x) { return x + x; }) : m[1];
+        return 'rgba(' + parseInt(h.slice(0, 2), 16) + ',' + parseInt(h.slice(2, 4), 16) + ',' +
+            parseInt(h.slice(4, 6), 16) + ',' + a + ')';
+    }
+    m = c.match(/^rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/i);
+    return m ? 'rgba(' + m[1] + ',' + m[2] + ',' + m[3] + ',' + a + ')' : c;
+}
+
+/* When the theme changes (user or system), re-read the colors and redraw; otherwise the canvas keeps the colors
+   it read first. */
+if (window.DXTheme && typeof DXTheme.onThemeChange === 'function') {
+    DXTheme.onThemeChange(function () {
+        _pipelineThemeColors = null;
+        requestAnimationFrame(function () {   // let CSS apply the new theme first
+            _pipelineThemeColors = null;
+            if (typeof _refreshCanvas === 'function') { try { _refreshCanvas(); } catch (e) { /* no canvas */ } }
+        });
+    });
 }
 
 function _scheduleCanvasRefresh() {
@@ -84,11 +109,11 @@ DXStream._pipeState = {
     elementFlat: [],     // flat array of all elements
     nodes: [],           // [{id, type, name, category, x, y, properties:{}}]
     edges: [],           // [{id, from, to}]  (node id → node id)
-    selectedNode: null,  // node id (단일 선택 호환용)
-    selectedNodes: [],   // [node id, ...] (멀티 선택)
+    selectedNode: null,  // node id (single-selection compatibility)
+    selectedNodes: [],   // [node id, ...] (multi-selection)
     selectedEdge: null,   // edge id
     _nextId: 1,
-    _clipboard: [],      // 복사된 노드들
+    _clipboard: [],      // copied nodes
 
     _drag: null,         // {nodeId, startX, startY, origX, origY} or {multi: true, startX, startY, origPositions: [{id, x, y}]}
     _pan: null,          // {startX, startY, origOX, origOY}
@@ -100,7 +125,7 @@ DXStream._pipeState = {
 };
 DXStream._pipeRunning = false;
 
-/* ── 카테고리 색상 (서버 CATEGORY_COLORS 동기화) ── */
+/* ── Category colors (kept in sync with the server's CATEGORY_COLORS) ── */
 var _elemCatColors = {
     source:        '#3B82F6',
     preprocess:    '#F59E0B',
@@ -114,18 +139,19 @@ var _elemCatColors = {
     default:       '#78909c',
 };
 var _elemCatIcons = {
-    source:        '▶',
-    preprocess:    '⚙',
-    inference:     '✦',
-    postprocess:   '⬡',
-    visualization: '👁',
-    tracking:      '⌖',
-    messaging:     '✉',
-    output:        '⏏',
-    utility:       '☰',
+    source:        'camera',
+    preprocess:    'setup',
+    inference:     'cpu',
+    postprocess:   'models',
+    visualization: 'eye',
+    tracking:      'task-object_detection',
+    messaging:     'send',
+    output:        'external',
+    utility:       'wrench',
 };
 function _catColor(cat) { return _elemCatColors[cat] || _elemCatColors.default; }
-function _catIcon(cat) { return _elemCatIcons[cat] || '○'; }
+// Category icons are sprite names — lists draw them with DXIcon, the canvas with DXIcon.draw.
+function _catIcon(cat) { return _elemCatIcons[cat] || 'circle'; }
 var _catNameI18n = {
     source:        { ko: '소스',     ja: 'ソース',         'zh-CN': '源',      'zh-TW': '來源' },
     preprocess:    { ko: '전처리',   ja: '前処理',         'zh-CN': '预处理',  'zh-TW': '前處理' },

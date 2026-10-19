@@ -9,37 +9,13 @@ window._DX_MODELZOO_I18N_REGISTER({
     en: 'Output', ko: '출력', ja: '出力',
     'zh-CN': '输出', 'zh-TW': '輸出', es: 'Salida',
   },
-  'Technical': {
-    en: 'Technical', ko: '기술 정보', ja: '技術情報',
-    'zh-CN': '技术信息', 'zh-TW': '技術資訊', es: 'Información técnica',
-  },
-  'Preview': {
-    en: 'Preview', ko: '미리보기', ja: 'プレビュー',
-    'zh-CN': '预览', 'zh-TW': '預覽', es: 'Vista previa',
-  },
   'Task': {
     en: 'Task', ko: '태스크', ja: 'タスク',
     'zh-CN': '任务', 'zh-TW': '任務', es: 'Tarea',
   },
-  'Config': {
-    en: 'Config', ko: '설정', ja: '設定',
-    'zh-CN': '配置', 'zh-TW': '設定', es: 'Configuración',
-  },
-  'Demo': {
-    en: 'Demo', ko: '데모', ja: 'デモ',
-    'zh-CN': '演示', 'zh-TW': '示範', es: 'Demo',
-  },
   'Source & License': {
     en: 'Source & License', ko: '출처 및 라이선스', ja: 'ソースとライセンス',
     'zh-CN': '来源与许可', 'zh-TW': '來源與授權', es: 'Fuente y licencia',
-  },
-  'Compile Guide': {
-    en: 'Compile Guide', ko: '컴파일 가이드', ja: 'コンパイルガイド',
-    'zh-CN': '编译指南', 'zh-TW': '編譯指南', es: 'Guía de compilación',
-  },
-  'Exported': {
-    en: 'Exported', ko: '내보낸 시각', ja: 'エクスポート日時',
-    'zh-CN': '导出时间', 'zh-TW': '匯出時間', es: 'Exportado',
   },
   'Raw': {
     en: 'Raw',
@@ -331,10 +307,10 @@ window._DX_MODELZOO_I18N_REGISTER({
   },
   'Use dxcom default settings.': {
     en: 'Use dxcom default settings.',
-    ko: '기본 dxcom 설정을 사용하세요.',
-    ja: 'dxcom のデフォルト設定を使用してください。',
+    ko: 'dxcom 기본 설정 사용.',
+    ja: 'dxcom のデフォルト設定を使用します。',
     'zh-CN': '使用 dxcom 默认设置。',
-    'zh-TW': '請使用 dxcom 預設設定。',
+    'zh-TW': '使用 dxcom 預設設定。',
     es: 'Use la configuración predeterminada de dxcom.',
   },
   'No demo code available.': {
@@ -448,6 +424,10 @@ window._DX_MODELZOO_I18N_REGISTER({
     'zh-CN': '产物',
     'zh-TW': '成品',
     es: 'Artefacto',
+  },
+  'Q-Master': {
+    en: 'Q-Master', ko: 'Q-Master', ja: 'Q-Master',
+    'zh-CN': 'Q-Master', 'zh-TW': 'Q-Master', es: 'Q-Master',
   },
   'Accuracy Matrix': {
     ko: '정확도 매트릭스',

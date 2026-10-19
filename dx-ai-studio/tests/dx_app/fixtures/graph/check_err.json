@@ -1,0 +1,56 @@
+{
+  "errors": [
+    {
+      "code": "GRAPH_EDGE",
+      "edge": {
+        "from": "od",
+        "to": "depth"
+      },
+      "how": "remove \"roi\" from this edge",
+      "node": null,
+      "what": "\"depth\" requires a full frame",
+      "where": "edge \"od\"->\"depth\""
+    }
+  ],
+  "graph": "bad",
+  "models": [
+    {
+      "container": "v9",
+      "engine": {
+        "buffers": 0,
+        "share": false,
+        "shared_with": null
+      },
+      "file": "yolov8-n_640x640.dxnn",
+      "model": "yolov8-n_640x640",
+      "node": "od",
+      "state": "present"
+    },
+    {
+      "container": "v8",
+      "engine": {
+        "buffers": 0,
+        "share": false,
+        "shared_with": null
+      },
+      "file": "deepmar_resnet50_224x224.dxnn",
+      "model": "deepmar_resnet50_224x224",
+      "node": "attr",
+      "state": "present"
+    },
+    {
+      "container": "v8",
+      "engine": {
+        "buffers": 0,
+        "share": false,
+        "shared_with": null
+      },
+      "file": "fastdepth_224x224.dxnn",
+      "model": "fastdepth_224x224",
+      "node": "depth",
+      "state": "present"
+    }
+  ],
+  "notes": [],
+  "ok": false
+}

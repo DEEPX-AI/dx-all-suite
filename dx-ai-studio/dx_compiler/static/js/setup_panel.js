@@ -1,5 +1,10 @@
 /**
- * Setup Panel — SDK 설치/샘플 다운로드 대시보드 UI
+ * Setup Panel — dashboard for SDK install and sample download
+ *
+ * Built on the shared compact step list (shared/static/dx-steps.js). This file only reports state
+ * (DXSteps.set); the component draws the badges, next step, progress bar and the one-line collapse.
+ * This file alone decides whether the Compile button is locked: it locks when the SDK is missing or
+ * /feature-check says compiling is unavailable, and writes the reason next to the button (_disableCompileForm).
  */
 class SetupPanel {
   constructor() {
@@ -12,6 +17,9 @@ class SetupPanel {
     this._downloading = false;
     this._sdkCompleted = false;
     this._samplesCompleted = false;
+    this._sdkFailed = false;
+    this._samplesFailed = false;
+    this._featureBlocked = false;
   }
 
   async init() {
@@ -22,6 +30,7 @@ class SetupPanel {
       this.status = await res.json();
       this._render();
     } catch (e) {
+      this.panel.removeAttribute('aria-busy');
       console.error('[SetupPanel] init error:', e);
     }
   }
@@ -29,55 +38,54 @@ class SetupPanel {
   _render() {
     const s = this.status;
     if (!s) return;
+    // Kept busy until the first status, so the panel does not expand and then collapse, shifting the form.
+    this.panel.removeAttribute('aria-busy');
 
-    // SDK 상태
-    const sdkIcon = document.getElementById('setup-sdk-icon');
+    // SDK status
     const sdkVersion = document.getElementById('setup-sdk-version');
     const installBtn = document.getElementById('setup-install-btn');
 
-    if (s.dx_com_installed || this._sdkCompleted) {
-      sdkIcon.textContent = '✅';
+    const sdkOk = !!(s.dx_com_installed || this._sdkCompleted);
+    if (sdkOk) {
       sdkVersion.textContent = s.dx_com_version ? 'v' + s.dx_com_version : '';
-      this._setActionButton(installBtn, '🔄', 'Reinstall');
+      this._setActionButton(installBtn, 'refresh', 'Reinstall');
     } else {
-      sdkIcon.textContent = '❌';
       sdkVersion.textContent = '';
-      this._setActionButton(installBtn, '📦', 'Install');
+      this._setActionButton(installBtn, 'download', 'Install');
     }
+    if (!this._installing) this._step('sdk', sdkOk ? 'done' : (this._sdkFailed ? 'failed' : 'todo'));
     installBtn.onclick = () => this.installSDK();
 
-    // 샘플 + 캘리브레이션 상태
-    const samplesIcon = document.getElementById('setup-samples-icon');
+    // Samples + calibration status
     const downloadBtn = document.getElementById('setup-download-btn');
     const allDownloaded = Object.values(s.sample_models || {}).every(m => m.downloaded) &&
                           (s.calibration_data && s.calibration_data.downloaded);
 
-    if (allDownloaded || this._samplesCompleted) {
-      samplesIcon.textContent = '✅';
-      this._setActionButton(downloadBtn, '🔄', 'Re-download');
+    const samplesOk = !!(allDownloaded || this._samplesCompleted);
+    if (samplesOk) {
+      this._setActionButton(downloadBtn, 'refresh', 'Re-download');
     } else {
-      samplesIcon.textContent = '❌';
-      this._setActionButton(downloadBtn, '⬇️', 'Download');
+      this._setActionButton(downloadBtn, 'download', 'Download');
     }
+    const samplesCount = document.getElementById('setup-samples-count');
+    if (samplesCount) samplesCount.textContent = samplesOk ? this._sampleCountText() : '';
+    if (!this._downloading) this._step('samples', samplesOk ? 'done' : (this._samplesFailed ? 'failed' : 'todo'));
+    this._updateSummary();
     downloadBtn.onclick = () => this.downloadSamples();
 
-    // 패널 접기/펼치기 결정 (최초 렌더링 시에만)
+    // Decide collapsed/expanded (first render only)
     if (!this._initialRenderDone) {
       this._initialRenderDone = true;
       this._expand();
     }
 
-    // 컴파일 폼 비활성화 여부
-    if (!s.dx_com_installed) {
-      this._disableCompileForm(true);
-    } else {
-      this._disableCompileForm(false);
-    }
+    // Lock or unlock the Compile button (reason shown next to it)
+    this._applyCompileGate();
 
-    // 샘플 선택 버튼 업데이트
+    // Update the sample picker button
     this._updateSampleSelector();
 
-    // i18n 적용
+    // Apply i18n
     if (window.DXI18n && typeof DXI18n.applyLang === 'function') DXI18n.applyLang();
   }
 
@@ -104,6 +112,8 @@ class SetupPanel {
     if (!btn || !progressDiv || !bar || !text) return;
 
     this._installing = true;
+    this._sdkFailed = false;
+    this._step('sdk', 'running');
     btn.disabled = true;
     progressDiv.style.display = 'block';
     bar.classList.remove('error');
@@ -139,6 +149,7 @@ class SetupPanel {
         }
         if (event.type === 'error') {
           bar.classList.add('error');
+          this._sdkFailed = true;
         }
       });
 
@@ -149,11 +160,13 @@ class SetupPanel {
         if (pw) return this.installSDK(pw, true);
         text.textContent = this._t('Installation cancelled');
         bar.classList.add('error');
+        this._step('sdk', 'todo');
         return;
       }
     } catch (e) {
       text.textContent = this._t('Error') + ': ' + e.message;
       bar.classList.add('error');
+      this._sdkFailed = true;
     }
 
     btn.disabled = false;
@@ -216,18 +229,18 @@ class SetupPanel {
       overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;' +
         'align-items:center;justify-content:center;z-index:100001;padding:20px';
       const box = document.createElement('div');
-      box.style.cssText = 'width:min(460px,92vw);background:var(--bg-1,var(--bg-2));' +
-        'border:1px solid var(--border);border-radius:12px;padding:20px;' +
+      box.style.cssText = 'width:min(460px,92vw);background:var(--surface-panel,var(--control-bg));' +
+        'border:1px solid var(--border-subtle);border-radius:12px;padding:20px;' +
         'box-shadow:0 20px 60px rgba(0,0,0,.35)';
       box.innerHTML =
-        '<h3 style="margin:0 0 8px">🔒 ' + t('Administrator (sudo) Authentication') + '</h3>' +
-        (authFailed ? '<p style="margin:0 0 8px;color:var(--error,#e5484d);font-size:13px">' +
+        '<h3 style="margin:0 0 8px">' + this._ico('lock') + ' ' + t('Administrator (sudo) Authentication') + '</h3>' +
+        (authFailed ? '<p style="margin:0 0 8px;color:var(--status-error,#e5484d);font-size:13px">' +
           t('Incorrect password. Please try again.') + '</p>' : '') +
         '<p class="txt-dim" style="margin:0 0 12px;font-size:13px;line-height:1.45">' +
           t('Enter your sudo password to download and install the DX Compiler SDK.') + '</p>' +
         '<input id="_sudo-pw" type="password" autocomplete="current-password" ' +
           'style="width:100%;box-sizing:border-box;padding:9px 11px;border-radius:8px;' +
-          'border:1px solid var(--border);background:var(--bg-0);color:var(--text-1)" ' +
+          'border:1px solid var(--border-subtle);background:var(--surface-page);color:var(--text-primary)" ' +
           'placeholder="' + t('Enter password') + '">' +
         '<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px">' +
           '<button id="_sudo-cancel" class="fp-btn" type="button">' + t('Cancel') + '</button>' +
@@ -267,6 +280,8 @@ class SetupPanel {
     if (!btn || !progressDiv || !bar || !text) return;
 
     this._downloading = true;
+    this._samplesFailed = false;
+    this._step('samples', 'running');
     btn.disabled = true;
     progressDiv.style.display = 'block';
     bar.classList.remove('error');
@@ -288,11 +303,13 @@ class SetupPanel {
         }
         if (event.type === 'error') {
           bar.classList.add('error');
+          this._samplesFailed = true;
         }
       });
     } catch (e) {
       text.textContent = this._t('Error') + ': ' + e.message;
       bar.classList.add('error');
+      this._samplesFailed = true;
     }
 
     btn.disabled = false;
@@ -311,14 +328,23 @@ class SetupPanel {
     if (modelPath) modelPath.value = model.onnx_path;
     if (configPath) configPath.value = model.config_path;
 
-    // 드롭존 숨기기 (서버 경로 모드)
+    // Hide the drop zone (server path mode)
     const modelServerPath = document.getElementById('model_server_path');
     const configServerPath = document.getElementById('config_server_path');
     if (modelServerPath && !modelServerPath.checked) modelServerPath.click();
     if (configServerPath && !configServerPath.checked) configServerPath.click();
+
+    // Setting the value fires no change event, so dispatch one — same path as typing it in
+    if (modelPath) modelPath.dispatchEvent(new Event('change', { bubbles: true }));
+    if (configPath) configPath.dispatchEvent(new Event('change', { bubbles: true }));
   }
 
   togglePanel() {
+    // When complete and expanded from the one-line summary, collapsing returns to that line.
+    if (this.panel.classList.contains('is-complete') && this.panel.classList.contains('is-expanded')) {
+      this.panel.classList.remove('is-expanded');
+      return;
+    }
     if (this.body.style.display === 'none') {
       this._expand();
     } else {
@@ -328,6 +354,43 @@ class SetupPanel {
 
   setCompiling(isCompiling) {
     this._isCompiling = isCompiling;
+  }
+
+  /** Result of /feature-check (index.html). Callers report here instead of touching the button — locking lives in one place. */
+  setFeatureCompile(available) {
+    this._featureBlocked = !available;
+    this._applyCompileGate();
+  }
+
+  /** Before the tutorial points at a button inside the collapsed panel, expand the summary and the steps. */
+  revealForTour() {
+    if (!this.panel) return;
+    this.panel.classList.add('is-expanded');
+    this._expand();
+    if (window.DXSteps) { DXSteps.open(this.panel, 'sdk'); DXSteps.open(this.panel, 'samples'); }
+  }
+
+  _ico(name) {
+    return typeof window.DXIcon === 'function' ? window.DXIcon(name) : '';
+  }
+
+  _step(id, state) {
+    if (this.panel && window.DXSteps) DXSteps.set(this.panel, id, state);
+  }
+
+  _sampleCountText() {
+    const n = Object.values((this.status && this.status.sample_models) || {}).filter(m => m.downloaded).length;
+    return this._t('{n} sample models').split('{n}').join(String(n));
+  }
+
+  /* The one-line summary when everything is done: "Setup ready · SDK v… · N samples". */
+  _updateSummary() {
+    const facts = document.getElementById('setup-summary-facts');
+    if (!facts || !this.status) return;
+    const parts = [];
+    if (this.status.dx_com_version) parts.push('SDK v' + this.status.dx_com_version);
+    parts.push(this._sampleCountText());
+    facts.textContent = '· ' + parts.join(' · ');
   }
 
   _t(key) {
@@ -343,7 +406,7 @@ class SetupPanel {
       iconEl = btn.querySelector('.setup-action-icon');
       labelEl = btn.querySelector('.setup-action-label');
     }
-    iconEl.textContent = icon;
+    iconEl.innerHTML = this._ico(icon);
     labelEl.textContent = this._t(key);
     btn.setAttribute('aria-label', this._t(key));
   }
@@ -351,11 +414,11 @@ class SetupPanel {
   _markSdkInstalled() {
     this._sdkCompleted = true;
     if (this.status) this.status.dx_com_installed = true;
-    const sdkIcon = document.getElementById('setup-sdk-icon');
+    this._sdkFailed = false;
     const installBtn = document.getElementById('setup-install-btn');
-    if (sdkIcon) sdkIcon.textContent = '✅';
-    this._setActionButton(installBtn, '🔄', 'Reinstall');
-    this._disableCompileForm(false);
+    this._step('sdk', 'done');
+    this._setActionButton(installBtn, 'refresh', 'Reinstall');
+    this._applyCompileGate();
   }
 
   _markSamplesDownloaded() {
@@ -364,10 +427,13 @@ class SetupPanel {
       Object.values(this.status.sample_models || {}).forEach(m => { m.downloaded = true; });
       if (this.status.calibration_data) this.status.calibration_data.downloaded = true;
     }
-    const samplesIcon = document.getElementById('setup-samples-icon');
+    this._samplesFailed = false;
     const downloadBtn = document.getElementById('setup-download-btn');
-    if (samplesIcon) samplesIcon.textContent = '✅';
-    this._setActionButton(downloadBtn, '🔄', 'Re-download');
+    this._step('samples', 'done');
+    this._setActionButton(downloadBtn, 'refresh', 'Re-download');
+    const samplesCount = document.getElementById('setup-samples-count');
+    if (samplesCount) samplesCount.textContent = this._sampleCountText();
+    this._updateSummary();
     this._updateSampleSelector();
   }
 
@@ -378,21 +444,39 @@ class SetupPanel {
 
   _expand() {
     this.body.style.display = 'block';
-    this.toggleBtn.textContent = '▲';
+    this.toggleBtn.setAttribute('aria-expanded', 'true');
   }
 
   _collapse() {
     this.body.style.display = 'none';
-    this.toggleBtn.textContent = '▼';
+    this.toggleBtn.setAttribute('aria-expanded', 'false');
   }
 
-  _disableCompileForm(disabled) {
+  _applyCompileGate() {
+    const sdkOk = !!(this.status && (this.status.dx_com_installed || this._sdkCompleted));
+    if (!this.status && !this._featureBlocked) return;
+    const reason = !sdkOk && this.status ? 'Install the SDK first'
+      : (this._featureBlocked ? 'Compile unavailable: dx_com not installed on server.' : '');
+    this._disableCompileForm(!!reason, reason);
+  }
+
+  _disableCompileForm(disabled, reason) {
     // Only gate the submit action — never disable/grey the input fields. Grey-ing the whole
     // form made the compiler read as "Input UI unusable" whenever the venv probe disagreed
     // with in-process dx_com. Users must still be able to fill model/config/options; if
     // dx_com is truly missing, the disabled compile button + Setup banner convey that.
     const compileBtn = document.querySelector('.compile-btn');
-    if (compileBtn) compileBtn.disabled = disabled;
+    if (compileBtn) {
+      compileBtn.disabled = disabled;
+      if (disabled) compileBtn.setAttribute('aria-describedby', 'compile-gate-reason');
+      else compileBtn.removeAttribute('aria-describedby');
+    }
+    // A locked button alone does not say why — write the reason next to it.
+    const why = document.getElementById('compile-gate-reason');
+    if (why) {
+      why.hidden = !disabled;
+      why.innerHTML = disabled ? this._ico('lock') + '<span>' + this._t(reason || 'Install the SDK first') + '</span>' : '';
+    }
     const form = document.getElementById('compile-form');
     if (form) form.style.opacity = '1';
   }
@@ -405,7 +489,7 @@ class SetupPanel {
     const hasAny = Object.values(models).some(m => m.downloaded);
     container.style.display = hasAny ? 'inline-block' : 'none';
 
-    // 드롭다운 항목 생성
+    // Build the dropdown items
     const dropdown = document.getElementById('sample-dropdown');
     if (!dropdown) return;
     dropdown.innerHTML = '';
@@ -439,7 +523,7 @@ class SetupPanel {
   }
 }
 
-// 전역 인스턴스 + 자동 초기화
+// Global instance + auto-init
 window.setupPanel = new SetupPanel();
 document.addEventListener('DOMContentLoaded', function () {
   if (!window.setupPanel || !document.getElementById('setup-panel')) return;
@@ -453,7 +537,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  // 📦 샘플 선택 드롭다운 토글 (position: fixed — form-panel overflow 회피)
+  // Sample dropdown toggle (position: fixed, to escape the form-panel overflow)
   var sampleBtn = document.getElementById('sample-select-btn');
   var sampleDD = document.getElementById('sample-dropdown');
   if (sampleBtn) {

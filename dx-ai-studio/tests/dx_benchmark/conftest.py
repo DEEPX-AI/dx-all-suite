@@ -1,4 +1,4 @@
-"""tests/dx_benchmark conftest — dx_benchmark 모듈 테스트용 경로 설정."""
+"""tests/dx_benchmark conftest: import paths for the dx_benchmark module tests."""
 import sys
 from pathlib import Path
 

@@ -1,4 +1,4 @@
-"""메타데이터 병합 엔진 – 다중 어댑터 결과를 단일 카탈로그로 통합."""
+"""Metadata merge engine – combines the results of several adapters into one catalog."""
 
 from datetime import datetime, timezone
 
@@ -6,14 +6,15 @@ from dx_modelzoo.metadata.normalization import normalize_source_value
 from dx_modelzoo.metadata.schema import SCHEMA_VERSION, ARTIFACT_IDS
 
 
-# 필드 우선순위: 뒤에 오는 어댑터가 같은 필드를 덮어씀.
-# local_runtime은 model list 기준(baseline)을 제공하고,
-# 이후 어댑터들이 accuracy/performance/legal 등을 보강.
+# Field priority: a later adapter overwrites the same field.
+# local_runtime provides the baseline model list,
+# and later adapters add accuracy/performance/legal and so on.
 
-# editorial 텍스트 (task → 기본 use_case)
+# Editorial text (task → default use_case)
 _EDITORIAL_BY_TASK = {
     "classification": "Image classification model for visual recognition tasks.",
     "object_detection": "Object detection model for identifying and localizing objects.",
+    "mainbody_detection": "Main-body detection model that finds the main object in an image.",
     "semantic_segmentation": "Semantic segmentation model for pixel-level classification.",
     "face_detection": "Face detection model for detecting facial regions.",
     "pose_estimation": "Pose estimation model for detecting body keypoints.",
@@ -26,13 +27,17 @@ _REQUIRED_PERF_FIELDS = {"fps", "fps_per_watt"}
 _ARTIFACT_PRESENT_KEYS = {"remote_url", "local_path", "download_endpoint", "available"}
 # Adapters that only fill fields still missing after higher-priority sources (e.g. public HTML).
 _GAP_FILL_ADAPTERS = frozenset({"internal_modelzoo"})
+# Exception: the human-given publish name (Display Name "YOLOv12-m") beats the name the local adapter derives
+# from the id ("Yolov12 M"); as a plain gap-fill it could not override it. Names from other network sources stay.
+_GAP_FILL_OVERRIDES_LOCAL = frozenset({"display.name"})
+_LOCAL_ADAPTERS = frozenset({"local_runtime", "local_studio_catalog", "local_modelzoo_repo"})
 
 
 def merge_adapter_results(results, source_profile="local"):
-    """여러 어댑터 결과를 병합하여 스키마 2.0 카탈로그를 생성.
+    """Merge several adapter results into a schema 2.0 catalog.
 
-    baseline 모델 목록은 local_runtime 어댑터에서 가져옴.
-    다른 어댑터들은 baseline에 있는 모델만 보강함.
+    The baseline model list comes from the local_runtime adapter.
+    Other adapters only enrich models that are in the baseline.
     """
     # For a NETWORK profile (public / internal) the authoritative model list + metadata is the
     # network source itself (developer.deepx.ai = 352 models, all fps / fps-per-watt / artifacts /
@@ -53,14 +58,14 @@ def merge_adapter_results(results, source_profile="local"):
         if baseline_ids:
             break
 
-    # baseline이 없으면 첫 번째 ok 어댑터의 모델 목록 사용
+    # Without a baseline, use the model list of the first ok adapter
     if not baseline_ids:
         for r in results:
             if r.get("ok") and r.get("models"):
                 baseline_ids = set(r["models"].keys())
                 break
 
-    # flat field 병합 (순서대로 덮어씀)
+    # Merge flat fields (in order, later wins)
     merged_flat = {}  # model_id -> {flat_field: value}
     provenance = {}   # model_id -> {flat_field: {"source": adapter_name}}
 
@@ -80,7 +85,9 @@ def merge_adapter_results(results, source_profile="local"):
                     continue
                 if adapter_name in _GAP_FILL_ADAPTERS:
                     existing = merged_flat[mid].get(k)
-                    if existing is not None and normalize_source_value(existing) is not None:
+                    from_local = provenance[mid].get(k, {}).get("source") in _LOCAL_ADAPTERS
+                    if (existing is not None and normalize_source_value(existing) is not None
+                            and not (k in _GAP_FILL_OVERRIDES_LOCAL and from_local)):
                         continue
                 merged_flat[mid][k] = v
                 provenance[mid][k] = {"source": adapter_name}
@@ -101,7 +108,7 @@ def merge_adapter_results(results, source_profile="local"):
 
 
 def _build_structured_model(mid, flat, prov):
-    """flat 필드를 중첩 구조로 변환."""
+    """Convert flat fields into a nested structure."""
     model = {"id": mid}
 
     model["display"] = {
@@ -110,6 +117,8 @@ def _build_structured_model(mid, flat, prov):
     }
     if "display.class_name" in flat:
         model["display"]["class_name"] = flat["display.class_name"]
+    if flat.get("display.publish_task"):
+        model["display"]["publish_task"] = flat["display.publish_task"]
 
     spec = {}
     for k, v in flat.items():
@@ -133,7 +142,7 @@ def _build_structured_model(mid, flat, prov):
             field = k.split(".", 1)[1]
             perf[field] = v
 
-    # I4: deterministic performance defaults
+    # Deterministic performance defaults
     for field in _REQUIRED_PERF_FIELDS:
         perf.setdefault(field, None)
 
@@ -173,13 +182,13 @@ def _build_structured_model(mid, flat, prov):
     }
 
     missing = []
-    # I2: _REQUIRED_PERF_FIELDS 활용 (performance. 접두사로 정규화)
+    # Required performance fields (normalized with the performance. prefix)
     for pf in sorted(_REQUIRED_PERF_FIELDS):
         if perf.get(pf) is None or (pf == "fps" and perf.get("source_status") == "benchmark_required"):
             missing.append(f"performance.{pf}")
     if not legal:
         missing.append("license")
-    # I4: 누락 아티팩트 분석
+    # Missing artifacts
     for aid in sorted(ARTIFACT_IDS):
         art_data = artifacts.get(aid, {})
         present = any(art_data.get(k) for k in _ARTIFACT_PRESENT_KEYS)
@@ -220,7 +229,7 @@ def _build_structured_model(mid, flat, prov):
 
 
 def _nested_set(d, dotpath, value):
-    """점 구분 경로로 중첩 dict에 값 설정."""
+    """Set a value in a nested dict by dotted path."""
     parts = dotpath.split(".")
     current = d
     for part in parts[:-1]:

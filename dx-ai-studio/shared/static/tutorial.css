@@ -4,16 +4,16 @@
 
 /* ─── Variables ─── */
 :root {
-  --dxt-accent: var(--accent, #638CFF);
-  --dxt-accent-dim: var(--accent-dim, rgba(99,140,255,.14));
-  --dxt-bg: var(--bg-1, #0e1525);
-  --dxt-bg2: var(--bg-2, #151d30);
-  --dxt-bg3: var(--bg-3, #1c2640);
-  --dxt-text: var(--text-1, #E2E8F0);
-  --dxt-text-dim: var(--text-3, #8892A8);
-  --dxt-border: var(--border, rgba(99,140,255,.1));
-  --dxt-success: var(--success, #3FB950);
-  --dxt-warn: var(--warning, #D29922);
+  --dxt-accent: var(--accent, var(--accent));
+  --dxt-accent-dim: var(--accent-dim, rgba(var(--accent-rgb),.14));
+  --dxt-bg: var(--surface-panel, var(--surface-panel));
+  --dxt-bg2: var(--control-bg, var(--control-bg));
+  --dxt-bg3: var(--surface-hover, #1c2640);
+  --dxt-text: var(--text-primary, var(--text-primary));
+  --dxt-text-dim: var(--text-muted, #8892A8);
+  --dxt-border: var(--border-subtle, rgba(var(--accent-rgb),.1));
+  --dxt-success: var(--status-ok, #3FB950);
+  --dxt-warn: var(--status-warn, #D29922);
   --dxt-radius: var(--radius, 8px);
   --dxt-z-overlay: 99990;
   --dxt-z-spot: 99991;
@@ -30,7 +30,7 @@
   background: rgba(0,0,0,.4);
   opacity: 0;
   pointer-events: none;
-  transition: opacity .3s;
+  transition: opacity .3s var(--ease);
 }
 .dxt-toc-backdrop.open {
   opacity: 1;
@@ -43,7 +43,7 @@
   z-index: var(--dxt-z-overlay);
   pointer-events: none;
   opacity: 0;
-  transition: opacity .3s;
+  transition: opacity .3s var(--ease);
 }
 .dxt-overlay.active {
   pointer-events: none;
@@ -78,7 +78,7 @@
   box-shadow: 0 8px 32px rgba(0,0,0,.5), 0 0 0 1px rgba(88,166,255,.12);
   opacity: 0;
   pointer-events: none;
-  transition: opacity .25s;
+  transition: opacity .25s var(--ease);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 .dxt-tooltip.active {
@@ -88,7 +88,7 @@
 
 .dxt-tip-header {
   display: flex; align-items: center; gap: var(--sp-2);
-  padding: 10px 14px;
+  padding: 8px 12px;
   border-bottom: 1px solid var(--dxt-border);
   font-size: var(--fs-sm);
 }
@@ -110,29 +110,31 @@
   background: none; border: none; color: var(--dxt-text-dim);
   cursor: pointer; font-size: var(--fs-lg); line-height: 1; padding: 0 2px;
 }
-.dxt-tip-close:hover { color: #fff; }
+.dxt-tip-close:hover { color: var(--dxt-text); }
 
 .dxt-tip-title {
-  padding: 12px 14px 4px;
+  padding: 12px 12px 4px;
   font-size: 15px;
   font-weight: 700;
-  color: #fff;
+  color: var(--dxt-text);
 }
 .dxt-tip-body {
-  padding: 4px 14px 14px;
+  padding: 4px 12px 12px;
   font-size: var(--fs-base);
   line-height: 1.6;
   color: var(--dxt-text);
 }
-.dxt-tip-body strong { color: var(--dxt-accent); }
+.dxt-tip-body strong { color: var(--accent-ink,var(--dxt-accent)); }
+/* Icons inside tip text ({{i:name}} — tutorial-engine.js _dxtExpandIcons), sized to the text. */
+.dxt-tip-body .dxt-inline-ico { width: 1.15em; height: 1.15em; vertical-align: -0.2em; }
 
 .dxt-tip-nav {
   display: flex; align-items: center; gap: var(--sp-2);
-  padding: 10px 14px;
+  padding: 8px 12px;
   border-top: 1px solid var(--dxt-border);
 }
 .dxt-tip-btn {
-  padding: 6px 14px;
+  padding: 4px 12px;
   border-radius: var(--radius-sm);
   font-size: var(--fs-sm);
   font-weight: 600;
@@ -140,7 +142,7 @@
   background: var(--dxt-bg2);
   color: var(--dxt-text);
   cursor: pointer;
-  transition: all .15s;
+  transition: all .15s var(--ease);
 }
 .dxt-tip-btn:hover:not(:disabled) {
   background: var(--dxt-bg3);
@@ -179,22 +181,22 @@
 }
 .dxt-tooltip[data-pos="bottom"]::after {
   top: -7px;
-  left: 50%; margin-left: -6px;
+  left: 50%; margin-left: -4px;
   border-right: none; border-bottom: none;
 }
 .dxt-tooltip[data-pos="top"]::after {
   bottom: -7px;
-  left: 50%; margin-left: -6px;
+  left: 50%; margin-left: -4px;
   border-left: none; border-top: none;
 }
 .dxt-tooltip[data-pos="right"]::after {
   left: -7px;
-  top: 50%; margin-top: -6px;
+  top: 50%; margin-top: -4px;
   border-top: none; border-right: none;
 }
 .dxt-tooltip[data-pos="left"]::after {
   right: -7px;
-  top: 50%; margin-top: -6px;
+  top: 50%; margin-top: -4px;
   border-bottom: none; border-left: none;
 }
 
@@ -209,7 +211,7 @@
   border-left: 1.5px solid var(--dxt-accent);
   box-shadow: -8px 0 32px rgba(0,0,0,.5);
   display: flex; flex-direction: column;
-  transition: right .35s cubic-bezier(.4,0,.2,1);
+  transition: right .35s var(--ease);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   color: var(--dxt-text);
 }
@@ -217,21 +219,21 @@
 
 .dxt-toc-header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 18px 20px;
+  padding: 16px 16px;
   border-bottom: 1px solid var(--dxt-border);
 }
 .dxt-toc-title {
-  font-size: var(--fs-xl); font-weight: 700; color: #fff;
+  font-size: var(--fs-xl); font-weight: 700; color: var(--dxt-text);
 }
 .dxt-toc-close {
   background: none; border: none; color: var(--dxt-text-dim);
   cursor: pointer; font-size: var(--fs-2xl); line-height: 1;
 }
-.dxt-toc-close:hover { color: #fff; }
+.dxt-toc-close:hover { color: var(--dxt-text); }
 
 /* Progress bar */
 .dxt-toc-progress {
-  padding: 12px 20px;
+  padding: 12px 16px;
   display: flex; align-items: center; gap: var(--sp-3);
   border-bottom: 1px solid var(--dxt-border);
 }
@@ -245,11 +247,11 @@
   height: 100%;
   background: linear-gradient(90deg, var(--dxt-accent), var(--dxt-success));
   border-radius: var(--radius-xs);
-  transition: width .4s;
+  transition: width .4s var(--ease);
 }
 .dxt-toc-ppct {
   font-size: var(--fs-sm); font-weight: 600;
-  color: var(--dxt-accent);
+  color: var(--accent-ink,var(--dxt-accent));
   white-space: nowrap;
 }
 
@@ -263,7 +265,7 @@
   padding: 12px 12px;
   border-radius: var(--radius);
   cursor: pointer;
-  transition: background .15s;
+  transition: background .15s var(--ease);
   border: 1px solid transparent;
   margin-bottom: 2px;
 }
@@ -276,7 +278,7 @@
 .dxt-toc-icon { font-size: 22px; flex-shrink: 0; }
 .dxt-toc-info { flex: 1; min-width: 0; }
 .dxt-toc-name {
-  font-size: var(--fs-base); font-weight: 600; color: #fff;
+  font-size: var(--fs-base); font-weight: 600; color: var(--dxt-text);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .dxt-toc-desc {
@@ -287,20 +289,20 @@
 }
 .dxt-toc-meta {
   font-size: var(--fs-2xs); color: var(--dxt-text-dim);
-  margin-top: 3px;
+  margin-top: 4px;
 }
 .dxt-toc-check { font-size: var(--fs-lg); flex-shrink: 0; }
 .dxt-toc-item.has-prereq .dxt-toc-name { color: var(--dxt-text-dim); }
 
 /* TOC footer */
 .dxt-toc-footer {
-  padding: 14px 20px;
+  padding: 12px 16px;
   border-top: 1px solid var(--dxt-border);
   display: flex; gap: var(--sp-2);
 }
 .dxt-toc-btn {
   flex: 1;
-  padding: 10px 12px;
+  padding: 8px 12px;
   border-radius: var(--radius);
   font-size: var(--fs-base);
   font-weight: 600;
@@ -308,7 +310,7 @@
   background: var(--dxt-bg2);
   color: var(--dxt-text);
   cursor: pointer;
-  transition: all .15s;
+  transition: all .15s var(--ease);
   text-align: center;
 }
 .dxt-toc-btn:hover { border-color: var(--dxt-accent); }
@@ -322,7 +324,7 @@
 }
 .dxt-toc-btn-reset {
   flex: 0 0 auto;
-  padding: 10px 16px;
+  padding: 8px 16px;
 }
 
 /* ─── Toggle / Help buttons ─── */
@@ -336,7 +338,7 @@
   font-size: var(--fs-xl);
   cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  transition: all .15s;
+  transition: all .15s var(--ease);
   padding: 0;
 }
 .dxt-toggle-btn:hover,
@@ -388,7 +390,7 @@
   background: var(--dxt-bg);
   border: 1.5px solid var(--dxt-accent);
   border-radius: var(--dxt-radius);
-  padding: 14px 16px;
+  padding: 12px 16px;
   max-width: 340px;
   min-width: 200px;
   color: var(--dxt-text);
@@ -401,8 +403,8 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 .dxt-help-popover-title {
-  font-size: var(--fs-base); font-weight: 700; color: #fff;
-  margin-bottom: 6px;
+  font-size: var(--fs-base); font-weight: 700; color: var(--dxt-text);
+  margin-bottom: 4px;
 }
 .dxt-help-popover-content {
   font-size: var(--fs-sm); line-height: 1.6;
@@ -421,13 +423,13 @@ body.dxt-help-active .dxt-help-badge { pointer-events: auto; }
 /* ─── Launcher-specific Tutorial Toggle Card ─── */
 .dxt-launcher-card {
   display: flex; align-items: center; gap: var(--sp-4);
-  padding: 16px 20px;
+  padding: 16px 16px;
   border-radius: var(--radius-lg);
   border: 1.5px solid var(--dxt-border, #383850);
   background: var(--dxt-bg2, #252538);
   margin-top: 16px;
   cursor: pointer;
-  transition: all .2s;
+  transition: all .2s var(--ease);
 }
 .dxt-launcher-card:hover {
   border-color: var(--dxt-accent);
@@ -440,7 +442,7 @@ body.dxt-help-active .dxt-help-badge { pointer-events: auto; }
   flex: 1;
 }
 .dxt-launcher-card .dxt-lc-title {
-  font-size: var(--fs-md); font-weight: 700; color: #fff;
+  font-size: var(--fs-md); font-weight: 700; color: var(--dxt-text);
 }
 .dxt-launcher-card .dxt-lc-desc {
   font-size: var(--fs-sm); color: var(--dxt-text-dim, #888);
@@ -453,7 +455,7 @@ body.dxt-help-active .dxt-help-badge { pointer-events: auto; }
   border-radius: var(--radius-lg);
   border: none;
   cursor: pointer;
-  transition: background .2s;
+  transition: background .2s var(--ease);
   padding: 0;
 }
 .dxt-launcher-card .dxt-lc-switch.on {
@@ -466,7 +468,7 @@ body.dxt-help-active .dxt-help-badge { pointer-events: auto; }
   width: 18px; height: 18px;
   background: #fff;
   border-radius: 50%;
-  transition: transform .2s;
+  transition: transform .2s var(--ease);
 }
 .dxt-launcher-card .dxt-lc-switch.on::after {
   transform: translateX(20px);
@@ -477,9 +479,10 @@ body.dxt-help-active .dxt-help-badge { pointer-events: auto; }
 /* Old TOC-sidebar layout rules removed — only content styles remain. */
 
 /* ── Main content area ── */
-.ref-main{padding:0 24px 60px;min-width:0}
-.ref-search-bar{position:sticky;top:0;z-index:10;padding:12px 0;background:var(--bg-0,#0d1117)}
-.ref-search{width:100%;padding:10px 14px 10px 36px;border-radius:10px;border:1px solid var(--dxt-border);background:var(--dxt-bg2);color:var(--dxt-text);font-size:var(--fs-md);transition:border-color .2s}
+.ref-main{padding:0 24px 48px;min-width:0}
+.ref-search-bar{position:sticky;top:0;z-index:10;padding:12px 0;background:var(--surface-page,#0d1117)}
+/* Text starts at icon left (12) + icon (16) + gap (8) */
+.ref-search{width:100%;padding:8px 12px 8px calc(12px + 16px + 8px);border-radius:10px;border:1px solid var(--dxt-border);background:var(--dxt-bg2);color:var(--dxt-text);font-size:var(--fs-md);transition:border-color .2s}
 .ref-search:focus{outline:none;border-color:var(--dxt-accent);box-shadow:0 0 0 3px rgba(88,166,255,.12)}
 .ref-search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:var(--fs-md);pointer-events:none;color:var(--dxt-text-dim)}
 .ref-search-wrap{position:relative}
@@ -487,53 +490,53 @@ body.dxt-help-active .dxt-help-badge { pointer-events: auto; }
 /* ── Category Header ── */
 .ref-cat{margin:32px 0 16px;padding-bottom:8px;border-bottom:1px solid var(--dxt-border)}
 .ref-cat:first-child{margin-top:12px}
-.ref-cat-title{font-size:var(--fs-base);font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--dxt-accent)}
+.ref-cat-title{font-size:var(--fs-base);font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--accent-ink,var(--dxt-accent))}
 .ref-cat-desc{font-size:var(--fs-xs);color:var(--dxt-text-dim);margin-top:2px}
 
 /* ── Section Card ── */
 .ref-section{margin-bottom:12px;border:1px solid var(--dxt-border);border-radius:10px;overflow:hidden;transition:border-color .2s}
 .ref-section:hover{border-color:rgba(88,166,255,.3)}
 .ref-section.open{border-color:var(--dxt-accent)}
-.ref-section-hd{display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;user-select:none;transition:background .15s}
+.ref-section-hd{display:flex;align-items:center;gap:8px;padding:12px 16px;cursor:pointer;user-select:none;transition:background .15s}
 .ref-section-hd:hover{background:var(--dxt-bg2)}
 .ref-section-icon{font-size:var(--fs-2xl);width:28px;text-align:center;flex-shrink:0}
 .ref-section-info{flex:1;min-width:0}
 .ref-section-name{font-size:var(--fs-md);font-weight:600;color:var(--dxt-text)}
 .ref-section-desc{font-size:var(--fs-xs);color:var(--dxt-text-dim);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ref-section-go{font-size:var(--fs-xs);color:var(--dxt-accent);background:rgba(88,166,255,.1);border:1px solid rgba(88,166,255,.2);border-radius:var(--radius-sm);padding:3px 8px;cursor:pointer;white-space:nowrap;transition:all .15s;text-decoration:none}
+.ref-section-go{font-size:var(--fs-xs);color:var(--accent-ink,var(--dxt-accent));background:rgba(88,166,255,.1);border:1px solid rgba(88,166,255,.2);border-radius:var(--radius-sm);padding:4px 8px;cursor:pointer;white-space:nowrap;transition:all .15s var(--ease);text-decoration:none}
 .ref-section-go:hover{background:var(--dxt-accent);color:#000}
-.ref-section-arrow{color:var(--dxt-text-dim);transition:transform .25s;font-size:var(--fs-xs);flex-shrink:0}
+.ref-section-arrow{color:var(--dxt-text-dim);transition:transform .25s var(--ease);font-size:var(--fs-xs);flex-shrink:0}
 .ref-section.open .ref-section-arrow{transform:rotate(90deg)}
 
 /* ── Section Body ── */
-.ref-section-body{max-height:0;overflow:hidden;transition:max-height .35s cubic-bezier(.4,0,.2,1),padding .25s}
+.ref-section-body{max-height:0;overflow:hidden;transition:max-height .35s var(--ease),padding .25s}
 .ref-section.open .ref-section-body{max-height:8000px;padding:0 16px 16px}
 
 /* ── Sub-tabs ── */
 .ref-tabs{display:flex;gap:0;border-bottom:1px solid var(--dxt-border);margin-bottom:12px}
-.ref-tab{padding:6px 14px;font-size:var(--fs-sm);font-weight:600;color:var(--dxt-text-dim);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s}
+.ref-tab{padding:4px 12px;font-size:var(--fs-sm);font-weight:600;color:var(--dxt-text-dim);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s}
 .ref-tab:hover{color:var(--dxt-text)}
-.ref-tab.active{color:var(--dxt-accent);border-bottom-color:var(--dxt-accent)}
+.ref-tab.active{color:var(--accent-ink,var(--dxt-accent));border-bottom-color:var(--dxt-accent)}
 .ref-tab-content{display:none}
 .ref-tab-content.active{display:block}
 
 /* ── Content elements ── */
-.ref-section-body h4{font-size:var(--fs-base);font-weight:700;color:var(--dxt-accent);margin:14px 0 6px;padding-left:0}
+.ref-section-body h4{font-size:var(--fs-base);font-weight:700;color:var(--accent-ink,var(--dxt-accent));margin:12px 0 4px;padding-left:0}
 .ref-section-body p{font-size:var(--fs-sm);line-height:1.7;color:var(--dxt-text);margin:0 0 8px}
-.ref-section-body ul{font-size:var(--fs-sm);line-height:1.8;color:var(--dxt-text);padding-left:18px;margin:0 0 10px}
+.ref-section-body ul{font-size:var(--fs-sm);line-height:1.8;color:var(--dxt-text);padding-left:16px;margin:0 0 8px}
 .ref-section-body li{margin-bottom:2px}
-.ref-section-body strong{color:var(--dxt-accent)}
-.ref-section-body code{background:var(--dxt-bg3);padding:1px 5px;border-radius:3px;font-size:var(--fs-xs);color:var(--vpu);font-family:'JetBrains Mono',monospace}
+.ref-section-body strong{color:var(--accent-ink,var(--dxt-accent))}
+.ref-section-body code{background:var(--dxt-bg3);padding:1px 4px;border-radius:3px;font-size:var(--fs-xs);color:var(--vpu);font-family:'JetBrains Mono',monospace}
 
 /* ── Table ── */
 .ref-tbl{width:100%;border-collapse:collapse;font-size:var(--fs-sm);margin:8px 0 12px}
-.ref-tbl th{text-align:left;padding:6px 10px;background:var(--dxt-bg2);color:var(--dxt-accent);font-weight:600;border-bottom:1px solid var(--dxt-border);font-size:var(--fs-xs);text-transform:uppercase;letter-spacing:.5px}
-.ref-tbl td{padding:5px 10px;border-bottom:1px solid rgba(56,56,80,.4);color:var(--dxt-text);vertical-align:top}
+.ref-tbl th{text-align:left;padding:4px 8px;background:var(--dxt-bg2);color:var(--accent-ink,var(--dxt-accent));font-weight:600;border-bottom:1px solid var(--dxt-border);font-size:var(--fs-xs);text-transform:uppercase;letter-spacing:.5px}
+.ref-tbl td{padding:4px 8px;border-bottom:1px solid rgba(56,56,80,.4);color:var(--dxt-text);vertical-align:top}
 .ref-tbl tr:hover td{background:rgba(88,166,255,.04)}
 .ref-tbl .mono{font-family:'JetBrains Mono',monospace;font-size:var(--fs-xs);color:var(--vpu)}
 
 /* ── Tip / Warning / Info boxes ── */
-.ref-box{border-radius:var(--radius);padding:10px 14px;margin:10px 0;font-size:var(--fs-sm);line-height:1.6;display:flex;gap:var(--sp-2);align-items:flex-start}
+.ref-box{border-radius:var(--radius);padding:8px 12px;margin:8px 0;font-size:var(--fs-sm);line-height:1.6;display:flex;gap:var(--sp-2);align-items:flex-start}
 .ref-box-icon{font-size:var(--fs-lg);flex-shrink:0;line-height:1.4}
 .ref-box.tip{background:rgba(88,166,255,.08);border:1px solid rgba(88,166,255,.2);color:var(--dxt-text)}
 .ref-box.warn{background:rgba(210,153,34,.08);border:1px solid rgba(210,153,34,.2);color:var(--dxt-text)}
@@ -541,15 +544,15 @@ body.dxt-help-active .dxt-help-badge { pointer-events: auto; }
 .ref-box.success{background:rgba(63,185,80,.08);border:1px solid rgba(63,185,80,.2);color:var(--dxt-text)}
 
 /* ── Workflow steps ── */
-.ref-flow{display:flex;align-items:center;gap:0;flex-wrap:wrap;margin:10px 0}
-.ref-flow-step{background:var(--dxt-bg2);border:1px solid var(--dxt-border);border-radius:var(--radius);padding:6px 12px;font-size:var(--fs-xs);font-weight:600;color:var(--dxt-text);white-space:nowrap}
+.ref-flow{display:flex;align-items:center;gap:0;flex-wrap:wrap;margin:8px 0}
+.ref-flow-step{background:var(--dxt-bg2);border:1px solid var(--dxt-border);border-radius:var(--radius);padding:4px 12px;font-size:var(--fs-xs);font-weight:600;color:var(--dxt-text);white-space:nowrap}
 .ref-flow-arrow{color:var(--dxt-text-dim);font-size:var(--fs-md);margin:0 4px}
 
 /* ── Keyboard shortcut ── */
-.ref-kbd{display:inline-block;background:var(--dxt-bg3);border:1px solid var(--dxt-border);border-radius:var(--radius-xs);padding:1px 6px;font-size:var(--fs-xs);font-family:monospace;color:var(--dxt-accent);min-width:20px;text-align:center}
+.ref-kbd{display:inline-block;background:var(--dxt-bg3);border:1px solid var(--dxt-border);border-radius:var(--radius-xs);padding:1px 4px;font-size:var(--fs-xs);font-family:monospace;color:var(--accent-ink,var(--dxt-accent));min-width:20px;text-align:center}
 
 /* ── API endpoint badge ── */
-.ref-api-method{display:inline-block;font-size:var(--fs-2xs);font-weight:700;border-radius:3px;padding:1px 5px;min-width:32px;text-align:center;color:#000}
+.ref-api-method{display:inline-block;font-size:var(--fs-2xs);font-weight:700;border-radius:3px;padding:1px 4px;min-width:32px;text-align:center;color:#000}
 .ref-api-get{background:var(--dxt-success)}
 .ref-api-post{background:var(--dxt-accent)}
 
@@ -590,7 +593,7 @@ body.dxt-help-active .dxt-help-badge { pointer-events: auto; }
 .dxt-confirm-msg {
   font-size: var(--fs-md);
   color: var(--dxt-text-dim, #888);
-  margin-bottom: 20px;
+  margin-bottom: 16px;
   line-height: 1.5;
   white-space: pre-line;
 }
@@ -626,11 +629,15 @@ body.dxt-help-active .dxt-help-badge { pointer-events: auto; }
 
 /* Tutorial-only overlays: non-modal dialogs stay below tooltip (99995) */
 dialog.dxt-tutorial-dialog {
+  /* A non-modal dialog opened with show() is absolute in the document flow and lands off screen on long
+     pages — pin it to the viewport */
+  position: fixed;
+  inset: 0;
   z-index: 99992;
   margin: auto;
   max-width: min(720px, 92vw);
   max-height: 85vh;
-  border: 1.5px solid var(--dxt-accent, #638CFF);
+  border: 1.5px solid var(--dxt-accent, var(--accent));
 }
 dialog.dxt-tutorial-dialog::backdrop {
   background: rgba(0, 0, 0, .55);
@@ -668,8 +675,8 @@ body:has(.sidebar.collapsed) .mz-cart-bar.dxt-tutorial-pin {
   top: 100%;
   right: 0;
   min-width: 180px;
-  background: var(--bg-0, #080c16);
-  border: 1px solid var(--border, #333);
+  background: var(--surface-page, var(--surface-page));
+  border: 1px solid var(--border-subtle, #333);
   border-radius: var(--radius-sm);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   z-index: 1000;
@@ -678,15 +685,15 @@ body:has(.sidebar.collapsed) .mz-cart-bar.dxt-tutorial-pin {
 }
 
 .tutorial-menu-item {
-  padding: 8px 14px;
+  padding: 8px 12px;
   cursor: pointer;
   font-size: var(--fs-base);
-  color: var(--text-1, #E2E8F0);
+  color: var(--text-primary, var(--text-primary));
   white-space: nowrap;
 }
 
 .tutorial-menu-item:hover {
-  background: var(--bg-1, #0e1525);
+  background: var(--surface-panel, var(--surface-panel));
 }
 
 /* ─── (Help Panel removed — strict badge mode) ─── */

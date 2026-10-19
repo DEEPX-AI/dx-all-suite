@@ -1,12 +1,12 @@
 /**
- * DX Stream — 설정 페이지
- * 빌드/모델 다운로드 상태 확인, 실행, 로그 폴링
+ * DX Stream — setup page
+ * Checks build/model-download state, runs steps, polls logs
  */
 DXStream._setupLogSource = null;
 DXStream._setupRunning = false;
 DXStream._setupCompletedSteps = {};
 
-// stepId → HTML log element ID 매핑
+// stepId → HTML log element ID
 var _setupLogIds = {
     'stream-deps': 'setup-log-stream-deps',
     'build': 'setup-log-build',
@@ -23,6 +23,27 @@ var _setupBadgeIds = {
     'driver': 'driver',
     'webrtc-deps': 'webrtc-deps',
 };
+DXStream._setupFailedSteps = {};
+
+// The shared step list (shared/static/dx-steps.js) paints badges, the next step and the bar.
+// This page only reports each step's state and a one-line fact.
+function _setupIco(name) {
+    return (typeof window !== 'undefined' && typeof window.DXIcon === 'function') ? window.DXIcon(name) : '';
+}
+function _setupStep(stepId, state, facts) {
+    var root = typeof document !== 'undefined' && document.getElementById('setup-steps');
+    if (!root || !window.DXSteps || !stepId) return;
+    window.DXSteps.set(root, stepId, state, facts ? { facts: facts } : undefined);
+}
+// Done-ness comes from the server state, then steps just finished here, then steps that just failed.
+function _setupStepFrom(stepId, ok, facts) {
+    var done = ok || DXStream._setupCompletedSteps[stepId];
+    _setupStep(stepId, done ? 'done' : (DXStream._setupFailedSteps[stepId] ? 'failed' : 'todo'), done ? facts : []);
+}
+function _basename(p) {
+    return String(p || '').split('/').filter(Boolean).pop() || '';
+}
+
 function _streamSetupVisible() {
     return typeof document === 'undefined' || !document.hidden;
 }
@@ -63,47 +84,36 @@ DXStream.setupInit = async function () {
     }
     _updateSetupBadge('build', status.build);
     _updateSetupBadge('download', status['download-models']);
+    // A step still running on the server (the page was left, or the language changed — both stop
+    // the poll): pick its log and Stop button back up instead of showing an idle step.
+    // (a single-model download from Model Catalog runs as "model-<file>" — not a Setup step)
+    if (status.running && _setupLogIds[status.running] && !DXStream._setupPollTimer) _resumeRunningStep(status.running);
 
-    // 모델 다운로드 진행률 표시
+    // Model download progress
     var dl = status['download-models'];
     if (dl) {
         var progressText = DXStream.$('setup-download-text');
         if (progressText) progressText.textContent = dl.installed + '/' + dl.total;
     }
 
-    // runtime/driver 뱃지도 갱신 (상태 API에서 간접 확인)
+    // Also refresh the runtime/driver badges (inferred from the status API)
     var sysStatus = await DXStream.api('/api/status');
     if (!sysStatus.error) {
-        // stream-deps: 빌드 툴체인(gstreamer 포함) 설치 여부로 간접 판단
-        var depsBadge = DXStream.$('setup-badge-stream-deps');
-        if (depsBadge) {
-            var depsOk = DXStream._setupCompletedSteps['stream-deps'] || (sysStatus.gstreamer && sysStatus.gstreamer.installed);
-            depsBadge.className = 'comp-status-badge ' + (depsOk ? 'cs-ok' : 'cs-warn');
-            depsBadge.textContent = depsOk ? '✅ ' + T('Done') : '⏳';
-        }
-        // runtime: gstreamer 설치 여부로 판단
-        var rtBadge = DXStream.$('setup-badge-runtime');
-        if (rtBadge) {
-            var rtOk = DXStream._setupCompletedSteps['runtime-deps'] || (sysStatus.gstreamer && sysStatus.gstreamer.installed);
-            rtBadge.className = 'comp-status-badge ' + (rtOk ? 'cs-ok' : 'cs-warn');
-            rtBadge.textContent = rtOk ? '✅ ' + T('Done') : '⏳';
-        }
-        // driver: npu 감지 여부로 판단
-        var drvBadge = DXStream.$('setup-badge-driver');
-        if (drvBadge) {
-            var drvOk = DXStream._setupCompletedSteps['driver'] || (sysStatus.npu && sysStatus.npu.ok);
-            drvBadge.className = 'comp-status-badge ' + (drvOk ? 'cs-ok' : 'cs-warn');
-            drvBadge.textContent = drvOk ? '✅ ' + T('Done') : '⏳';
-        }
-        // webrtc-deps: nice_plugin 여부로 판단
-        var webrtcBadge = DXStream.$('setup-badge-webrtc-deps');
-        if (webrtcBadge) {
-            var wOk = DXStream._setupCompletedSteps['webrtc-deps'] || (sysStatus.webrtc && sysStatus.webrtc.ok && sysStatus.webrtc.nice_plugin);
-            webrtcBadge.className = 'comp-status-badge ' + (wOk ? 'cs-ok' : 'cs-warn');
-            webrtcBadge.textContent = wOk ? '✅ ' + T('Done') : '⚠️ ' + T('Required');
-        }
+        var info = sysStatus.system_info || {};
+        // stream-deps: inferred from whether the build toolchain (incl. GStreamer) is installed
+        _setupStepFrom('stream-deps', sysStatus.gstreamer && sysStatus.gstreamer.installed,
+            [info.gstreamer_version ? 'GStreamer ' + String(info.gstreamer_version).replace(/^GStreamer\s*/i, '') : '']);
+        // runtime: inferred from whether GStreamer is installed
+        _setupStepFrom('runtime-deps', sysStatus.gstreamer && sysStatus.gstreamer.installed,
+            [sysStatus.gstreamer && sysStatus.gstreamer.plugin ? 'dxstream' : '']);
+        // driver: inferred from whether an NPU is detected
+        var drvOk = DXStream._setupCompletedSteps['driver'] || (sysStatus.npu && sysStatus.npu.ok);
+        _setupStepFrom('driver', drvOk,
+            ((sysStatus.npu && sysStatus.npu.devices) || []).map(_basename).concat([info.npu_driver_version || '']));
+        // webrtc-deps: both nicesrc and the GstWebRTC binding (the server's webrtc.ok)
+        _setupStepFrom('webrtc-deps', sysStatus.webrtc && sysStatus.webrtc.ok,
+            ['gstreamer1.0-nice', 'gir1.2-gst-plugins-bad-1.0']);
         if (sysStatus.system_info) {
-            var info = sysStatus.system_info;
             var el;
             el = DXStream.$('setup-os-info'); if (el) el.textContent = info.os || '--';
             el = DXStream.$('setup-gst-version'); if (el) el.textContent = info.gstreamer_version || '--';
@@ -112,47 +122,37 @@ DXStream.setupInit = async function () {
         }
         var detailMap = {
             'setup-detail-runtime': sysStatus.gstreamer && sysStatus.gstreamer.installed
-                ? DXStream._L('GStreamer 설치됨','GStreamer installed','GStreamerインストール済','GStreamer已安装','GStreamer已安裝')
-                : DXStream._L('GStreamer 미설치','GStreamer not installed','GStreamer未インストール','GStreamer未安装','GStreamer未安裝'),
+                ? DXStream._L('GStreamer 설치됨','GStreamer installed','GStreamerインストール済','GStreamer已安装','GStreamer已安裝','GStreamer instalado')
+                : DXStream._L('GStreamer 미설치','GStreamer not installed','GStreamer未インストール','GStreamer未安装','GStreamer未安裝','GStreamer no instalado'),
             'setup-detail-driver': sysStatus.npu && sysStatus.npu.ok
-                ? DXStream._L('NPU 감지됨','NPU detected','NPU検出済','NPU已检测','NPU已偵測')
-                : DXStream._L('NPU 미감지','NPU not detected','NPU未検出','NPU未检测','NPU未偵測')
+                ? DXStream._L('NPU 감지됨','NPU detected','NPU検出済','NPU已检测','NPU已偵測','NPU detectada')
+                : DXStream._L('NPU 미감지','NPU not detected','NPU未検出','NPU未检测','NPU未偵測','NPU no detectada')
         };
         Object.keys(detailMap).forEach(function(id) {
             var detailEl = DXStream.$(id);
-            if (detailEl) detailEl.innerHTML = detailMap[id];
+            if (detailEl) detailEl.textContent = detailMap[id];
         });
     }
 
-    // 환경 점검도 같이 실행
+    // Run the environment check too
     DXStream.checkEnvironment();
 };
 
 function _updateSetupBadge(id, data) {
-    var badge = DXStream.$('setup-badge-' + id);
-    if (!badge) return;
     var stepId = id === 'download' ? 'download-models' : id;
-    var locallyDone = DXStream._setupCompletedSteps && DXStream._setupCompletedSteps[stepId];
-    if ((data && data.ok) || locallyDone) {
-        badge.className = 'comp-status-badge cs-ok';
-        badge.textContent = '✅ ' + T('Done');
-    } else {
-        badge.className = 'comp-status-badge cs-warn';
-        badge.textContent = '⚠️ ' + T('Required');
-    }
+    var facts = [];
+    if (stepId === 'build' && data && data.path) facts = [_basename(data.path)];
+    if (stepId === 'download-models' && data && data.total) facts = [data.installed + '/' + data.total + ' ' + T('files')];
+    _setupStepFrom(stepId, data && data.ok, facts);
 }
 function _markSetupStepDone(stepId) {
     if (!stepId) return;
     DXStream._setupCompletedSteps[stepId] = true;
-    var badgeId = _setupBadgeIds[stepId] || stepId;
-    var badge = DXStream.$('setup-badge-' + badgeId);
-    if (badge) {
-        badge.className = 'comp-status-badge cs-ok';
-        badge.textContent = '✅ ' + T('Done');
-    }
+    delete DXStream._setupFailedSteps[stepId];
+    _setupStep(stepId, 'done');
 }
 
-// sudo가 필요한 스텝 목록
+// Steps that need sudo
 var _sudoSteps = { 'stream-deps': true, 'build': true, 'webrtc-deps': true, 'runtime-deps': true, 'driver': true };
 
 // POST a setup step and return {ok, data} reading the JSON body regardless of HTTP status
@@ -211,7 +211,7 @@ DXStream.runSetup = async function (stepId) {
         if (logEl) { logEl.style.display = ''; logEl.textContent = T('Preparing…') + '\n'; logEl._lastSetupLogText = ''; }
         DXStream._setupRunning = true;
         DXStream._lastSetupExitCode = null;
-        if (stopBtn) stopBtn.style.display = '';
+        _showStopFor(stepId);
     }
     function _resetRun() {
         DXStream._setupRunning = false;
@@ -223,12 +223,12 @@ DXStream.runSetup = async function (stepId) {
         var authFailed = false;
         while (true) {
             var desc = authFailed
-                ? DXStream._L('비밀번호가 올바르지 않습니다. 다시 입력하세요.','Incorrect password. Please try again.','パスワードが正しくありません。もう一度入力してください。','密码不正确，请重新输入。','密碼不正確，請重新輸入。')
-                : DXStream._L('이 작업은 관리자 권한이 필요합니다.','This operation requires administrator privileges.','この操作には管理者権限が必要です。','此操作需要管理员权限。','此操作需要管理員權限。');
+                ? DXStream._L('비밀번호가 올바르지 않습니다. 다시 입력하세요.','Incorrect password. Please try again.','パスワードが正しくありません。もう一度入力してください。','密码不正确，请重新输入。','密碼不正確，請重新輸入。','Contraseña incorrecta. Inténtelo de nuevo.')
+                : DXStream._L('이 작업은 관리자 권한이 필요합니다.','This operation requires administrator privileges.','この操作には管理者権限が必要です。','此操作需要管理员权限。','此操作需要管理員權限。','Esta operación requiere privilegios de administrador.');
             var pw = await DXStream.inputModal(
-                DXStream._L('🔒 sudo 인증','🔒 sudo Authentication','🔒 sudo認証','🔒 sudo认证','🔒 sudo認證'),
+                DXStream._L('sudo 인증','sudo Authentication','sudo認証','sudo认证','sudo認證','Autenticación sudo'),
                 { description: desc, type: 'password',
-                  placeholder: DXStream._L('비밀번호 입력','Enter password','パスワード入力','输入密码','輸入密碼') }
+                  placeholder: DXStream._L('비밀번호 입력','Enter password','パスワード入力','输入密码','輸入密碼','Introduzca la contraseña') }
             );
             if (!pw) {
                 DXStream.toast(T('Cancelled'), 'info');
@@ -258,12 +258,32 @@ DXStream.runSetup = async function (stepId) {
     }
     DXStream.toast(_stepLabel(stepId) + ' ' + T('started'), 'info');
 
-    // 로그 폴링 시작
+    // Start log polling
     _startLogPoll(stepId, logEl);
 };
 
+// runtime-deps · driver run as an in-process transaction on the server: there is nothing to stop,
+// so Stop is not offered.
+var _unstoppableSteps = { 'runtime-deps': true, 'driver': true };
+function _showStopFor(stepId) {
+    var stopBtn = DXStream.$('setup-stop-btn');
+    if (stopBtn) stopBtn.style.display = _unstoppableSteps[stepId] ? 'none' : '';
+}
+
+function _resumeRunningStep(stepId) {
+    var logId = _setupLogIds[stepId];
+    var logEl = logId ? DXStream.$(logId) : null;
+    DXStream._setupRunning = true;
+    _showStopFor(stepId);
+    _startLogPoll(stepId, logEl);
+}
+
 function _startLogPoll(stepId, logEl) {
     if (DXStream._setupPollTimer) clearInterval(DXStream._setupPollTimer);
+    // The log stays hidden while empty and shows once a run starts (Run All comes through here too).
+    if (logEl) logEl.style.display = '';
+    delete DXStream._setupFailedSteps[stepId];
+    _setupStep(stepId, 'running');
 
     DXStream._setupPollTimer = setInterval(async function () {
         if (!_streamSetupVisible()) return;
@@ -296,10 +316,12 @@ function _startLogPoll(stepId, logEl) {
                 _markSetupStepDone(stepId);
             } else {
                 DXStream.toast(_stepLabel(stepId) + ' ' + T('Failed') + ' (exit ' + r.exit_code + ')', 'error');
+                DXStream._setupFailedSteps[stepId] = true;
+                _setupStep(stepId, 'failed');
             }
-            // 설정 상태 + 대시보드 갱신
+            // Refresh setup state + dashboard
             DXStream.setupInit();
-            // 대시보드 status polling 재시작
+            // Restart dashboard status polling
             if (typeof DXStream.startStatusPolling === 'function') {
                 DXStream.startStatusPolling();
             }
@@ -309,7 +331,7 @@ function _startLogPoll(stepId, logEl) {
 
 DXStream.clearLog = function (logKey) {
     var logEl = DXStream.$('setup-log-' + logKey);
-    if (logEl) logEl.textContent = '';
+    if (logEl) { logEl.textContent = ''; logEl._lastSetupLogText = ''; logEl.style.display = 'none'; }
 };
 
 DXStream.retrySetup = function (stepId) {
@@ -331,18 +353,27 @@ DXStream.setupRunAll = async function() {
     var prog = DXStream.$('setup-run-all-progress');
     var stopBtn = DXStream.$('setup-stop-btn');
     if (DXStream._setupRunning) {
-        DXStream.toast(DXStream._L('다른 작업이 이미 실행 중입니다','Another task is already running','別のタスクが実行中です','另一个任务正在运行','另一個任務正在執行'), 'warn');
+        DXStream.toast(DXStream._L('다른 작업이 이미 실행 중입니다','Another task is already running','別のタスクが実行中です','另一个任务正在运行','另一個任務正在執行','Ya hay otra tarea en ejecución'), 'warn');
         return;
     }
 
     var steps = ['stream-deps', 'runtime-deps', 'driver', 'build', 'download-models', 'webrtc-deps'];
+    // "Set up the rest (n)" — finished steps are not rerun (same rule as dx_app Run All).
+    steps = steps.filter(function (id) {
+        var li = document.querySelector('#setup-steps .dx-step[data-step="' + id + '"]');
+        return !li || li.dataset.state !== 'done';
+    });
+    if (!steps.length) {
+        DXStream.toast(DXStream._L('이미 모두 설치되어 있습니다','Everything is already installed','すべてインストール済みです','已全部安装','已全部安裝','Todo está ya instalado'), 'ok');
+        return;
+    }
     if (btn) btn.disabled = true;
     if (stopBtn) stopBtn.style.display = '';
 
     _cachedSudoPwd = await DXStream.inputModal(
-        DXStream._L('🔒 sudo 인증','🔒 sudo Authentication','🔒 sudo認証','🔒 sudo认证','🔒 sudo認證'),
-        { description: DXStream._L('Run All에 관리자 권한이 필요합니다.','Run All requires administrator privileges.','Run Allには管理者権限が必要です。','全部执行需要管理员权限。','全部執行需要管理員權限。'),
-          type: 'password', placeholder: DXStream._L('비밀번호 입력','Enter password','パスワード入力','输入密码','輸入密碼') }
+        DXStream._L('sudo 인증','sudo Authentication','sudo認証','sudo认证','sudo認證','Autenticación sudo'),
+        { description: DXStream._L('Run All에 관리자 권한이 필요합니다.','Run All requires administrator privileges.','Run Allには管理者権限が必要です。','全部执行需要管理员权限。','全部執行需要管理員權限。','Configurar todo requiere privilegios de administrador.'),
+          type: 'password', placeholder: DXStream._L('비밀번호 입력','Enter password','パスワード入力','输入密码','輸入密碼','Introduzca la contraseña') }
     );
     if (!_cachedSudoPwd) {
         if (btn) btn.disabled = false;
@@ -373,9 +404,9 @@ DXStream.setupRunAll = async function() {
                 // wrong/expired sudo password → re-prompt, update the cached one, retry this step
                 DXStream._setupRunning = false;
                 var npw = await DXStream.inputModal(
-                    DXStream._L('🔒 sudo 인증','🔒 sudo Authentication','🔒 sudo認証','🔒 sudo认证','🔒 sudo認證'),
-                    { description: DXStream._L('비밀번호가 올바르지 않습니다. 다시 입력하세요.','Incorrect password. Please try again.','パスワードが正しくありません。もう一度入力してください。','密码不正确，请重新输入。','密碼不正確，請重新輸入。'),
-                      type: 'password', placeholder: DXStream._L('비밀번호 입력','Enter password','パスワード入力','输入密码','輸入密碼') }
+                    DXStream._L('sudo 인증','sudo Authentication','sudo認証','sudo认证','sudo認證','Autenticación sudo'),
+                    { description: DXStream._L('비밀번호가 올바르지 않습니다. 다시 입력하세요.','Incorrect password. Please try again.','パスワードが正しくありません。もう一度入力してください。','密码不正确，请重新输入。','密碼不正確，請重新輸入。','Contraseña incorrecta. Inténtelo de nuevo.'),
+                      type: 'password', placeholder: DXStream._L('비밀번호 입력','Enter password','パスワード入力','输入密码','輸入密碼','Introduzca la contraseña') }
                 );
                 if (!npw) { cancelled = true; break; }
                 _cachedSudoPwd = npw;
@@ -386,14 +417,14 @@ DXStream.setupRunAll = async function() {
         }
         if (cancelled) {
             DXStream._setupRunning = false;
-            DXStream.toast(DXStream._L('취소됨','Cancelled','キャンセルしました','已取消','已取消'), 'info');
+            DXStream.toast(DXStream._L('취소됨','Cancelled','キャンセルしました','已取消','已取消','Cancelado'), 'info');
             break;
         }
         if (!result.ok) {
             DXStream._setupRunning = false;
             DXStream._lastSetupExitCode = 1;
             var _m = (result.data && (result.data.message || result.data.error)) || 'failed';
-            DXStream.toast(DXStream._L('실행 실패: ','Run failed: ','実行失敗: ','运行失败: ','執行失敗: ') + _m, 'err');
+            DXStream.toast(DXStream._L('실행 실패: ','Run failed: ','実行失敗: ','运行失败: ','執行失敗: ','Error al ejecutar: ') + _m, 'err');
             break;
         }
         if (logEl) _startLogPoll(stepId, logEl);
@@ -407,17 +438,18 @@ DXStream.setupRunAll = async function() {
     if (btn) btn.disabled = false;
     if (prog) prog.style.display = 'none';
     if (stopBtn) stopBtn.style.display = 'none';
-    if (i === steps.length) DXStream.toast(DXStream._L('전체 실행 완료!','Run All complete!','全実行完了!','全部执行完成!','全部執行完成!'), 'ok');
+    if (i === steps.length) DXStream.toast(DXStream._L('전체 실행 완료!','Run All complete!','全実行完了!','全部执行完成!','全部執行完成!','¡Todo completado!'), 'ok');
     DXStream.setupInit();
 };
 
 DXStream.setupStop = async function() {
     try {
         var r = await DXStream.postJ('/api/setup/stop', {});
-        if (r.ok) DXStream.toast(DXStream._L('중단됨','Stopped','中断済','已中断','已中斷'), 'warn');
-        else DXStream.toast(DXStream._L('중단 실패','Stop failed','中断失敗','中断失败','中斷失敗'), 'err');
+        if (r.ok) DXStream.toast(DXStream._L('중단됨','Stopped','中断済','已中断','已中斷','Detenido'), 'warn');
+        else DXStream.toast(DXStream._L('중단 실패','Stop failed','中断失敗','中断失败','中斷失敗','No se pudo detener')
+            + (r.message || r.error ? ': ' + ((window.translateServerError || String)(r.message || r.error)) : ''), 'err');
     } catch (e) {
-        DXStream.toast(DXStream._L('중단 오류: ','Stop error: ','中断エラー: ','中断错误: ','中斷錯誤: ') + e.message, 'err');
+        DXStream.toast(DXStream._L('중단 오류: ','Stop error: ','中断エラー: ','中断错误: ','中斷錯誤: ','Error al detener: ') + e.message, 'err');
     }
 };
 
@@ -425,10 +457,21 @@ DXStream.runDiagnostics = async function() {
     var btn = DXStream.$('stream-diag-run-btn');
     var sum = DXStream.$('stream-diag-summary');
     var res = DXStream.$('stream-diag-results');
-    if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
-    if (res) res.innerHTML = '<p class="txt-dim">' + DXStream._L('진단 실행 중…','Running diagnostics…','診断実行中…','诊断运行中…','診斷執行中…') + '</p>';
+    if (btn) { btn.disabled = true; btn.innerHTML = _setupIco('spinner') + ' <span>' + T('Running…') + '</span>'; }
+    if (res) res.innerHTML = '<p class="txt-dim">' + DXStream._L('진단 실행 중…','Running diagnostics…','診断実行中…','诊断运行中…','診斷執行中…','Ejecutando diagnóstico…') + '</p>';
     try {
         var r = await DXStream.api('/api/diagnostics');
+        if (!r || r.error || !Array.isArray(r.checks)) {
+            // An error answer has no checks; show its reason instead.
+            var why = (window.translateServerError || String)((r && r.error) || '');
+            if (res) res.innerHTML = '<p class="txt-dim">' + DXStream.escHtml(why) + '</p>';
+            DXStream.toast(DXStream._L('진단 오류: ','Diagnostics error: ','診断エラー: ','诊断错误: ','診斷錯誤: ','Error de diagnóstico: ') + why, 'err');
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = _setupIco('play') + ' <span data-i18n="Run diagnostics">' + T('Run diagnostics') + '</span>';
+            }
+            return;
+        }
         var lang = (typeof DXI18n !== 'undefined' ? DXI18n.lang : 'en');
         var langKey = lang.replace('-', '');
         var html = '';
@@ -440,10 +483,10 @@ DXStream.runDiagnostics = async function() {
             var fix = '';
             if (!c.ok && c.fix) {
                 var fixText = typeof c.fix === 'object' ? (c.fix[langKey] || c.fix.en) : c.fix;
-                fix = '<div class="diag-card-fix">' + DXStream.escHtml(fixText) + '</div>';
+                fix = '<div class="diag-card-fix">' + _setupIco('info') + ' ' + DXStream.escHtml(fixText) + '</div>';
             }
             html += '<div class="diag-card ' + cardClass + '">'
-                + '<div class="diag-card-title">' + statusText + ' ' + DXStream.escHtml(label) + '</div>'
+                + '<div class="diag-card-title">' + _setupIco(c.ok ? 'check' : (severity === 'advisory' ? 'alert' : 'x')) + ' ' + statusText + ' ' + DXStream.escHtml(label) + '</div>'
                 + '<div class="diag-card-detail">' + DXStream.escHtml(c.detail) + '</div>'
                 + fix + '</div>';
         });
@@ -456,24 +499,27 @@ DXStream.runDiagnostics = async function() {
             var totalCount = Number(r.total) || 0;
             var runtimeReady = r.runtime_ready === true;
             var summaryClass = r.all_ok ? 'diag-pass' : (runtimeReady ? 'diag-warn' : 'diag-fail');
-            var summaryText = r.all_ok ? 'OK' : (runtimeReady ? 'READY WITH WARNINGS' : 'FAIL');
+            var summaryText = r.all_ok ? 'OK' : (runtimeReady
+                ? DXStream._L('경고와 함께 준비됨','READY WITH WARNINGS','警告付きで準備完了','就绪（有警告）','就緒（有警告）','LISTO CON ADVERTENCIAS')
+                : DXStream._L('실패','FAIL','失敗','失败','失敗','FALLO'));
+            var bf = blockerFailures, af = advisoryFailures;
             sum.style.display = '';
             sum.innerHTML = '<div class="diag-summary-bar ' + summaryClass + '">'
-                + summaryText + ' <strong>' + passedCount + '/' + totalCount + '</strong> '
-                + DXStream._L('검사 통과','checks passed','検査合格','检查通过','檢查通過')
-                + ' · ' + blockerFailures + ' ' + (blockerFailures === 1 ? 'failure' : 'failures')
-                + ' · ' + advisoryFailures + ' ' + (advisoryFailures === 1 ? 'warning' : 'warnings')
+                + DXStream.escHtml(summaryText) + ' <strong>' + passedCount + '/' + totalCount + '</strong> '
+                + DXStream._L('검사 통과','checks passed','検査合格','检查通过','檢查通過','comprobaciones superadas')
+                + ' · ' + DXStream._L('실패 ' + bf, bf + (bf === 1 ? ' failure' : ' failures'), '失敗 ' + bf + ' 件', bf + ' 个失败', bf + ' 個失敗', bf + (bf === 1 ? ' fallo' : ' fallos'))
+                + ' · ' + DXStream._L('경고 ' + af, af + (af === 1 ? ' warning' : ' warnings'), '警告 ' + af + ' 件', af + ' 个警告', af + ' 個警告', af + (af === 1 ? ' advertencia' : ' advertencias'))
                 + '</div>';
         }
-        if (r.all_ok) DXStream.toast(DXStream._L('모든 진단 통과!','All diagnostics passed!','すべての診断に合格!','所有诊断通过!','所有診斷通過!'), 'ok');
-        else if (r.runtime_ready) DXStream.toast(DXStream._L('경고와 함께 실행 준비됨','Ready with warnings','警告付きで準備完了','已准备就绪，但有警告','已準備就緒，但有警告'), 'warn');
-        else DXStream.toast(DXStream._L('차단 검사 실패','Blocking checks failed','ブロッカー検査が失敗','阻塞检查失败','阻擋檢查失敗'), 'err');
+        if (r.all_ok) DXStream.toast(DXStream._L('모든 진단 통과!','All diagnostics passed!','すべての診断に合格!','所有诊断通过!','所有診斷通過!','¡Todos los diagnósticos superados!'), 'ok');
+        else if (r.runtime_ready) DXStream.toast(DXStream._L('경고와 함께 실행 준비됨','Ready with warnings','警告付きで準備完了','已准备就绪，但有警告','已準備就緒，但有警告','Listo con advertencias'), 'warn');
+        else DXStream.toast(DXStream._L('차단 검사 실패','Blocking checks failed','ブロッカー検査が失敗','阻塞检查失败','阻擋檢查失敗','Fallaron comprobaciones obligatorias'), 'err');
     } catch (e) {
-        DXStream.toast(DXStream._L('진단 오류: ','Diagnostics error: ','診断エラー: ','诊断错误: ','診斷錯誤: ') + e.message, 'err');
+        DXStream.toast(DXStream._L('진단 오류: ','Diagnostics error: ','診断エラー: ','诊断错误: ','診斷錯誤: ','Error de diagnóstico: ') + e.message, 'err');
     }
     if (btn) {
         btn.disabled = false;
-        btn.innerHTML = '▶ <span class="ko">진단 실행</span><span class="en">Run</span><span class="ja">実行</span><span class="zh-CN">运行</span><span class="zh-TW">執行</span>';
+        btn.innerHTML = _setupIco('play') + ' <span data-i18n="Run diagnostics">' + T('Run diagnostics') + '</span>';
     }
 };
 
@@ -498,11 +544,12 @@ DXStream.checkEnvironment = async function () {
         status.models.installed + '/' + status.models.total + ' ' + T('files'));
     _setEnvRow('video', status.videos.ok,
         status.videos.count + ' ' + T('files'));
-    // WebRTC — 서버 nice_plugin 상태 반영
+    // WebRTC — reflects the server's nice_plugin state
     if (status.webrtc) {
-        var wOk = status.webrtc.ok && status.webrtc.nice_plugin;
+        var wOk = !!status.webrtc.ok;
+        var miss = status.webrtc.missing || (status.webrtc.nice_plugin ? [] : ['gstreamer1.0-nice']);
         _setEnvRow('webrtc', wOk,
-            wOk ? 'gstreamer1.0-nice ' + T('OK') : T('gstreamer1.0-nice not installed'));
+            wOk ? T('OK') : T('Not installed: ') + miss.join(', '));
     } else {
         _setEnvRow('webrtc', false, T('Not checked'));
     }
@@ -512,8 +559,9 @@ function _setEnvRow(key, ok, detail) {
     var statusEl = DXStream.$('env-' + key + '-status');
     var detailEl = DXStream.$('env-' + key + '-detail');
     if (statusEl) {
-        statusEl.className = 'comp-status-badge ' + (ok ? 'cs-ok' : 'cs-warn');
-        statusEl.textContent = ok ? '✅' : '⚠️';
+        // Same look as the step list's state (icon + label).
+        statusEl.className = 'dx-step-state ' + (ok ? 'is-done' : 'is-todo');
+        statusEl.innerHTML = _setupIco(ok ? 'check' : 'alert') + '<span>' + T(ok ? 'Ready' : 'Needs setup') + '</span>';
     }
     if (detailEl) detailEl.textContent = detail;
 }

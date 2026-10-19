@@ -1,4 +1,4 @@
-"""console.js 드롭다운/페이로드 계약(정적 소스 검증)."""
+"""console.js dropdown and payload contract (static source check)."""
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -9,7 +9,7 @@ def test_populates_agent_select_from_status():
     src = JS.read_text(encoding="utf-8")
     assert "agent-select" in src
     assert "model-select" in src
-    assert "agents" in src  # status.agents 사용
+    assert "agents" in src  # uses status.agents
 
 
 def test_run_payload_includes_agent_and_model():

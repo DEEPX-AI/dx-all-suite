@@ -1,4 +1,4 @@
-"""dx_agent_dev 쇼케이스 양옆 패널 정적 계약 테스트."""
+"""Static contract for the dx_agent_dev showcase side panels."""
 import re
 from pathlib import Path
 
@@ -9,14 +9,14 @@ CONSOLE = AGENT / "static" / "js" / "console.js"
 MEDIA = AGENT / "static" / "media"
 
 EXPECTED_MEDIA = (
-    "dx-agent-dev-squat-gameplay.gif",
-    "dx-agent-dev-stretch-gameplay.gif",
-    "dx-agent-dev-ultralytics-yolo.gif",
+    "dx-agent-dev-squat-gameplay.webp",
+    "dx-agent-dev-stretch-gameplay.webp",
+    "dx-agent-dev-ultralytics-yolo.webp",
     "dx-agent-dev-ultralytics-wildlife-sample.jpg",
     "dx-agent-dev-ultralytics-ppe-sample.jpg",
     "dx-agent-dev-ultralytics-braintumor-sample.jpg",
     "dx-agent-dev-ultralytics-pills-sample.jpg",
-    "dx-agent-dev-paddleocr-gameplay.gif",
+    "dx-agent-dev-paddleocr-gameplay.webp",
     "dx-agent-dev-rapiddoc-pdf2md-sample.png",
 )
 
@@ -26,7 +26,7 @@ def _read(p):
 
 
 def _func_body(js, name):
-    """IIFE 내 함수 본문을 다음 함수 선언 직전까지 추출."""
+    """Extract a function body inside the IIFE, up to the next function declaration."""
     marker = "function " + name + "("
     start = js.index(marker)
     rest = js[start + len(marker):]
@@ -36,7 +36,8 @@ def _func_body(js, name):
 
 def test_index_has_side_panels():
     html = _read(INDEX)
-    assert 'class="agent-layout"' in html
+    # main carries both the shared shell class and the module class.
+    assert re.search(r'<main[^>]*class="[^"]*\bagent-layout\b', html), html[:200]
     assert 'id="examples-left"' in html
     assert 'id="examples-right"' in html
 

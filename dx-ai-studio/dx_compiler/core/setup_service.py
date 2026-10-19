@@ -1,14 +1,15 @@
 """
-dx_com SDK 설치 및 샘플 데이터 다운로드를 관리하는 서비스.
-경로 관계:
-  Studio 앱:   {all-suite}/dx-ai-studio/dx_compiler/
-  SDK 패키지:  {all-suite}/dx-compiler/
-  install.sh:  {all-suite}/dx-compiler/install.sh
-  샘플 스크립트: {all-suite}/dx-compiler/example/
+Installs the dx_com SDK and downloads the sample data.
+Paths:
+  Studio app:     {all-suite}/dx-ai-studio/dx_compiler/
+  SDK package:    {all-suite}/dx-compiler/
+  install.sh:     {all-suite}/dx-compiler/install.sh
+  Sample scripts: {all-suite}/dx-compiler/example/
 """
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -19,29 +20,62 @@ from dx_compiler.core.config import (
     SAMPLE_MODELS_DIR, CALIB_DIR, SCRIPT_DIR
 )
 
-# 샘플 모델 목록 (getting-started 기준)
+# Sample models (as in getting-started)
 SAMPLE_MODELS = [
     {"name": "YOLOV5S-1", "onnx": "YOLOV5S-1.onnx", "config": "YOLOV5S-1.json"},
     {"name": "YOLOV5S_Face-1", "onnx": "YOLOV5S_Face-1.onnx", "config": "YOLOV5S_Face-1.json"},
     {"name": "MobileNetV2-1", "onnx": "MobileNetV2-1.onnx", "config": "MobileNetV2-1.json"},
 ]
 
-# venv 탐색 순서
+# venv lookup order
 VENV_CANDIDATES = [
-    "venv-dx-compiler-local",  # 호스트
-    "venv-dx-compiler",        # 컨테이너
+    "venv-dx-compiler-local",  # host
+    "venv-dx-compiler",        # container
 ]
+
+# dx-com requires torch, and the default x86 torch pulls in the CUDA libraries (~5 GB of disk). dxcom compiles
+# on the CPU, so they are unused on a host without an NVIDIA GPU and can fill a small board's disk ("No space
+# left on device"). Only on such hosts, add the CPU torch index (same torch, +cpu build).
+TORCH_CPU_INDEX = "https://download.pytorch.org/whl/cpu"
+
+
+# The probe starts the venv's python and imports dx_com (and with it torch): ~1.5 s on a board.
+# /feature-check and /setup/status both asked on every call, so the Compiler page waited for it on
+# every load. The answer changes only when the installed package does — the key is the dx_com
+# package folder and its mtime. Only "installed" answers are kept, so an install shows up at once.
+_DX_COM_PROBE: Dict[tuple, dict] = {}
+
+
+def _dx_com_probe_key(venv_python: Path) -> Optional[tuple]:
+    venv = Path(venv_python).parent.parent
+    for pkg in sorted(venv.glob("lib/python*/site-packages/dx_com")):
+        try:
+            return (str(pkg), pkg.stat().st_mtime_ns)
+        except OSError:
+            return None
+    return None
+
+
+def _has_nvidia_gpu() -> bool:
+    return Path("/dev/nvidia0").exists() or shutil.which("nvidia-smi") is not None
+
+
+def _pip_env(env: Dict[str, str]) -> Dict[str, str]:
+    """Pick the torch build pip installs to suit this host. A user-chosen index (PIP_INDEX_URL, PIP_EXTRA_INDEX_URL) wins."""
+    if not _has_nvidia_gpu() and not env.get("PIP_INDEX_URL") and not env.get("PIP_EXTRA_INDEX_URL"):
+        env["PIP_EXTRA_INDEX_URL"] = TORCH_CPU_INDEX
+    return env
 
 
 class SetupService:
-    """dx_com SDK 설치 및 샘플 데이터 다운로드를 관리"""
+    """Installs the dx_com SDK and downloads the sample data."""
 
     def __init__(self):
         self._props = self._load_properties()
 
 
     def check_status(self) -> dict:
-        """전체 셋업 상태 반환 (/setup/status 응답)"""
+        """Return the full setup status (the /setup/status response)."""
         venv_python = self.get_venv_python()
         dx_com_info = self._check_dx_com(venv_python)
         venv = self._find_venv()
@@ -77,7 +111,7 @@ class SetupService:
         }
 
     def get_venv_python(self) -> Optional[Path]:
-        """venv의 python3 경로 반환"""
+        """Return the path of the venv's python3."""
         venv = self._find_venv()
         if venv:
             py = venv / "bin" / "python3"
@@ -86,7 +120,7 @@ class SetupService:
         return None
 
     def get_sample_models(self) -> List[dict]:
-        """다운로드된 샘플 모델 목록 + 경로"""
+        """Downloaded sample models and their paths."""
         result = []
         for m in SAMPLE_MODELS:
             onnx_path = SAMPLE_MODELS_DIR / "onnx" / m["onnx"]
@@ -101,11 +135,12 @@ class SetupService:
 
 
     def install_sdk(self, sudo_password: str = None) -> Generator[dict, None, None]:
-        """dx_com 설치/재설치.
+        """Install or reinstall dx_com.
 
-        - 로컬에 wheel이 이미 있으면: venv 생성(없으면) + pip 설치. sudo·네트워크 불필요.
-        - wheel이 없으면(fresh): install.sh로 다운로드+설치. 내부 sudo apt가 있어 관리자 비번 필요
-          — SUDO_ASKPASS로 비대화형 처리(웹에서 비번 입력). 재실행 안전(idempotent)."""
+        - Wheel already on disk: create the venv if missing, then pip install. No sudo or network needed.
+        - No wheel (fresh): download and install with install.sh. It runs `sudo apt` inside, so it needs the
+          admin password, passed non-interactively through SUDO_ASKPASS (entered on the web page).
+          Safe to re-run (idempotent)."""
         if self._local_wheel_available():
             venv_python = self.get_venv_python()
             if not venv_python:
@@ -120,14 +155,14 @@ class SetupService:
                                   f"cd {SDK_ROOT} && bash install.sh --target=dx_com"}
             return
 
-        # wheel이 로컬에 없음 → install.sh로 다운로드+설치해야 함 (sudo 필요).
+        # No local wheel: install.sh must download and install it (needs sudo).
         if not SDK_ROOT.exists() or not (SDK_ROOT / "install.sh").exists():
             yield {"type": "error",
                    "message": f"DX Compiler SDK not found at {SDK_ROOT}. "
                               "Fetch it first (git submodule update --init dx-compiler)."}
             return
         if not sudo_password:
-            # 프론트가 비번 모달을 띄우도록 신호. (비번 받은 뒤 재요청)
+            # Tell the front end to show the password dialog; it retries with the password.
             yield {"type": "need_sudo",
                    "message": "Administrator (sudo) password is required to download and "
                               "install the DX Compiler SDK."}
@@ -141,21 +176,21 @@ class SetupService:
             return False
 
     def _run_install_sh(self, sudo_password: str) -> Generator[dict, None, None]:
-        """install.sh --target=dx_com 실행 (다운로드+venv+dx_com 설치)을 스트리밍.
+        """Stream `install.sh --target=dx_com` (download, venv, dx_com install).
 
-        내부 `sudo apt`는 SUDO_ASKPASS(shared)로 비대화형 인증. 재실행 안전: 기존 venv 있으면
-        --venv-reuse로 보존하며 dx_com만 재설치."""
+        The inner `sudo apt` authenticates non-interactively through SUDO_ASKPASS (shared). Safe to re-run:
+        an existing venv is kept with --venv-reuse and only dx_com is reinstalled."""
         import threading
         from shared.sudo_askpass import configure_sudo_env, preauthorize_sudo, keep_sudo_alive
 
-        env = os.environ.copy()
-        # PEP 668 (Ubuntu 24.04+): 내부 pip 폴백이 system Python을 건드릴 때 하드실패 방지.
+        env = _pip_env(os.environ.copy())
+        # PEP 668 (Ubuntu 24.04+): keep the inner pip fallback from failing hard on the system Python.
         env.setdefault("PIP_BREAK_SYSTEM_PACKAGES", "1")
         cleanup = configure_sudo_env(env, sudo_password)
         sudo_err = preauthorize_sudo(sudo_password, env)
         if sudo_err:
             cleanup()
-            # 프론트가 오답 구분해 재입력하도록 별도 타입.
+            # A separate type so the front end can tell a wrong password apart and ask again.
             yield {"type": "sudo_auth", "message": f"sudo authentication failed: {sudo_err}"}
             return
 
@@ -195,8 +230,8 @@ class SetupService:
             cleanup()
 
     def _create_venv(self) -> Generator[dict, None, None]:
-        """dx_com용 virtualenv 생성 (SDK_ROOT/venv-dx-compiler-local). 스튜디오 python 사용,
-        --system-site-packages로 플랫폼 패키지 상속."""
+        """Create the dx_com virtualenv (SDK_ROOT/venv-dx-compiler-local) with the studio's python,
+        inheriting platform packages through --system-site-packages."""
         venv_path = SDK_ROOT / VENV_CANDIDATES[0]
         if not SDK_ROOT.exists():
             yield {"type": "error",
@@ -221,7 +256,7 @@ class SetupService:
         yield {"type": "progress", "progress": 8, "message": "Virtual environment created."}
 
     def _pip_install_dx_com(self, venv_python) -> Generator[dict, None, None]:
-        """venv pip으로 dx_com wheel 설치"""
+        """Install the dx_com wheel with the venv's pip."""
         dx_com_dir = SDK_ROOT / "dx_com"
         py_tag = f"cp{sys.version_info.major}{sys.version_info.minor}"
         wheels = list(dx_com_dir.glob("*.whl"))
@@ -230,7 +265,7 @@ class SetupService:
             yield {"type": "error", "message": f"No wheel file found in {dx_com_dir}"}
             return
 
-        # Python 버전에 맞는 wheel 찾기
+        # Find the wheel matching this Python version
         matching = [w for w in wheels if py_tag in w.name]
         wheel = matching[0] if matching else wheels[0]
 
@@ -245,7 +280,7 @@ class SetupService:
             yield {"type": "progress", "progress": 20, "message": "Installing with pip..."}
             proc = subprocess.Popen(
                 cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                text=True, cwd=str(SDK_ROOT)
+                text=True, cwd=str(SDK_ROOT), env=_pip_env(os.environ.copy())
             )
             total_lines = 0
             for line in proc.stdout:
@@ -264,7 +299,7 @@ class SetupService:
 
 
     def download_samples(self) -> Generator[dict, None, None]:
-        """샘플 모델 + 캘리브레이션 데이터 다운로드"""
+        """Download the sample models and calibration data."""
         scripts = [
             (SDK_EXAMPLE / "1-download_sample_models.sh", "Downloading sample models..."),
             (SDK_EXAMPLE / "2-download_sample_calibration_dataset.sh", "Downloading calibration data..."),
@@ -309,6 +344,10 @@ class SetupService:
     def _check_dx_com(self, venv_python: Optional[Path]) -> dict:
         if not venv_python:
             return {"installed": False}
+        key = _dx_com_probe_key(venv_python)
+        if key is not None and key in _DX_COM_PROBE:
+            return dict(_DX_COM_PROBE[key])
+        found = {"installed": False}
         try:
             result = subprocess.run(
                 [str(venv_python), "-c",
@@ -316,10 +355,12 @@ class SetupService:
                 capture_output=True, text=True, timeout=10
             )
             if result.returncode == 0:
-                return {"installed": True, "version": result.stdout.strip()}
+                found = {"installed": True, "version": result.stdout.strip()}
         except (subprocess.TimeoutExpired, FileNotFoundError):
             pass
-        return {"installed": False}
+        if key is not None and found["installed"]:
+            _DX_COM_PROBE[key] = dict(found)
+        return found
 
     def _check_samples(self) -> dict:
         result = {}
@@ -352,5 +393,5 @@ class SetupService:
         return props
 
 
-# 싱글턴
+# Singleton
 setup_service = SetupService()

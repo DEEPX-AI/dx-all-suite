@@ -1,6 +1,11 @@
-# DEEPX Compiler Solution
+# DEEPX Compiler Solution <picture><source media="(prefers-color-scheme: dark)" srcset="img/badges/available-in-aws-marketplace-dark.png"><img src="img/badges/available-in-aws-marketplace-light.png" alt="Available in AWS Marketplace" height="40" align="right"></picture><picture><source media="(prefers-color-scheme: dark)" srcset="img/badges/powered-by-aws-dark.png"><img src="img/badges/powered-by-aws-light.png" alt="Powered by AWS" height="32" align="right"></picture>
 
 **AWS에서 ONNX 모델을 DEEPX NPU 실행 형식(DXNN)으로 컴파일하기**
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="img/badges/aws-qualified-software-dark.png">
+  <img src="img/badges/aws-qualified-software-light.png" alt="AWS Qualified Software" width="120" align="right">
+</picture>
 
 DEEPX NPU는 표준 ONNX 모델을 그대로 실행하지 않습니다. NPU가 실행할 수 있는 명령 집합과 가중치를 담은 DXNN(`.dxnn`) 형식으로 먼저 변환해야 하며, 이 변환을 담당하는 것이 DEEPX 컴파일러(`dx-com`)입니다. 컴파일 과정에는 INT8 양자화를 위한 캘리브레이션이 포함되므로 대표 데이터셋과 충분한 CPU·메모리 자원이 필요합니다.
 

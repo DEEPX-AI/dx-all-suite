@@ -1,4 +1,4 @@
-"""status.py 시스템 상태 감지 테스트 — 파일시스템 모킹으로 격리"""
+"""status.py system status detection — isolated with a mocked filesystem"""
 import os, sys, pytest
 from pathlib import Path
 from unittest.mock import patch, MagicMock
@@ -46,8 +46,11 @@ class TestCheckModels:
         from core.models import get_models
         models_dir = tmp_path / "models"
         models_dir.mkdir()
-        (models_dir / "yolo26n.dxnn").touch()
-        (models_dir / "YoloV5S.dxnn").touch()
+        # Names from the catalog in force: setup.sh's model download writes a manifest that
+        # renames the catalog (yolo26n.dxnn → yolo26-n_640x640.dxnn), so hard-coded legacy
+        # names would fail on every host that has run Setup.
+        for name in [m["file"] for m in get_models()][:2]:
+            (models_dir / name).touch()
         with patch("core.status.MODELS_DIR", models_dir):
             result = _check_models()
         assert result["total"] == len(get_models())
@@ -72,6 +75,18 @@ class TestCheckVideos:
             result = _check_videos()
         assert result["count"] >= 1
         assert result["ok"] is True
+
+    def test_videos_in_the_extracted_subfolder_are_counted(self, tmp_path):
+        """setup.sh extracts the tarball into videos/sample_videos/ — the Dashboard said "0 files"
+        on every set-up host while the demos played those very clips."""
+        from core.status import _check_videos
+        sub = tmp_path / "videos" / "sample_videos"
+        sub.mkdir(parents=True)
+        for name in ("boat.mp4", "dance-group.mov", "notes.txt"):
+            (sub / name).touch()
+        with patch("core.status.VIDEOS_DIR", tmp_path / "videos"):
+            result = _check_videos()
+        assert result == {"ok": True, "count": 2, "files": ["boat.mp4", "dance-group.mov"]}
 
 
 def test_status_model_total_matches_runtime_catalog(monkeypatch, tmp_path, request):
@@ -157,7 +172,7 @@ class TestCheckSystem:
         mock_mgr = MagicMock()
         mock_mgr.is_running.return_value = True
         result = check_system(pipeline_mgr=mock_mgr)
-        # GstShark/perf was removed; check_system still returns the core status blocks.
+        # check_system returns the core status blocks and no perf block.
         assert "npu" in result and "gstreamer" in result and "models" in result
         assert "perf" not in result
 

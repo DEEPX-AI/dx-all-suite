@@ -3,7 +3,7 @@ window._DX_I18N_DICT = {
     ko: 'NPU 토폴로지',
     ja: 'NPU トポロジー',
     'zh-CN': 'NPU 拓扑',
-    'zh-TW': 'NPU 拓撲',
+    'zh-TW': 'NPU拓撲',
     es: 'Topología NPU',
   },
   'Realtime Monitor': {
@@ -57,7 +57,7 @@ window._DX_I18N_DICT = {
   },
   'Property': {
     ko: '속성',
-    ja: 'プロパティ',
+    ja: '属性',
     'zh-CN': '属性',
     'zh-TW': '屬性',
     es: 'Propiedad',
@@ -123,7 +123,7 @@ window._DX_I18N_DICT = {
     ja: '電圧',
     'zh-CN': '电压',
     'zh-TW': '電壓',
-    es: 'Voltio',
+    es: 'Voltaje',
   },
   'Clock': {
     ko: '클럭',
@@ -155,7 +155,7 @@ window._DX_I18N_DICT = {
   },
   'View All': {
     ko: '전체 보기',
-    ja: '全て表示',
+    ja: '全体表示',
     'zh-CN': '查看全部',
     'zh-TW': '檢視全部',
     es: 'Ver todo',
@@ -197,9 +197,9 @@ window._DX_I18N_DICT = {
   },
   'CPU Cores': {
     ko: 'CPU 코어',
-    ja: 'CPU コア',
-    'zh-CN': 'CPU 核心',
-    'zh-TW': 'CPU 核心',
+    ja: 'CPU コア数',
+    'zh-CN': 'CPU 核心数',
+    'zh-TW': 'CPU 核心數',
     es: 'Núcleos de CPU',
   },
   'Python': {
@@ -283,10 +283,10 @@ window._DX_I18N_DICT = {
 
   'NPU Hardware Monitoring': { ko: 'NPU 하드웨어 모니터링', ja: 'NPU ハードウェアモニタリング', 'zh-CN': 'NPU 硬件监控', 'zh-TW': 'NPU 硬體監控',es:'Monitoreo de hardware NPU'},
   'Swap': { ko: '스왑', ja: 'スワップ', 'zh-CN': '交换区', 'zh-TW': '交換區',es:'Intercambio'},
-  'CPU Cores (per-core)': { ko: 'CPU 코어별', ja: 'CPU コア別', 'zh-CN': 'CPU 各核心', 'zh-TW': 'CPU 各核心',es:'Núcleos de CPU (por núcleo)'},
+  'CPU Cores (per-core)': { ko: 'CPU 코어별', ja: 'CPUコア別', 'zh-CN': 'CPU各核心', 'zh-TW': 'CPU各核心',es:'Núcleos de CPU'},
   'SDK Version': { ko: 'SDK 버전', ja: 'SDKバージョン', 'zh-CN': 'SDK 版本', 'zh-TW': 'SDK 版本',es:'Versión del SDK'},
   'Driver Version': { ko: '드라이버 버전', ja: 'ドライバーバージョン', 'zh-CN': '驱动版本', 'zh-TW': '驅動版本',es:'Versión del controlador'},
-  'PCIe Driver': { ko: 'PCIe 드라이버', ja: 'PCIe ドライバー', 'zh-CN': 'PCIe 驱动', 'zh-TW': 'PCIe 驅動',es:'Controlador PCIe'},
+  'PCIe Driver': { ko: 'PCIe 드라이버', ja: 'PCIe ドライバー', 'zh-CN': 'PCIe 驱动', 'zh-TW': 'PCIe 驅動程式',es:'Controlador PCIe'},
   'Uptime': { ko: '가동 시간', ja: '稼働時間', 'zh-CN': '运行时间', 'zh-TW': '運行時間',es:'Tiempo de actividad'},
   'Firmware': {
     ko: '펌웨어',
@@ -339,18 +339,8 @@ window._DX_I18N_DICT = {
     es: 'No se registraron eventos',
   },
   'Mock Data': { ko: '모의 데이터', ja: 'モックデータ', 'zh-CN': '模拟数据', 'zh-TW': '模擬資料',es:'Datos simulados'},
-  ' NPU(s)': { ko: ' NPU', ja: ' NPU', 'zh-CN': ' NPU', 'zh-TW': ' NPU',es:' NPU(s)'},
-  '🌡️ Avg Temp': { ko: '🌡️ 평균 온도', ja: '🌡️ 平均温度', 'zh-CN': '🌡️ 平均温度', 'zh-TW': '🌡️ 平均溫度',es:'🌡️ Temp. promedio'},
-  '🌡️ Cores': { ko: '🌡️ 코어', ja: '🌡️ コア', 'zh-CN': '🌡️ 核心', 'zh-TW': '🌡️ 核心',es:'🌡️ Núcleos'},
-  '⚡ Voltage': { ko: '⚡ 전압', ja: '⚡ 電圧', 'zh-CN': '⚡ 电压', 'zh-TW': '⚡ 電壓',es:'⚡ Voltaje'},
-  '🔄 Clock': { ko: '🔄 클럭', ja: '🔄 クロック', 'zh-CN': '🔄 时钟', 'zh-TW': '🔄 時脈',es:'🔄 Reloj'},
-  '🧪 Cores': { ko: '🧪 코어', ja: '🧪 コア', 'zh-CN': '🧪 核心', 'zh-TW': '🧪 核心',es:'🧪 Núcleos'},
-  '🔧 Firmware': { ko: '🔧 펌웨어', ja: '🔧 ファームウェア', 'zh-CN': '🔧 固件', 'zh-TW': '🔧 韌體', es: '🔧 Firmware del dispositivo'},
-  '🧩 Chip': { ko: '🧩 칩', ja: '🧩 チップ', 'zh-CN': '🧩 芯片', 'zh-TW': '🧩 晶片', es: '🧩 Procesador'},
-  '📋 Board': { ko: '📋 보드', ja: '📋 ボード', 'zh-CN': '📋 板卡', 'zh-TW': '📋 板卡',es:'📋 Placa'},
-  '💿 DDR Type': { ko: '💿 DDR 타입', ja: '💿 DDR タイプ', 'zh-CN': '💿 DDR 类型', 'zh-TW': '💿 DDR 類型',es:'💿 Tipo DDR'},
-  '💾 DRAM': { ko: '💾 DRAM', ja: '💾 DRAM', 'zh-CN': '💾 DRAM', 'zh-TW': '💾 DRAM',es:'💾 DRAM'},
-  '🌡️ DDR Channel Temp': { ko: '🌡️ DDR 채널 온도', ja: '🌡️ DDR チャネル温度', 'zh-CN': '🌡️ DDR 通道温度', 'zh-TW': '🌡️ DDR 通道溫度',es:'🌡️ Temp. del canal DDR'},
+  // Only English has a plural form: 1 NPU · 2 NPUs rather than "1 NPU(s)".
+  'NPUs': { ko: 'NPU', ja: 'NPU', 'zh-CN': 'NPU', 'zh-TW': 'NPU', es: 'NPU' },
 
   'Mock': {
     ko: '모의',
@@ -387,12 +377,12 @@ window._DX_I18N_DICT = {
     'zh-TW': 'DRAM',
     es: 'DRAM',
   },
-  'NPU Temp (C)': {
-    ko: 'NPU 온도 (C)',
-    ja: 'NPU温度 (C)',
-    'zh-CN': 'NPU温度 (C)',
-    'zh-TW': 'NPU溫度 (C)',
-    es: 'Temp. NPU (C)',
+  'NPU Temp (°C)': {
+    ko: 'NPU 온도 (°C)',
+    ja: 'NPU 温度 (°C)',
+    'zh-CN': 'NPU 温度 (°C)',
+    'zh-TW': 'NPU 溫度 (°C)',
+    es: 'Temp. NPU (°C)',
   },
   'Voltage (mV)': {
     ko: '전압 (mV)',
@@ -422,12 +412,12 @@ window._DX_I18N_DICT = {
     'zh-TW': 'NPU使用率 (%)',
     es: 'Util. NPU (%)',
   },
-  'Core Temp (C)': {
-    ko: '코어 온도 (C)',
-    ja: 'コア温度 (C)',
-    'zh-CN': '核心温度 (C)',
-    'zh-TW': '核心溫度 (C)',
-    es: 'Temp. del núcleo (C)',
+  'Core Temp (°C)': {
+    ko: '코어 온도 (°C)',
+    ja: 'コア温度 (°C)',
+    'zh-CN': '核心温度 (°C)',
+    'zh-TW': '核心溫度 (°C)',
+    es: 'Temp. del núcleo (°C)',
   },
   'Memory (%)': {
     ko: '메모리 (%)',
@@ -471,12 +461,36 @@ window._DX_I18N_DICT = {
     'zh-TW': 'NPU {id}',
     es: 'NPU {id}',
   },
+  // Chart threshold line names (shown at the line end instead of an emoji)
+  'warn': { ko: '경고', ja: '警告', 'zh-CN': '警告', 'zh-TW': '警告', es: 'aviso' },
+  'crit': { ko: '위험', ja: '危険', 'zh-CN': '危险', 'zh-TW': '危險', es: 'crítico' },
   'Avg Temp': {
     ko: '평균 온도',
     ja: '平均温度',
     'zh-CN': '平均温度',
     'zh-TW': '平均溫度',
     es: 'Temp. promedio',
+  },
+  'NPU telemetry is not current': {
+    ko: 'NPU 측정값이 최신이 아닙니다',
+    ja: 'NPU テレメトリが最新ではありません',
+    'zh-CN': 'NPU 遥测数据不是最新的',
+    'zh-TW': 'NPU 遙測資料不是最新的',
+    es: 'La telemetría del NPU no está actualizada',
+  },
+  'NPU telemetry unavailable': {
+    ko: 'NPU 측정값을 읽을 수 없습니다',
+    ja: 'NPU テレメトリを取得できません',
+    'zh-CN': '无法获取 NPU 遥测数据',
+    'zh-TW': '無法取得 NPU 遙測資料',
+    es: 'Telemetría del NPU no disponible',
+  },
+  'No NPU telemetry data': {
+    ko: 'NPU 측정 데이터가 없습니다',
+    ja: 'NPU テレメトリデータがありません',
+    'zh-CN': '没有 NPU 遥测数据',
+    'zh-TW': '沒有 NPU 遙測資料',
+    es: 'No hay datos de telemetría del NPU',
   },
   'Cores': {
     ko: '코어',
@@ -540,5 +554,20 @@ window._DX_I18N_DICT = {
     es: 'Conf. media',
     'zh-CN': '平均置信度',
     'zh-TW': '平均信賴度',
+  },
+  // ── Entries moved from markup lang-spans ──
+  'All': {
+    ko: '전체',
+    ja: '全体',
+    'zh-CN': '全部',
+    'zh-TW': '全部',
+    es: 'Todo',
+  },
+  'System Info': {
+    ko: '시스템 정보',
+    ja: 'システム情報',
+    'zh-CN': '系统信息',
+    'zh-TW': '系統資訊',
+    es: 'Información del sistema',
   },
 };

@@ -1,19 +1,32 @@
 [run]
 branch = True
-source =
-    shared
-    launcher
-    dx_app
-    dx_stream
-    dx_compiler
-    dx_modelzoo
-    dx_planner
-    dx_benchmark
-    dx_monitor
-    dx_agent_dev
+
+# ONE source root, not ten. With ten roots coverage.py strips whichever root a
+# file came from, so every module's `server.py` renders as filename="server.py"
+# and the nine distinct files collapse into ONE entry in coverage.xml — SonarQube
+# then attributes the coverage to whichever root resolves first and reports the
+# other eight as 0%. A single root keeps the module in the path
+# (dx_app/server.py), which is also what scripts/coverage_gate.py splits on.
+source = .
+
+# relative_files keeps <source> and every filename repo-relative. Absolute paths
+# baked in here (/home/<dev>/...) do not resolve on the CI runner.
+relative_files = True
+
+# `source = .` measures everything importable under the root, so the non-module
+# directories have to be named explicitly — otherwise `tools` and `scripts` show
+# up as modules in the per-module baseline.
 omit =
-    */tests/*
-    */.venv/*
+    */.venv*/*
+    tests/*
+    tools/*
+    scripts/*
+    docs/*
+    config/*
+    var/*
+    outputs/*
+    dx-agent-dev/*
+    setup.py
 
 [report]
 show_missing = True

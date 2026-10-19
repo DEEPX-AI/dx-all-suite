@@ -1,4 +1,4 @@
-"""dx-runtime benchmark 테스트 픽스처 — sibling 앱 경로 격리."""
+"""dx-runtime benchmark test fixtures — isolate the sibling app paths."""
 import sys
 from pathlib import Path
 
@@ -34,11 +34,11 @@ _ensure_benchmark_path()
 
 
 def pytest_runtest_setup(item):
-    """각 benchmark 테스트 실행 전에 dx-runtime benchmark 모듈 격리 보장."""
+    """Isolate the dx-runtime benchmark modules before each benchmark test."""
     _clear_benchmark_modules()
     _ensure_benchmark_path()
 
 
 def pytest_runtest_teardown(item, nextitem):
-    """benchmark 테스트 후 모듈 캐시 정리."""
+    """Clear the module cache after benchmark tests."""
     _clear_benchmark_modules()

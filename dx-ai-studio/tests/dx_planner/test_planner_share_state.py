@@ -1,22 +1,22 @@
-"""dx_planner share-link + localStorage persistence tests (F-18).
+"""dx_planner share-link + localStorage persistence tests.
 
 Covers:
-  * The generated share URL now includes `priority` and `latency` params.
+  * The generated share URL includes `priority` and `latency` params.
   * planner.js persists inputs to localStorage and reads them back on load.
   * wizard.js `setInputs` accepts `priority` so a shared/restored priority applies.
 
 Behavioural assertions run the real JS in a Node.js VM (like
-test_recommend_engine.py); source-contract checks guard against regressions
-when Node is unavailable.
+test_recommend_engine.py); source-contract checks still hold when Node is
+unavailable.
 """
 
 from __future__ import annotations
 
-import shutil
 import subprocess
 from pathlib import Path
 
 import pytest
+from tests.browser_support import resolve_node_executable
 
 ROOT = Path(__file__).resolve().parents[2]
 PLANNER_JS = ROOT / "dx_planner/static/js/planner.js"
@@ -71,7 +71,7 @@ console.log('OK');
 
 
 def _node_or_skip() -> str:
-    node = shutil.which("node")
+    node = resolve_node_executable()
     if not node:
         pytest.skip("node not available")
     return node
@@ -96,7 +96,7 @@ def test_planner_js_persists_and_restores_state():
     assert "PLANNER_STORAGE_KEY" in src
     assert "persistPlannerState" in src
     assert "loadPersistedState" in src
-    # Load path parses the previously-dropped share params.
+    # Load path parses the share params.
     assert "urlParams.get('priority')" in src
     assert "urlParams.get('latency')" in src
     # Share URL builder emits both params.

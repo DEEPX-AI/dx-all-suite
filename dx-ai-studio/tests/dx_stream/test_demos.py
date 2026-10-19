@@ -1,4 +1,4 @@
-"""demos.py 테스트 — 데모 목록 및 파이프라인 문자열 생성"""
+"""demos.py — demo list and pipeline string generation"""
 import sys, pytest
 from pathlib import Path
 
@@ -6,9 +6,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "dx_strea
 
 
 class TestDemoList:
-    def test_has_11_dev_backed_demos(self):
+    def test_has_12_dev_backed_demos(self):
         from core.demos import DEMOS
-        assert len(DEMOS) == 11
+        assert len(DEMOS) == 12
 
     def test_removed_standalone_demos_are_not_exposed(self):
         from core.demos import DEMOS
@@ -49,7 +49,7 @@ class TestPipelineString:
         assert "urisourcebin" in pipe
 
     def test_ppu_demo_uses_config_files(self):
-        """PPU 데모 1번은 config-file-path 속성 사용"""
+        """PPU demo 1 uses the config-file-path property"""
         from core.demos import build_pipeline_str
         pipe = build_pipeline_str(demo_id=1, encoder={"encoder": "x264enc tune=zerolatency", "payloader": "rtph264pay config-interval=-1", "encoding_name": "H264", "payload_type": 96})
         assert "config-file-path" in pipe
@@ -135,6 +135,9 @@ def test_dev_demo_ids_and_categories():
         (8, "multi_stream"),
         (9, "multi_stream"),
         (10, "secondary"),
+        # dx-runtime ships pipelines/single_network/depth_estimation/run_yolo26n-depth.sh
+        # and libpostprocess_yolo26depth.so, so the studio exposes it too.
+        (11, "depth_estimation"),
     ]
 
 

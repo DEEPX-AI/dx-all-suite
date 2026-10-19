@@ -25,8 +25,8 @@
   min-width: 48px;
   flex: 0 1 240px;
   max-width: 240px;
-  background: var(--bg-1);
-  border-right: 1px solid var(--border);
+  background: var(--surface-panel);
+  border-right: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -42,10 +42,10 @@
   padding: var(--sp-4);
   font-size: 0.85rem;
   font-weight: 600;
-  color: var(--text-2);
+  color: var(--text-secondary);
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--border-subtle);
   flex-shrink: 0;
 }
 
@@ -57,15 +57,15 @@
   height: 24px;
   background: transparent;
   border: none;
-  color: var(--text-3);
+  color: var(--text-muted);
   cursor: pointer;
   border-radius: var(--radius-xs);
   transition: var(--transition);
 }
 
 .palette-header .collapse-btn:hover {
-  background: var(--bg-2);
-  color: var(--text-1);
+  background: var(--control-bg);
+  color: var(--text-primary);
 }
 
 /* ── Palette Search ── */
@@ -78,17 +78,17 @@
 .palette-search input {
   width: 100%;
   padding: 8px 12px;
-  background: var(--bg-2);
-  border: 1px solid var(--border);
+  background: var(--control-bg);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius);
-  color: var(--text-1);
+  color: var(--text-primary);
   font-size: 0.8rem;
   outline: none;
   transition: var(--transition);
 }
 
 .palette-search input::placeholder {
-  color: var(--text-4);
+  color: var(--text-faint);
 }
 
 .palette-search input:focus {
@@ -114,24 +114,24 @@
 }
 
 .palette-body::-webkit-scrollbar-thumb {
-  background: var(--bg-3);
+  background: var(--surface-hover);
   border-radius: 2px;
 }
 
 /* ── Palette Category ── */
 
 .palette-category {
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .palette-category-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 16px;
+  padding: 8px 16px;
   font-size: 0.75rem;
   font-weight: 600;
-  color: var(--text-3);
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   cursor: pointer;
@@ -140,8 +140,8 @@
 }
 
 .palette-category-header:hover {
-  color: var(--text-2);
-  background: var(--bg-2);
+  color: var(--text-secondary);
+  background: var(--control-bg);
 }
 
 .palette-category-header .chevron {
@@ -165,14 +165,14 @@
   gap: var(--sp-2);
   padding: 8px 16px;
   font-size: 0.8rem;
-  color: var(--text-2);
+  color: var(--text-secondary);
   cursor: grab;
   user-select: none;
   transition: background 0.15s ease;
 }
 
 .palette-item:hover {
-  background: var(--bg-2);
+  background: var(--control-bg);
 }
 
 .palette-item:active {
@@ -191,7 +191,7 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--text-4);
+  background: var(--text-faint);
 }
 
 /* Pipeline category colors map onto the shared categorical palette (dx-tokens.css). */
@@ -217,7 +217,7 @@
 
 .palette-panel.collapsed .palette-item {
   justify-content: center;
-  padding: 10px 0;
+  padding: 8px 0;
   position: relative;
 }
 
@@ -227,9 +227,9 @@
   left: calc(100% + 8px);
   top: 50%;
   transform: translateY(-50%);
-  padding: 4px 10px;
-  background: var(--bg-3);
-  color: var(--text-1);
+  padding: 4px 8px;
+  background: var(--surface-hover);
+  color: var(--text-primary);
   font-size: 0.75rem;
   border-radius: var(--radius-xs);
   white-space: nowrap;
@@ -249,7 +249,7 @@
 .canvas-container {
   flex: 1;
   position: relative;
-  background: var(--bg-0);
+  background: var(--surface-page);
   overflow: hidden;
   min-width: 0;
 }
@@ -273,8 +273,8 @@
   align-items: center;
   gap: 2px;
   padding: var(--sp-1);
-  background: var(--bg-2);
-  border: 1px solid var(--border);
+  background: var(--control-bg);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   z-index: 10;
@@ -288,19 +288,19 @@
   height: 32px;
   background: transparent;
   border: none;
-  color: var(--text-3);
+  color: var(--text-muted);
   border-radius: calc(var(--radius) - 2px);
   cursor: pointer;
   transition: var(--transition);
 }
 
 .canvas-toolbar .toolbar-btn:hover {
-  background: var(--bg-3);
-  color: var(--text-1);
+  background: var(--surface-hover);
+  color: var(--text-primary);
 }
 
 .canvas-toolbar .toolbar-btn.active {
-  background: var(--bg-3);
+  background: var(--surface-hover);
   color: var(--stream-color, var(--cat-4));
 }
 
@@ -308,14 +308,14 @@
   width: 1px;
   height: 20px;
   margin: 0 4px;
-  background: var(--border);
+  background: var(--border-subtle);
 }
 
 .canvas-toolbar .zoom-label {
   min-width: 40px;
   text-align: center;
   font-size: 0.7rem;
-  color: var(--text-4);
+  color: var(--text-faint);
   user-select: none;
 }
 
@@ -327,8 +327,8 @@
   right: 12px;
   width: 160px;
   height: 120px;
-  background: var(--bg-1);
-  border: 1px solid var(--border);
+  background: var(--surface-panel);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius);
   overflow: hidden;
   z-index: 10;
@@ -369,8 +369,8 @@
   min-width: min(200px, 32vw);
   flex: 0 1 280px;
   max-width: 280px;
-  background: var(--bg-1);
-  border-left: 1px solid var(--border);
+  background: var(--surface-panel);
+  border-left: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -382,9 +382,9 @@
 .prop-header {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   padding: var(--sp-4);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--border-subtle);
   flex-shrink: 0;
 }
 
@@ -395,7 +395,7 @@
   width: 32px;
   height: 32px;
   border-radius: calc(var(--radius) - 2px);
-  background: var(--bg-2);
+  background: var(--control-bg);
   flex-shrink: 0;
 }
 
@@ -407,7 +407,7 @@
 .prop-header .node-name {
   font-size: 0.85rem;
   font-weight: 600;
-  color: var(--text-1);
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -415,7 +415,7 @@
 
 .prop-header .node-type {
   font-size: 0.7rem;
-  color: var(--text-4);
+  color: var(--text-faint);
   margin-top: 2px;
 }
 
@@ -437,14 +437,14 @@
 }
 
 .prop-body::-webkit-scrollbar-thumb {
-  background: var(--bg-3);
+  background: var(--surface-hover);
   border-radius: 2px;
 }
 
 /* ── Property Group (collapsible) ── */
 
 .prop-group {
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--border-subtle);
   padding-bottom: 8px;
   margin-bottom: 4px;
 }
@@ -460,7 +460,7 @@
   padding: 8px 16px;
   font-size: 0.72rem;
   font-weight: 600;
-  color: var(--text-3);
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   cursor: pointer;
@@ -469,7 +469,7 @@
 }
 
 .prop-group-header:hover {
-  color: var(--text-2);
+  color: var(--text-secondary);
 }
 
 .prop-group-header .chevron {
@@ -491,7 +491,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 6px 16px;
+  padding: 4px 16px;
   gap: var(--sp-3);
 }
 
@@ -499,7 +499,7 @@
 
 .prop-label {
   flex-shrink: 0;
-  color: var(--text-3);
+  color: var(--text-muted);
   font-size: 0.8rem;
   white-space: nowrap;
 }
@@ -509,11 +509,11 @@
 .prop-input {
   flex: 1;
   min-width: 0;
-  padding: 6px 10px;
-  background: var(--bg-2);
-  border: 1px solid var(--border);
+  padding: 4px 8px;
+  background: var(--control-bg);
+  border: 1px solid var(--border-subtle);
   border-radius: calc(var(--radius) - 2px);
-  color: var(--text-1);
+  color: var(--text-primary);
   font-size: 0.8rem;
   outline: none;
   transition: var(--transition);
@@ -529,11 +529,11 @@
 .prop-select {
   flex: 1;
   min-width: 0;
-  padding: 6px 10px;
-  background: var(--bg-2);
-  border: 1px solid var(--border);
+  padding: 4px 8px;
+  background: var(--control-bg);
+  border: 1px solid var(--border-subtle);
   border-radius: calc(var(--radius) - 2px);
-  color: var(--text-1);
+  color: var(--text-primary);
   font-size: 0.8rem;
   outline: none;
   cursor: pointer;
@@ -541,7 +541,7 @@
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238892A8'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 10px center;
-  padding-right: 28px;
+  padding-right: 24px;
   transition: var(--transition);
 }
 
@@ -566,7 +566,7 @@
   align-items: center;
   justify-content: center;
   flex: 1;
-  color: var(--text-4);
+  color: var(--text-faint);
   font-size: 0.85rem;
   text-align: center;
   padding: var(--sp-6);
@@ -576,81 +576,36 @@
 
 /* ═══ 5. Responsive Behavior ═══ */
 
-/* ── Below 1200px: Palette collapses to icon-only ── */
+/* ── 900–1200px: the palette keeps its normal layout ── */
 
-@media (max-width: 1200px) {
-  .palette-panel {
-    width: 48px;
-    min-width: 48px;
-  }
-
-  .palette-header span,
-  .palette-search,
-  .palette-category-header span,
-  .palette-item .item-label {
-    display: none;
-  }
-
-  .palette-header {
-    justify-content: center;
-    padding: var(--sp-3);
-  }
-
-  .palette-category-header {
-    justify-content: center;
-    padding: 10px 0;
-  }
-
-  .palette-item {
-    justify-content: center;
-    padding: 10px 0;
-    position: relative;
-  }
-
-  /* Tooltip on hover for collapsed items */
-  .palette-item::after {
-    content: attr(data-tooltip);
-    position: absolute;
-    left: calc(100% + 8px);
-    top: 50%;
-    transform: translateY(-50%);
-    padding: 4px 10px;
-    background: var(--bg-3);
-    color: var(--text-1);
-    font-size: 0.75rem;
-    border-radius: var(--radius-xs);
-    white-space: nowrap;
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 0.15s ease;
-    z-index: 100;
-  }
-
-  .palette-item:hover::after {
-    opacity: 1;
-  }
-}
+/* No icon-only collapse here: the 240px flex-basis prevents it, and centring the items would hide
+   the search box. */
 
 /* ── Below 900px: Property panel moves to bottom overlay ── */
 
 @media (max-width: 900px) {
+  /* Containing block for the absolute property panel — without it the panel sticks to the page bottom and gets clipped */
   .pipeline-builder {
     flex-direction: column;
+    position: relative;
   }
 
+  /* When stacked, the 240px flex-basis would become the strip's height — pin it to 48px */
   .palette-panel {
     width: 100%;
     min-width: 100%;
+    max-width: none;
+    flex: 0 0 48px;
     flex-direction: row;
     border-right: none;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid var(--border-subtle);
     height: 48px;
     min-height: 48px;
   }
 
   .palette-header {
     border-bottom: none;
-    border-right: 1px solid var(--border);
+    border-right: 1px solid var(--border-subtle);
     padding: 0 12px;
   }
 
@@ -658,7 +613,10 @@
     display: none;
   }
 
+  #palette-list,
   .palette-body {
+    flex: 1 1 auto;
+    min-width: 0;
     display: flex;
     flex-direction: row;
     overflow-x: auto;
@@ -668,21 +626,23 @@
     align-items: center;
   }
 
-  .palette-category {
+  /* The palette is drawn with .palette-group; lay the groups out as one row */
+  .palette-group {
     display: flex;
     flex-direction: row;
+    flex-shrink: 0;
     border-bottom: none;
     gap: var(--sp-1);
     align-items: center;
   }
 
-  .palette-category-header {
+  .palette-group-title {
     display: none;
   }
 
   .palette-item {
     flex-shrink: 0;
-    padding: 6px 10px;
+    padding: 4px 8px;
     border-radius: calc(var(--radius) - 2px);
   }
 
@@ -695,7 +655,7 @@
     min-width: 100%;
     max-height: 50%;
     border-left: none;
-    border-top: 1px solid var(--border);
+    border-top: 1px solid var(--border-subtle);
     border-radius: var(--radius) var(--radius) 0 0;
     box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.3);
     z-index: 20;
@@ -744,27 +704,27 @@
 /* ── Context Menu ── */
 .ctx-menu {
     position: fixed; z-index: 9999;
-    background: var(--bg-1); border: 1px solid var(--border);
+    background: var(--surface-panel); border: 1px solid var(--border-subtle);
     border-radius: var(--radius-sm); padding: 4px 0; min-width: 160px;
     box-shadow: 0 8px 24px rgba(0,0,0,.35); font-size: var(--fs-base);
 }
 .ctx-menu-item {
     display: flex; align-items: center; gap: var(--sp-2);
-    padding: 6px 14px; cursor: pointer; color: var(--text-1);
-    transition: background .12s;
+    padding: 4px 12px; cursor: pointer; color: var(--text-primary);
+    transition: background .12s var(--ease);
 }
-.ctx-menu-item:hover { background: var(--bg-hover, rgba(255,255,255,.06)); }
-.ctx-menu-item .shortcut { margin-left: auto; font-size: var(--fs-xs); color: var(--text-3); }
-.ctx-menu-sep { height: 1px; margin: 4px 8px; background: var(--border); }
+.ctx-menu-item:hover { background: var(--surface-hover); }
+.ctx-menu-item .shortcut { margin-left: auto; font-size: var(--fs-xs); color: var(--text-muted); }
+.ctx-menu-sep { height: 1px; margin: 4px 8px; background: var(--border-subtle); }
 
 /* ── Connection Validation Tooltip ── */
 .pipeline-tooltip {
   position: absolute;
-  background: var(--bg-3);
-  color: var(--text-1);
+  background: var(--surface-hover);
+  color: var(--text-primary);
   font-size: var(--fs-sm);
   font-weight: 400;
-  padding: 6px 10px;
+  padding: 4px 8px;
   border-radius: var(--radius-sm);
   pointer-events: none;
   white-space: nowrap;
@@ -778,15 +738,18 @@
 /* ── Palette Connectable Highlight ── */
 .palette-item.connectable {
   background: rgba(var(--success-rgb), 0.12);
-  border-color: var(--success);
+  border-color: var(--status-ok);
   box-shadow: 0 0 8px rgba(var(--success-rgb), 0.2);
   position: relative;
 }
 .palette-item.connectable::after {
-  content: '⭐';
+  /* Connectable element — a green dot */
+  content: '';
   position: absolute;
-  top: 2px;
-  right: 4px;
-  font-size: var(--fs-2xs);
-  line-height: 1;
+  top: 5px;
+  right: 6px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--status-ok);
 }

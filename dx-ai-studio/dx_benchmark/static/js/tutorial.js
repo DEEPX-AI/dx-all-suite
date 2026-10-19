@@ -1,13 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════
    DX Benchmark — Tutorial Definitions v2.1
    10 sections, 60 steps, 6-language support (ko/en/ja/zh-CN/zh-TW/es)
-   - v2.0: 동적 요소 가드 보강, 깨진 셀렉터 수정, 누락 기능 18개 스텝 추가,
-           차트/로그 position 수정, 챗봇 beforeStep 타이밍 보정
-   - v2.1: redesigned-dashboard rework (Task 7) — new "ORT ON/OFF" section
-           (dashboard-ort), Detailed Data thermal/throttle + run Status
-           columns step, Full Metrics NPU identity (Product/SKU/Modules/
-           Device Count) step. Version-Trend targets already repointed by
-           5a fix — verified still correct, left untouched.
    ═══════════════════════════════════════════════════════════════ */
 (function () {
   'use strict';
@@ -59,7 +52,7 @@
   function _lc(m) { return m[_lang()] || m.en; }
   var _PREVIEW = { ko:'튜토리얼 미리보기', en:'Tutorial preview', ja:'チュートリアルプレビュー', 'zh-CN':'教程预览', 'zh-TW':'教程預覽', es:'Vista previa del tutorial' };
   function _previewBadge() {
-    return '<span class="tag tag--warn" style="font-size:11px;margin-left:6px">🔎 ' + _lc(_PREVIEW) + '</span>';
+    return '<span class="tag tag--warn" style="font-size:11px;margin-left:6px">' + ((typeof DXIcon === 'function') ? DXIcon('search') : '') + ' ' + _lc(_PREVIEW) + '</span>';
   }
   function _infoRowsHtml(rows) {
     return rows.map(function (r) {
@@ -96,7 +89,10 @@
       meta.style.display = '';
       meta.setAttribute('data-dxt-mock', '1');
       var mt = document.getElementById('trendModelMetaTitle');
-      if (mt) mt.innerHTML = 'Benchmarked Models – Object Detection · run_demo' + _previewBadge();
+      if (mt) {   // escHtml is private to dashboard.js, so set text with textContent
+        mt.textContent = _t('Benchmarked Models') + ' – ' + _t('Object Detection') + ' · run_demo';
+        mt.insertAdjacentHTML('beforeend', _previewBadge());
+      }
       var sec = document.getElementById('trendModelMetaSection');
       if (sec) sec.innerHTML = '<table class="summary-table bench-table"><thead><tr><th>Model</th><th>Size</th><th>Input</th><th>NPU Mem (MB)</th><th>DXNN Format</th></tr></thead><tbody>' +
         '<tr><td>YOLOv5</td><td>S</td><td>640×640</td><td>28</td><td>6</td></tr>' +
@@ -185,8 +181,8 @@
 
   var sections = [
 
-    { id:'dashboard-fps', icon:'📊',
-      title:{ko: '📊 E2E FPS 개요', en:'📊 E2E FPS Overview', ja:'📊 E2E FPS概要', 'zh-CN':'📊 E2E FPS概览', 'zh-TW':'📊 E2E FPS概述', es:'📊 Resumen E2E FPS'},
+    { id:'dashboard-fps', icon:'dashboard',
+      title:{ko: 'E2E FPS 개요', en:'E2E FPS Overview', ja:'E2E FPS 概要', 'zh-CN':'E2E FPS 概览', 'zh-TW':'E2E FPS 概覽', es:'Resumen de FPS E2E'},
       description:{ko:'전체 플랫폼의 E2E FPS를 한눈에 비교하는 대시보드', en:'Dashboard comparing E2E FPS across all platforms at a glance', ja:'全プラットフォームのE2E FPSを一覧で比較するダッシュボード', 'zh-CN':'一目了然地比较所有平台E2E FPS的仪表盘', 'zh-TW':'一覽比較所有平台E2E FPS的儀表板', es:'Panel que compara el E2E FPS de todas las plataformas de un vistazo'},
       beforeStart: function () {
         return new Promise(function (resolve) {
@@ -199,11 +195,11 @@
         });
       },
       steps:[
-        { target:'.main-tab[data-tab="dashboard"]', position:'bottom',
+        { target:'.dx-tab[data-page="dashboard"]', position:'bottom',
           title:{ko:'Dashboard 탭', en:'Dashboard Tab', ja:'Dashboardタブ', 'zh-CN':'Dashboard 选项卡', 'zh-TW':'Dashboard 分頁', es:'Pestaña Dashboard'},
           content:{ko:'모든 벤치마크 데이터를 시각화하는 <strong>메인 화면</strong>입니다. 4개 서브탭(E2E FPS Overview, Full Metrics, Detailed Data, Version Trend)으로 구성되어 있습니다.', en:'The <strong>main screen</strong> that visualizes all benchmark data. It consists of 4 sub-tabs: E2E FPS Overview, Full Metrics, Detailed Data, and Version Trend.', ja:'すべてのベンチマークデータを可視化する<strong>メイン画面</strong>です。4つのサブタブ（E2E FPS Overview、Full Metrics、Detailed Data、Version Trend）で構成されています。', 'zh-CN':'这是将所有基准测试数据可视化的<strong>主界面</strong>。由4个子选项卡（E2E FPS Overview、Full Metrics、Detailed Data、Version Trend）组成。', 'zh-TW':'這是將所有基準測試資料視覺化的<strong>主畫面</strong>。由4個子分頁（E2E FPS Overview、Full Metrics、Detailed Data、Version Trend）組成。', es:'La <strong>pantalla principal</strong> que visualiza todos los datos del benchmark. Consta de 4 subpestañas: E2E FPS Overview, Full Metrics, Detailed Data y Version Trend.'} },
         { target:'.dashboard-tab[data-tab="fps-compare"]', position:'bottom',
-          title:{ko: 'E2E FPS 개요', en:'E2E FPS Overview', ja:'E2E FPS概要', 'zh-CN':'E2E FPS概览', 'zh-TW':'E2E FPS概述', es:'Resumen E2E FPS'},
+          title:{ko: 'E2E FPS 개요', en:'E2E FPS Overview', ja:'E2E FPS 概要', 'zh-CN':'E2E FPS 概览', 'zh-TW':'E2E FPS 概覽', es:'Resumen de FPS E2E'},
           content:{ko:'전체 플랫폼의 <strong>E2E FPS</strong>를 한눈에 비교합니다. 그룹 바 차트로 모델 크기별 성능 차이를 직관적으로 파악할 수 있습니다.', en:'Compare <strong>E2E FPS</strong> across all platforms at a glance. Group bar charts make it intuitive to see performance differences by model size.', ja:'全プラットフォームの<strong>E2E FPS</strong>を一覧で比較します。グループバーチャートでモデルサイズ別のパフォーマンス差を直感的に把握できます。', 'zh-CN':'一目了然地比较所有平台的<strong>E2E FPS</strong>。通过分组柱状图直观了解不同模型大小的性能差异。', 'zh-TW':'一覽比較所有平台的<strong>E2E FPS</strong>。透過分組長條圖直觀了解不同模型大小的效能差異。', es:'Compare el <strong>E2E FPS</strong> de todas las plataformas de un vistazo. Los gráficos de barras agrupadas permiten ver de forma intuitiva las diferencias de rendimiento por tamaño de modelo.'} },
         { target:'#fpsRunSelectors', position:'bottom',
           title:{ko: '실행 선택기', en:'Run Selector', ja:'Runセレクター', 'zh-CN':'Run选择器', 'zh-TW':'Run選擇器', es:'Selector de Run'},
@@ -228,8 +224,8 @@
       ]
     },
 
-    { id:'dashboard-metrics', icon:'📈',
-      title:{ko: '📈 전체 지표', en:'📈 Full Metrics', ja: '📈 全メトリクス', 'zh-CN': '📈 完整指标', 'zh-TW': '📈 完整指標', es: '📈 Métricas completas'},
+    { id:'dashboard-metrics', icon:'dashboard',
+      title:{ko: '전체 메트릭스', en:'Full Metrics', ja: '全メトリクス', 'zh-CN': '全部指标', 'zh-TW': '完整指標', es: 'Métricas completas'},
       description:{ko:'NPU Throughput, E2E FPS, Latency 3중 메트릭 분석', en:'Triple metric analysis: NPU Throughput, E2E FPS, Latency', ja:'NPU Throughput、E2E FPS、Latencyのトリプルメトリクス分析', 'zh-CN':'NPU吞吐量、E2E FPS、延迟三重指标分析', 'zh-TW':'NPU吞吐量、E2E FPS、延遲三重指標分析', es:'Análisis triple de métricas: NPU Throughput, E2E FPS, Latency'},
       beforeStart: function () {
         return new Promise(function (resolve) {
@@ -276,8 +272,8 @@
       ]
     },
 
-    { id:'dashboard-detail', icon:'📋',
-      title:{ko: '📋 상세 데이터', en:'📋 Detailed Data', ja: '📋 詳細データ', 'zh-CN': '📋 详细数据', 'zh-TW': '📋 詳細資料', es: '📋 Datos detallados'},
+    { id:'dashboard-detail', icon:'clipboard',
+      title:{ko: '상세 데이터', en:'Detailed Data', ja: '詳細データ', 'zh-CN': '详细数据', 'zh-TW': '詳細資料', es: 'Datos detallados'},
       description:{ko:'원시 수치 테이블로 상세 데이터 탐색', en:'Explore detailed data with raw numeric tables', ja:'生データテーブルで詳細データを探索', 'zh-CN':'通过原始数据表格探索详细数据', 'zh-TW':'透過原始資料表格探索詳細資料', es:'Explore datos detallados con tablas numéricas en bruto'},
       beforeStart: function () {
         return new Promise(function (resolve) {
@@ -308,7 +304,7 @@
         { target:'#detailTables', position:'top',
           title:{ko:'태스크별 테이블', en:'Per-Task Tables', ja:'タスク別テーブル', 'zh-CN':'按任务分类的表格', 'zh-TW':'按任務分類的表格', es:'Tablas por tarea'},
           content:{ko:'각 AI 태스크별로 분리된 테이블에서 <strong>NPU Throughput, E2E FPS, Latency</strong> 수치를 확인합니다. 열 헤더를 클릭하여 정렬할 수 있습니다.', en:'Check <strong>NPU Throughput, E2E FPS, Latency</strong> values in separate tables per AI task. Click column headers to sort.', ja:'各AIタスク別に分離されたテーブルで<strong>NPU Throughput、E2E FPS、Latency</strong>の数値を確認します。列ヘッダーをクリックしてソートできます。', 'zh-CN':'在按各AI任务分开的表格中查看<strong>NPU吞吐量、E2E FPS、延迟</strong>数值。点击列标题可进行排序。', 'zh-TW':'在按各AI任務分開的表格中查看<strong>NPU吞吐量、E2E FPS、延遲</strong>數值。點擊欄位標題可進行排序。', es:'Consulte los valores de <strong>NPU Throughput, E2E FPS, Latency</strong> en tablas separadas por tarea de IA. Haga clic en los encabezados de columna para ordenar.'} },
-        { target:null, position:'left',
+        { target:'#detailTables .cell-best', optionalTarget:true, position:'left',   // points at the cell when data is present
           title:{ko:'Best 값 강조', en:'Best Value Highlight', ja:'Best値ハイライト', 'zh-CN':'最佳值高亮', 'zh-TW':'最佳值醒目提示', es:'Resaltado del mejor valor'},
           content:{ko:'데이터가 로드되면 각 메트릭에서 <strong>가장 좋은 값</strong>이 자동으로 강조 표시됩니다. 테이블에서 <strong class="cell-best">초록색 강조</strong>된 셀을 확인하세요.', en:'When data is loaded, the <strong>best value</strong> for each metric is automatically highlighted. Look for <strong class="cell-best">green highlighted</strong> cells in the table.', ja:'データがロードされると各メトリクスで<strong>最も良い値</strong>が自動的にハイライト表示されます。テーブルの<strong class="cell-best">緑色でハイライト</strong>されたセルを確認してください。', 'zh-CN':'数据加载后，各指标中的<strong>最佳值</strong>会自动高亮显示。请查看表格中<strong class="cell-best">绿色高亮</strong>的单元格。', 'zh-TW':'資料載入後，各指標中的<strong>最佳值</strong>會自動醒目提示顯示。請查看表格中<strong class="cell-best">綠色醒目提示</strong>的儲存格。', es:'Al cargar los datos, el <strong>mejor valor</strong> de cada métrica se resalta automáticamente. Busque celdas <strong class="cell-best">resaltadas en verde</strong> en la tabla.'} },
         { target:'#detailTables', position:'top',
@@ -317,8 +313,8 @@
       ]
     },
 
-    { id:'dashboard-trend', icon:'📉',
-      title:{ko: '📉 버전 추세', en:'📉 Version Trend', ja: '📉 バージョン推移', 'zh-CN': '📉 版本趋势', 'zh-TW': '📉 版本趨勢', es: '📉 Tendencia de versiones'},
+    { id:'dashboard-trend', icon:'dashboard',
+      title:{ko: '버전 트렌드', en:'Version Trend', ja: 'バージョントレンド', 'zh-CN': '版本趋势', 'zh-TW': '版本趨勢', es: 'Tendencia de versión'},
       description:{ko:'SW 버전별 성능 추이를 시계열로 추적', en:'Track performance trends across SW versions over time', ja:'SWバージョン別のパフォーマンス推移を時系列で追跡', 'zh-CN':'按SW版本追踪性能趋势的时间序列', 'zh-TW':'按SW版本追蹤效能趨勢的時間序列', es:'Siga la evolución del rendimiento por versiones de SW a lo largo del tiempo'},
       beforeStart: function () {
         return new Promise(function (resolve) {
@@ -360,8 +356,8 @@
       ]
     },
 
-    { id:'dashboard-ort', icon:'🔀',
-      title:{ko: '🔀 ORT 켜기/끄기', en:'🔀 ORT ON/OFF', ja: '🔀 ORT オン/オフ', 'zh-CN': '🔀 ORT 开/关', 'zh-TW': '🔀 ORT 開/關', es: '🔀 ORT activado/desactivado'},
+    { id:'dashboard-ort', icon:'compare',
+      title:{ko: 'ORT ON/OFF', en:'ORT ON/OFF', ja: 'ORT ON/OFF', 'zh-CN': 'ORT ON/OFF', 'zh-TW': 'ORT ON/OFF', es: 'ORT ON/OFF'},
       description:{ko:'동일 모델·환경에서 ONNX Runtime On/Off 성능 차이 비교', en:'Compare ONNX Runtime On/Off performance for the same model and environment', ja:'同一モデル・環境でONNX Runtime On/Offのパフォーマンス差を比較', 'zh-CN':'比较相同模型和环境下ONNX Runtime开/关的性能差异', 'zh-TW':'比較相同模型與環境下ONNX Runtime開/關的效能差異', es:'Compare el rendimiento de ONNX Runtime activado/desactivado para el mismo modelo y entorno'},
       beforeStart: function () {
         return new Promise(function (resolve) {
@@ -395,19 +391,19 @@
       ]
     },
 
-    { id:'results', icon:'📁',
-      title:{ko: '📁 결과 브라우저', en:'📁 Results Browser', ja:'📁 結果ブラウザ', 'zh-CN':'📁 结果浏览器', 'zh-TW':'📁 結果瀏覽器', es:'📁 Explorador de resultados'},
+    { id:'results', icon:'folder',
+      title:{ko: '결과 브라우저', en:'Results Browser', ja:'結果ブラウザ', 'zh-CN':'结果浏览器', 'zh-TW':'結果瀏覽器', es:'Explorador de resultados'},
       description:{ko:'벤치마크 결과 탐색 및 리포트 확인', en:'Browse benchmark results and check reports', ja:'ベンチマーク結果の閲覧とレポート確認', 'zh-CN':'浏览基准测试结果并查看报告', 'zh-TW':'瀏覽基準測試結果並查看報告', es:'Explore los resultados del benchmark y consulte los informes'},
       beforeStart:function(){ switchTab('results'); },
       steps:[
-        { target:'.main-tab[data-tab="results"]', position:'bottom',
+        { target:'.dx-tab[data-page="results"]', position:'bottom',
           title:{ko:'Results 탭', en:'Results Tab', ja:'Resultsタブ', 'zh-CN':'Results选项卡', 'zh-TW':'Results分頁', es:'Pestaña Results'},
           content:{ko:'벤치마크 실행 결과를 탐색하는 탭입니다. <strong>HW 카드 → Run 목록 → 결과 섹션</strong> 순서로 drill-down합니다.', en:'Tab for browsing benchmark results. Drill down: <strong>HW card → Run list → Result sections</strong>.', ja:'ベンチマーク実行結果を閲覧するタブです。<strong>HWカード → Run一覧 → 結果セクション</strong>の順でドリルダウンします。', 'zh-CN':'浏览基准测试执行结果的选项卡。按<strong>HW卡片 → Run列表 → 结果区域</strong>的顺序逐级展开。', 'zh-TW':'瀏覽基準測試執行結果的分頁。按<strong>HW卡片 → Run列表 → 結果區域</strong>的順序逐級展開。', es:'Pestaña para explorar resultados del benchmark. Profundice: <strong>tarjeta HW → lista de Run → secciones de resultados</strong>.'} },
         { target:'.hw-card-grid', position:'bottom',
           title:{ko:'Hardware 카드 목록', en:'Hardware Card Grid', ja:'Hardwareカード一覧', 'zh-CN':'硬件卡片列表', 'zh-TW':'硬體卡片列表', es:'Cuadrícula de tarjetas de hardware'},
           content:{ko:'테스트된 <strong>하드웨어 환경 목록</strong>입니다. 각 카드에는 플랫폼 이름과 run 수가 표시됩니다. 카드를 클릭하여 해당 환경의 run 목록을 확인하세요.', en:'List of <strong>tested hardware environments</strong>. Each card shows platform name and run count. Click a card to see its run list.', ja:'テストされた<strong>ハードウェア環境一覧</strong>です。各カードにはプラットフォーム名とrun数が表示されます。カードをクリックしてその環境のrun一覧を確認してください。', 'zh-CN':'<strong>已测试的硬件环境列表</strong>。每张卡片显示平台名称和运行次数。点击卡片查看该环境的运行列表。', 'zh-TW':'<strong>已測試的硬體環境列表</strong>。每張卡片顯示平台名稱和執行次數。點擊卡片查看該環境的執行列表。', es:'Lista de <strong>entornos de hardware probados</strong>. Cada tarjeta muestra el nombre de la plataforma y el número de runs. Haga clic en una tarjeta para ver su lista de runs.'},
           beforeStep: function () {
-            var tab = document.querySelector('.main-tab[data-tab="results"]');
+            var tab = document.querySelector('.dx-tab[data-page="results"]');
             if (tab) tab.click();
             return new Promise(function (resolve) {
               var attempts = 0;
@@ -422,48 +418,48 @@
           } },
         { target:'.hw-card', position:'bottom',
           title:{ko:'Hardware 카드 선택', en:'Select Hardware Card', ja:'Hardwareカード選択', 'zh-CN':'选择硬件卡片', 'zh-TW':'選擇硬體卡片', es:'Seleccionar tarjeta de hardware'},
-          content:{ko:'개별 <strong>HW 카드</strong>를 클릭하면 해당 플랫폼의 벤치마크 실행 기록(run 목록)이 나타납니다. 🖥️ 아이콘과 플랫폼 이름, run 수를 확인하세요.', en:'Click an individual <strong>HW card</strong> to reveal the benchmark run history for that platform. Check the 🖥️ icon, platform name, and run count.', ja:'個別の<strong>HWカード</strong>をクリックするとそのプラットフォームのベンチマーク実行履歴（run一覧）が表示されます。🖥️アイコンとプラットフォーム名、run数を確認してください。', 'zh-CN':'点击单个<strong>HW卡片</strong>后会显示该平台的基准测试运行记录（run列表）。请查看🖥️图标、平台名称和运行次数。', 'zh-TW':'點擊單個<strong>HW卡片</strong>後會顯示該平台的基準測試執行記錄（run列表）。請查看🖥️圖示、平台名稱和執行次數。', es:'Haga clic en una <strong>tarjeta HW</strong> para ver el historial de ejecuciones de benchmark de esa plataforma. Consulte el icono 🖥️, el nombre de la plataforma y el número de runs.'} },
+          content:{ko:'개별 <strong>HW 카드</strong>를 클릭하면 해당 플랫폼의 벤치마크 실행 기록(run 목록)이 나타납니다. {{i:monitor}} 아이콘과 플랫폼 이름, run 수를 확인하세요.', en:'Click an individual <strong>HW card</strong> to reveal the benchmark run history for that platform. Check the {{i:monitor}} icon, platform name, and run count.', ja:'個別の<strong>HWカード</strong>をクリックするとそのプラットフォームのベンチマーク実行履歴（run一覧）が表示されます。{{i:monitor}}アイコンとプラットフォーム名、run数を確認してください。', 'zh-CN':'点击单个<strong>HW卡片</strong>后会显示该平台的基准测试运行记录（run列表）。请查看{{i:monitor}}图标、平台名称和运行次数。', 'zh-TW':'點擊單個<strong>HW卡片</strong>後會顯示該平台的基準測試執行記錄（run列表）。請查看{{i:monitor}}圖示、平台名稱和執行次數。', es:'Haga clic en una <strong>tarjeta HW</strong> para ver el historial de ejecuciones de benchmark de esa plataforma. Consulte el icono {{i:monitor}}, el nombre de la plataforma y el número de runs.'} },
         { target:'.run-list', position:'right',
           title:{ko:'Run 목록', en:'Run List', ja:'Run一覧', 'zh-CN':'Run列表', 'zh-TW':'Run列表', es:'Lista de Run'},
-          content:{ko:'선택한 HW의 <strong>벤치마크 실행 기록</strong>입니다. 📋 아이콘이 있는 run은 <strong>Markdown 리포트</strong>를 포함합니다.', en:'<strong>Benchmark run history</strong> for the selected HW. Runs with 📋 icon include <strong>Markdown reports</strong>.', ja:'選択したHWの<strong>ベンチマーク実行履歴</strong>です。📋アイコンがあるrunは<strong>Markdownレポート</strong>を含みます。', 'zh-CN':'所选HW的<strong>基准测试运行记录</strong>。带有📋图标的run包含<strong>Markdown报告</strong>。', 'zh-TW':'所選HW的<strong>基準測試執行記錄</strong>。帶有��圖示的run包含<strong>Markdown報告</strong>。', es:'<strong>Historial de ejecuciones de benchmark</strong> del HW seleccionado. Los runs con icono 📋 incluyen <strong>informes Markdown</strong>.'},
+          content:{ko:'선택한 HW의 <strong>벤치마크 실행 기록</strong>입니다. {{i:clipboard}} 아이콘이 있는 run은 <strong>Markdown 리포트</strong>를 포함합니다.', en:'<strong>Benchmark run history</strong> for the selected HW. Runs with {{i:clipboard}} icon include <strong>Markdown reports</strong>.', ja:'選択したHWの<strong>ベンチマーク実行履歴</strong>です。{{i:clipboard}}アイコンがあるrunは<strong>Markdownレポート</strong>を含みます。', 'zh-CN':'所选HW的<strong>基准测试运行记录</strong>。带有{{i:clipboard}}图标的run包含<strong>Markdown报告</strong>。', 'zh-TW':'所選HW的<strong>基準測試執行記錄</strong>。帶有{{i:clipboard}}圖示的run包含<strong>Markdown報告</strong>。', es:'<strong>Historial de ejecuciones de benchmark</strong> del HW seleccionado. Los runs con icono {{i:clipboard}} incluyen <strong>informes Markdown</strong>.'},
           beforeStep:function(){
             var card = document.querySelector('.hw-card');
             if (card) card.click();
           } },
         { target:'.run-item', position:'right',
           title:{ko:'Run 항목 선택', en:'Select Run Item', ja:'Run項目選択', 'zh-CN':'选择Run项目', 'zh-TW':'選擇Run項目', es:'Seleccionar elemento Run'},
-          content:{ko:'개별 <strong>run 항목</strong>을 클릭하면 해당 실행의 상세 결과가 하단에 표시됩니다. <strong>📋 배지</strong>가 있으면 Markdown 리포트가 포함되어 있습니다.', en:'Click an individual <strong>run item</strong> to display detailed results below. A <strong>📋 badge</strong> indicates a Markdown report is included.', ja:'個別の<strong>run項目</strong>をクリックすると下部にその実行の詳細結果が表示されます。<strong>📋バッジ</strong>がある場合はMarkdownレポートが含まれています。', 'zh-CN':'点击单个<strong>run项目</strong>后，下方会显示该运行的详细结果。如果有<strong>📋标记</strong>则包含Markdown报告。', 'zh-TW':'點擊單個<strong>run項目</strong>後，下方會顯示該執行的詳細結果。如果有<strong>📋標記</strong>則包含Markdown報告。', es:'Haga clic en un <strong>elemento run</strong> para mostrar abajo los resultados detallados. Una <strong>insignia 📋</strong> indica que incluye un informe Markdown.'} },
+          content:{ko:'개별 <strong>run 항목</strong>을 클릭하면 해당 실행의 상세 결과가 하단에 표시됩니다. <strong>{{i:clipboard}} 배지</strong>가 있으면 Markdown 리포트가 포함되어 있습니다.', en:'Click an individual <strong>run item</strong> to display detailed results below. A <strong>{{i:clipboard}} badge</strong> indicates a Markdown report is included.', ja:'個別の<strong>run項目</strong>をクリックすると下部にその実行の詳細結果が表示されます。<strong>{{i:clipboard}}バッジ</strong>がある場合はMarkdownレポートが含まれています。', 'zh-CN':'点击单个<strong>run项目</strong>后，下方会显示该运行的详细结果。如果有<strong>{{i:clipboard}}标记</strong>则包含Markdown报告。', 'zh-TW':'點擊單個<strong>run項目</strong>後，下方會顯示該執行的詳細結果。如果有<strong>{{i:clipboard}}標記</strong>則包含Markdown報告。', es:'Haga clic en un <strong>elemento run</strong> para mostrar abajo los resultados detallados. Una <strong>insignia {{i:clipboard}}</strong> indica que incluye un informe Markdown.'} },
         { target:'.result-section--raw', position:'top',
           title:{ko:'결과 섹션', en:'Result Section', ja:'結果セクション', 'zh-CN':'结果区域', 'zh-TW':'結果區域', es:'Sección de resultados'},
           content:{ko:'Run 항목을 클릭하면 결과 섹션이 나타납니다. <strong>Environment, Model Results, Pipeline, Multi-Stream</strong> 등의 섹션을 접이식(<code>&lt;details&gt;</code>)으로 탐색할 수 있습니다.', en:'Click a run item to reveal result sections. Explore <strong>Environment, Model Results, Pipeline, Multi-Stream</strong> in collapsible (<code>&lt;details&gt;</code>) format.', ja:'Run項目をクリックすると結果セクションが表示されます。<strong>Environment、Model Results、Pipeline、Multi-Stream</strong>などのセクションを折りたたみ式（<code>&lt;details&gt;</code>）で探索できます。', 'zh-CN':'点击Run项目后会出现结果区域。可以折叠式（<code>&lt;details&gt;</code>）浏览<strong>Environment、Model Results、Pipeline、Multi-Stream</strong>等区域。', 'zh-TW':'點擊Run項目後會出現結果區域。可以折疊式（<code>&lt;details&gt;</code>）瀏覽<strong>Environment、Model Results、Pipeline、Multi-Stream</strong>等區域。', es:'Haga clic en un elemento run para mostrar las secciones de resultados. Explore <strong>Environment, Model Results, Pipeline, Multi-Stream</strong> en formato plegable (<code>&lt;details&gt;</code>).'},
           beforeStep:_mockRunDetail, afterStep:_clearRunDetail },
         { target:'.result-section--report', position:'top',
           title:{ko:'Markdown 리포트', en:'Markdown Report', ja:'Markdownレポート', 'zh-CN':'Markdown报告', 'zh-TW':'Markdown報告', es:'Informe Markdown'},
-          content:{ko:'📋 배지가 있는 run을 선택하면 <strong>Markdown 형식의 리포트</strong>가 결과 섹션에 표시됩니다. 환경 정보, 모델별 성능, 요약 등이 구조화되어 표시됩니다. <em>(리포트는 run 선택 후 API에서 동적으로 로드됩니다)</em>', en:'Select a run with 📋 badge to view a <strong>Markdown-formatted report</strong> in the result section. Environment info, per-model performance, and summaries are displayed in structured format. <em>(Reports are dynamically loaded from API after run selection)</em>', ja:'📋バッジがあるrunを選択すると<strong>Markdown形式のレポート</strong>が結果セクションに表示されます。環境情報、モデル別パフォーマンス、サマリーが構造化されて表示されます。<em>（レポートはrun選択後にAPIから動的にロードされます）</em>', 'zh-CN':'选择带有📋标记的run后，<strong>Markdown格式的报告</strong>会显示在结果区域。环境信息、各模型性能、摘要以结构化形式显示。<em>（报告在选择run后从API动态加载）</em>', 'zh-TW':'選擇帶有📋標記的run後，<strong>Markdown格式的報告</strong>會顯示在結果區域。環境資訊、各模型效能、摘要以結構化形式顯示。<em>（報告在選擇run後從API動態載入）</em>', es:'Seleccione un run con insignia 📋 para ver un <strong>informe en formato Markdown</strong> en la sección de resultados. La información del entorno, el rendimiento por modelo y los resúmenes se muestran de forma estructurada. <em>(Los informes se cargan dinámicamente desde la API tras seleccionar el run)</em>'},
+          content:{ko:'{{i:clipboard}} 배지가 있는 run을 선택하면 <strong>Markdown 형식의 리포트</strong>가 결과 섹션에 표시됩니다. 환경 정보, 모델별 성능, 요약 등이 구조화되어 표시됩니다. <em>(리포트는 run 선택 후 API에서 동적으로 로드됩니다)</em>', en:'Select a run with {{i:clipboard}} badge to view a <strong>Markdown-formatted report</strong> in the result section. Environment info, per-model performance, and summaries are displayed in structured format. <em>(Reports are dynamically loaded from API after run selection)</em>', ja:'{{i:clipboard}}バッジがあるrunを選択すると<strong>Markdown形式のレポート</strong>が結果セクションに表示されます。環境情報、モデル別パフォーマンス、サマリーが構造化されて表示されます。<em>（レポートはrun選択後にAPIから動的にロードされます）</em>', 'zh-CN':'选择带有{{i:clipboard}}标记的run后，<strong>Markdown格式的报告</strong>会显示在结果区域。环境信息、各模型性能、摘要以结构化形式显示。<em>（报告在选择run后从API动态加载）</em>', 'zh-TW':'選擇帶有{{i:clipboard}}標記的run後，<strong>Markdown格式的報告</strong>會顯示在結果區域。環境資訊、各模型效能、摘要以結構化形式顯示。<em>（報告在選擇run後從API動態載入）</em>', es:'Seleccione un run con insignia {{i:clipboard}} para ver un <strong>informe en formato Markdown</strong> en la sección de resultados. La información del entorno, el rendimiento por modelo y los resúmenes se muestran de forma estructurada. <em>(Los informes se cargan dinámicamente desde la API tras seleccionar el run)</em>'},
           beforeStep:_mockRunDetail, afterStep:_clearRunDetail },
       ]
     },
 
-    { id:'run-cli', icon:'▶️',
-      title:{ko:'▶️ 벤치마크 실행', en:'▶️ Run Benchmarks', ja:'▶️ ベンチマーク実行', 'zh-CN':'▶️ 运行基准测试', 'zh-TW':'▶️ 執行基準測試', es:'▶️ Ejecutar benchmarks'},
+    { id:'run-cli', icon:'play',
+      title:{ko:'벤치마크 실행', en:'Run Benchmarks', ja:'ベンチマーク実行', 'zh-CN':'运行基准测试', 'zh-TW':'執行基準測試', es:'Ejecutar benchmarks'},
       description:{ko:'웹 UI는 결과 조회 전용 — 터미널에서 벤치마크 실행', en:'Web UI is view-only — run benchmarks from the terminal', ja:'Web UIは結果閲覧専用 — ターミナルでベンチマーク実行', 'zh-CN':'Web UI 仅用于查看结果 — 请在终端运行基准测试', 'zh-TW':'Web UI 僅用於查看結果 — 請在終端機執行基準測試', es:'La UI web es solo de consulta — ejecute benchmarks en la terminal'},
       beforeStart:function(){ switchTab('dashboard'); },
       steps:[
-        { target:'.main-tabs', position:'bottom',
+        { target:'.dx-shell-tabs', position:'bottom',
           title:{ko:'CLI 전용 실행', en:'CLI-Only Execution', ja:'CLI専用実行', 'zh-CN':'仅 CLI 执行', 'zh-TW':'僅 CLI 執行', es:'Ejecución solo por CLI'},
           content:{ko:'이 모듈의 웹 화면은 <strong>결과 조회·비교</strong>용입니다. 새 벤치마크를 실행하려면 서버 호스트의 터미널에서 DX Benchmark CLI를 사용하세요.', en:'The web UI is for <strong>browsing and comparing results</strong> only. To run a new benchmark, use the DX Benchmark CLI on the server host terminal.', ja:'このモジュールのWeb画面は<strong>結果閲覧・比較</strong>用です。新しいベンチマークを実行するには、サーバーホストのターミナルでDX Benchmark CLIを使用してください。', 'zh-CN':'本模块 Web 界面仅用于<strong>浏览和比较结果</strong>。要运行新基准测试，请在服务器终端使用 DX Benchmark CLI。', 'zh-TW':'本模組 Web 介面僅用於<strong>瀏覽和比較結果</strong>。要執行新基準測試，請在伺服器終端機使用 DX Benchmark CLI。', es:'La UI web sirve solo para <strong>consultar y comparar resultados</strong>. Para ejecutar un nuevo benchmark, use DX Benchmark CLI en la terminal del servidor.'} },
-        { target:'.main-tab[data-tab="results"]', position:'bottom',
+        { target:'.dx-tab[data-page="results"]', position:'bottom',
           title:{ko:'실행 명령', en:'Run Commands', ja:'実行コマンド', 'zh-CN':'运行命令', 'zh-TW':'執行命令', es:'Comandos de ejecución'},
           content:{ko:'<p>서버 호스트 터미널에서 새 벤치마크를 실행합니다:</p>' + _RUN_CODE + '<p>완료 후 <strong>Results</strong> 탭에서 <code>results/</code> 데이터를 확인하세요. 자세한 내용은 Reference의 <strong>CLI Execution</strong> 문서를 참고하세요.</p>', en:'<p>Run a new benchmark from the server host terminal:</p>' + _RUN_CODE + '<p>When finished, open the <strong>Results</strong> tab to view <code>results/</code> data. See the <strong>CLI Execution</strong> reference doc for details.</p>', ja:'<p>サーバーホストのターミナルで新しいベンチマークを実行します：</p>' + _RUN_CODE + '<p>完了後、<strong>Results</strong> タブで <code>results/</code> データを確認してください。詳細は Reference の <strong>CLI Execution</strong> ドキュメントを参照してください。</p>', 'zh-CN':'<p>在服务器主机终端运行新的基准测试：</p>' + _RUN_CODE + '<p>完成后，在 <strong>Results</strong> 选项卡查看 <code>results/</code> 数据。详见 Reference 中的 <strong>CLI Execution</strong> 文档。</p>', 'zh-TW':'<p>在伺服器主機終端機執行新的基準測試：</p>' + _RUN_CODE + '<p>完成後，在 <strong>Results</strong> 分頁查看 <code>results/</code> 資料。詳見 Reference 中的 <strong>CLI Execution</strong> 文件。</p>', es:'<p>Ejecute un nuevo benchmark desde la terminal del host del servidor:</p>' + _RUN_CODE + '<p>Al terminar, abra la pestaña <strong>Results</strong> para ver los datos de <code>results/</code>. Consulte la referencia <strong>CLI Execution</strong> para más detalles.</p>'} },
       ]
     },
 
-    { id:'settings', icon:'⚙️',
-      title:{ko: '⚙️ 설정', en:'⚙️ Settings', ja:'⚙️ 設定', 'zh-CN':'⚙️ 设置', 'zh-TW':'⚙️ 設定', es:'⚙️ Ajustes'},
+    { id:'settings', icon:'gear',
+      title:{ko: '설정', en:'Settings', ja:'設定', 'zh-CN':'设置', 'zh-TW':'設定', es:'Ajustes'},
       description:{ko:'벤치마크 실행 환경 설정', en:'Configure benchmark execution settings', ja:'ベンチマーク実行環境の設定', 'zh-CN':'配置基准测试执行环境', 'zh-TW':'設定基準測試執行環境', es:'Configure los ajustes de ejecución del benchmark'},
       beforeStart:function(){ switchTab('settings'); },
       steps:[
-        { target:'.main-tab[data-tab="settings"]', position:'bottom',
+        { target:'.dx-tab[data-page="settings"]', position:'bottom',
           title:{ko:'Settings 탭', en:'Settings Tab', ja:'Settingsタブ', 'zh-CN':'Settings选项卡', 'zh-TW':'Settings分頁', es:'Pestaña Settings'},
           content:{ko:'벤치마크 실행에 필요한 <strong>환경 설정</strong>을 관리합니다. 경로, 온도, 반복 횟수 등 다양한 파라미터를 조절할 수 있습니다.', en:'Manage <strong>configuration settings</strong> for benchmark execution. Adjust parameters like paths, temperature, iteration count, and more.', ja:'ベンチマーク実行に必要な<strong>環境設定</strong>を管理します。パス、温度、繰り返し回数など様々なパラメータを調整できます。', 'zh-CN':'管理基准测试执行所需的<strong>环境配置</strong>。可以调整路径、温度、重复次数等各种参数。', 'zh-TW':'管理基準測試執行所需的<strong>環境設定</strong>。可以調整路徑、溫度、重複次數等各種參數。', es:'Gestione los <strong>ajustes de configuración</strong> para la ejecución del benchmark. Modifique parámetros como rutas, temperatura, número de iteraciones y más.'} },
         { target:'#settCooldownTemp', position:'right',
@@ -479,7 +475,7 @@
           title:{ko:'Warmup 횟수', en:'Warmup Runs', ja:'Warmup回数', 'zh-CN':'Warmup次数', 'zh-TW':'Warmup次數', es:'Ejecuciones de Warmup'},
           content:{ko:'측정 전 <strong>워밍업 실행 횟수</strong>입니다. 초기 성능 불안정을 제거하기 위해 지정된 횟수만큼 사전 실행합니다.', en:'Number of <strong>warmup runs</strong> before measurement. Pre-runs the specified count to eliminate initial performance instability.', ja:'測定前の<strong>ウォームアップ実行回数</strong>です。初期パフォーマンスのばらつきを取り除くために指定回数だけ事前実行します。', 'zh-CN':'测量前的<strong>预热运行次数</strong>。为消除初始性能不稳定而预先运行指定次数。', 'zh-TW':'測量前的<strong>預熱執行次數</strong>。為消除初始效能不穩定而預先執行指定次數。', es:'Número de <strong>ejecuciones de warmup</strong> antes de la medición. Ejecuta previamente el recuento indicado para eliminar la inestabilidad inicial del rendimiento.'} },
         { target:'#settFpsThreshold', position:'right',
-          title:{ko:'FPS 임계값', en:'FPS Threshold', ja:'FPS閾値', 'zh-CN':'FPS阈值', 'zh-TW':'FPS閾值', es:'Umbral FPS'},
+          title:{ko:'FPS 임계값', en:'FPS Threshold', ja:'FPS 閾値', 'zh-CN':'FPS 阈值', 'zh-TW':'FPS 閾值', es:'Umbral FPS'},
           content:{ko:'<strong>최소 FPS 기준값</strong>입니다. 이 값 이하의 FPS 결과는 경고로 표시되거나 리포트에서 하이라이트됩니다.', en:'<strong>Minimum FPS threshold</strong>. FPS results below this value are flagged as warnings or highlighted in reports.', ja:'<strong>最小FPS基準値</strong>です。この値以下のFPS結果は警告として表示されるか、レポートでハイライトされます。', 'zh-CN':'<strong>最小FPS基准值</strong>。低于此值的FPS结果将显示为警告或在报告中高亮。', 'zh-TW':'<strong>最小FPS基準值</strong>。低於此值的FPS結果將顯示為警告或在報告中醒目提示。', es:'<strong>Umbral mínimo de FPS</strong>. Los resultados por debajo de este valor se marcan como advertencias o se resaltan en los informes.'} },
         { target:'.settings-notice', position:'bottom',
           title:{ko:'배포 고정 설정', en:'Deployment-fixed Settings', ja:'デプロイ固定設定', 'zh-CN':'部署固定设置', 'zh-TW':'部署固定設定', es:'Ajustes fijos en el despliegue'},
@@ -487,8 +483,8 @@
       ]
     },
 
-    { id:'edgeguide-link', icon:'💰',
-      title:{ko:'💰 EdgeGuide 연동', en:'💰 EdgeGuide Integration', ja:'💰 EdgeGuide連携', 'zh-CN':'💰 EdgeGuide集成', 'zh-TW':'💰 EdgeGuide整合', es:'💰 Integración con EdgeGuide'},
+    { id:'edgeguide-link', icon:'edge',
+      title:{ko:'EdgeGuide 연동', en:'EdgeGuide Integration', ja:'EdgeGuide連携', 'zh-CN':'EdgeGuide集成', 'zh-TW':'EdgeGuide整合', es:'Integración con EdgeGuide'},
       description:{ko:'벤치마크 필터 조건으로 EdgeGuide 최적 제품 추천', en:'Get optimal product recommendations via EdgeGuide with benchmark filters', ja:'ベンチマークフィルター条件でEdgeGuide最適製品を推薦', 'zh-CN':'通过基准测试筛选条件获取EdgeGuide最佳产品推荐', 'zh-TW':'透過基準測試篩選條件獲取EdgeGuide最佳產品推薦', es:'Obtenga recomendaciones de producto óptimas en EdgeGuide con los filtros del benchmark'},
       prerequisite:'dashboard-metrics',
       beforeStart: function () {
@@ -504,7 +500,7 @@
       steps:[
         { target:'#edgeguideBtn', position:'bottom',
           title:{ko:'EdgeGuide 버튼', en:'EdgeGuide Button', ja:'EdgeGuideボタン', 'zh-CN':'EdgeGuide按钮', 'zh-TW':'EdgeGuide按鈕', es:'Botón EdgeGuide'},
-          content:{ko:'<strong>💰 EdgeGuide</strong> 버튼을 클릭하면 현재 벤치마크 필터 조건(Task, Size, ORT)을 그대로 EdgeGuide에 전달하여 <strong>최적 제품 추천</strong>을 받을 수 있습니다.', en:'Click the <strong>💰 EdgeGuide</strong> button to pass current benchmark filter conditions (Task, Size, ORT) to EdgeGuide for <strong>optimal product recommendations</strong>.', ja:'<strong>💰 EdgeGuide</strong>ボタンをクリックすると、現在のベンチマークフィルター条件（Task、Size、ORT）をそのままEdgeGuideに渡して<strong>最適製品推薦</strong>を受けることができます。', 'zh-CN':'点击<strong>💰 EdgeGuide</strong>按钮后，会将当前基准测试筛选条件（Task、Size、ORT）直接传递给EdgeGuide以获取<strong>最佳产品推荐</strong>。', 'zh-TW':'點擊<strong>💰 EdgeGuide</strong>按鈕後，會將目前基準測試篩選條件（Task、Size、ORT）直接傳遞給EdgeGuide以獲取<strong>最佳產品推薦</strong>。', es:'Haga clic en el botón <strong>💰 EdgeGuide</strong> para enviar a EdgeGuide las condiciones de filtro actuales del benchmark (Task, Size, ORT) y obtener <strong>recomendaciones de producto óptimas</strong>.'} },
+          content:{ko:'<strong>EdgeGuide</strong> 버튼을 클릭하면 현재 벤치마크 필터 조건(Task, Size, ORT)을 그대로 EdgeGuide에 전달하여 <strong>최적 제품 추천</strong>을 받을 수 있습니다.', en:'Click the <strong>EdgeGuide</strong> button to pass current benchmark filter conditions (Task, Size, ORT) to EdgeGuide for <strong>optimal product recommendations</strong>.', ja:'<strong>EdgeGuide</strong>ボタンをクリックすると、現在のベンチマークフィルター条件（Task、Size、ORT）をそのままEdgeGuideに渡して<strong>最適製品推薦</strong>を受けることができます。', 'zh-CN':'点击<strong>EdgeGuide</strong>按钮后，会将当前基准测试筛选条件（Task、Size、ORT）直接传递给EdgeGuide以获取<strong>最佳产品推荐</strong>。', 'zh-TW':'點擊<strong>EdgeGuide</strong>按鈕後，會將目前基準測試篩選條件（Task、Size、ORT）直接傳遞給EdgeGuide以獲取<strong>最佳產品推薦</strong>。', es:'Haga clic en el botón <strong>EdgeGuide</strong> para enviar a EdgeGuide las condiciones de filtro actuales del benchmark (Task, Size, ORT) y obtener <strong>recomendaciones de producto óptimas</strong>.'} },
         { target:'.edgeguide-link', position:'top',
           title:{ko:'상세 패널의 EdgeGuide 링크', en:'EdgeGuide Link in Detail Panel', ja:'詳細パネルのEdgeGuideリンク', 'zh-CN':'详情面板中的EdgeGuide链接', 'zh-TW':'詳情面板中的EdgeGuide連結', es:'Enlace EdgeGuide en el panel de detalle'},
           content:{ko:'차트 바를 클릭하여 환경 상세 패널을 연 후, 패널 내 <strong>EdgeGuide 링크</strong>(<code>.edgeguide-link</code>)를 찾아 클릭하면 해당 플랫폼 조건에 맞는 <strong>제품 비교 및 추천</strong> 페이지로 이동합니다.', en:'After clicking a chart bar to open the environment detail panel, find and click the <strong>EdgeGuide link</strong> (<code>.edgeguide-link</code>) within the panel to navigate to a <strong>product comparison and recommendation</strong> page tailored to that platform.', ja:'チャートバーをクリックして環境詳細パネルを開いた後、パネル内の<strong>EdgeGuideリンク</strong>（<code>.edgeguide-link</code>）を見つけてクリックすると、そのプラットフォーム条件に合った<strong>製品比較および推薦</strong>ページに移動します。', 'zh-CN':'点击图表柱形打开环境详情面板后，找到面板内的<strong>EdgeGuide链接</strong>（<code>.edgeguide-link</code>）并点击，即可跳转到符合该平台条件的<strong>产品比较和推荐</strong>页面。', 'zh-TW':'點擊圖表長條打開環境詳情面板後，找到面板內的<strong>EdgeGuide連結</strong>（<code>.edgeguide-link</code>）並點擊，即可跳轉到符合該平台條件的<strong>產品比較和推薦</strong>頁面。', es:'Tras hacer clic en una barra del gráfico para abrir el panel de detalle del entorno, localice y haga clic en el <strong>enlace EdgeGuide</strong> (<code>.edgeguide-link</code>) del panel para ir a una página de <strong>comparación y recomendación de productos</strong> adaptada a esa plataforma.'},
@@ -514,16 +510,16 @@
   ];
 
   var referenceDocs = [
-    { id:'ref-dashboard', icon:'📊', title:{ko:'Dashboard 가이드', en:'Dashboard Guide', ja:'ダッシュボードガイド', 'zh-CN':'仪表盘指南', 'zh-TW':'儀表板指南', es:'Guía del panel'},
+    { id:'ref-dashboard', icon:'dashboard', title:{ko:'Dashboard 가이드', en:'Dashboard Guide', ja:'ダッシュボードガイド', 'zh-CN':'仪表盘指南', 'zh-TW':'儀表板指南', es:'Guía del panel'},
       body:{ko:'<h3>5개 서브탭</h3><ul><li><strong>E2E FPS Overview</strong>: 전체 플랫폼 FPS 비교 (그룹 바 차트)</li><li><strong>Full Metrics</strong>: NPU Throughput + E2E FPS + Latency 3중 메트릭</li><li><strong>Detailed Data</strong>: 원시 수치 테이블, 열 정렬, Best 하이라이트, NPU 온도/클럭·상태 배지</li><li><strong>Version Trend</strong>: dx-all-suite 버전 필터 + 지표별 소형 차트</li><li><strong>ORT ON/OFF</strong>: 동일 모델·환경에서 ORT On/Off 성능 비교</li></ul><p>모든 서브탭에서 차트 바/포인트를 클릭하면 환경 상세 패널이 열립니다.</p>', en:'<h3>5 Sub-tabs</h3><ul><li><strong>E2E FPS Overview</strong>: Cross-platform FPS comparison</li><li><strong>Full Metrics</strong>: NPU Throughput + E2E FPS + Latency triple metrics</li><li><strong>Detailed Data</strong>: Raw numeric tables with sorting, Best highlights, and NPU temp/clock + status badges</li><li><strong>Version Trend</strong>: dx-all-suite version filter + per-metric small charts</li><li><strong>ORT ON/OFF</strong>: Compare ORT On/Off performance for the same model and environment</li></ul><p>Click chart bars/points in any sub-tab to open the environment detail panel.</p>', ja:'<h3>5つのサブタブ</h3><ul><li><strong>E2E FPS Overview</strong>：全プラットフォームFPS比較（グループバーチャート）</li><li><strong>Full Metrics</strong>：NPU Throughput + E2E FPS + Latencyトリプルメトリクス</li><li><strong>Detailed Data</strong>：生データテーブル、列ソート、Bestハイライト、NPU温度/クロック・ステータスバッジ</li><li><strong>Version Trend</strong>：dx-all-suiteバージョンフィルター + 指標別スモールチャート</li><li><strong>ORT ON/OFF</strong>：同一モデル・環境でのORT On/Offパフォーマンス比較</li></ul><p>すべてのサブタブでチャートバー/ポイントをクリックすると環境詳細パネルが開きます。</p>', 'zh-CN':'<h3>5个子选项卡</h3><ul><li><strong>E2E FPS Overview</strong>：全平台FPS比较（分组柱状图）</li><li><strong>Full Metrics</strong>：NPU吞吐量 + E2E FPS + 延迟三重指标</li><li><strong>Detailed Data</strong>：原始数据表格、列排序、最佳值高亮、NPU温度/时钟频率与状态标记</li><li><strong>Version Trend</strong>：dx-all-suite版本筛选 + 按指标分类的小图表</li><li><strong>ORT ON/OFF</strong>：比较相同模型与环境下ORT开/关的性能</li></ul><p>在所有子选项卡中点击图表柱形/数据点可打开环境详情面板。</p>', 'zh-TW':'<h3>5個子分頁</h3><ul><li><strong>E2E FPS Overview</strong>：全平台FPS比較（分組長條圖）</li><li><strong>Full Metrics</strong>：NPU吞吐量 + E2E FPS + 延遲三重指標</li><li><strong>Detailed Data</strong>：原始資料表格、欄位排序、最佳值醒目提示、NPU溫度/時脈與狀態標記</li><li><strong>Version Trend</strong>：dx-all-suite版本篩選 + 按指標分類的小圖表</li><li><strong>ORT ON/OFF</strong>：比較相同模型與環境下ORT開/關的效能</li></ul><p>在所有子分頁中點擊圖表長條/資料點可打開環境詳情面板。</p>', es:'<h3>5 subpestañas</h3><ul><li><strong>E2E FPS Overview</strong>: comparación de FPS entre plataformas</li><li><strong>Full Metrics</strong>: triple métrica NPU Throughput + E2E FPS + Latency</li><li><strong>Detailed Data</strong>: tablas numéricas en bruto con ordenación, resaltado de mejores valores e insignias de temperatura/reloj NPU y estado</li><li><strong>Version Trend</strong>: filtro de versión de dx-all-suite + gráficos pequeños por métrica</li><li><strong>ORT ON/OFF</strong>: compare el rendimiento ORT activado/desactivado para el mismo modelo y entorno</li></ul><p>Haga clic en barras o puntos del gráfico en cualquier subpestaña para abrir el panel de detalle del entorno.</p>'} },
-    { id:'ref-cli', icon:'▶️', title:{ko:'CLI 실행', en:'CLI Execution', ja:'CLI実行', 'zh-CN':'CLI执行', 'zh-TW':'CLI執行', es:'Ejecución por CLI'},
+    { id:'ref-cli', icon:'play', title:{ko:'CLI 실행', en:'CLI Execution', ja:'CLI実行', 'zh-CN':'CLI执行', 'zh-TW':'CLI執行', es:'Ejecución por CLI'},
       body:{ko:'<h3>벤치마크 실행</h3><p>웹 UI는 결과 조회 전용입니다. 실행은 터미널에서 수행하세요.</p><ol><li><code>cd dx-benchmark</code></li><li><code>./run.sh run</code></li><li>완료 후 Results/Dashboard에서 <code>results/</code> 데이터 확인</li></ol>', en:'<h3>Run Benchmarks</h3><p>The web UI is view-only. Run from a terminal:</p><ol><li><code>cd dx-benchmark</code></li><li><code>./run.sh run</code></li><li>View <code>results/</code> in Dashboard/Results when done</li></ol>', ja:'<h3>ベンチマーク実行</h3><p>Web UIは結果閲覧専用です。ターミナルで実行してください。</p><ol><li><code>cd dx-benchmark</code></li><li><code>./run.sh run</code></li><li>完了後 Dashboard/Results で <code>results/</code> を確認</li></ol>', 'zh-CN':'<h3>运行基准测试</h3><p>Web UI仅用于查看结果。请在终端中运行：</p><ol><li><code>cd dx-benchmark</code></li><li><code>./run.sh run</code></li><li>完成后在 Dashboard/Results 查看 <code>results/</code></li></ol>', 'zh-TW':'<h3>執行基準測試</h3><p>Web UI僅用於查看結果。請在終端機執行：</p><ol><li><code>cd dx-benchmark</code></li><li><code>./run.sh run</code></li><li>完成後在 Dashboard/Results 查看 <code>results/</code></li></ol>', es:'<h3>Ejecutar benchmarks</h3><p>La UI web es solo de consulta. Ejecute en terminal:</p><ol><li><code>cd dx-benchmark</code></li><li><code>./run.sh run</code></li><li>Consulte <code>results/</code> en Dashboard/Results al terminar</li></ol>'} },
-    { id:'ref-results', icon:'📁', title:{ko:'결과 탐색', en:'Results Browser', ja:'結果ブラウザ', 'zh-CN':'结果浏览器', 'zh-TW':'結果瀏覽器', es:'Explorador de resultados'},
-      body:{ko:'<h3>탐색 흐름</h3><p><strong>HW 카드 선택 → Run 목록 → 결과 섹션</strong> 순서로 탐색합니다. 📋 아이콘이 있는 run은 Markdown 리포트를 포함합니다.</p>', en:'<h3>Browse Flow</h3><p><strong>Select HW card → Run list → Result sections</strong>. Runs with 📋 icon include Markdown reports.</p>', ja:'<h3>閲覧フロー</h3><p><strong>HWカード選択 → Run一覧 → 結果セクション</strong>の順で探索します。📋アイコンがあるrunはMarkdownレポートを含みます。</p>', 'zh-CN':'<h3>浏览流程</h3><p><strong>选择HW卡片 → Run列表 → 结果区域</strong>的顺序进行浏览。带有📋图标的run包含Markdown报告。</p>', 'zh-TW':'<h3>瀏覽流程</h3><p><strong>選擇HW卡片 → Run列表 → 結果區域</strong>的順序進行瀏覽。帶有📋圖示的run包含Markdown報告。</p>', es:'<h3>Flujo de exploración</h3><p><strong>Seleccione tarjeta HW → lista de Run → secciones de resultados</strong>. Los runs con icono 📋 incluyen informes Markdown.</p>'} },
-    { id:'ref-settings', icon:'⚙️', title:{ko:'설정', en:'Settings', ja:'設定', 'zh-CN':'设置', 'zh-TW':'設定', es:'Ajustes'},
+    { id:'ref-results', icon:'folder', title:{ko:'결과 브라우저', en:'Results Browser', ja:'結果ブラウザ', 'zh-CN':'结果浏览器', 'zh-TW':'結果瀏覽器', es:'Explorador de resultados'},
+      body:{ko:'<h3>탐색 흐름</h3><p><strong>HW 카드 선택 → Run 목록 → 결과 섹션</strong> 순서로 탐색합니다. {{i:clipboard}} 아이콘이 있는 run은 Markdown 리포트를 포함합니다.</p>', en:'<h3>Browse Flow</h3><p><strong>Select HW card → Run list → Result sections</strong>. Runs with {{i:clipboard}} icon include Markdown reports.</p>', ja:'<h3>閲覧フロー</h3><p><strong>HWカード選択 → Run一覧 → 結果セクション</strong>の順で探索します。{{i:clipboard}}アイコンがあるrunはMarkdownレポートを含みます。</p>', 'zh-CN':'<h3>浏览流程</h3><p><strong>选择HW卡片 → Run列表 → 结果区域</strong>的顺序进行浏览。带有{{i:clipboard}}图标的run包含Markdown报告。</p>', 'zh-TW':'<h3>瀏覽流程</h3><p><strong>選擇HW卡片 → Run列表 → 結果區域</strong>的順序進行瀏覽。帶有{{i:clipboard}}圖示的run包含Markdown報告。</p>', es:'<h3>Flujo de exploración</h3><p><strong>Seleccione tarjeta HW → lista de Run → secciones de resultados</strong>. Los runs con icono {{i:clipboard}} incluyen informes Markdown.</p>'} },
+    { id:'ref-settings', icon:'gear', title:{ko:'설정', en:'Settings', ja:'設定', 'zh-CN':'设置', 'zh-TW':'設定', es:'Ajustes'},
       body:{ko:'<h3>설정 항목</h3><ul><li><strong>Cooldown Temp</strong>: 벤치마크 간 대기 온도</li><li><strong>Wait</strong>: 반복 간 대기 시간</li><li><strong>Iterations</strong>: 반복 횟수</li><li><strong>Warmup</strong>: 워밍업 횟수</li><li><strong>FPS Threshold</strong>: 최소 FPS 기준</li></ul>', en:'<h3>Settings</h3><ul><li><strong>Cooldown Temp</strong>: Wait temperature between benchmarks</li><li><strong>Wait</strong>: Delay between iterations</li><li><strong>Iterations</strong>: Number of iterations</li><li><strong>Warmup</strong>: Warmup count</li><li><strong>FPS Threshold</strong>: Minimum FPS threshold</li></ul>', ja:'<h3>設定項目</h3><ul><li><strong>Cooldown Temp</strong>：ベンチマーク間の待機温度</li><li><strong>Wait</strong>：繰り返し間の待機時間</li><li><strong>Iterations</strong>：繰り返し回数</li><li><strong>Warmup</strong>：ウォームアップ回数</li><li><strong>FPS Threshold</strong>：最小FPS基準</li></ul>', 'zh-CN':'<h3>设置项目</h3><ul><li><strong>Cooldown Temp</strong>：基准测试间等待温度</li><li><strong>Wait</strong>：重复间等待时间</li><li><strong>Iterations</strong>：重复次数</li><li><strong>Warmup</strong>：预热次数</li><li><strong>FPS Threshold</strong>：最小FPS基准</li></ul>', 'zh-TW':'<h3>設定項目</h3><ul><li><strong>Cooldown Temp</strong>：基準測試間等待溫度</li><li><strong>Wait</strong>：重複間等待時間</li><li><strong>Iterations</strong>：重複次數</li><li><strong>Warmup</strong>：預熱次數</li><li><strong>FPS Threshold</strong>：最小FPS基準</li></ul>', es:'<h3>Ajustes</h3><ul><li><strong>Cooldown Temp</strong>: temperatura de espera entre benchmarks</li><li><strong>Wait</strong>: retardo entre iteraciones</li><li><strong>Iterations</strong>: número de iteraciones</li><li><strong>Warmup</strong>: recuento de warmup</li><li><strong>FPS Threshold</strong>: umbral mínimo de FPS</li></ul>'} },
-    { id:'ref-edgeguide', icon:'💰', title:{ko:'EdgeGuide 연동', en:'EdgeGuide Integration', ja:'EdgeGuide連携', 'zh-CN':'EdgeGuide集成', 'zh-TW':'EdgeGuide整合', es:'Integración con EdgeGuide'},
-      body:{ko:'<h3>EdgeGuide 연동</h3><p>💰 버튼 또는 환경 상세 패널의 링크를 클릭하면 현재 벤치마크 필터 조건(Task, Size, ORT)을 그대로 EdgeGuide에 전달하여 최적 제품 추천을 받을 수 있습니다.</p>', en:'<h3>EdgeGuide Integration</h3><p>Click the 💰 button or the link in environment detail panel to pass current benchmark filters (Task, Size, ORT) to EdgeGuide for optimal product recommendation.</p>', ja:'<h3>EdgeGuide連携</h3><p>💰ボタンまたは環境詳細パネルのリンクをクリックすると、現在のベンチマークフィルター条件（Task、Size、ORT）をそのままEdgeGuideに渡して最適製品推薦を受けることができます。</p>', 'zh-CN':'<h3>EdgeGuide集成</h3><p>点击💰按钮或环境详情面板中的链接，即可将当前基准测试筛选条件（Task、Size、ORT）直接传递给EdgeGuide以获取最佳产品推荐。</p>', 'zh-TW':'<h3>EdgeGuide整合</h3><p>點擊💰按鈕或環境詳情面板中的連結，即可將目前基準測試篩選條件（Task、Size、ORT）直接傳遞給EdgeGuide以獲取最佳產品推薦。</p>', es:'<h3>Integración con EdgeGuide</h3><p>Haga clic en el botón 💰 o en el enlace del panel de detalle del entorno para enviar a EdgeGuide los filtros actuales del benchmark (Task, Size, ORT) y obtener la recomendación de producto óptima.</p>'} },
+    { id:'ref-edgeguide', icon:'edge', title:{ko:'EdgeGuide 연동', en:'EdgeGuide Integration', ja:'EdgeGuide連携', 'zh-CN':'EdgeGuide集成', 'zh-TW':'EdgeGuide整合', es:'Integración con EdgeGuide'},
+      body:{ko:'<h3>EdgeGuide 연동</h3><p><strong>EdgeGuide</strong> 버튼 또는 환경 상세 패널의 링크를 클릭하면 현재 벤치마크 필터 조건(Task, Size, ORT)을 그대로 EdgeGuide에 전달하여 최적 제품 추천을 받을 수 있습니다.</p>', en:'<h3>EdgeGuide Integration</h3><p>Click the <strong>EdgeGuide</strong> button or the link in environment detail panel to pass current benchmark filters (Task, Size, ORT) to EdgeGuide for optimal product recommendation.</p>', ja:'<h3>EdgeGuide連携</h3><p><strong>EdgeGuide</strong>ボタンまたは環境詳細パネルのリンクをクリックすると、現在のベンチマークフィルター条件（Task、Size、ORT）をそのままEdgeGuideに渡して最適製品推薦を受けることができます。</p>', 'zh-CN':'<h3>EdgeGuide集成</h3><p>点击<strong>EdgeGuide</strong>按钮或环境详情面板中的链接，即可将当前基准测试筛选条件（Task、Size、ORT）直接传递给EdgeGuide以获取最佳产品推荐。</p>', 'zh-TW':'<h3>EdgeGuide整合</h3><p>點擊<strong>EdgeGuide</strong>按鈕或環境詳情面板中的連結，即可將目前基準測試篩選條件（Task、Size、ORT）直接傳遞給EdgeGuide以獲取最佳產品推薦。</p>', es:'<h3>Integración con EdgeGuide</h3><p>Haga clic en el botón <strong>EdgeGuide</strong> o en el enlace del panel de detalle del entorno para enviar a EdgeGuide los filtros actuales del benchmark (Task, Size, ORT) y obtener la recomendación de producto óptima.</p>'} },
   ];
 
   window.DXTutorial.create({
@@ -539,7 +535,7 @@
       var lang = engine.getLang();
       var sec = engine.sections.find(function (s) { return s.id === sectionId; });
       if (typeof toast === 'function' && sec) {
-        toast('✅ "' + engine._t(sec.title) + '" ' + engine._tl('tutorial complete!'), 'ok');
+        toast('"' + engine._t(sec.title) + '" ' + engine._tl('tutorial complete!'), 'ok');
       }
     },
     patchNav: function () {}

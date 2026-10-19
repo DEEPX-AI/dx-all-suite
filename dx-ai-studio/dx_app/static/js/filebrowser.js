@@ -8,7 +8,7 @@ function fileBrowse(targetId,mode,filter){
     var parts=startPath.split('/');parts.pop();
     startPath=parts.join('/')||null;
   }
-  $('fb-title').textContent=mode==='dir'?T('📂 Select Folder'):T('📄 Select File');
+  DXIcon.label($('fb-title'),mode==='dir'?'folder':'file',mode==='dir'?T('Select Folder'):T('Select File'));
   fbLoadDir(startPath||'~');
   openModal('modal-fb');
 }
@@ -25,7 +25,7 @@ function fbLoadDir(path){
     }
     var parts=r.path.split('/').filter(Boolean);
     var bc=$('fb-breadcrumb');
-    var bhtml='<span onclick="fbLoadDir(\'/\')">🏠 /</span>';
+    var bhtml='<span onclick="fbLoadDir(\'/\')">' + DXIcon('home') + ' /</span>';
     var acc='';
     parts.forEach(function(p){
       acc+='/'+p;
@@ -37,7 +37,7 @@ function fbLoadDir(path){
     if(r.parent){
       var el=document.createElement('div');
       el.className='fb-item fb-dir';
-      el.textContent='📁 ..';
+      DXIcon.label(el,'folder','..');
       var pp=r.parent;
       el.onclick=function(){fbLoadDir(pp);};
       list.appendChild(el);
@@ -49,7 +49,7 @@ function fbLoadDir(path){
       el.className='fb-item '+(e.type==='dir'?'fb-dir':'fb-file')+(dim?' fb-dim':'');
       var sz='';
       if(e.size!=null){sz=e.size>1048576?(e.size/1048576).toFixed(1)+'MB':e.size>1024?(e.size/1024).toFixed(0)+'KB':e.size+'B';}
-      el.innerHTML=(e.type==='dir'?'📁 ':'📄 ')+'<span style="flex:1">'+e.name+'</span>'+(sz?'<span style="font-size:10px;color:var(--text-3)">'+sz+'</span>':'');
+      el.innerHTML=(e.type==='dir'?DXIcon('folder') + ' ':DXIcon('file') + ' ')+'<span style="flex:1">'+e.name+'</span>'+(sz?'<span style="font-size:10px;color:var(--text-muted)">'+sz+'</span>':'');
       el.style.display='flex';
       var ep=e.path,isDir=e.type==='dir';
       el.onclick=function(){
@@ -91,7 +91,7 @@ function _fbRenderAc(){
   if(!_fbAcItems.length){ac.style.display='none';return;}
   ac.innerHTML=_fbAcItems.map(function(e,i){
     return '<div class="fb-ac-item" data-i="'+i+'" onmousedown="event.preventDefault();fbAcApply('+i+',true)">'
-      +(e.type==='dir'?'📁 ':'📄 ')+esc(e.name)+(e.type==='dir'?'/':'')+'</div>';
+      +(e.type==='dir'?DXIcon('folder') + ' ':DXIcon('file') + ' ')+esc(e.name)+(e.type==='dir'?'/':'')+'</div>';
   }).join('');
   ac.style.display='';
 }

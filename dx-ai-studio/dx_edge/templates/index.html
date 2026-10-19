@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>DX Cloud</title>
+  <link rel="icon" type="image/svg+xml" href="/static/shared/favicons/dx_edge.svg">
+  <link rel="stylesheet" href="/static/shared/dx-fonts.css">
+  <link rel="stylesheet" href="/static/shared/dx-tokens.css">
+  <link rel="stylesheet" href="/static/shared/dx-semantic.css">
+  <link rel="stylesheet" href="/static/shared/dx-theme-light.css">
+  <link rel="stylesheet" href="/static/shared/dx-shell.css">
+  <link rel="stylesheet" href="/static/shared/dx-base.css">
+  <link rel="stylesheet" href="/static/shared/dx-utilities.css">
+  <link rel="stylesheet" href="/static/shared/module-chrome.css">
+  <link rel="stylesheet" href="/static/shared/dx-components.css">
+  <link rel="stylesheet" href="/static/shared/brand.css">
+  <link rel="stylesheet" href="/static/shared/toolbar.css">
+  <link rel="stylesheet" href="/static/shared/tutorial.css">
+  <link rel="stylesheet" href="/static/shared/chat-widget.css">
+  <link rel="stylesheet" href="/static/css/style.css?m=dx_edge">
+<script src="/static/shared/dx-theme.js"></script>
+<script src="/static/shared/dx-icon.js"></script>
+</head>
+<body>
+<div class="dx-shell dx-shell--no-tabs">
+{{DX_SHELL_RAIL}}
+<div class="dx-shell-body">
+{{DX_SHELL_HEADER}}
+<main class="dx-shell-main edge-main dx-steps">
+
+  <!-- Live summary for the current tab -->
+  <div class="edge-top">
+    <div class="edge-status" id="edgeStatus">
+      <span class="edge-chip" id="edgeChipProfile"><span class="edge-chip-label" data-i18n="Profile">Profile</span><span class="edge-chip-value" id="edgeChipProfileVal">—</span></span>
+      <span class="edge-chip" id="edgeChipRegion"><span class="edge-chip-label" data-i18n="Region">Region</span><span class="edge-chip-value" id="edgeChipRegionVal">—</span></span>
+      <span class="edge-chip" id="edgeChipAccount"><span class="edge-chip-label" data-i18n="Account">Account</span><span class="edge-chip-value" id="edgeChipAccountVal">—</span></span>
+      <span class="edge-chip" id="edgeChipSubs"><span class="edge-chip-label" data-i18n="Subscription">Subscription</span><span class="edge-chip-value" id="edgeChipSubsVal">—</span></span>
+      <span class="edge-chip" id="edgeChipStacks"><span class="edge-chip-label" data-i18n="Ready stacks">Ready stacks</span><span class="edge-chip-value" id="edgeChipStacksVal">—</span></span>
+    </div>
+    <span class="edge-badge-art edge-badge-art--lg" data-i18n-title="DEEPX is an AWS Partner" title="DEEPX is an AWS Partner"><img class="edge-badge-art--dark" src="/static/badges/aws-partner-dark.png" alt="AWS Partner" width="120" height="120"><img class="edge-badge-art--light" src="/static/badges/aws-partner-light.png" alt="AWS Partner" width="120" height="120"></span>
+  </div>
+
+  <!-- DEEPX on AWS Marketplace -->
+  <section class="edge-market" aria-labelledby="edgeMarketplace">
+    <h2 class="edge-kicker" id="edgeMarketplace" data-i18n="DEEPX on AWS Marketplace">DEEPX on AWS Marketplace</h2>
+    <div class="edge-grid">
+      <article class="card edge-card">
+        <div class="edge-card-body">
+          <div class="edge-card-head">
+            <h3><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#compiler"></use></svg> DEEPX Compiler Solution</h3>
+            <span class="badge">EC2 · S3</span>
+          </div>
+          <p data-i18n="DEEPX Compiler Solution runs dxcom on an EC2 instance. Deployed as a CloudFormation stack, uploading an .onnx and its .json to the model bucket compiles a .dxnn next to them.">DEEPX Compiler Solution runs dxcom on an EC2 instance. Deployed as a CloudFormation stack, uploading an .onnx and its .json to the model bucket compiles a .dxnn next to them.</p>
+          <div class="edge-actions">
+            <a class="btn btn-sm btn-ghost" href="https://aws.amazon.com/marketplace/pp/prodview-ev6ed5omu4ulo" target="_blank" rel="noopener noreferrer"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#external"></use></svg> <span data-i18n="Open Marketplace listing">Open Marketplace listing</span></a>
+            <a class="btn btn-sm btn-ghost" href="guide#compiler"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#book"></use></svg> <span data-i18n="AWS Console guide">AWS Console guide</span></a>
+          </div>
+        </div>
+        <span class="edge-badge-art edge-badge-art--md" data-i18n-title="AWS Qualified Software on AWS Marketplace" title="AWS Qualified Software on AWS Marketplace"><img class="edge-badge-art--dark" src="/static/badges/aws-qualified-software-dark.png" alt="AWS Qualified Software" width="120" height="120"><img class="edge-badge-art--light" src="/static/badges/aws-qualified-software-light.png" alt="AWS Qualified Software" width="120" height="120"></span>
+      </article>
+      <article class="card edge-card">
+        <div class="edge-card-body">
+          <div class="edge-card-head">
+            <h3><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#cloud"></use></svg> DEEPX Greengrass Solution</h3>
+            <span class="badge">IoT Core · Greengrass</span>
+          </div>
+          <p data-i18n="DEEPX Greengrass Solution deploys the NPU driver, firmware, dx_rt and dx_stream to every device in a Thing Group, with the compile pipeline in the same stack.">DEEPX Greengrass Solution deploys the NPU driver, firmware, dx_rt and dx_stream to every device in a Thing Group, with the compile pipeline in the same stack.</p>
+          <div class="edge-actions">
+            <a class="btn btn-sm btn-ghost" href="https://aws.amazon.com/marketplace/pp/prodview-732s46qfzuh34" target="_blank" rel="noopener noreferrer"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#external"></use></svg> <span data-i18n="Open Marketplace listing">Open Marketplace listing</span></a>
+            <a class="btn btn-sm btn-ghost" href="guide#greengrass"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#book"></use></svg> <span data-i18n="AWS Console guide">AWS Console guide</span></a>
+          </div>
+        </div>
+        <span class="edge-badge-art edge-badge-art--md" data-i18n-title="AWS Qualified Software on AWS Marketplace" title="AWS Qualified Software on AWS Marketplace"><img class="edge-badge-art--dark" src="/static/badges/aws-qualified-software-dark.png" alt="AWS Qualified Software" width="120" height="120"><img class="edge-badge-art--light" src="/static/badges/aws-qualified-software-light.png" alt="AWS Qualified Software" width="120" height="120"></span>
+      </article>
+    </div>
+  </section>
+
+  <!-- Step 1, the AWS account, is shared by both tabs -->
+  <ol class="dx-steps-list edge-steps">
+    <li class="dx-step edge-step" data-state="blocked" id="edgeSetup" aria-labelledby="edgeAccountTitle">
+      <span class="dx-step-dot" aria-hidden="true">1</span>
+      <div class="dx-step-body">
+        <div class="dx-step-row">
+          <h2 class="dx-step-title" id="edgeAccountTitle"><span data-i18n="AWS connection">AWS connection</span></h2>
+          <span class="dx-step-state is-blocked" id="edgeStep1State">Waiting</span>
+        </div>
+        <p class="dx-step-desc" data-i18n="Uses your AWS CLI credentials (aws configure or aws sso login). Studio never asks for or stores access keys.">Uses your AWS CLI credentials (aws configure or aws sso login). Studio never asks for or stores access keys.</p>
+        <div class="card">
+          <p class="edge-alert" id="edgeBoto3Missing" hidden></p>
+          <div class="edge-form">
+            <div class="fg"><label for="edgeProfile" data-i18n="AWS profile">AWS profile</label><select id="edgeProfile"></select></div>
+            <div class="fg"><label for="edgeRegion" data-i18n="Region">Region</label><select id="edgeRegion"><option value="ap-northeast-2">ap-northeast-2 · Asia Pacific (Seoul)</option></select></div>
+            <div class="edge-actions">
+              <button type="button" class="btn btn-neutral" id="edgeCheck"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#refresh"></use></svg> <span data-i18n="Check connection">Check connection</span></button>
+            </div>
+          </div>
+          <p class="edge-job-msg" id="edgeIdentity" aria-live="polite"></p>
+          <details class="edge-guide" id="edgeGuide">
+            <summary><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#book"></use></svg> <span data-i18n="AWS CLI setup guide">AWS CLI setup guide</span></summary>
+            <p class="edge-note" data-i18n="Studio reads the AWS CLI configuration (~/.aws) on the machine running Studio. It never asks for access keys.">Studio reads the AWS CLI configuration (~/.aws) on the machine running Studio. It never asks for access keys.</p>
+            <ol class="edge-guide-steps">
+              <li>
+                <h4 data-i18n="Install AWS CLI v2">Install AWS CLI v2</h4>
+                <p class="edge-note" data-i18n="If unzip or curl is missing, install them first:">If unzip or curl is missing, install them first:</p>
+                <div class="edge-cmd"><pre><code>sudo apt install -y unzip curl</code></pre><button type="button" class="btn btn-sm btn-ghost edge-copy"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#copy"></use></svg> <span data-i18n="Copy">Copy</span></button></div>
+                <p class="edge-note" data-i18n="One script for Linux x86_64 and aarch64; it picks the package for this machine:">One script for Linux x86_64 and aarch64; it picks the package for this machine:</p>
+                <div class="edge-cmd"><pre><code>ARCH="$(uname -m)"   # x86_64 or aarch64
+case "$ARCH" in
+  x86_64|aarch64)
+    curl "https://awscli.amazonaws.com/awscli-exe-linux-${ARCH}.zip" -o awscliv2.zip
+    unzip -q awscliv2.zip
+    sudo ./aws/install --update
+    aws --version ;;
+  *) echo "AWS CLI v2 for Linux supports x86_64 and aarch64 only (this machine: $ARCH)" ;;
+esac</code></pre><button type="button" class="btn btn-sm btn-ghost edge-copy"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#copy"></use></svg> <span data-i18n="Copy">Copy</span></button></div>
+                <a class="edge-doc" href="https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html" target="_blank" rel="noopener noreferrer"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#external"></use></svg> <span data-i18n="AWS CLI install guide">AWS CLI install guide</span></a>
+              </li>
+              <li>
+                <h4 data-i18n="Configure credentials">Configure credentials</h4>
+                <p class="edge-note"><strong data-i18n="Option A: access key">Option A: access key</strong> <span data-i18n="Create one in the IAM console (Users, Security credentials, Create access key), then enter it when prompted:">Create one in the IAM console (Users, Security credentials, Create access key), then enter it when prompted:</span></p>
+                <div class="edge-cmd"><pre><code>aws configure</code></pre><button type="button" class="btn btn-sm btn-ghost edge-copy"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#copy"></use></svg> <span data-i18n="Copy">Copy</span></button></div>
+                <pre class="edge-sample"><code>AWS Access Key ID [None]: AKIA****************
+AWS Secret Access Key [None]: ****************************************
+Default region name [None]: ap-northeast-2
+Default output format [None]: json</code></pre>
+                <p class="edge-note"><strong data-i18n="Option B: IAM Identity Center (SSO)">Option B: IAM Identity Center (SSO)</strong> <span data-i18n="Create a named profile once, then sign in when the session expires:">Create a named profile once, then sign in when the session expires:</span></p>
+                <div class="edge-cmd"><pre><code>aws configure sso</code></pre><button type="button" class="btn btn-sm btn-ghost edge-copy"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#copy"></use></svg> <span data-i18n="Copy">Copy</span></button></div>
+                <div class="edge-cmd"><pre><code>aws sso login --profile &lt;name&gt;</code></pre><button type="button" class="btn btn-sm btn-ghost edge-copy"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#copy"></use></svg> <span data-i18n="Copy">Copy</span></button></div>
+                <a class="edge-doc" href="https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html" target="_blank" rel="noopener noreferrer"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#external"></use></svg> <span data-i18n="AWS CLI configuration guide">AWS CLI configuration guide</span></a>
+              </li>
+              <li>
+                <h4 data-i18n="Verify">Verify</h4>
+                <div class="edge-cmd"><pre><code>aws sts get-caller-identity</code></pre><button type="button" class="btn btn-sm btn-ghost edge-copy"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#copy"></use></svg> <span data-i18n="Copy">Copy</span></button></div>
+              </li>
+              <li>
+                <h4 data-i18n="Required permissions">Required permissions</h4>
+                <ul class="edge-perms">
+                  <li>CloudFormation</li><li>S3</li><li>Step Functions</li><li>SSM GetParameter</li><li>EC2</li>
+                  <li>IAM (CAPABILITY_IAM)</li><li>CloudWatch Logs</li><li>Lambda</li><li>Greengrass V2 · IoT <span data-i18n="(Greengrass tab)">(Greengrass tab)</span></li>
+                </ul>
+                <p class="edge-note" data-i18n="An account admin accepts the Marketplace subscription.">An account admin accepts the Marketplace subscription.</p>
+              </li>
+              <li>
+                <h4 data-i18n="Check the connection">Check the connection</h4>
+                <p class="edge-note" data-i18n="Click Check connection. New named profiles appear in the profile list; no restart is needed.">Click Check connection. New named profiles appear in the profile list; no restart is needed.</p>
+              </li>
+            </ol>
+          </details>
+        </div>
+      </div>
+    </li>
+  </ol>
+
+  <!-- One tab per Marketplace product: steps 2-4 for its stacks and compile; Greengrass adds devices -->
+  <div class="edge-tabs" role="tablist" aria-label="DX Cloud">
+    <button type="button" class="edge-tab" id="edgeTab-compiler" role="tab" aria-selected="true" aria-controls="edgePanel-compiler" tabindex="0"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#compiler"></use></svg> DEEPX Compiler Solution</button>
+    <button type="button" class="edge-tab" id="edgeTab-greengrass" role="tab" aria-selected="false" aria-controls="edgePanel-greengrass" tabindex="-1"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#cloud"></use></svg> DEEPX Greengrass Solution</button>
+  </div>
+  <div class="edge-panel" id="edgePanel-compiler" role="tabpanel" aria-labelledby="edgeTab-compiler" tabindex="0">
+  <ol class="dx-steps-list edge-steps" start="2">
+    <li class="dx-step edge-step" data-state="blocked" aria-labelledby="edgeSubsTitle-compiler">
+      <span class="dx-step-dot" aria-hidden="true">2</span>
+      <div class="dx-step-body">
+        <div class="dx-step-row">
+          <h2 class="dx-step-title" id="edgeSubsTitle-compiler"><span data-i18n="Marketplace subscription">Marketplace subscription</span></h2>
+          <span class="dx-step-state is-blocked" id="edgeStep2State-compiler">Waiting</span>
+        </div>
+        <p class="dx-step-desc" data-i18n="An account admin subscribes once per AWS account.">An account admin subscribes once per AWS account.</p>
+        <div class="card">
+          <ul class="edge-rows" id="edgeSubs-compiler"></ul>
+        </div>
+      </div>
+    </li>
+    <li class="dx-step edge-step" data-state="blocked" aria-labelledby="edgeSetupTitle-compiler">
+      <span class="dx-step-dot" aria-hidden="true">3</span>
+      <div class="dx-step-body">
+        <div class="dx-step-row">
+          <h2 class="dx-step-title" id="edgeSetupTitle-compiler"><span data-i18n="Compiler stacks">Compiler stacks</span></h2>
+          <span class="dx-step-state is-blocked" id="edgeStep3State-compiler">Waiting</span>
+        </div>
+        <p class="dx-step-desc" data-i18n="Deploy a CloudFormation stack from the subscribed template.">Deploy a CloudFormation stack from the subscribed template.</p>
+        <div class="card">
+          <ul class="edge-rows" id="edgeStackList-compiler"></ul>
+
+          <form id="edgeDeployForm-compiler" class="edge-form">
+            <div class="fg"><label for="edgeStackName-compiler" data-i18n="New stack name">New stack name</label><input type="text" id="edgeStackName-compiler" spellcheck="false" autocomplete="off" maxlength="128"></div>
+            <div class="edge-actions">
+              <button type="submit" class="btn btn-primary" id="edgeDeploy-compiler"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#cloud"></use></svg> <span data-i18n="Deploy stack">Deploy stack</span></button>
+              <button type="button" class="btn btn-ghost" id="edgeSetupReload-compiler"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#refresh"></use></svg> <span data-i18n="Refresh">Refresh</span></button>
+            </div>
+          </form>
+
+          <div class="edge-job" id="edgeStackJob-compiler" hidden>
+            <p class="edge-job-line"><span class="badge" id="edgeStackState-compiler"></span> <code id="edgeStackJobName-compiler"></code></p>
+            <p class="edge-job-msg" id="edgeStackMsg-compiler" aria-live="polite"></p>
+            <ul class="edge-events" id="edgeStackEvents-compiler"></ul>
+          </div>
+        </div>
+      </div>
+    </li>
+    <li class="dx-step edge-step" data-state="blocked" id="cloudCompile-compiler" aria-labelledby="edgeCompileTitle-compiler">
+      <span class="dx-step-dot" aria-hidden="true">4</span>
+      <div class="dx-step-body">
+        <div class="dx-step-row">
+          <h2 class="dx-step-title" id="edgeCompileTitle-compiler"><span data-i18n="Cloud Compile">Cloud Compile</span></h2>
+          <span class="dx-step-state is-blocked" id="edgeStep4State-compiler">Waiting</span>
+        </div>
+        <p class="dx-step-desc" data-i18n="Upload an .onnx and its .json; the stack compiles a .dxnn next to them.">Upload an .onnx and its .json; the stack compiles a .dxnn next to them.</p>
+        <div class="card">
+          <form id="edgeCompileForm-compiler" class="edge-form edge-form--files">
+            <div class="fg edge-stack-row">
+              <label for="edgeStack-compiler" data-i18n="Compiler stack">Compiler stack</label>
+              <div class="edge-inline">
+                <select id="edgeStack-compiler"></select>
+                <button type="button" class="btn btn-sm btn-ghost" id="edgeStacksReload-compiler"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#refresh"></use></svg> <span data-i18n="Find stacks">Find stacks</span></button>
+              </div>
+            </div>
+            <div class="fg">
+              <label for="edgeOnnx-compiler" data-i18n="ONNX model">ONNX model</label>
+              <div class="edge-drop" id="edgeOnnxDrop-compiler">
+                <input type="file" id="edgeOnnx-compiler" accept=".onnx">
+                <svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#upload"></use></svg>
+                <span class="edge-drop-text">
+                  <span class="edge-drop-prompt" data-i18n="Drop an .onnx file here or click to choose">Drop an .onnx file here or click to choose</span>
+                  <span class="edge-drop-file" id="edgeOnnxFile-compiler"></span>
+                </span>
+              </div>
+            </div>
+            <div class="fg">
+              <label for="edgeJson-compiler" data-i18n="Compile config (.json)">Compile config (.json)</label>
+              <div class="edge-drop" id="edgeJsonDrop-compiler">
+                <input type="file" id="edgeJson-compiler" accept=".json,application/json">
+                <svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#upload"></use></svg>
+                <span class="edge-drop-text">
+                  <span class="edge-drop-prompt" data-i18n="Drop a .json file here or click to choose">Drop a .json file here or click to choose</span>
+                  <span class="edge-drop-file" id="edgeJsonFile-compiler"></span>
+                </span>
+              </div>
+            </div>
+            <div class="edge-actions">
+              <button type="submit" class="btn btn-primary" id="edgeStart-compiler"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#upload"></use></svg> <span data-i18n="Upload and compile">Upload and compile</span></button>
+            </div>
+          </form>
+
+          <div class="edge-job" id="edgeJob-compiler" hidden>
+            <p class="edge-job-line"><span class="badge" id="edgeJobState-compiler"></span> <code id="edgeJobPrefix-compiler"></code></p>
+            <p class="edge-job-msg" id="edgeJobMsg-compiler" aria-live="polite"></p>
+            <div class="edge-actions">
+              <a class="btn btn-sm" id="edgeDownload-compiler" hidden><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#download"></use></svg> <span data-i18n="Download .dxnn">Download .dxnn</span></a>
+              <button type="button" class="btn btn-sm btn-ghost" id="edgeSave-compiler" hidden><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#models"></use></svg> <span data-i18n="Save to Studio models">Save to Studio models</span></button>
+            </div>
+            <div class="edge-links" id="edgeLinks-compiler"></div>
+            <details class="edge-log" id="edgeLog-compiler" open>
+              <summary><span data-i18n="Compile log">Compile log</span> <span class="edge-dim" id="edgeLogMeta-compiler"></span></summary>
+              <ol class="edge-log-steps" id="edgeLogSteps-compiler"></ol>
+              <pre class="edge-log-out" id="edgeLogOut-compiler" tabindex="0" aria-label="dxcom output" data-i18n-aria-label="dxcom output"></pre>
+            </details>
+          </div>
+          <div class="edge-jobs">
+            <div class="edge-jobs-head">
+              <h3 class="edge-sub" data-i18n="Compile jobs">Compile jobs</h3>
+              <button type="button" class="btn btn-sm btn-ghost" id="edgeJobsReload-compiler"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#refresh"></use></svg> <span data-i18n="Refresh">Refresh</span></button>
+            </div>
+            <p class="edge-note" data-i18n='Every model folder in the stack bucket, including uploads from other sessions and the S3 console.'>Every model folder in the stack bucket, including uploads from other sessions and the S3 console.</p>
+            <div class="edge-table-wrap">
+              <table class="edge-table">
+                <thead><tr><th scope="col" data-i18n="Model">Model</th><th scope="col" data-i18n="Uploaded">Uploaded</th><th scope="col" data-i18n="Status">Status</th><th scope="col">.dxnn</th><th scope="col"><span class="dx-sr-only" data-i18n="Actions">Actions</span></th></tr></thead>
+                <tbody id="edgeJobRows-compiler"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </li>
+  </ol>
+  </div>
+  <div class="edge-panel" id="edgePanel-greengrass" role="tabpanel" aria-labelledby="edgeTab-greengrass" tabindex="0" hidden>
+  <ol class="dx-steps-list edge-steps" start="2">
+    <li class="dx-step edge-step" data-state="blocked" aria-labelledby="edgeSubsTitle-greengrass">
+      <span class="dx-step-dot" aria-hidden="true">2</span>
+      <div class="dx-step-body">
+        <div class="dx-step-row">
+          <h2 class="dx-step-title" id="edgeSubsTitle-greengrass"><span data-i18n="Marketplace subscription">Marketplace subscription</span></h2>
+          <span class="dx-step-state is-blocked" id="edgeStep2State-greengrass">Waiting</span>
+        </div>
+        <p class="dx-step-desc" data-i18n="An account admin subscribes once per AWS account.">An account admin subscribes once per AWS account.</p>
+        <div class="card">
+          <ul class="edge-rows" id="edgeSubs-greengrass"></ul>
+        </div>
+      </div>
+    </li>
+    <li class="dx-step edge-step" data-state="blocked" aria-labelledby="edgeSetupTitle-greengrass">
+      <span class="dx-step-dot" aria-hidden="true">3</span>
+      <div class="dx-step-body">
+        <div class="dx-step-row">
+          <h2 class="dx-step-title" id="edgeSetupTitle-greengrass"><span data-i18n="Greengrass stacks">Greengrass stacks</span></h2>
+          <span class="dx-step-state is-blocked" id="edgeStep3State-greengrass">Waiting</span>
+        </div>
+        <p class="dx-step-desc" data-i18n="Deploy a CloudFormation stack from the subscribed template.">Deploy a CloudFormation stack from the subscribed template.</p>
+        <div class="card">
+          <ul class="edge-rows" id="edgeStackList-greengrass"></ul>
+
+          <form id="edgeDeployForm-greengrass" class="edge-form">
+            <div class="fg"><label for="edgeStackName-greengrass" data-i18n="New stack name">New stack name</label><input type="text" id="edgeStackName-greengrass" spellcheck="false" autocomplete="off" maxlength="128"></div>
+            <div class="edge-actions">
+              <button type="submit" class="btn btn-primary" id="edgeDeploy-greengrass"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#cloud"></use></svg> <span data-i18n="Deploy stack">Deploy stack</span></button>
+              <button type="button" class="btn btn-ghost" id="edgeSetupReload-greengrass"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#refresh"></use></svg> <span data-i18n="Refresh">Refresh</span></button>
+            </div>
+          </form>
+
+          <div class="edge-job" id="edgeStackJob-greengrass" hidden>
+            <p class="edge-job-line"><span class="badge" id="edgeStackState-greengrass"></span> <code id="edgeStackJobName-greengrass"></code></p>
+            <p class="edge-job-msg" id="edgeStackMsg-greengrass" aria-live="polite"></p>
+            <ul class="edge-events" id="edgeStackEvents-greengrass"></ul>
+          </div>
+        </div>
+      </div>
+    </li>
+    <li class="dx-step edge-step" data-state="blocked" id="cloudCompile-greengrass" aria-labelledby="edgeCompileTitle-greengrass">
+      <span class="dx-step-dot" aria-hidden="true">4-1</span>
+      <div class="dx-step-body">
+        <div class="dx-step-row">
+          <h2 class="dx-step-title" id="edgeCompileTitle-greengrass"><span data-i18n="Cloud Compile">Cloud Compile</span></h2>
+          <span class="dx-step-state is-blocked" id="edgeStep4State-greengrass">Waiting</span>
+        </div>
+        <p class="dx-step-desc" data-i18n="Upload an .onnx and its .json; the stack compiles a .dxnn next to them.">Upload an .onnx and its .json; the stack compiles a .dxnn next to them.</p>
+        <div class="card">
+          <form id="edgeCompileForm-greengrass" class="edge-form edge-form--files">
+            <div class="fg edge-stack-row">
+              <label for="edgeStack-greengrass" data-i18n="Greengrass stack">Greengrass stack</label>
+              <div class="edge-inline">
+                <select id="edgeStack-greengrass"></select>
+                <button type="button" class="btn btn-sm btn-ghost" id="edgeStacksReload-greengrass"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#refresh"></use></svg> <span data-i18n="Find stacks">Find stacks</span></button>
+              </div>
+            </div>
+            <div class="fg">
+              <label for="edgeOnnx-greengrass" data-i18n="ONNX model">ONNX model</label>
+              <div class="edge-drop" id="edgeOnnxDrop-greengrass">
+                <input type="file" id="edgeOnnx-greengrass" accept=".onnx">
+                <svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#upload"></use></svg>
+                <span class="edge-drop-text">
+                  <span class="edge-drop-prompt" data-i18n="Drop an .onnx file here or click to choose">Drop an .onnx file here or click to choose</span>
+                  <span class="edge-drop-file" id="edgeOnnxFile-greengrass"></span>
+                </span>
+              </div>
+            </div>
+            <div class="fg">
+              <label for="edgeJson-greengrass" data-i18n="Compile config (.json)">Compile config (.json)</label>
+              <div class="edge-drop" id="edgeJsonDrop-greengrass">
+                <input type="file" id="edgeJson-greengrass" accept=".json,application/json">
+                <svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#upload"></use></svg>
+                <span class="edge-drop-text">
+                  <span class="edge-drop-prompt" data-i18n="Drop a .json file here or click to choose">Drop a .json file here or click to choose</span>
+                  <span class="edge-drop-file" id="edgeJsonFile-greengrass"></span>
+                </span>
+              </div>
+            </div>
+            <div class="edge-actions">
+              <button type="submit" class="btn btn-primary" id="edgeStart-greengrass"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#upload"></use></svg> <span data-i18n="Upload and compile">Upload and compile</span></button>
+            </div>
+          </form>
+
+          <div class="edge-job" id="edgeJob-greengrass" hidden>
+            <p class="edge-job-line"><span class="badge" id="edgeJobState-greengrass"></span> <code id="edgeJobPrefix-greengrass"></code></p>
+            <p class="edge-job-msg" id="edgeJobMsg-greengrass" aria-live="polite"></p>
+            <div class="edge-actions">
+              <a class="btn btn-sm" id="edgeDownload-greengrass" hidden><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#download"></use></svg> <span data-i18n="Download .dxnn">Download .dxnn</span></a>
+              <button type="button" class="btn btn-sm btn-ghost" id="edgeSave-greengrass" hidden><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#models"></use></svg> <span data-i18n="Save to Studio models">Save to Studio models</span></button>
+            </div>
+            <div class="edge-links" id="edgeLinks-greengrass"></div>
+            <details class="edge-log" id="edgeLog-greengrass" open>
+              <summary><span data-i18n="Compile log">Compile log</span> <span class="edge-dim" id="edgeLogMeta-greengrass"></span></summary>
+              <ol class="edge-log-steps" id="edgeLogSteps-greengrass"></ol>
+              <pre class="edge-log-out" id="edgeLogOut-greengrass" tabindex="0" aria-label="dxcom output" data-i18n-aria-label="dxcom output"></pre>
+            </details>
+          </div>
+          <div class="edge-jobs">
+            <div class="edge-jobs-head">
+              <h3 class="edge-sub" data-i18n="Compile jobs">Compile jobs</h3>
+              <button type="button" class="btn btn-sm btn-ghost" id="edgeJobsReload-greengrass"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#refresh"></use></svg> <span data-i18n="Refresh">Refresh</span></button>
+            </div>
+            <p class="edge-note" data-i18n='Every model folder in the stack bucket, including uploads from other sessions and the S3 console.'>Every model folder in the stack bucket, including uploads from other sessions and the S3 console.</p>
+            <div class="edge-table-wrap">
+              <table class="edge-table">
+                <thead><tr><th scope="col" data-i18n="Model">Model</th><th scope="col" data-i18n="Uploaded">Uploaded</th><th scope="col" data-i18n="Status">Status</th><th scope="col">.dxnn</th><th scope="col"><span class="dx-sr-only" data-i18n="Actions">Actions</span></th></tr></thead>
+                <tbody id="edgeJobRows-greengrass"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </li>
+    <li class="dx-step edge-step" data-state="blocked" id="edgeDevices" aria-labelledby="edgeDevicesTitle">
+      <span class="dx-step-dot" aria-hidden="true">4-2</span>
+      <div class="dx-step-body">
+        <div class="dx-step-row">
+          <h2 class="dx-step-title" id="edgeDevicesTitle"><span data-i18n="Devices (dx-runtime)">Devices (dx-runtime)</span></h2>
+          <span class="dx-step-state is-blocked" id="edgeStep5State-greengrass">Waiting</span>
+        </div>
+        <!-- dx-runtime core devices of the Greengrass stack picked in step 4 -->
+        <div class="card">
+          <p class="edge-job-line">
+            <span data-i18n="Greengrass stack">Greengrass stack</span> <code id="edgeDevStack"></code>
+            <span data-i18n="Thing Group">Thing Group</span> <code id="edgeDevGroup"></code>
+            <span data-i18n="Deployment">Deployment</span> <span class="badge" id="edgeDevDeploy"></span>
+            <button type="button" class="btn btn-sm btn-ghost" id="edgeDevReload"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#refresh"></use></svg> <span data-i18n="Refresh">Refresh</span></button>
+          </p>
+          <p class="edge-job-msg" id="edgeDevMsg" aria-live="polite"></p>
+          <div class="edge-table-wrap">
+            <table class="edge-table">
+              <thead><tr><th scope="col" data-i18n="Core device">Core device</th><th scope="col" data-i18n="Status">Status</th><th scope="col" data-i18n="Last update">Last update</th><th scope="col" data-i18n="Components">Components</th></tr></thead>
+              <tbody id="edgeDevRows"></tbody>
+            </table>
+          </div>
+
+          <h3 class="edge-sub" data-i18n="Register device">Register device</h3>
+          <p class="edge-note" data-i18n="The device runs this script with its own AWS credentials (environment or ~/.aws) allowed to provision Greengrass, and needs Java 11 or later. The script contains no credentials.">The device runs this script with its own AWS credentials (environment or ~/.aws) allowed to provision Greengrass, and needs Java 11 or later. The script contains no credentials.</p>
+          <form id="edgeRegForm" class="edge-form">
+            <div class="fg"><label for="edgeThing" data-i18n="Thing name">Thing name</label><input type="text" id="edgeThing" spellcheck="false" autocomplete="off" maxlength="128" pattern="[A-Za-z0-9:_\-]{1,128}"></div>
+            <div class="edge-actions">
+              <button type="submit" class="btn btn-primary" id="edgeRegGen"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#file"></use></svg> <span data-i18n="Generate script">Generate script</span></button>
+            </div>
+          </form>
+          <p class="edge-job-msg" id="edgeRegMsg" aria-live="polite"></p>
+          <div id="edgeRegOut" hidden>
+            <pre class="edge-script" id="edgeScript" tabindex="0"></pre>
+            <div class="edge-actions">
+              <button type="button" class="btn btn-sm" id="edgeCopy"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#copy"></use></svg> <span data-i18n="Copy">Copy</span></button>
+              <button type="button" class="btn btn-sm btn-ghost" id="edgeScriptDownload"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#download"></use></svg> <span data-i18n="Download .sh">Download .sh</span></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </li>
+  </ol>
+  </div>
+
+  <dialog class="modal-overlay" id="edgeDeleteDialog" aria-labelledby="edgeDeleteTitle">
+    <form class="modal edge-dialog" id="edgeDeleteForm">
+      <h2 id="edgeDeleteTitle" data-i18n="Delete stack">Delete stack</h2>
+      <p class="edge-note" data-i18n="This deletes the CloudFormation stack and its compiler resources. The S3 model bucket is kept (DeletionPolicy: Retain) and stays in your account until you remove it.">This deletes the CloudFormation stack and its compiler resources. The S3 model bucket is kept (DeletionPolicy: Retain) and stays in your account until you remove it.</p>
+      <p class="edge-note"><span data-i18n="Type the stack name to confirm:">Type the stack name to confirm:</span> <code id="edgeDeleteName"></code></p>
+      <div class="fg"><label for="edgeDeleteConfirm" data-i18n="Stack name">Stack name</label><input type="text" id="edgeDeleteConfirm" spellcheck="false" autocomplete="off"></div>
+      <div class="edge-actions">
+        <button type="button" class="btn btn-ghost" id="edgeDeleteCancel" data-i18n="Cancel">Cancel</button>
+        <button type="submit" class="btn btn-danger" id="edgeDeleteOk" disabled><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#trash"></use></svg> <span data-i18n="Delete">Delete</span></button>
+      </div>
+    </form>
+  </dialog>
+
+</main><!-- /dx-shell-main -->
+</div><!-- /dx-shell-body -->
+</div><!-- /dx-shell -->
+
+  <script src="/static/js/i18n.js?m=dx_edge"></script>
+  <script src="/static/shared/i18n.js"></script>
+  <script src="/static/shared/server-error-i18n.js"></script>
+  <script src="/static/shared/brand.js"></script>
+  <script>
+DXBrand.mount({
+  target: '#dxBrand',
+  name: 'Cloud',
+  subtitle: {
+    ko: 'AWS 클라우드 컴파일 · 엣지 배포',
+    en: 'AWS Cloud Compile · Edge Deployment',
+    es: 'Compilación en AWS · Despliegue edge',
+    ja: 'AWS クラウドコンパイル · エッジデプロイ',
+    'zh-CN': 'AWS 云端编译 · 边缘部署',
+    'zh-TW': 'AWS 雲端編譯 · 邊緣部署'
+  },
+  accent: 'var(--accent)'
+});
+  </script>
+  <script src="/static/shared/toolbar.js"></script>
+  <script>DXToolbar.init({ container: '.toolbar' });</script>
+  <script src="/static/js/edge.js?m=dx_edge"></script>
+  <script src="/static/shared/tutorial-engine.js"></script>
+  <script src="/static/shared/tutorial-init.js"></script>
+  <script src="/static/js/tutorial.js?m=dx_edge"></script>
+  <script src="/static/shared/chat-widget.js"></script>
+  <script>DXChat.init({ appName: 'dx_edge' });</script>
+</body>
+</html>

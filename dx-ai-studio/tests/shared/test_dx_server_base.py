@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""DXBaseHandler + DXServer 단위 테스트."""
+"""DXBaseHandler + DXServer unit tests."""
 
 import io
 import json
@@ -18,20 +18,20 @@ from shared.dx_server import DXBaseHandler, DXServer
 
 
 class HandlerUnderTest(DXBaseHandler):
-    """테스트용 핸들러."""
+    """Handler for tests."""
     server_name = "TestServer"
     cache_enabled = True
     cache_max = 3
     cache_ttl = 2
     log_silent = True
 
-    # 각 인스턴스가 별도 캐시를 갖도록 클래스 변수 리셋
+    # reset the class variables so this handler has its own cache
     _cache = {}
     _cache_lock = threading.Lock()
 
 
 def _make_handler():
-    """테스트용 mock handler 생성."""
+    """Build a mock handler for tests."""
     handler = HandlerUnderTest.__new__(HandlerUnderTest)
     handler.wfile = io.BytesIO()
     handler.headers = {}
@@ -88,19 +88,19 @@ class TestCache(unittest.TestCase):
         data = {"key": "value"}
         result = {"computed": True}
 
-        # 캐시 미스
+        # cache miss
         self.assertIsNone(handler.cache_get("test", data))
 
-        # 캐시 저장
+        # cache store
         handler.cache_set("test", data, result)
 
-        # 캐시 히트
+        # cache hit
         cached = handler.cache_get("test", data)
         self.assertEqual(cached, result)
 
     def test_cache_ttl_expiry(self):
         handler = _make_handler()
-        handler.cache_ttl = 0  # 즉시 만료
+        handler.cache_ttl = 0  # expire immediately
 
         data = {"key": "val"}
         handler.cache_set("test", data, {"r": 1})
@@ -109,14 +109,14 @@ class TestCache(unittest.TestCase):
 
     def test_cache_lru_eviction(self):
         handler = _make_handler()
-        # cache_max = 3, 4개 넣으면 가장 오래된 것 제거
+        # cache_max = 3: a fourth entry evicts the oldest
         for i in range(4):
             handler.cache_set("p", {"i": i}, {"result": i})
-            time.sleep(0.01)  # 순서 보장
+            time.sleep(0.01)  # keep insertion order distinct
 
-        # 첫 번째 (i=0) 항목이 제거됨
+        # the first entry (i=0) is evicted
         self.assertIsNone(handler.cache_get("p", {"i": 0}))
-        # 나머지는 존재
+        # the rest remain
         self.assertIsNotNone(handler.cache_get("p", {"i": 1}))
         self.assertIsNotNone(handler.cache_get("p", {"i": 2}))
         self.assertIsNotNone(handler.cache_get("p", {"i": 3}))
@@ -223,7 +223,7 @@ class TestSendHtml(unittest.TestCase):
 
 
 class TestCheckSameOrigin(unittest.TestCase):
-    """_check_same_origin() reverse-proxy origin 검증 테스트."""
+    """_check_same_origin() origin checks behind a reverse proxy."""
 
     @staticmethod
     def _make_handler_with_headers(headers: dict):
@@ -287,7 +287,7 @@ class TestLogMessage(unittest.TestCase):
         handler = _make_handler()
         handler.log_silent = False
         handler.log_filter = ["/static/"]
-        # 이 호출이 에러 없이 완료되면 성공
+        # passes if this call completes without error
         handler.log_message("%s", "GET /static/js/app.js")
 
     def test_log_silent(self):
@@ -364,7 +364,7 @@ class TestCommonRoutes(unittest.TestCase):
 
 
 class TestIntegration(unittest.TestCase):
-    """실제 HTTP 서버를 띄워서 E2E 테스트."""
+    """End-to-end tests against a real HTTP server."""
 
     @classmethod
     def setUpClass(cls):

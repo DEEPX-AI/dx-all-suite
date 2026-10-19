@@ -2,9 +2,10 @@
 
 import json
 import re
-import shutil
 import subprocess
 from pathlib import Path
+from tests.i18n_markup import assert_translatable
+from tests.browser_support import resolve_node_executable
 
 ROOT = Path(__file__).resolve().parents[2]
 STREAM = ROOT / "dx_stream"
@@ -13,7 +14,7 @@ SHARED = ROOT / "shared"
 SUPPORTED_LANG_TOKENS = ("ko:", "ja:", "'zh-CN':", "'zh-TW':")
 
 PRESET_OPTION_KEYS = (
-    "📋 Preset",
+    "Preset",
     "Demo 0 — Object Detection",
     "Demo 1 — OD (PPU)",
     "Demo 2 — Face Detection",
@@ -124,8 +125,12 @@ def test_stream_app_removes_legacy_attribute_language_loop():
         'getAttribute("data-" + lang)',
     ):
         assert forbidden not in js
-    assert "DXI18n.onLangChange" in js
-    assert "DXStream.nav(DXStream.S.currentPage)" in js
+    # The reload on a language change lives in ONE place (stream-lang-refresh.js): app.js and every
+    # registered refresher also reloaded, so one change re-ran the page twelve times.
+    assert "DXI18n.onLangChange" not in js
+    refresh = (ROOT / "dx_stream" / "static" / "js" / "stream-lang-refresh.js").read_text(encoding="utf-8")
+    assert "DXI18n.onLangChange(refreshStreamModuleLanguage)" in refresh
+    assert "realNav(DXStream.S.currentPage)" in refresh
 
 
 def test_stream_reference_search_uses_shared_placeholder_i18n():
@@ -195,8 +200,9 @@ def test_dxnn_upload_and_mjpeg_fallback_strings_cover_all_languages():
     html = stream_template()
     for element_id in ("model-upload-file", "model-upload-status"):
         assert f'id="{element_id}"' in html
-    for language in ("ko", "en", "ja", "zh-CN", "zh-TW", "es"):
-        assert f'class="{language}"' in html
+    # Whether the on-screen text takes all six languages is checked by every key
+    # resolving in the dictionary.
+    assert_translatable(html, "dx_stream/static/js/stream-i18n.js", "dx_stream index")
 
 
 def test_stream_i18n_dictionary_removes_stale_demo_preset_keys():
@@ -304,7 +310,7 @@ _allElements.pop(); // body is not a regular element
 global.document = {
   readyState: 'complete',
   body: body,
-  documentElement: { lang: 'en' },
+  documentElement: { lang: 'en', dataset: {} },
   querySelectorAll: _qsa,
   querySelector: _qs,
   addEventListener() {},
@@ -442,10 +448,11 @@ def _load_stream_server():
 @pytest.mark.parametrize(
     ("message", "lang", "expected", "forbidden"),
     [
-        ("GStreamer elements", "en", "Elements tab", "Pipeline Builder"),
-        ("GStreamer エレメント", "ja", "Elements タブ", "Pipeline Builder"),
-        ("GStreamer 元素", "zh-CN", "Elements 选项卡", "Pipeline Builder"),
-        ("GStreamer 元素", "zh-TW", "Elements 分頁", "Pipeline Builder"),
+        ("GStreamer elements", "en", "Element Reference tab", "Pipeline Builder"),
+        ("GStreamer エレメント", "ja", "Element Reference タブ", "Pipeline Builder"),
+        ("GStreamer 元素", "zh-CN", "Element Reference 选项卡", "Pipeline Builder"),
+        ("GStreamer 元素", "zh-TW", "Element Reference 分頁", "Pipeline Builder"),
+        ("elementos GStreamer", "es", "Element Reference", "Pipeline Builder"),
     ],
 )
 def test_stream_fallback_routes_element_queries_to_elements_response(message, lang, expected, forbidden):
@@ -462,9 +469,10 @@ def test_stream_fallback_routes_element_queries_to_elements_response(message, la
         ("パイプライン", "ja", "Pipeline Builder タブ"),
         ("管道", "zh-CN", "Pipeline Builder 选项卡"),
         ("管線", "zh-TW", "Pipeline Builder 分頁"),
-        ("ストリーミング", "ja", "WebRTC ストリーミング"),
-        ("流媒体", "zh-CN", "WebRTC 流媒体"),
-        ("串流", "zh-TW", "WebRTC 串流"),
+        ("ストリーミング", "ja", "Demo Launcher"),
+        ("流媒体", "zh-CN", "Demo Launcher"),
+        ("串流", "zh-TW", "Demo Launcher"),
+        ("demostración", "es", "Demo Launcher"),
     ],
 )
 def test_stream_fallback_routes_localized_app_keywords(message, lang, expected):
@@ -474,10 +482,15 @@ def test_stream_fallback_routes_localized_app_keywords(message, lang, expected):
 
 
 def test_stream_server_app_fallback_rules_cover_all_supported_languages():
+    # The rules live in shared/chat/module_fallbacks.py (six languages — tests/shared/test_module_fallbacks.py)
     source = read_text(STREAM / "server.py")
-    fallback_block = source[source.index("fallback_rules=["):source.index("class DXStreamHandler")]
-    for marker in ('"ko":', '"en":', '"ja":', '"zh-CN":', '"zh-TW":'):
-        assert fallback_block.count(marker) >= 3, marker
+    assert 'fallback_rules=_module_fallbacks.rules("dx_stream")' in source
+    from shared.chat import module_fallbacks
+    rules = module_fallbacks.rules("dx_stream")
+    assert len(rules) >= 3
+    for _, answer in rules:
+        for lang in ("ko", "en", "ja", "zh-CN", "zh-TW", "es"):
+            assert answer.get(lang), lang
     shared_fallback = read_text(ROOT / "shared" / "chat" / "fallback.py")
     assert 'response.get(lang, response["en"])' not in shared_fallback
 
@@ -485,7 +498,7 @@ def test_stream_server_app_fallback_rules_cover_all_supported_languages():
 @pytest.mark.requires_node
 def test_shared_i18n_behavior_runtime(tmp_path):
     """Run shared/static/i18n.js in Node.js and verify DOM-level behavior."""
-    node = shutil.which("node")
+    node = resolve_node_executable()
     if not node:
         pytest.skip("node is required for shared i18n behavior test")
 

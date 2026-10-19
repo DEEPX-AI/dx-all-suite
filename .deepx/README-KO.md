@@ -43,7 +43,7 @@ dx-all-suite는 5개의 repo를 포함하며, 각각 자체 `.deepx/`를 가집�
 
 각 sub-project `.deepx/`는 자체 완결적입니다. 이 최상위 레벨 `.deepx/`는 다음을 추가합니다:
 - Suite 전역 router agents (`dx-suite-builder`, `dx-suite-validator`)
-- 5개의 모든 repo에 주입되는 19개의 공유 fragment (rename gates, session sentinels,
+- 5개의 모든 repo에 주입되는 20개의 공유 fragment (rename gates, session sentinels,
   process gates, autopilot guard 등)
 - `dx-agent-gen` generator (5개의 모든 repo를 처리하는 단일 도구)
 - 모든 agent-driven 테스트 인프라 (`tests/` conformance + `e2e/`)
@@ -76,7 +76,7 @@ dx-all-suite는 5개의 repo를 포함하며, 각각 자체 `.deepx/`를 가집�
 │   │   ├── CLAUDE-KO.md.tmpl
 │   │   ├── AGENTS-KO.md.tmpl
 │   │   └── copilot-instructions-KO.md.tmpl
-│   └── fragments/               ← 38 shared fragments (19 EN + 19 KO)
+│   └── fragments/               ← 40 shared fragments (20 EN + 20 KO)
 │       ├── en/
 │       └── ko/
 │
@@ -241,7 +241,7 @@ sub-repo gate가 존재하는 이유는 sub-repo 혼자서는 자신의
 
 ---
 
-## 8. 공유 Fragments (19 EN + 19 KO)
+## 8. 공유 Fragments (20 EN + 20 KO)
 
 Fragment는 5개의 모든 repo의 명령어 파일에 주입되는 재사용 가능한 rule block입니다.
 Fragment를 한 번 수정하면 `bash .deepx/tools/scripts/run_all.sh generate`를 통해
@@ -268,6 +268,7 @@ Fragment를 한 번 수정하면 `bash .deepx/tools/scripts/run_all.sh generate`
 | `self-contained-portable` | 생성된 산출물은 suite 밖으로 복사해도 실행되어야 함 |
 | `ultralytics-deepx-export` | Ultralytics YOLO `.pt` → DeepX(`format=deepx`) 라우팅 |
 | `harness-bootstrap` | 단독 sub-repo checkout: `.deepx/` 수정 전 suite harness 확보, 불가 시 STOP |
+| `inventory-counts` | 모델/예제/element 개수는 suite·dx-runtime KB 에 적지 않는다 — 각 숫자가 사는 파일과 세는 법 |
 
 Fragment를 추가하거나 수정하는 방법은
 [`docs/fragment-authoring-guide.md`](docs/fragment-authoring-guide.md)를 참조.

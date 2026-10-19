@@ -1,6 +1,11 @@
 (function() {
   'use strict';
 
+  // Field, award and link icons are sprite names (about-data.json). Legacy text icons pass through as is.
+  function _aboutIco(name) {
+    if (/^[a-z0-9_-]+$/.test(name || '') && typeof window.DXIcon === 'function') return window.DXIcon(name);
+    return name || '';
+  }
   let _aboutData = null;
   let _aboutInitialized = false;
   let _scrollSpyObserver = null;
@@ -87,7 +92,7 @@
       <div class="about-action-grid">
         ${d.links.map(function (link) {
           return `<a class="about-action-card about-fade-in" href="${link.url}" target="_blank" rel="noopener noreferrer">
-            <span class="about-action-icon">${link.icon}</span>
+            <span class="about-action-icon">${_aboutIco(link.icon)}</span>
             <span class="about-action-label">${L(link.label)}</span>
             <span class="about-action-desc">${L(link.desc)}</span>
           </a>`;
@@ -151,7 +156,7 @@
           </div>
         `).join('')}
       </div>
-      <div class="about-scroll-hint">▼</div>
+      <div class="about-scroll-hint">${_aboutIco('chevd')}</div>
     `;
     container.appendChild(el);
   }
@@ -182,7 +187,7 @@
       <div class="about-values-grid">
         ${c.values.map(v => `
           <div class="about-value-card about-fade-in">
-            <div class="about-value-icon">${v.icon}</div>
+            <div class="about-value-icon">${_aboutIco(v.icon)}</div>
             <div class="about-value-title">${L(v.title)}</div>
             <div class="about-value-desc">${L(v.desc)}</div>
           </div>
@@ -414,7 +419,7 @@
       <div class="about-solutions-grid">
         ${p.useCases.map(function (uc) {
           return `<div class="about-solution-card about-fade-in">
-            <div class="about-solution-icon">${uc.icon}</div>
+            <div class="about-solution-icon">${_aboutIco(uc.icon)}</div>
             <div class="about-solution-title">${L(uc.title)}</div>
             <div class="about-solution-desc">${L(uc.desc)}</div>
           </div>`;
@@ -442,7 +447,7 @@
         ${inv.rounds.map(r => `
           <div class="about-round-card">
             <div class="about-round-name">${r.name}</div>
-            <div class="about-round-status">✓ ${L(r.status)}</div>
+            <div class="about-round-status">${_aboutIco('check')} ${L(r.status)}</div>
             ${r.detail ? `<div class="about-round-note">${L(r.detail)}</div>` : (r.note ? `<div class="about-round-note">${L(r.note)}</div>` : '')}
           </div>
         `).join('')}
@@ -452,7 +457,7 @@
       <div class="about-awards-grid">
         ${inv.awards.map(a => `
           <div class="about-award-card about-fade-in">
-            <div class="about-award-icon">${a.icon}</div>
+            <div class="about-award-icon">${_aboutIco(a.icon)}</div>
             <div class="about-award-info">
               <div class="about-award-name">${a.name}</div>
               <div class="about-award-year">${a.year}</div>
@@ -477,7 +482,7 @@
       <div class="about-solutions-grid">
         ${pt.solutions.map(s => `
           <div class="about-solution-card about-fade-in">
-            <div class="about-solution-icon">${s.icon}</div>
+            <div class="about-solution-icon">${_aboutIco(s.icon)}</div>
             <div class="about-solution-title">${L(s.title)}</div>
             <div class="about-solution-desc">${L(s.desc)}</div>
           </div>
@@ -592,6 +597,12 @@
     function setActive(id) {
       tabs.forEach(t => t.classList.toggle('active', t.dataset.section === id));
       dots.forEach(d => d.classList.toggle('active', d.dataset.section === id));
+      // 폰 폭에서 목차는 가로로 스크롤한다 — 지금 섹션의 탭을 가운데로 데려온다 (L-25)
+      const activeTab = Array.prototype.find.call(tabs, t => t.dataset.section === id);
+      if (activeTab && nav.scrollWidth > nav.clientWidth) {
+        const off = activeTab.getBoundingClientRect().left - nav.getBoundingClientRect().left;
+        nav.scrollTo({ left: nav.scrollLeft + off - (nav.clientWidth - activeTab.offsetWidth) / 2, behavior: 'smooth' });
+      }
       if (_aboutScrollProgressUpdate) _aboutScrollProgressUpdate();
     }
 
@@ -893,6 +904,14 @@
       renderAboutView({ preserveScroll: true });
     }
   });
+
+  // The tab labels do not wait for about-data.json: they are written now, once the page language is settled, and on
+  // every language change. They have no data-i18n — their keys are ids ('aboutDeveloper'), and the shared i18n.js
+  // writes an English key as the text, so the tabs read 'aboutDeveloper' until the data arrived (or for good when it
+  // failed). Contract: tests/launcher/test_about_nav_first_paint_browser.py
+  renderAboutNavLabels();
+  document.addEventListener('DOMContentLoaded', renderAboutNavLabels);
+  window.addEventListener('dx-lang-applied', renderAboutNavLabels);
 
   window.AboutDeepX = {
     init: initAboutView,

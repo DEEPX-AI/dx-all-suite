@@ -21,6 +21,22 @@ class TestModelCount:
             '[{"a": 1}, {"b": 2}, {"c": 3}]', encoding="utf-8")
         assert model_count(tmp_path) == 3
 
+    def test_rows_sharing_a_dxnn_count_once(self, tmp_path):
+        """What the KB calls a model is a published .dxnn, not a registry row: two
+        rows can point at the same binary (an alias) and that is one model."""
+        (tmp_path / "config").mkdir(exist_ok=True)
+        (tmp_path / "config" / "model_registry.json").write_text(
+            '[{"model_name": "deit_base384_distilled", "dxnn_file": "deit-b.dxnn"},'
+            ' {"model_name": "deit_base_distilled_2", "dxnn_file": "deit-b.dxnn"},'
+            ' {"model_name": "yolov5s", "dxnn_file": "yolov5s.dxnn"}]', encoding="utf-8")
+        assert model_count(tmp_path) == 2
+
+    def test_rows_without_dxnn_file_fall_back_to_row_count(self, tmp_path):
+        (tmp_path / "config").mkdir(exist_ok=True)
+        (tmp_path / "config" / "model_registry.json").write_text(
+            '[{"model_name": "a"}, {"model_name": "b"}]', encoding="utf-8")
+        assert model_count(tmp_path) == 2
+
     def test_dict_registry(self, tmp_path):
         (tmp_path / "config").mkdir()
         (tmp_path / "config" / "model_registry.json").write_text(

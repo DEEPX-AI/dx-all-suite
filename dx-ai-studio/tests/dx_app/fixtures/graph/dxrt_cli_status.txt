@@ -1,0 +1,18 @@
+DXRT v3.5.0 (build: 1.6fdc543)
+=======================================================
+ * Device 0: M1, Accelerator type
+---------------------   Version   ---------------------
+ * RT Driver version   : v2.6.0
+ * PCIe Driver version : v2.5.0
+-------------------------------------------------------
+ * FW version          : v2.7.4
+--------------------- Device Info ---------------------
+ * Memory : LPDDR5 5600 Mbps, 3.92GiB
+ * Board  : M.2, Rev 1.0
+ * Chip Offset : 0
+ * PCIe   : Gen3 X2 [03:00:00]
+
+NPU 0: voltage 750 mV, clock 1000 MHz, temperature 38'C
+NPU 1: voltage 750 mV, clock 1000 MHz, temperature 38'C
+NPU 2: voltage 750 mV, clock 1000 MHz, temperature 38'C
+=======================================================

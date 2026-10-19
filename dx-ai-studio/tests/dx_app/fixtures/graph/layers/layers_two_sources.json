@@ -1,0 +1,38 @@
+{
+  "frames": [
+    {
+      "stream": "cam1",
+      "frame": 0,
+      "base": "result_cam1_000000_base.png",
+      "layers": [
+        {
+          "node": "od",
+          "model": "yolov8-n_640x640",
+          "file": "result_cam1_000000_od.png"
+        },
+        {
+          "node": "reid",
+          "model": "casvit-t_224x224",
+          "file": "result_cam1_000000_reid.png"
+        }
+      ]
+    },
+    {
+      "stream": "cam2",
+      "frame": 0,
+      "base": "result_cam2_000000_base.png",
+      "layers": [
+        {
+          "node": "od",
+          "model": "yolov8-n_640x640",
+          "file": "result_cam2_000000_od.png"
+        },
+        {
+          "node": "reid",
+          "model": "casvit-t_224x224",
+          "file": "result_cam2_000000_reid.png"
+        }
+      ]
+    }
+  ]
+}

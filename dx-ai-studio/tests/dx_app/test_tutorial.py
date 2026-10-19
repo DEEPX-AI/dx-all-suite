@@ -26,12 +26,35 @@ RUNTIME_SELECTOR_ALLOWLIST = {
     "#dxt-mock-toast",
     "#gallery-lightbox",
     ".dxt-tutorial-pin",
-    # Run Demo (Task 11) — rendered by rundemo.js at runtime, not present in
+    # Run Demo (Task 11) — rendered by rundemo.js / dx-demo-stage.js at runtime, not present in
     # the static index.html template.
-    ".rundemo-group",
-    "#rundemo-block-0",
-    '#rundemo-block-0 button[onclick*="rundemoRun"]',
+    "#rundemo-root .dds-filter",
+    "#rundemo-root .dds-stage",
+    '#rundemo-root .dds-stage [data-axis-row="post"]',
+    "#rundemo-root .dds-stage .dds-run",
+    # Graph Composer: drawn by graph-palette.js, graph-inspector.js and graph-run.js once the page opens.
+    ".gc-group",
+    ".gc-zone-edit",
+    "#gc-run-results",
+    "#gc-run-events",
 }
+
+# The graph tour, in order: one step per part of the composer (Phase 4).
+GRAPH_STEP_TARGETS = [
+    "#gc-palette",
+    '.gc-group[data-group="templates"]',
+    "#gc-canvas-host",
+    "#gc-inspector",
+    '.gc-group[data-group="logic"]',
+    "#gc-inspector .gc-zone-edit",
+    "#gc-validate",
+    "#gc-run-panel",
+    "#gc-run-results",
+    "#gc-run-events",
+    "#gc-live-body",
+    "#gc-export-cpp",
+    "#gc-toolbar",
+]
 
 EXPECTED_SECTION_IDS = [
     "setup",
@@ -42,6 +65,7 @@ EXPECTED_SECTION_IDS = [
     "bench",
     "compare",
     "modelzoo",
+    "graph",
     "compiler",
     "outputs",
     "global",
@@ -49,6 +73,20 @@ EXPECTED_SECTION_IDS = [
 ]
 
 TARGET_LANGS = ("ko", "ja", "zh-CN", "zh-TW", "es")
+
+
+def rendered_index() -> str:
+    """The index.html the server actually serves.
+
+    shared/shell.py injects the rail, header and tabs at render time, so reading the template file alone would miss
+    the shell selectors the tutorial points at.
+    """
+    from shared.shell import apply as apply_shell
+    from dx_app.server import DX_APP_SHELL
+
+    return apply_shell(
+        (TEMPLATES / "index.html").read_text(encoding="utf-8"), DX_APP_SHELL
+    )
 
 
 def read_text(path: Path) -> str:
@@ -141,7 +179,7 @@ def test_app_tutorial_get_lang_uses_dxi18n_and_en_default():
 
 
 def test_app_tutorial_targets_exist_or_are_runtime_injected():
-    html = read_text(TEMPLATES / "index.html")
+    html = rendered_index()
     source = read_text(JS_DIR / "tutorial.js")
     template_tokens = _template_ids_and_classes(html)
     all_known = template_tokens | RUNTIME_SELECTOR_ALLOWLIST
@@ -164,7 +202,7 @@ def test_app_tutorial_preserves_expected_sections():
 
 
 def test_sections_cover_target_languages():
-    """모든 i18n 객체가 TARGET_LANGS를 빠짐없이 커버(ko 출현수 기준)."""
+    """Every i18n object covers all TARGET_LANGS (objects counted by their ko keys)."""
     source = read_text(JS_DIR / "tutorial.js")
     ko_count = len(re.findall(r"(?<![A-Za-z0-9_'\"-])ko\s*:", source))
     assert ko_count >= 8, f"expected several i18n objects, ko-keys={ko_count}"
@@ -176,3 +214,35 @@ def test_sections_cover_target_languages():
         if count < ko_count:
             deficits[lang] = (count, ko_count)
     assert not deficits, f"language coverage deficits (count < ko): {deficits}"
+
+
+def _graph_section(source: str) -> str:
+    return source[source.index("{ id:'graph'"):source.index("{ id:'lab'")]
+
+
+def test_graph_tour_covers_the_composer_in_order():
+    section = _graph_section(read_text(JS_DIR / "tutorial.js"))
+    assert re.findall(r"target:'([^']+)'", section) == GRAPH_STEP_TARGETS
+
+
+def test_graph_tour_undoes_what_it_shows():
+    steps = re.split(r"\n        \{ target:", _graph_section(read_text(JS_DIR / "tutorial.js")))[1:]
+    for step in steps:
+        if "_gcShowResults" in step:
+            assert "_gcHideResults" in step, step[:60]
+        if "_gcTab('live')" in step:
+            assert "_gcRestoreTab" in step, step[:60]
+    assert "ensureExample" not in read_text(JS_DIR / "tutorial.js")
+
+
+def test_graph_steps_that_need_a_template_are_optional():
+    """With unsaved work on the canvas the tour shows no template, so these targets may be absent."""
+    steps = re.split(r"\n        \{ target:", _graph_section(read_text(JS_DIR / "tutorial.js")))[1:]
+    optional = {re.match(r"'([^']+)'", s).group(1) for s in steps if "optionalTarget:true" in s}
+    assert optional == {'.gc-group[data-group="templates"]', '.gc-group[data-group="logic"]',
+                        "#gc-inspector .gc-zone-edit", "#gc-run-results", "#gc-run-events"}
+
+
+def test_the_graph_composer_has_a_reference_doc():
+    source = read_text(JS_DIR / "tutorial.js")
+    assert re.search(r"\{ id:'ref-graph', icon:'graph'", source)

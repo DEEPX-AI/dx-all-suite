@@ -4,6 +4,10 @@
 
   var BOOT_GATE_POLL_MS = 250;
   var BOOT_GATE_MAX_WAIT_MS = 120000;
+  // Home opens only after the font and the icon sprite arrive: an external <use> is blank until the
+  // sprite loads, so opening early makes icons pop in late (visible over a port-forward tunnel). If
+  // something stalls, open anyway after this long from document start.
+  var BOOT_ASSET_MAX_WAIT_MS = 3000;
   var _pendingRouteRestore = null;
   var _shellRevealInFlight = false;
 
@@ -87,8 +91,6 @@
     if (_shellRevealInFlight) return;
     _shellRevealInFlight = true;
 
-    if (typeof ns.scheduleOrbitalLayout === 'function') ns.scheduleOrbitalLayout();
-
     requestAnimationFrame(function() {
       requestAnimationFrame(function() {
         document.documentElement.classList.remove('launcher-boot-pending');
@@ -128,14 +130,37 @@
       return;
     }
     if (ns.currentApp === 'sdk-library') {
-      LauncherRouter._showSdk({ source: 'boot-ready', skipHistory: true });
+      // Keep the URL's ?doc=/q=/view=: without it the empty query replaced the deep link's pending
+      // one and an F5 on an open document showed the library instead.
+      LauncherRouter._showSdk({ source: 'boot-ready', skipHistory: true,
+                                query: (window.location.search || '').replace(/^\?/, '') });
       return;
     }
+    // Reopen the same subpath and hash (e.g. /cloud/guide#compiler-cfn-3), not just the module root.
+    var base = (ns.APP_PATHS[ns.currentApp] || '').replace(/\/$/, '');
+    var path = window.location.pathname;
     LauncherRouter._showApp(ns.currentApp, {
       forceReload: true,
       skipHistory: true,
       source: 'boot-ready',
+      suffix: base && path.indexOf(base + '/') === 0 ? path.slice(base.length + 1) : '',
+      rawQuery: window.location.search,
+      hash: window.location.hash,
     });
+  }
+
+  function bootAssetsReady() {
+    var waits = [];
+    try {
+      if (document.fonts && document.fonts.ready) waits.push(document.fonts.ready);
+    } catch (e) {}
+    if (window.DXIcon && typeof window.DXIcon.load === 'function') waits.push(window.DXIcon.load());
+    var elapsed = (window.performance && performance.now) ? performance.now() : 0;
+    var left = Math.max(0, BOOT_ASSET_MAX_WAIT_MS - elapsed);
+    return Promise.race([
+      Promise.all(waits).catch(function() {}),
+      new Promise(function(resolve) { setTimeout(resolve, left); }),
+    ]);
   }
 
   function ensureStudioReady(options) {
@@ -159,9 +184,16 @@
 
     ns._studioReadyPromise = new Promise(function(resolve) {
       var startedAt = Date.now();
+      var assets = bootAssetsReady();
 
       function finish(data) {
+        assets.then(function() { openShell(data); });
+      }
+
+      function openShell(data) {
         ns._studioReadyResolved = true;
+        /* for things that depend on a module and ask again, such as the home agent setup (home-agent-setup.js) */
+        try { window.dispatchEvent(new Event('dx-studio-ready')); } catch (e) {}
         if (showBootGate) hideStudioBootGate();
         if (!ns._launcherCoreStarted) ns._initLauncherCore();
         startSharedHwStream();   // one hw_stream for the whole session (see def)
@@ -211,6 +243,15 @@
       if (pathname === prefix || pathname.indexOf(prefix + '/') === 0) return key;
     }
     return null;
+  }
+
+  function legacyPath(pathname) {
+    for (var old in ns.LEGACY_PATHS) {
+      if (pathname === old || pathname.indexOf(old + '/') === 0) {
+        return ns.LEGACY_PATHS[old] + pathname.slice(old.length);
+      }
+    }
+    return pathname;
   }
 
   var _moduleIframes = {};
@@ -366,6 +407,88 @@
     if (overlay) overlay.remove();
   }
 
+  /* ── Opens from the icon and closes back to it ──────────────────────────────
+     A plain panel in the module colour (.open-veil) grows from the element that was
+     clicked to the frame size, then lifts. Closing shrinks it from the frame back to
+     that module's icon. Only this panel moves: scaling the iframe would repaint the
+     whole module every frame. With no origin (direct URL, restore) or with reduced
+     motion, it opens with a fade. */
+  var OPEN_MS = 420, CLOSE_MS = 360, VEIL_FADE_MS = 200;
+  var VEIL_EASE = 'cubic-bezier(.2, .8, .2, 1)';
+
+  function _veilStill() {
+    try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return true; }
+  }
+
+  function _tileFor(appKey) {
+    return document.querySelector('#studioGrid .orbital-card[data-app="' + appKey + '"] .mod-tile');
+  }
+
+  /* Measure while home is still visible: once the frame shows, the origin is gone. */
+  function _veilSource(el, appKey) {
+    if (_veilStill() || !el || typeof el.getBoundingClientRect !== 'function') return null;
+    if (typeof document.body.animate !== 'function') return null;
+    var r = el.getBoundingClientRect();
+    if (!r.width || !r.height) return null;
+    var tile = _tileFor(appKey);
+    var tint = tile ? getComputedStyle(tile).getPropertyValue('--mod-tint').trim() : '';
+    return { rect: r, tint: tint };
+  }
+
+  /* The frame's box (fixed: everything below the top bar). Taken from the top bar so it works while the frame is hidden. */
+  function _frameBox() {
+    var bar = document.querySelector('.top-bar');
+    var top = bar ? bar.getBoundingClientRect().bottom : 0;
+    return { left: 0, top: top, width: window.innerWidth, height: window.innerHeight - top };
+  }
+
+  function _toRect(rect, box) {
+    return 'translate(' + (rect.left - box.left) + 'px, ' + (rect.top - box.top) + 'px) ' +
+      'scale(' + (rect.width / box.width) + ', ' + (rect.height / box.height) + ')';
+  }
+
+  function _makeVeil(tint) {
+    var veil = document.createElement('div');
+    veil.className = 'open-veil';
+    veil.setAttribute('aria-hidden', 'true');
+    if (tint) veil.style.setProperty('--veil-tint', tint);
+    document.body.appendChild(veil);
+    return veil;
+  }
+
+  function playOpen(src) {
+    var box = _frameBox();
+    if (!box.width || !box.height) return;
+    var veil = _makeVeil(src.tint);
+    var grow = veil.animate([
+      { transform: _toRect(src.rect, box), opacity: 0 },
+      { opacity: 1, offset: .18 },
+      { transform: 'none', opacity: 1 }
+    ], { duration: OPEN_MS, easing: VEIL_EASE });
+    grow.id = 'open';
+    grow.finished.then(function () {
+      var fade = veil.animate([{ opacity: 1 }, { opacity: 0 }],
+        { duration: VEIL_FADE_MS, easing: 'ease-out', fill: 'forwards' });
+      fade.finished.then(function () { veil.remove(); }, function () { veil.remove(); });
+    }, function () { veil.remove(); });
+  }
+
+  function playClose(appKey) {
+    if (_veilStill() || typeof document.body.animate !== 'function') return;
+    var tile = _tileFor(appKey);
+    var r = tile && tile.getBoundingClientRect();
+    if (!r || !r.width || !r.height) return;
+    var box = _frameBox();
+    var veil = _makeVeil(getComputedStyle(tile).getPropertyValue('--mod-tint').trim());
+    var shrink = veil.animate([
+      { transform: 'none', opacity: 1 },
+      { opacity: 1, offset: .7 },
+      { transform: _toRect(r, box), opacity: 0 }
+    ], { duration: CLOSE_MS, easing: VEIL_EASE, fill: 'forwards' });
+    shrink.id = 'close';
+    shrink.finished.then(function () { veil.remove(); }, function () { veil.remove(); });
+  }
+
   function animateIn(el) {
     if (!el) return;
     el.classList.remove('view-slide-in');
@@ -447,23 +570,26 @@
   function setVisibleView(viewName) {
     suspendAllTutorialChrome();
     resetLauncherUiBlockers();
-    _hideOrbitalTooltip();
     var landing   = document.getElementById('landing');
     var appFrame  = document.getElementById('appFrame');
     var aboutView = document.getElementById('about-view');
     var sdkView   = document.getElementById('sdk-library-view');
     var tutCard   = document.getElementById('dxt-tutorial-card');
     var rb        = document.getElementById('replayBtn');
-    var footer    = document.getElementById('deepxFooter');
 
     document.body.classList.toggle('app-frame-visible', viewName === 'app');
+    // Stage lighting (home-stage.css body.home-visible) is for home only.
+    document.body.classList.toggle('home-visible', viewName === 'home');
     // The shared NPU Monitor float is injected into the launcher shell but should only show
-    // on the launcher-native views (About, SDK Library) — module iframes carry their own, and
-    // the home splash stays uncluttered.
-    document.body.classList.toggle('hw-native-visible', viewName === 'about' || viewName === 'sdk-library');
+    // on SDK Library — module iframes carry their own, the home splash stays uncluttered, and
+    // About is a company page where it only covered the Developer Hub cards.
+    document.body.classList.toggle('hw-native-visible', viewName === 'sdk-library');
+    // Chat on home and About is studio-wide help: undo the target SDK Library switched to
+    if ((viewName === 'home' || viewName === 'about') && typeof DXChat !== 'undefined' && DXChat.init) {
+      DXChat.init({ appName: 'launcher' });
+    }
 
     if (landing)   landing.style.display = 'none';
-    if (footer)    footer.style.display = 'none';   // resource bar is home-shell chrome
     if (appFrame)  appFrame.style.display = 'none';
     if (aboutView) aboutView.classList.remove('visible');
     // Hide SDK shell without tearing down viewer/search — state survives module switches.
@@ -479,7 +605,6 @@
 
     if (viewName === 'home') {
       if (landing) { landing.style.display = ''; animateIn(landing); }
-      if (footer)  footer.style.display = '';
       if (tutCard) tutCard.style.display = '';
       if (rb)      rb.style.display = '';
     } else if (viewName === 'about') {
@@ -497,6 +622,12 @@
       if (window.LauncherTutorial && typeof window.LauncherTutorial.connectToolbar === 'function') {
         window.LauncherTutorial.connectToolbar();
       }
+    }
+    /* About has no tour of its own; its button would open the home tour and leave About. After
+       connecting to the home tour above, disconnect 'launcher' so the button shows "no tutorial".
+       Returning home reconnects it above. */
+    if (viewName === 'about' && typeof DXToolbar !== 'undefined' && typeof DXToolbar.disconnectTutorial === 'function') {
+      DXToolbar.disconnectTutorial('launcher');
     }
   }
 
@@ -521,9 +652,11 @@
     }
 
     function _showHome(opts) {
+      var closing = document.body.classList.contains('app-frame-visible') ? ns.currentApp : null;
       ns.currentApp = null;
       if (typeof ns.syncLangFromStorage === 'function') ns.syncLangFromStorage();
       setVisibleView('home');
+      if (closing) playClose(closing);
       _relocateToolbar('#launcherToolbar');
       updateNavTabs();
       _commitHistory(opts && opts.push ? 'push' : 'replace', {}, '/');
@@ -550,6 +683,7 @@
       ns.currentApp = 'sdk-library';
       setVisibleView('sdk-library');
       if (window.SDKLibrary) window.SDKLibrary.init();
+      if (window.SDKTutorial) window.SDKTutorial.connectToolbar();
       // init() builds .sdk-topbar, so relocate the toolbar after it exists.
       _relocateToolbar('.sdk-topbar-right');
       updateNavTabs();
@@ -601,6 +735,7 @@
 
     function _showApp(appKey, opts) {
       opts = opts || {};
+      var veilFrom = opts.from ? _veilSource(opts.from, appKey) : null;
       ns.currentApp = appKey;
       clearModuleEntryState();
       var staleOverlay = document.getElementById('loadingOverlay');
@@ -614,6 +749,7 @@
       activateModuleIframe(iframe);
 
       setVisibleView('app');
+      if (veilFrom) playOpen(veilFrom);
       // Return the shared toolbar to the (CSS-hidden) global slot so it isn't stranded inside a
       // now-hidden SDK/About header; the module supplies its own lang+tutorial inside its iframe.
       _relocateToolbar('#launcherToolbar');
@@ -623,11 +759,13 @@
       if (opts.suffix) iframePath += opts.suffix;
       if (opts.query) iframePath += '?' + opts.query;
       else if (opts.rawQuery) iframePath += opts.rawQuery;
+      if (opts.hash) iframePath += opts.hash;   // #demo=N · #ask= — opened from an answer
 
-      var historyUrl = '/' + appKey;
+      var historyUrl = ns.APP_PATHS[appKey] ? ns.APP_PATHS[appKey].replace(/\/$/, '') : '/' + appKey;
       if (opts.suffix) historyUrl += '/' + opts.suffix;
       if (opts.query) historyUrl += '?' + opts.query;
       else if (opts.rawQuery) historyUrl += opts.rawQuery;
+      if (opts.hash) historyUrl += opts.hash;
 
       if (!opts.skipHistory && opts.source !== 'popstate') {
         _commitHistory(opts.push ? 'push' : 'replace', { app: appKey }, historyUrl);
@@ -696,14 +834,17 @@
       if (target === 'about') return _showAbout(opts);
       if (target === 'sdk-library') return _showSdk(opts);
       if (target === 'app' && opts.app) {
-        return _showApp(opts.app, { push: true, query: opts.query });
+        return _showApp(opts.app, { push: true, query: opts.query, hash: opts.hash, from: opts.from });
       }
       _showApp(target, { push: true, query: opts.query });
     }
 
     function restoreFromLocation(loc, opts) {
-      var pathname = loc.pathname || '/';
+      var pathname = legacyPath(loc.pathname || '/');
       var search = loc.search || '';
+      if (pathname !== (loc.pathname || '/')) {
+        history.replaceState(history.state, '', pathname + search + (loc.hash || ''));
+      }
       var source = (opts && opts.source) || 'restore';
 
       if (pathname === '/about') return _showAbout();
@@ -713,7 +854,7 @@
       if (appKey) {
         var basePath = ns.APP_PATHS[appKey].replace(/\/$/, '');
         var suffix = pathname.length > basePath.length ? pathname.slice(basePath.length + 1) : '';
-        return _showApp(appKey, { suffix: suffix, rawQuery: search, source: source });
+        return _showApp(appKey, { suffix: suffix, rawQuery: search, hash: loc.hash || '', source: source });
       }
       if (pathname !== '/') renderRouteRecoveryNotice(pathname);
       _showHome();
@@ -735,19 +876,28 @@
   function goHome() { LauncherRouter.navigate('home'); }
   function showAboutView() { LauncherRouter.navigate('about'); }
   function showSdkLibrary() { LauncherRouter.navigate('sdk-library'); }
-  function launch(app, query) { LauncherRouter.navigate('app', { app: app, query: query }); }
+  /* launch(app, 'k=v') — a plain query. launch(app, { query, hash, from }) — from is the element
+     that was clicked (icon, path card): the app opens from that spot. */
+  function launch(app, arg) {
+    var o = (arg && typeof arg === 'object') ? arg : { query: arg };
+    LauncherRouter.navigate('app', { app: app, query: o.query, hash: o.hash, from: o.from });
+  }
 
+  /* Keep tab labels short so every module fits without horizontal scroll (about
+     980px, fits at 1440). Emoji and a "DX " prefix carry no information here:
+     everything on this strip is DX, and the home module list already shows icons. */
   var NAV_TAB_LABELS = {
-    app: '📱 DX App',
-    stream: '🎬 DX Stream',
-    zoo: '🦁 Model Zoo',
-    compiler: '⚙️ Compiler',
-    planner: '🗺️ EdgeGuide',
-    benchmark: '📊 Benchmark',
-    dx_monitor: '📡 Monitor',
-    agent: '🤖 Agent Dev',
-    'sdk-library': '📚 SDK Library',
-    about: '🔬 About DEEPX',
+    app: 'App',
+    stream: 'Stream',
+    zoo: 'Model Zoo',
+    compiler: 'Compiler',
+    planner: 'EdgeGuide',
+    benchmark: 'Benchmark',
+    dx_monitor: 'Monitor',
+    agent: 'Agent Dev',
+    edge: 'Cloud',
+    'sdk-library': 'SDK Library',
+    about: 'About',
   };
   var NAV_TAB_CONFIG = [
     { app: 'app', label: NAV_TAB_LABELS.app, action: function() { launch('app'); }, activeClass: 'active' },
@@ -758,6 +908,7 @@
     { app: 'benchmark', label: NAV_TAB_LABELS.benchmark, action: function() { launch('benchmark'); }, activeClass: 'active' },
     { app: 'dx_monitor', label: NAV_TAB_LABELS.dx_monitor, action: function() { launch('dx_monitor'); }, activeClass: 'active' },
     { app: 'agent', label: NAV_TAB_LABELS.agent, action: function() { launch('agent'); }, activeClass: 'active' },
+    { app: 'edge', label: NAV_TAB_LABELS.edge, action: function() { launch('edge'); }, activeClass: 'active' },
     { app: 'sdk-library', label: NAV_TAB_LABELS['sdk-library'], action: showSdkLibrary, activeClass: 'active' },
     { app: 'about', label: NAV_TAB_LABELS.about, action: showAboutView, activeClass: 'active' },
   ];
@@ -771,6 +922,7 @@
     benchmark: { en: 'Benchmark', ko: 'Benchmark', ja: 'ベンチマーク', 'zh-CN': 'Benchmark', 'zh-TW': 'Benchmark', es: 'Benchmark' },
     dx_monitor: { en: 'Monitor', ko: 'Monitor', ja: 'モニター', 'zh-CN': '监控', 'zh-TW': '監控', es: 'Monitor' },
     agent: { en: 'Agent Dev', ko: 'Agent Dev', ja: 'Agent Dev', 'zh-CN': 'Agent Dev', 'zh-TW': 'Agent Dev', es: 'Agent Dev' },
+    edge: { en: 'Cloud', ko: 'Cloud', ja: 'Cloud', 'zh-CN': 'Cloud', 'zh-TW': 'Cloud', es: 'Cloud' },
     'sdk-library': { en: 'SDK Library', ko: 'SDK 라이브러리', ja: 'SDK ライブラリ', 'zh-CN': 'SDK 库', 'zh-TW': 'SDK 庫', es: 'Biblioteca SDK' },
     about: { en: 'About DEEPX', ko: 'DEEPX 소개', ja: 'DEEPXについて', 'zh-CN': '关于 DEEPX', 'zh-TW': '關於 DEEPX', es: 'Acerca de DEEPX' },
   };
@@ -783,6 +935,7 @@
     benchmark: { en: 'DX Benchmark', ko: 'DX Benchmark', ja: 'DX Benchmark', 'zh-CN': 'DX Benchmark', 'zh-TW': 'DX Benchmark', es: 'DX Benchmark' },
     dx_monitor: { en: 'DX Monitor', ko: 'DX Monitor', ja: 'DX Monitor', 'zh-CN': 'DX Monitor', 'zh-TW': 'DX Monitor', es: 'DX Monitor' },
     agent: { en: 'DX Agent Dev', ko: 'DX Agent Dev', ja: 'DX Agent Dev', 'zh-CN': 'DX Agent Dev', 'zh-TW': 'DX Agent Dev', es: 'DX Agent Dev' },
+    edge: { en: 'DX Cloud', ko: 'DX Cloud', ja: 'DX Cloud', 'zh-CN': 'DX Cloud', 'zh-TW': 'DX Cloud', es: 'DX Cloud' },
     'sdk-library': MODULE_LABEL_MATRIX['sdk-library'],
     about: MODULE_LABEL_MATRIX.about,
   };
@@ -795,6 +948,7 @@
     'pm-benchmark': 'benchmark',
     'pm-monitor': 'dx_monitor',
     'pm-agent-dev': 'agent',
+    'pm-dx-edge': 'edge',
     'pm-sdk-library': 'sdk-library',
     'pm-about-deepx': 'about',
   };
@@ -832,6 +986,7 @@
     statusLabelBenchmark: 'Benchmark',
     statusLabelMonitor: 'Monitor',
     statusLabelAgent: 'Agent',
+    statusLabelEdge: 'Cloud',
   };
   var STATUS_DOT_CONFIG = [
     { labelId: 'statusLabelApp', label: STATUS_DOT_LABELS.statusLabelApp },
@@ -842,6 +997,7 @@
     { labelId: 'statusLabelBenchmark', label: STATUS_DOT_LABELS.statusLabelBenchmark },
     { labelId: 'statusLabelMonitor', label: STATUS_DOT_LABELS.statusLabelMonitor },
     { labelId: 'statusLabelAgent', label: STATUS_DOT_LABELS.statusLabelAgent },
+    { labelId: 'statusLabelEdge', label: STATUS_DOT_LABELS.statusLabelEdge },
   ];
   var NAV_ACTIVE_CLASSES = ['active', 'active-stream', 'active-zoo'];
 
@@ -849,9 +1005,17 @@
     var home = document.createElement('div');
     home.className = 'nav-tab home-btn';
     home.dataset.home = '1';
-    home.textContent = '🏠';
+    /* A glyph with the same stroke weight as the text, plus an accessible name
+       (an emoji alone was read aloud literally). The label is translated by the dictionary. */
+    home.innerHTML = '<svg viewBox="0 0 16 16" width="15" height="15" fill="none" ' +
+      'stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" aria-hidden="true">' +
+      '<path d="M2.2 6.6 8 2.2l5.8 4.4V13a.8.8 0 0 1-.8.8H3a.8.8 0 0 1-.8-.8Z"/>' +
+      '<path d="M6.4 13.8V9.4h3.2v4.4"/></svg>';
     home.setAttribute('tabindex', '0');
     home.setAttribute('role', 'button');
+    home.setAttribute('data-i18n-aria-label', 'Home');
+    home.setAttribute('aria-label',
+      (window.DXI18n && DXI18n.T) ? DXI18n.T('Home') : 'Home');
     home.addEventListener('click', goHome);
     home.addEventListener('keydown', function(e) {
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goHome(); }
@@ -1013,7 +1177,8 @@
     planner: 'planner',
     benchmark: 'benchmark',
     dx_monitor: 'monitor',
-    agent: 'agent'
+    agent: 'agent',
+    edge: 'edge'
   };
 
   function _resolveLauncherPort(data) {
@@ -1083,25 +1248,15 @@
     });
   }
 
+  /* The device display (chip · cores · temperature) is painted by home-widgets.js from
+     startSharedHwStream's dx-hw-data. Do not poll the device here as well: two writers
+     would overwrite the same chip in turn. */
+
   function checkHealth() {
     return fetch('/api/health').then(function(res) { return res.json(); }).then(function(data) {
       if (_maybeReloadForLauncherBoot(data)) return data;
       ns._healthStatus = data;
       ns._healthCheckedAt = Date.now();
-      setDot('dotApp',    data.app.alive);
-      setDot('dotStream', data.stream ? data.stream.alive : false);
-      setDot('dotZoo',    data.zoo ? data.zoo.alive : false);
-      setDot('dotCompiler', data.compiler ? data.compiler.alive : false);
-      setDot('dotPlanner',  data.planner ? data.planner.alive : false);
-      setDot('dotBenchmark', data.benchmark ? data.benchmark.alive : false);
-      setDot('dotMonitor',  data.monitor ? data.monitor.alive : false);
-      setDot('dotAgent',    data.agent ? data.agent.alive : false);
-      setStatus('statusApp',      data.app.alive);
-      setStatus('statusStream',   data.stream ? data.stream.alive : false);
-      setStatus('statusZoo',      data.zoo ? data.zoo.alive : false);
-      setStatus('statusCompiler', data.compiler ? data.compiler.alive : false);
-      setStatus('statusPlanner',  data.planner ? data.planner.alive : false);
-      setStatus('statusBenchmark', data.benchmark ? data.benchmark.alive : false);
       _setOrbStatus('orbStatusApp', data.app.alive);
       _setOrbStatus('orbStatusStream', data.stream ? data.stream.alive : false);
       _setOrbStatus('orbStatusZoo', data.zoo ? data.zoo.alive : false);
@@ -1110,25 +1265,11 @@
       _setOrbStatus('orbStatusBenchmark', data.benchmark ? data.benchmark.alive : false);
       _setOrbStatus('orbStatusMonitor', data.monitor ? data.monitor.alive : false);
       _setOrbStatus('orbStatusAgent', data.agent ? data.agent.alive : false);
+      _setOrbStatus('orbStatusEdge', data.edge ? data.edge.alive : false);
       updateHubLauncherPort(data);
       updateModulePortLabels(data);
       return data;
     }).catch(function() {
-      setDot('dotApp', false);
-      setDot('dotStream', false);
-      setDot('dotZoo', false);
-      setDot('dotCompiler', false);
-      setDot('dotPlanner', false);
-      setDot('dotBenchmark', false);
-      setDot('dotMonitor', false);
-      setDot('dotAgent', false);
-      setStatus('statusApp', false);
-      setStatus('statusStream', false);
-      setStatus('statusZoo', false);
-      setStatus('statusCompiler', false);
-      setStatus('statusPlanner', false);
-      setStatus('statusBenchmark', false);
-      setStatus('statusMonitor', false);
       _setOrbStatus('orbStatusApp', false);
       _setOrbStatus('orbStatusStream', false);
       _setOrbStatus('orbStatusZoo', false);
@@ -1137,6 +1278,7 @@
       _setOrbStatus('orbStatusBenchmark', false);
       _setOrbStatus('orbStatusMonitor', false);
       _setOrbStatus('orbStatusAgent', false);
+      _setOrbStatus('orbStatusEdge', false);
       updateHubLauncherPort({});
       updateModulePortLabels({});
       return {};
@@ -1156,8 +1298,7 @@
           // entry present  → /api/health ran; trust it (alive true OR a real down).
           // entry absent   → the probe itself couldn't run (launcher busy under a request
           //   burst). Do NOT block entry on that — load the iframe optimistically; its own
-          //   20s load-timeout is the real availability gate. This removes the false
-          //   "unavailable" that previously forced a manual retry / refresh.
+          //   20s load-timeout is the real availability gate, so there is no false "unavailable".
           return entry || { alive: true, optimistic: true };
         }).catch(function() {
           return { alive: true, optimistic: true };
@@ -1185,7 +1326,7 @@
       app: 'DX App', stream: 'DX Stream',
       zoo: 'DX Model Zoo', compiler: 'DX Compiler', planner: 'DX EdgeGuide',
       benchmark: 'DX Benchmark', dx_monitor: 'DX Monitor',
-      agent: 'DX Agent Dev'
+      agent: 'DX Agent Dev', edge: 'DX Cloud'
     };
     return names[appKey] || appKey;
   }
@@ -1309,28 +1450,11 @@
     }
   }
 
-  function setDot(id, alive) {
-    var el = document.getElementById(id);
-    var targetClass = alive ? 'dot alive' : 'dot';
-    if (el && el.className !== targetClass) el.className = targetClass;
-  }
-
-  function setStatus(id, alive) {
-    var el = document.getElementById(id);
-    var targetClass = alive ? 'status-indicator alive' : 'status-indicator dead';
-    if (el && el.className !== targetClass) el.className = targetClass;
-  }
-
+  /* The only path that writes health status to the screen. */
   function _setOrbStatus(id, alive) {
     var el = document.getElementById(id);
     var targetClass = alive ? 'orbital-status alive' : 'orbital-status dead';
     if (el && el.className !== targetClass) el.className = targetClass;
-  }
-
-
-  function scheduleOrbitalLayout() {
-    if (ns._orbitalResizeTimer) clearTimeout(ns._orbitalResizeTimer);
-    ns._orbitalResizeTimer = setTimeout(initOrbital, 120);
   }
 
   function activateOnEnterOrSpace(el, action) {
@@ -1356,191 +1480,15 @@
       activateOnEnterOrSpace(card, function() { card.click(); });
     });
 
-    // landingPoster: only image + hint are clickable (container passes clicks through)
-    var posterImg = document.querySelector('#landingPoster img');
-    var posterHint = document.querySelector('#landingPoster .poster-hint');
-    if (posterImg && typeof ns.openPlatformInfo === 'function') {
-      activateOnEnterOrSpace(posterImg, function() { ns.openPlatformInfo(); });
-    }
-    if (posterHint && typeof ns.openPlatformInfo === 'function') {
-      activateOnEnterOrSpace(posterHint, function() { ns.openPlatformInfo(); });
-    }
-  }
-
-  function initOrbital() {
-    var container = document.getElementById('orbitalContainer');
-    if (!container) return;
-    var cards = container.querySelectorAll('.orbital-card');
-    var svg = document.getElementById('orbitalSvg');
-    if (!svg) return;
-
-    var rect = container.getBoundingClientRect();
-    if (rect.width < 80 || rect.height < 80) {
-      container.classList.remove('orbital-ready');
-      scheduleOrbitalLayout();
-      return;
-    }
-
-    var cx = rect.width / 2;
-    var cy = rect.height / 2;
-    var radius = Math.min(cx, cy) * 0.72;
-
-    svg.innerHTML = '';
-    svg.setAttribute('viewBox', '0 0 ' + rect.width + ' ' + rect.height);
-
-    cards.forEach(function(card, i) {
-      var angle = parseFloat(card.dataset.angle);
-      var rad = (angle - 90) * Math.PI / 180;
-      var x = cx + radius * Math.cos(rad);
-      var y = cy + radius * Math.sin(rad);
-
-      card.style.setProperty('--orbit-x', x + 'px');
-      card.style.setProperty('--orbit-y', y + 'px');
-
-      var pos = _getDetailPosition(angle);
-      card.dataset.position = pos;
-
-      var line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-      line.setAttribute('x1', cx);
-      line.setAttribute('y1', cy);
-      line.setAttribute('x2', x);
-      line.setAttribute('y2', y);
-      line.dataset.index = i;
-      line.id = 'orbital-line-' + i;
-      svg.appendChild(line);
-      card.dataset.lineId = line.id;
-
-      _bindOrbitalCardHover(card);
+    // The film pills are <a role="button" tabindex="0"> with an onclick: Enter and Space must open them too.
+    [['landingPoster', 'openPlatformInfo'], ['ecosystemPoster', 'openEcosystemInfo']].forEach(function (pair) {
+      var pill = document.getElementById(pair[0]);
+      if (pill && typeof ns[pair[1]] === 'function') {
+        activateOnEnterOrSpace(pill, function() { ns[pair[1]](); });
+      }
     });
-    container.classList.add('orbital-ready');
   }
 
-  function _ensureOrbitalResizeObserver() {
-    if (ns._orbitalResizeObs) return;
-    var container = document.getElementById('orbitalContainer');
-    if (!container || typeof ResizeObserver === 'undefined') return;
-    ns._orbitalResizeObs = new ResizeObserver(function() {
-      scheduleOrbitalLayout();
-    });
-    ns._orbitalResizeObs.observe(container);
-  }
-
-  function _clamp(value, min, max) {
-    return Math.max(min, Math.min(max, value));
-  }
-
-  var _orbitalTooltipEl = null;
-
-  function _ensureOrbitalTooltipLayer() {
-    if (_orbitalTooltipEl) return _orbitalTooltipEl;
-    var layer = document.getElementById('orbitalTooltipLayer');
-    if (!layer) {
-      layer = document.createElement('div');
-      layer.id = 'orbitalTooltipLayer';
-      layer.className = 'orbital-tooltip-layer';
-      layer.setAttribute('aria-hidden', 'true');
-      document.body.appendChild(layer);
-    }
-    _orbitalTooltipEl = document.createElement('div');
-    _orbitalTooltipEl.className = 'orbital-detail orbital-detail-flyout';
-    _orbitalTooltipEl.setAttribute('role', 'tooltip');
-    layer.appendChild(_orbitalTooltipEl);
-    return _orbitalTooltipEl;
-  }
-
-  function _hideOrbitalTooltip() {
-    if (!_orbitalTooltipEl) return;
-    _orbitalTooltipEl.classList.remove('visible');
-    _orbitalTooltipEl.innerHTML = '';
-    _orbitalTooltipEl.style.left = '';
-    _orbitalTooltipEl.style.top = '';
-    var layer = document.getElementById('orbitalTooltipLayer');
-    if (layer) layer.setAttribute('aria-hidden', 'true');
-  }
-
-  function _orbitalTopbarOffset() {
-    var raw = getComputedStyle(document.documentElement).getPropertyValue('--launcher-topbar-h');
-    var parsed = parseInt(raw, 10);
-    return isNaN(parsed) ? 48 : parsed;
-  }
-
-  function _positionOrbitalTooltip(card, tip) {
-    var rect = card.getBoundingClientRect();
-    var pos = card.dataset.position || 'bottom';
-    var gap = 10;
-    var pad = 8;
-    var topbar = _orbitalTopbarOffset();
-    var vw = window.innerWidth;
-    var vh = window.innerHeight;
-
-    tip.classList.remove('visible');
-    var tw = tip.offsetWidth;
-    var th = tip.offsetHeight;
-
-    var left = 0;
-    var top = 0;
-
-    if (pos === 'top') {
-      left = rect.left + rect.width / 2 - tw / 2;
-      top = rect.top - gap - th;
-    } else if (pos === 'bottom') {
-      left = rect.left + rect.width / 2 - tw / 2;
-      top = rect.bottom + gap;
-    } else if (pos === 'right') {
-      left = rect.right + gap;
-      top = rect.top + rect.height / 2 - th / 2;
-    } else {
-      left = rect.left - gap - tw;
-      top = rect.top + rect.height / 2 - th / 2;
-    }
-
-    left = _clamp(left, pad, Math.max(pad, vw - tw - pad));
-    top = _clamp(top, topbar + pad, Math.max(topbar + pad, vh - th - pad));
-
-    tip.style.left = left + 'px';
-    tip.style.top = top + 'px';
-    tip.classList.add('visible');
-  }
-
-  function _showOrbitalTooltip(card) {
-    if (window.matchMedia('(max-width: 768px)').matches) return;
-    var source = card.querySelector('.orbital-detail');
-    if (!source) return;
-    var tip = _ensureOrbitalTooltipLayer();
-    tip.innerHTML = source.innerHTML;
-    var layer = document.getElementById('orbitalTooltipLayer');
-    if (layer) layer.setAttribute('aria-hidden', 'false');
-    _positionOrbitalTooltip(card, tip);
-  }
-
-  function _bindOrbitalCardHover(card) {
-    if (card.dataset.hoverBound === '1') return;
-    card.addEventListener('mouseenter', _handleOrbitalCardMouseEnter);
-    card.addEventListener('mouseleave', _handleOrbitalCardMouseLeave);
-    card.dataset.hoverBound = '1';
-  }
-
-  function _handleOrbitalCardMouseEnter(e) {
-    var card = e.currentTarget;
-    var line = document.getElementById(card.dataset.lineId);
-    if (line) line.classList.add('highlight');
-    _showOrbitalTooltip(card);
-  }
-
-  function _handleOrbitalCardMouseLeave(e) {
-    var card = e.currentTarget;
-    var line = document.getElementById(card.dataset.lineId);
-    if (line) line.classList.remove('highlight');
-    _hideOrbitalTooltip();
-  }
-
-  function _getDetailPosition(angle) {
-    var a = ((angle % 360) + 360) % 360;
-    if (a >= 337 || a < 23) return 'bottom';
-    if (a >= 23 && a < 157) return 'right';
-    if (a >= 157 && a < 203) return 'bottom';
-    return 'left';
-  }
 
   function _updateToggleActive(groupId, activeVal) {
     var grp = document.getElementById(groupId);
@@ -1570,7 +1518,7 @@
       var card = e.target.closest('.orbital-card[data-app]');
       if (card && card.dataset.app) {
         e.preventDefault();
-        launch(card.dataset.app);
+        launch(card.dataset.app, { from: card });
         return;
       }
       var aboutCard = e.target.closest('.about-book-card');
@@ -1583,24 +1531,15 @@
     landing.dataset.clickRoutingBound = '1';
   }
 
-  // Core launcher init — must not wait for splash (orbital + routing + health).
+  // Core launcher init — must not wait for splash (routing + health).
   function _initLauncherCore() {
     if (ns._launcherCoreStarted) return;
     ns._launcherCoreStarted = true;
     ns._deferredLauncherWorkStarted = true;
     checkHealth();
     setInterval(checkHealth, 5000);
-    initOrbital();
     initOrbitalAccessibility();
     initHomeClickRouting();
-    _ensureOrbitalResizeObserver();
-    window.addEventListener('resize', scheduleOrbitalLayout);
-    window.addEventListener('scroll', _hideOrbitalTooltip, true);
-    if (document.readyState === 'complete') {
-      scheduleOrbitalLayout();
-    } else {
-      window.addEventListener('load', scheduleOrbitalLayout, { once: true });
-    }
     refreshLauncherChrome();
   }
 
@@ -1624,8 +1563,6 @@
   ns.launch = launch;
   ns.updateNavTabs = updateNavTabs;
   ns.checkHealth = checkHealth;
-  ns.initOrbital = initOrbital;
-  ns.scheduleOrbitalLayout = scheduleOrbitalLayout;
   ns.appFromPath = appFromPath;
   ns.setVisibleView = setVisibleView;
   ns._updateToggleActive = _updateToggleActive;

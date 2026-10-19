@@ -1,6 +1,6 @@
 /**
- * DX Stream — 모델 카탈로그
- * 카드 렌더링, 카테고리 필터, 검색, 상세 모달
+ * DX Stream — model catalog
+ * Card rendering, category filter, search, detail modal
  */
 var _modelCatI18n = {
     'object detection': { ko: '객체 탐지',  ja: '物体検出',   'zh-CN': '目标检测',  'zh-TW': '物件偵測',es:'detección de objetos'},
@@ -28,8 +28,9 @@ DXStream.modelsInit = async function () {
     DXStream._allModels = models;
     DXStream._filteredModels = DXStream._allModels;
     _renderModelCards(DXStream._allModels);
+    _renderModelFilters(DXStream._allModels);
 
-    // 검색
+    // Search
     var search = DXStream.$('models-search');
     if (search) {
         search.oninput = function () {
@@ -43,10 +44,42 @@ DXStream.modelsInit = async function () {
     }
 };
 
+/* Build the category buttons from the categories in the received list. The list comes from the manifest (or the
+   built-in list when there is none), so fixed buttons could miss present models or show empty categories. */
+function _renderModelFilters(models) {
+    var bar = DXStream.$('models-filter-bar');
+    if (!bar) return;
+    var cats = [];
+    (models || []).forEach(function (m) {
+        if (m.category && cats.indexOf(m.category) === -1) cats.push(m.category);
+    });
+    var order = ['object_detection', 'classification', 'segmentation', 'pose_estimation', 'face_detection',
+        'depth_estimation', 'obb_detection'];
+    cats.sort(function (x, y) {
+        var a = order.indexOf(x), b = order.indexOf(y);
+        return (a === -1 ? 99 : a) - (b === -1 ? 99 : b);
+    });
+    var cur = DXStream._modelFilterCat || 'all';
+    if (cats.indexOf(cur) === -1) cur = 'all';
+    DXStream._modelFilterCat = cur;
+    bar.innerHTML = ['all'].concat(cats).map(function (c) {
+        return '<button type="button" class="btn btn-ghost btn-sm' + (c === cur ? ' active' : '') + '" data-cat="'
+            + DXStream.escHtml(c) + '">' + DXStream.escHtml(c === 'all' ? T('All') : _modelCat(c)) + '</button>';
+    }).join('');
+    bar.onclick = function (e) {
+        var b = e.target.closest('[data-cat]');
+        if (b) DXStream.filterModels(b.getAttribute('data-cat'), b);
+    };
+    if (cur !== 'all') DXStream.filterModels(cur);
+}
+
 DXStream.filterModels = function (cat, btn) {
+    DXStream._modelFilterCat = cat;
     var bar = DXStream.$('models-filter-bar');
     if (bar) {
         bar.querySelectorAll('.btn').forEach(function (b) { b.classList.remove('active'); });
+        // onclick does not pass the button — look it up by category so the chosen button stays highlighted.
+        btn = btn || bar.querySelector('[data-cat="' + cat + '"]');
         if (btn) btn.classList.add('active');
     }
     if (!DXStream._allModels) return;
@@ -57,12 +90,25 @@ DXStream.filterModels = function (cat, btn) {
             return m.category === cat;
         });
     }
-    _renderModelCards(DXStream._filteredModels);
-
-    // 검색 입력 리셋
+    // Keep the search text and reapply it to the new category.
     var search = DXStream.$('models-search');
-    if (search) search.value = '';
+    if (search && search.value && search.oninput) search.oninput.call(search);
+    else _renderModelCards(DXStream._filteredModels);
 };
+
+/* Description in the chosen language (the server sends only ko · en; other languages get en), and the category
+   as a translated name rather than its slug. */
+function _modelDesc(m) {
+    var lang = (window.DXI18n && DXI18n.lang) || 'en';
+    if (m['description_' + lang]) return m['description_' + lang];
+    if (lang === 'ko' && m.description_ko) return m.description_ko;
+    return m.description_en ? T(m.description_en) : '';
+}
+function _modelCat(c) {
+    var label = String(c || '').replace(/_/g, ' ').replace(/\b\w/g, function (x) { return x.toUpperCase(); })
+        .replace(/^Obb /, 'OBB ');
+    return label ? T(label) : '';
+}
 
 function _renderModelCards(models) {
     var grid = DXStream.$('models-grid');
@@ -75,17 +121,14 @@ function _renderModelCards(models) {
     grid.innerHTML = models.map(function (m) {
         return '<div class="card" style="cursor:pointer" onclick="DXStream.showModelDetail(\'' + m.name.replace(/'/g, "\\'") + '\')">' +
             '<h3>' + DXStream.escHtml(m.name) + '</h3>' +
-            '<p class="txt-dim txt-sm">' +
-            '<span class="ko">' + DXStream.escHtml(m.description_ko || '') + '</span>' +
-            '<span class="en">' + DXStream.escHtml(m.description_en || '') + '</span>' +
-            '</p>' +
+            '<p class="txt-dim txt-sm">' + DXStream.escHtml(_modelDesc(m)) + '</p>' +
             '<div class="demo-card-meta">' +
-            '<span>📁 ' + DXStream.escHtml(m.file || '--') + '</span>' +
-            '<span class="demo-card-cat">' + DXStream.escHtml((m.category || '').replace(/_/g, ' ')) + '</span>' +
+            '<span>' + ((typeof DXIcon === 'function') ? DXIcon('file') : '') + ' ' + DXStream.escHtml(m.file || '--') + '</span>' +
+            '<span class="demo-card-cat">' + DXStream.escHtml(_modelCat(m.category)) + '</span>' +
             '</div>' +
             (m.installed
-                ? '<span class="card-badge" style="background:var(--success-dim);color:var(--success)">✅ ' + T('Installed') + '</span>'
-                : '<button class="btn btn-sm btn-accent download-model-btn" data-model="' + DXStream.escHtml(m.file) + '" onclick="event.stopPropagation()">⬇️ ' + T('Download') + '</button>') +
+                ? '<span class="card-badge" style="background:var(--surface-raised);color:var(--status-ok)">' + ((typeof DXIcon === 'function') ? DXIcon('check') : '') + ' ' + T('Installed') + '</span>'
+                : '<button class="btn btn-sm btn-accent download-model-btn" data-model="' + DXStream.escHtml(m.file) + '" onclick="event.stopPropagation(); DXStream.downloadModelFile(this.dataset.model, this)">' + ((typeof DXIcon === 'function') ? DXIcon('download') : '') + ' ' + T('Download') + '</button>') +
             '</div>';
     }).join('');
 }
@@ -108,17 +151,20 @@ document.addEventListener('click', function(e) {
 DXStream.loadModelMetadata = function(modelFile) {
     var container = document.getElementById('model-metadata-content');
     container.innerHTML = '<div class="loading-placeholder"><span class="spin"></span></div>';
-    fetch('/api/models/' + modelFile + '/metadata')
-        .then(function(r) { return r.json(); })
+    DXStream.api('/api/models/' + encodeURIComponent(modelFile) + '/metadata')
         .then(function(data) {
-            if (data.error) {
-                container.innerHTML = '<pre class="metadata-error">' + data.error + '</pre>';
+            if (!data || data.error) {
+                /* Do not show the server's raw error code ('not_found') — it almost always means the model file is missing */
+                var msg = (data && (data.error_code === 'not_found' || data.status === 404))
+                    ? T('Download this model to see its metadata.')
+                    : _srvMsg((data && data.error) || '');
+                container.innerHTML = '<p class="metadata-error txt-dim">' + DXStream.escHtml(msg) + '</p>';
                 return;
             }
-            var html = '<pre class="metadata-raw">' + (data.raw_output || 'No output') + '</pre>';
+            var html = '<pre class="metadata-raw">' + DXStream.escHtml(data.raw_output || T('No output')) + '</pre>';
             if (data.graph_info) {
                 html += '<h4>' + T('Graph Info') + '</h4>';
-                html += '<pre>' + JSON.stringify(data.graph_info, null, 2) + '</pre>';
+                html += '<pre>' + DXStream.escHtml(JSON.stringify(data.graph_info, null, 2)) + '</pre>';
             }
             container.innerHTML = html;
         })
@@ -127,34 +173,43 @@ DXStream.loadModelMetadata = function(modelFile) {
         });
 };
 
-document.addEventListener('click', function(e) {
-    var btn = e.target.closest('.download-model-btn');
-    if (!btn) return;
-    var model = btn.dataset.model;
-    btn.disabled = true;
-    btn.textContent = '⏳ ' + T('Downloading...');
-    fetch('/api/setup/download-model', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({model: model})
-    }).then(function(r) { return r.json(); })
-    .then(function(data) {
-        if (data.started) {
-            var pollId = setInterval(function() {
-                fetch('/api/setup/log').then(function(r2) { return r2.json(); })
-                .then(function(logData) {
-                    if (logData.done) {
-                        clearInterval(pollId);
-                        DXStream.modelsInit();
-                    }
-                });
-            }, 2000);
-        }
-    }).catch(function() {
+function _srvMsg(m) { return (typeof window.translateServerError === 'function') ? window.translateServerError(m) : m; }
+
+// One download path for the card button and the detail dialog: it polls this download's own log,
+// reports a failed download, and restores the button when the server says another process is running.
+function _downloadModelFile(file, btn) {
+    function restore() {
+        if (!btn) return;
         btn.disabled = false;
-        btn.textContent = '⬇️ ' + T('Download');
+        if (typeof DXIcon === 'function' && DXIcon.label) DXIcon.label(btn, 'download', T('Download'));
+    }
+    if (btn) {
+        btn.disabled = true;
+        if (typeof DXIcon === 'function' && DXIcon.label) DXIcon.label(btn, 'spinner', T('Downloading...'), { cls: 'dx-ico--spin' });
+    }
+    return DXStream.postJ('/api/setup/download-model', { model: file }).then(function (resp) {
+        if (!resp || resp.error) {
+            restore();
+            DXStream.toast(T('Download failed: ') + _srvMsg((resp && resp.error) || ''), 'error');
+            return;
+        }
+        DXStream.toast(file + ' ' + T('download started'), 'info');
+        var step = 'model-' + file;
+        var pollId = setInterval(function () {
+            DXStream.api('/api/setup/log?step=' + encodeURIComponent(step)).then(function (l) {
+                if (!l || l.error || !l.done) return;
+                clearInterval(pollId);
+                if (l.exit_code === 0) DXStream.toast(file + ' ' + T('completed'), 'success');
+                else { restore(); DXStream.toast(T('Download failed: ') + 'exit ' + l.exit_code, 'error'); }
+                if (DXStream.S.currentPage === 'models' && typeof DXStream.modelsInit === 'function') DXStream.modelsInit();
+            });
+        }, 2000);
     });
-});
+}
+
+// The card button stops propagation (the card itself opens the detail dialog), so a document-level
+// click listener never saw it — the card Download button did nothing. It calls this directly now.
+DXStream.downloadModelFile = _downloadModelFile;
 
 DXStream.showModelDetail = function (name) {
     var model = null;
@@ -183,7 +238,7 @@ DXStream.showModelDetail = function (name) {
 
     var statusEl = DXStream.$('model-detail-status');
     if (statusEl) {
-        statusEl.textContent = model.installed ? '✅ ' + T('OK') : '⚠️ ' + T('Not installed');
+        DXIcon.label(statusEl, model.installed ? 'check' : 'alert', model.installed ? T('OK') : T('Not installed'));
     }
 
     var infoEl = DXStream.$('model-detail-info');
@@ -194,7 +249,7 @@ DXStream.showModelDetail = function (name) {
     var tabs = document.getElementById('model-detail-tabs');
     if (tabs) tabs.dataset.modelFile = model.file || '';
 
-    // 탭 초기화: detail 탭으로 리셋
+    // Reset tabs to the detail tab
     document.querySelectorAll('.modal-tab').forEach(function(t) { t.classList.remove('active'); });
     var detailTab = document.querySelector('.modal-tab[data-tab="detail"]');
     if (detailTab) detailTab.classList.add('active');
@@ -211,15 +266,7 @@ DXStream.closeModelDetail = function () {
 
 DXStream.downloadModel = function () {
     if (!DXStream._selectedModel) return;
-    var model = DXStream._selectedModel;
-    DXStream.toast(T('Downloading models…'), 'info');
-    DXStream.postJ('/api/setup/download-model', { model: model.file }).then(function (resp) {
-        if (resp.error) {
-            DXStream.toast(T('Download failed: ') + resp.error, 'error');
-            return;
-        }
-        DXStream.toast(model.name + ' ' + T('download started'), 'success');
-    });
+    _downloadModelFile(DXStream._selectedModel.file, DXStream.$('model-detail-download-btn'));
 };
 if (typeof registerStreamLangRefresher === 'function') {
   registerStreamLangRefresher(function() {

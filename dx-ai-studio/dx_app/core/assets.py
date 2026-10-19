@@ -12,7 +12,7 @@ def sample_thumbnail(rel, width=160):
     """Return a cached, downscaled JPEG thumbnail Path for an image asset under DX_APP_ROOT,
     or None if the source isn't a valid in-tree image.
 
-    The composer asset grid renders 82x54px previews; without this it downloaded+decoded the
+    An asset picker renders 82x54px previews; without this it downloads and decodes the
     full-resolution originals (90-480KB each). Cache key = source path + mtime + width, so an
     edited/replaced source regenerates. Path-traversal safe (must resolve under DX_APP_ROOT)."""
     try:

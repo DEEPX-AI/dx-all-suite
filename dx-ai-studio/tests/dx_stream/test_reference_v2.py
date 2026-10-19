@@ -46,8 +46,16 @@ def reference_js_source() -> str:
     return read_text(STREAM / "static" / "js" / "stream-reference.js")
 
 
+SHARED_COMPONENTS = ROOT / "shared" / "static" / "dx-components.css"
+
+
 def stream_css_source() -> str:
-    return read_text(STREAM / "static" / "css" / "stream.css")
+    """The CSS the browser actually sees — the module's plus the shared components.
+
+    The Reference screen (.ref-*) lives in shared/static/dx-components.css, so reading only the
+    module file would make its selectors look missing while the screen renders fine.
+    """
+    return read_text(STREAM / "static" / "css" / "stream.css") + "\n" + read_text(SHARED_COMPONENTS)
 
 
 def stream_demo_js_source() -> str:
@@ -55,7 +63,7 @@ def stream_demo_js_source() -> str:
 
 
 def app_css_source() -> str:
-    return read_text(APP / "static" / "css" / "style.css")
+    return read_text(APP / "static" / "css" / "style.css") + "\n" + read_text(SHARED_COMPONENTS)
 
 
 def normalized_rule(css: str, selector: str) -> str:
@@ -80,7 +88,7 @@ def test_stream_reference_template_uses_v2_layout():
 
 def test_stream_reference_js_uses_v2_renderer_contract():
     js = reference_js_source()
-    assert "function _T5(en, ko, ja, zhCN, zhTW)" in js
+    assert "function _T5(en, ko, ja, zhCN, zhTW, es)" in js
     assert "DXStream._L(" not in js
     assert "var _L = S._L" not in js
     assert "ref-grid" not in js
@@ -102,15 +110,18 @@ def test_stream_reference_preserves_categories_and_topics():
 
 
 def test_stream_reference_categories_have_v2_descriptions():
+    """Category descriptions come in six languages."""
     js = reference_js_source()
     for expected in (
-        "Setup, dashboard, and first demo flow",
-        "Preset demos, MJPEG/WebRTC",
-        "Pipeline builder, validation, presets, and export",
-        "Model catalog, GStreamer elements, and custom libraries",
-        "Monitoring, APIs, keyboard shortcuts, and troubleshooting",
+        "Setup, dashboard and the first demo",
+        "12 preset demos, WebRTC and MJPEG",
+        "Pipeline Builder, connection rules, presets and export",
+        "Model catalog, GStreamer elements and custom libraries",
+        "Shortcuts, API, theme and language",
     ):
         assert expected in js
+    cats = js[js.index("function buildRefCategories()"):js.index("function buildRefTopics()")]
+    assert cats.count("es:'") >= 5
 
 
 def test_stream_reference_css_defines_v2_components():
@@ -165,20 +176,24 @@ def test_demo_fullscreen_target_keeps_stop_controls_inside():
 
     assert "var target = DXStream.$('demo-video-section')" in src
     assert "requestFullscreen()" in src
+    # The panel stays outside fullscreen — Stop is inside the video box too
+    html = template_source()
+    box = html[html.index('id="demo-video-section"'):html.index('id="btn-demo-fullscreen"')]
+    assert 'class="dds-live-stop" onclick="DXStream.stopDemo()"' in box
 
 
 def test_demo_stop_exits_fullscreen_before_hiding_video_section():
     js = stream_demo_js_source()
-    body = re.search(
-        r"DXStream\._stopDemo\s*=\s*async\s+function\s*\([^)]*\)\s*\{([\s\S]+?)\n\};",
-        js,
-    )
-    assert body, "missing DXStream._stopDemo implementation"
+    # The UI teardown moved into _demoTearDown (shared by Stop and the playback poll).
+    assert "_demoTearDown(demoId)" in js
+    body = re.search(r"function _demoTearDown\s*\([^)]*\)\s*\{([\s\S]+?)\n\}", js)
+    assert body, "missing _demoTearDown implementation"
     src = body.group(1)
 
     assert "document.fullscreenElement" in src
     assert "document.exitFullscreen()" in src
-    assert src.index("document.exitFullscreen()") < src.index("videoSection.style.display = 'none'")
+    # Leave fullscreen before parking the video box off the stage
+    assert src.index("document.exitFullscreen()") < src.index("_demoParkVideo()")
 
 
 def test_stream_reference_uses_event_delegation_not_inline_handlers():
@@ -280,11 +295,11 @@ def test_stream_reference_renderer_matches_dx_app_visual_dom_shape():
 
 def test_stream_reference_detail_chrome_uses_localized_labels():
     js = reference_js_source()
-    assert "_T5('Reference','레퍼런스','リファレンス','参考','參考')" in js
-    assert "_T5('Overview','개요','概要','概述','概述')" in js
-    assert "_T5('Parameters','파라미터','パラメータ','参数','參數')" in js
-    assert "_T5('Workflow','워크플로우','ワークフロー','工作流','工作流程')" in js
-    assert "_T5('Tips','팁','ヒント','提示','提示')" in js
+    assert "_T5('Reference','레퍼런스','リファレンス','参考','參考','Referencia')" in js
+    assert "_T5('Overview','개요','概要','概述','概述','Descripción general')" in js
+    assert "_T5('Details','상세','詳細','详情','詳情','Detalles')" in js
+    assert "_T5('Workflow','작업 순서','手順','操作流程','操作流程','Flujo de trabajo')" in js
+    assert "_T5('Tips','팁','ヒント','提示','提示','Consejos')" in js
     assert "overview:'📋 Overview'" not in js
     assert "ref-detail-kicker\">Reference" not in js
 
@@ -304,16 +319,37 @@ def test_stream_reference_tab_labels_support_keyboard_activation():
     assert "activateRefTab(tab);" in js
 
 
-# Task 9: Reference — 제거된 데모/모델 카테고리 검증
+# Reference — removed demo/model categories
 
 
 def test_stream_reference_matches_dev_demo_surface():
+    """The demo list matches dx_stream/core/demos.py — 12 demos, #6 is instance segmentation, #11 is depth."""
     source = reference_js_source()
     assert "OBB Detection" not in source
     assert "YOLO26n_OBB" not in source
-    assert "<td>Classification</td>" not in source
     assert "Secondary Inference" in source
     assert "Multi-Object Tracking" in source
-    assert "Manage 16 DEEPX" in source
-    assert "Object Detection(8)" in source
-    assert "Depth(1)" not in source
+    assert "['6','Instance Segmentation'" in source
+    assert "['11','Depth Estimation'" in source
+    assert "Manage 16 DEEPX" not in source and "7-step" not in source
+
+
+def test_reference_screen_has_exactly_one_definition():
+    """The Reference screen is defined in one place only.
+
+    dx_app and dx_stream share a single copy of the .ref-* rules; this keeps a
+    module-local copy from creeping back.
+    """
+    shared = read_text(SHARED_COMPONENTS)
+    module_only = {
+        "dx_app": read_text(APP / "static" / "css" / "style.css"),
+        "dx_stream": read_text(STREAM / "static" / "css" / "stream.css"),
+    }
+    for selector in (".ref-layout", ".ref-grid", ".ref-topic-card", ".ref-tabs", ".chip"):
+        assert re.search(r"^\s*" + re.escape(selector) + r"\s*[,{]", shared, re.M), (
+            f"{selector} 가 공유 컴포넌트에 없다"
+        )
+        for mod, css in module_only.items():
+            assert not re.search(r"^\s*" + re.escape(selector) + r"\s*[,{]", css, re.M), (
+                f"{mod} 이 {selector} 를 다시 정의한다 — Reference 화면은 공유 정의 하나뿐이다"
+            )

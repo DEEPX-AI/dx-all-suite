@@ -71,10 +71,8 @@ def start_run(fn, params):
     """Kick off fn(job_id=<id>, **params) in a daemon thread; return a job_id to poll.
 
     fn must accept a job_id kwarg and, when set, register its run here (via register()) so
-    poll_run can report progress — run_inference does this, and run_composer_workflow forwards
-    the job_id to its run_inference call. params must NOT contain job_id. Both the Run page
-    (run_inference) and the Composer (run_composer_workflow) share this + the poll/result
-    routes, so one registry serves every batch run."""
+    poll_run can report progress — run_inference does this. params must NOT contain job_id.
+    The Run page's batch runs share this registry and the poll/result routes."""
     job_id = uuid.uuid4().hex
     now = time.time()
     with _RUN_JOBS_LOCK:

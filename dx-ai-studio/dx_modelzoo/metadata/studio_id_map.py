@@ -205,16 +205,103 @@ def resolve_studio_id(public_key: str, fields: dict, index: dict) -> str | None:
     return None
 
 
+# Task label on the publish page → task key. Tasks that have a legacy key use it (to group with the existing
+# studio catalog); new tasks (anomaly_detection …) use the new key (shared/tasks.py).
+_PAGE_TASK_OVERRIDES = {"face_landmark_detection": "face_landmark", "face_attribute_recognition": "face_attribute"}
+
+
+def page_task_key(label: str) -> str:
+    from shared.tasks import legacy
+    key = re.sub(r"[^a-z0-9]+", "_", str(label or "").lower().replace("-", "")).strip("_")
+    return legacy(_PAGE_TASK_OVERRIDES.get(key, key)) if key else ""
+
+
+def _artifact_stem_key(fields: dict):
+    """A page model's identity is its artifact file name without the extension. canonical_model_id folds '.' and
+    version marks, making squeezenet1.0 and 1.1 one key — here nothing is folded except non-alphanumerics to '_'."""
+    for url_field in _ARTIFACT_URL_FIELDS:
+        url = fields.get(url_field)
+        if url and url not in ("-", ""):
+            name = url.rstrip("/").split("/")[-1]
+            name = re.sub(r"\.(dxnn|onnx|json)$", "", name, flags=re.I)
+            return re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_") or None
+    return None
+
+
+def _claim_score(sid: str, stem: str, own: set) -> tuple:
+    """Who gets a stem that several studio ids want — lower sorts first. Prefers the id with the same PPU-ness,
+    whose own file name is that stem, and whose name overlaps the stem the most."""
+    ppu_mismatch = ("ppu" in sid) != ("ppu" in stem)
+    own_hit = canonical_model_id(stem) in own or stem in own
+    common = 0
+    for a, b in zip(sid.replace("_", ""), stem.replace("_", "")):
+        if a != b:
+            break
+        common += 1
+    return (ppu_mismatch, not own_hit, -common, sid)
+
+
 def remap_public_models(public_models: dict, index: dict) -> tuple[dict, list[str]]:
-    """Re-key public adapter output from artifact ids to studio catalog ids."""
+    """Re-key public adapter output from artifact ids to studio catalog ids.
+
+    One page model = one .dxnn stem = one row. The page gives each model two keys (name and stem), and models
+    with similar names (yolo11-m and its pre-optimized build) can resolve to the same studio id — merging them
+    would drop one from the list. So each studio id gets exactly one stem: the stem matching the id's own file
+    name takes the id, and the rest stand alone keyed by their stem. Models absent from the studio catalog are
+    keyed by stem too, with the task as a key instead of the page label."""
     remapped: dict[str, dict] = {}
     warnings: list[str] = []
 
+    rows = []
     for pub_key, fields in public_models.items():
-        studio_id = resolve_studio_id(pub_key, fields, index)
+        rows.append((pub_key, fields, resolve_studio_id(pub_key, fields, index), _artifact_stem_key(fields)))
+
+    # studio id → stems that resolved to it. With more than one, only the stem matching the id's own name/file
+    # keeps the id.
+    own_keys: dict[str, set] = {}
+    for canon, sid in (index.get("by_key") or {}).items():
+        own_keys.setdefault(sid, set()).add(canon)
+    stems_by_sid: dict[str, set] = {}
+    for _pk, _f, sid, stem in rows:
+        if sid and stem:
+            stems_by_sid.setdefault(sid, set()).add(stem)
+    winner: dict[str, str] = {}
+    for sid, stems in stems_by_sid.items():
+        if len(stems) == 1:
+            winner[sid] = next(iter(stems))
+            continue
+        own = own_keys.get(sid, set())
+        mine = sorted(st for st in stems if st in own or canonical_model_id(st) in own)
+        plain = sorted(stems, key=lambda st: (("pre_optimized" in st) + ("ppu2" in st), len(st), st))
+        winner[sid] = mine[0] if mine else plain[0]
+
+    # If two studio ids hold the same stem (the curated catalog has one model under two ids), only the id whose
+    # name is that stem keeps it
+    sids_by_stem: dict[str, list] = {}
+    for sid, st in winner.items():
+        sids_by_stem.setdefault(st, []).append(sid)
+    for st, sids in sids_by_stem.items():
+        if len(sids) > 1:
+            keep = sorted(sids, key=lambda sid: _claim_score(sid, st, own_keys.get(sid, set())))[0]
+            for sid in sids:
+                if sid != keep:
+                    winner.pop(sid, None)
+    sid_by_stem = {st: sid for sid, st in winner.items()}
+    for pub_key, fields, studio_id, stem in rows:
+        demoted = False
+        if studio_id is not None and stem and winner.get(studio_id) != stem and stem in sid_by_stem:
+            studio_id = sid_by_stem[stem]     # another id holds this stem
+        elif studio_id is not None and stem and winner.get(studio_id) != stem:
+            studio_id, demoted = None, True   # another stem holds this id — stand alone under its own stem
+        if studio_id is None and stem in sid_by_stem:
+            studio_id = sid_by_stem[stem]     # another key of the same model (name key resolved, stem key did not)
         target = studio_id or pub_key
-        if studio_id is None and pub_key not in index["studio_ids"]:
+        # A demoted row must not fall back to the studio id even when its key equals it (yolov5m6's 1280 build)
+        if studio_id is None and (demoted or pub_key not in index["studio_ids"]):
             warnings.append(f"unmapped public model key: {pub_key!r} ({fields.get('display.class_name', '')})")
+            target = stem or pub_key
+            if fields.get("display.task"):
+                fields = dict(fields, **{"display.task": page_task_key(fields["display.task"])})
         if target in remapped:
             remapped[target].update(fields)
         else:

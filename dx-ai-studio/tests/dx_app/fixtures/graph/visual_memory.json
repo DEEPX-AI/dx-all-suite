@@ -1,0 +1,6 @@
+{"total_bytes": 252262080, "over_budget": false, "unknown_models": [], "suggestions": [],
+ "device": {"total_bytes": 4209067950, "used_bytes": null, "free_bytes": 4209067950, "source": "dxrt_cli"},
+ "engines": [{"model": "yolov8-n_640x640", "nodes": ["od"], "buffers": null, "bytes": 123528064},
+             {"model": "deepmar_resnet50_224x224", "nodes": ["attr"], "buffers": null, "bytes": 128734016}],
+ "nodes": {"od": {"model": "yolov8-n_640x640", "bytes": 123528064, "shared_with": [], "buffers": 6},
+           "attr": {"model": "deepmar_resnet50_224x224", "bytes": 128734016, "shared_with": [], "buffers": 6}}}

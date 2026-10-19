@@ -1,4 +1,4 @@
-"""webrtc.py 테스트 — GI 바인딩 모킹으로 시그널링 로직 검증"""
+"""webrtc.py — signalling logic, with mocked GI bindings"""
 import sys, pytest, threading
 from pathlib import Path
 from unittest.mock import patch, MagicMock, PropertyMock
@@ -14,7 +14,7 @@ class TestWebRTCHandlerInit:
         assert handler.get_server_ice_candidates() == []
 
     def test_single_peer_enforcement(self):
-        """2번째 연결 시도 시 이전 peer 자동 해제"""
+        """A second connection releases the previous peer automatically"""
         from core.webrtc import WebRTCHandler
         handler = WebRTCHandler()
         handler._current_peer_id = "peer-1"

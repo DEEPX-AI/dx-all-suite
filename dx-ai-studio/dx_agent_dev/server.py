@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""DX Agent Dev Server — 대화형 콘솔 (port 8099)."""
+"""DX Agent Dev Server — interactive console (port 8099)."""
 from __future__ import annotations
 
 import json
+import os
 from http.server import ThreadingHTTPServer
 from pathlib import Path
 
@@ -12,25 +13,24 @@ from dx_agent_dev.core.config import (DEFAULT_PORT, STATIC_DIR, TEMPLATES_DIR, S
                          WORKSPACE_ROOT, PROMPT_MAX_LEN, resolve_target)
 from dx_agent_dev.core import environment
 from dx_agent_dev.core.agent_runner import AgentRunner, CopilotAdapter, MockAdapter
+from dx_agent_dev.core.live_run import LiveRun
 from dx_agent_dev.core.conversation_store import ConversationStore
 from dx_agent_dev.core.message_pipeline import CLI_RESUME_AGENTS, prepare_sse_event
 from dx_agent_dev.core.prompt_wrap import wrap_autopilot_prompt, wrap_console_prompt, wrap_with_conversation_history
 from dx_agent_dev.core.run_context import RunContext
 from dx_agent_dev.core.adapters import make_adapter
 from dx_agent_dev.core.showcases import load_showcases
+from shared import agent_cli
 from shared.dx_server import DXBaseHandler
 from shared.chat import ChatEngine
+from shared.chat import module_fallbacks as _module_fallbacks
+from shared.shell import ShellSpec
 
 PORT = DEFAULT_PORT
 
 _chat_engine = ChatEngine(
     app_name="dx_agent_dev",
-    fallback_rules=[
-        (["agent", "console", "build", "에이전트", "콘솔", "빌드"], {
-            "ko": "DX Agent Dev 콘솔에 자연어로 요청하면 NPU 앱을 만들어 줍니다.",
-            "en": "Describe what you want in the DX Agent Dev console and it builds an NPU app.",
-        }),
-    ],
+    fallback_rules=_module_fallbacks.rules("dx_agent_dev"),
 )
 
 
@@ -164,7 +164,7 @@ def _agent_install_options():
 
 
 def _degraded_payload(env):
-    """강등 SSE 페이로드(MED-8, §10 #8). 순수 함수 — 단위 테스트 대상.
+    """Degraded-mode SSE payload. A pure function, unit-tested.
 
     ``reason``/``text`` stay backward-compatible (raw reason code + short EN summary); ``title``/
     ``detail`` add localized (6-lang) guidance so a first-time user knows exactly what to do, and
@@ -194,13 +194,27 @@ def _make_runner():
 
 
 _runner = _make_runner()
+
+# Slot that detaches a run from the HTTP response. If the handler drove the _runner.run() generator
+# itself, a browser dropping the stream would mean GeneratorExit -> agent_runner's finally ->
+# subprocess killed. Details: dx_agent_dev/core/live_run.py
+_live = LiveRun()
 _conversations = ConversationStore()
 
+
+
+# ── Shared App Shell ──────────────────────────────────────────
+# A single console screen has no tab row, so the template root carries .dx-shell--no-tabs.
+DX_AGENT_DEV_SHELL = ShellSpec(
+    module_key="agent",
+    toolbar_extra="",
+)
 
 class AgentDevHandler(DXBaseHandler):
     server_name = SERVER_NAME
     static_dir = STATIC_DIR
     templates_dir = TEMPLATES_DIR
+    shell_spec = DX_AGENT_DEV_SHELL
     log_filter = ["/static/", "/api/agent/status"]
 
     def route(self):
@@ -211,6 +225,8 @@ class AgentDevHandler(DXBaseHandler):
         if self.command == "GET":
             if self.url_path == "/api/agent/status":
                 return self.send_json(self._status())
+            if self.url_path == "/api/agent/run/events":
+                return self._attach_sse()
             if self.url_path == "/api/agent/showcases":
                 return self.send_json({"showcases": load_showcases()})
             if self.url_path == "/api/agent/login/status":
@@ -229,13 +245,27 @@ class AgentDevHandler(DXBaseHandler):
         env = environment.detect_environment()
         forced = env.get("forced_mock", False)
         available = env["available"] or forced
-        agents = [] if forced else environment.detect_available_agents()
+        # Even under mock, pinned agents (DX_AGENT_DEV_PIN_AGENTS: visual regression, browser tests) are
+        # shown: the screen picks like the real thing and mock takes the run.
+        pinned = os.environ.get("DX_AGENT_DEV_PIN_AGENTS") is not None
+        agents = environment.detect_available_agents() if (pinned or not forced) else []
+        snap = _live.snapshot()
         status = {
             "available": available,
             "reason": env.get("reason"),
             "busy": _runner.is_busy(),
             "showcase_count": len(load_showcases()),
             "agents": agents,
+            # Home and this console start with the same agent
+            "studio_agent": agent_cli.studio_agent(),
+            # Where to attach: which run, and how many events so far.
+            "run_id": snap["run_id"],
+            "event_count": snap["count"],
+            "run_done": snap["done"],
+            # Whoever takes over (home -> Agent Dev) knows the first line, conversation and mode
+            "run_prompt": snap["info"].get("prompt"),
+            "run_conversation_id": snap["info"].get("conversation_id"),
+            "run_mode": snap["info"].get("mode"),
         }
         if not available:
             # Same localized guidance as the SSE degraded event (see _degraded_payload) — this
@@ -249,19 +279,22 @@ class AgentDevHandler(DXBaseHandler):
         return status
 
     def _agent_models(self):
-        """?agent=<name> → 동적 모델 목록(+default). 정적 config 폴백은 list_agent_models 내부."""
+        """?agent=<name> -> live model list (+default). The static config fallback lives in list_agent_models."""
         from urllib.parse import urlparse, parse_qs
-        from dx_agent_dev.core.agents_config import AGENTS
         agent = (parse_qs(urlparse(self.path).query).get("agent", [""])[0] or "").strip()
-        models = environment.list_agent_models(agent) if agent else []
-        return {"agent": agent, "models": models,
-                "default_model": AGENTS.get(agent, {}).get("default_model")}
+        if not agent:
+            return {"agent": agent, "models": [], "default_model": None}
+        info = environment.agent_model_info(agent)
+        out = {"agent": agent, "models": info["models"], "default_model": info["default_model"]}
+        if info.get("catalog"):
+            out["catalog"] = info["catalog"]   # everything + enabled; only models the account may pick are enabled
+        return out
 
     def _login_status(self):
-        """in-UI 로그인 보조: ?agent=<name> → 설치/인증 상태 + 로그인 명령 안내.
+        """In-UI login help: ?agent=<name> -> install/auth state plus the login command.
 
-        대화형 OAuth는 결국 브라우저가 필요하므로, 여기서는 정확한 로그인 명령을 안내하고
-        is_authenticated()로 완료 여부를 재확인할 수 있게 한다(거짓 음성 방지: None=unknown).
+        Interactive OAuth needs a browser anyway, so this gives the exact login command and lets
+        is_authenticated() confirm completion (avoiding false negatives: None=unknown).
         """
         from urllib.parse import urlparse, parse_qs
         from dx_agent_dev.core.adapters import make_adapter
@@ -275,6 +308,47 @@ class AgentDevHandler(DXBaseHandler):
             "authenticated": adapter.is_authenticated(),
             "hint": adapter.login_cmd_hint,
         }
+
+
+    def _stream_live(self, from_index: int, conversation_id: str = ""):
+        """Stream the buffer as SSE. A disconnected consumer does not affect the run."""
+        self.start_sse()
+        try:
+            for ev in _live.events(from_index):
+                if ev.get("type") == "session":
+                    status_text = ev.get("status_text")
+                    if status_text:
+                        if not self.send_sse_data(json.dumps(
+                            {"type": "status", "text": status_text}, ensure_ascii=False,
+                        )):
+                            return
+                    continue
+                if ev.get("type") == "done" and conversation_id:
+                    ev = dict(ev)
+                    ev["conversation_id"] = conversation_id
+                out = prepare_sse_event(ev)
+                if out is None:
+                    continue
+                if not self.send_sse_data(json.dumps(out, ensure_ascii=False)):
+                    return
+        except (BrokenPipeError, ConnectionResetError):
+            pass
+        finally:
+            self.end_sse()
+
+    def _attach_sse(self):
+        """Attach to a running (or just finished) run.
+
+        This is how Agent Dev shows a run started from home, and how a window that left and came back
+        picks it up again.
+        """
+        from urllib.parse import parse_qs, urlparse
+        q = parse_qs(urlparse(self.path).query)
+        try:
+            from_index = int((q.get("from") or ["0"])[0])
+        except ValueError:
+            from_index = 0
+        self._stream_live(max(0, from_index))
 
     def _run_sse(self):
         body = self.read_json_body()
@@ -362,54 +436,43 @@ class AgentDevHandler(DXBaseHandler):
         assistant_chunks: list[str] = []
         session_dir_bound = bool(conv.session_dir)
 
-        self.start_sse()
+        # Binding events to the conversation happens on the **pump side**: it must happen even with
+        # no consumer, so it cannot live in the response (closing the window would lose the result).
+        state = {"chunks": [], "bound": bool(conv.session_dir)}
+
+        def _absorb(ev):
+            t = ev.get("type")
+            if t == "session":
+                sid = ev.get("cli_session_id")
+                if sid:
+                    _conversations.bind_cli_session(conv, sid)
+            elif t == "message":
+                text = ev.get("text") or ""
+                if ev.get("final"):
+                    state["chunks"] = [text]
+                else:
+                    state["chunks"].append(text)
+            elif t == "done":
+                if not state["bound"] and ev.get("session_dir"):
+                    _conversations.bind_session_dir(conv, ev["session_dir"])
+                    state["bound"] = True
+                assistant_text = "".join(state["chunks"]).strip()
+                if assistant_text:
+                    from dx_agent_dev.core.message_sanitize import sanitize_assistant_text
+                    conv.add_assistant(sanitize_assistant_text(assistant_text))
+                _conversations.save(conv)
+
+        source = _runner.run(
+            prompt, harness, adapter=adapter, conversation=conv, run_ctx=run_ctx,
+        )
         try:
-            for ev in _runner.run(
-                prompt, harness, adapter=adapter, conversation=conv, run_ctx=run_ctx,
-            ):
-                if ev.get("type") == "session":
-                    sid = ev.get("cli_session_id")
-                    if sid:
-                        _conversations.bind_cli_session(conv, sid)
-                    status_text = ev.get("status_text")
-                    if status_text:
-                        if not self.send_sse_data(json.dumps(
-                            {"type": "status", "text": status_text}, ensure_ascii=False,
-                        )):
-                            break
-                    continue
+            _live.start(source, cancel=_runner.cancel, on_event=_absorb,
+                        info={"prompt": raw_prompt, "conversation_id": conv.id,
+                              "mode": "autopilot" if autopilot else "interactive"})
+        except RuntimeError:
+            return self.send_error_json(409, "agent busy")
 
-                if ev.get("type") == "message":
-                    text = ev.get("text") or ""
-                    if ev.get("delta"):
-                        assistant_chunks.append(text)
-                    elif ev.get("final"):
-                        assistant_chunks = [text]
-                    else:
-                        assistant_chunks.append(text)
-
-                if ev.get("type") == "done":
-                    ev = dict(ev)
-                    ev["conversation_id"] = conv.id
-                    if not session_dir_bound and ev.get("session_dir"):
-                        _conversations.bind_session_dir(conv, ev["session_dir"])
-                        session_dir_bound = True
-
-                out = prepare_sse_event(ev)
-                if out is None:
-                    continue
-                if not self.send_sse_data(json.dumps(out, ensure_ascii=False)):
-                    break
-
-            assistant_text = "".join(assistant_chunks).strip()
-            if assistant_text:
-                from dx_agent_dev.core.message_sanitize import sanitize_assistant_text
-                conv.add_assistant(sanitize_assistant_text(assistant_text))
-            _conversations.save(conv)
-        except (BrokenPipeError, ConnectionResetError):
-            pass
-        finally:
-            self.end_sse()
+        self._stream_live(0, conversation_id=conv.id)
 
 
 def create_server(port: int = PORT):

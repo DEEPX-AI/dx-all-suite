@@ -1,4 +1,4 @@
-"""어댑터 레지스트리: 클래스 조회 + 인스턴스 생성(model 바인딩)."""
+"""Adapter registry: class lookup and instance creation with a bound model."""
 import sys
 from pathlib import Path
 
@@ -21,8 +21,10 @@ def test_make_adapter_binds_name_and_default_model():
     a = make_adapter("copilot")
     assert a is not None
     assert a.name == "copilot"
-    # copilot now defaults to the original harness model (claude-sonnet-4.6)
-    assert a.model == "claude-sonnet-4.6"
+    # copilot defaults to "auto" (the CLI picks): which models an account may use differs per plan
+    # and org policy, and a fixed default such as claude-sonnet-4.6 may not be offered to the
+    # account. The account's own default arrives with its model list (ACP).
+    assert a.model == "auto"
 
 
 def test_make_adapter_explicit_model():

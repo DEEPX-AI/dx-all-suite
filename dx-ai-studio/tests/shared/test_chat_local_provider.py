@@ -1,7 +1,7 @@
-"""P2: 범용 로컬/자체호스팅 LLM provider (OpenAI 호환, 키 불필요) + 모델 조회.
+"""Generic local / self-hosted LLM provider (OpenAI-compatible, no key) and model lookup.
 
-로컬 런타임(Ollama/llama.cpp/LM Studio/vLLM 등)은 대부분 OpenAI 호환 API를 노출하므로
-provider="local"은 사용자가 지정한 base URL로 OpenAI 스타일 요청을 보낸다. API 키 불필요.
+Most local runtimes (Ollama/llama.cpp/LM Studio/vLLM, etc.) expose an OpenAI-compatible API, so
+provider="local" sends OpenAI-style requests to the base URL the user gives. No API key needed.
 """
 import json
 from unittest.mock import patch

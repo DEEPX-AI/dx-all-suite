@@ -1,0 +1,10 @@
+OK: graph "bad4" is valid (3 nodes, 2 edges, 2 models)
+
+node      model                          produces   consumes   artifact
+cam       (source)                       frame      -          x.jpg
+od        yolo26-s_640x640               boxes      full_frame yolo26-s_640x640.dxnn  [present, invalid]
+p         yolo26-n_640x640_pre-optimized boxes      full_frame yolo26-n_640x640_pre-optimized.dxnn  [MISSING]
+
+MISSING: 1 model file is not in /home/deepx/hj_ws/dx-all-suite/dx-runtime/dx_app/assets/models
+  node "p"  model yolo26-n_640x640_pre-optimized  ->  /home/deepx/hj_ws/dx-all-suite/dx-runtime/dx_app/assets/models/yolo26-n_640x640_pre-optimized.dxnn
+  -> ./setup.sh --models yolo26_n_640x640_pre_optimized

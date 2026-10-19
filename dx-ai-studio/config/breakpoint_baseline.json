@@ -1,0 +1,91 @@
+{
+  "dx_agent_dev/static/css/console.css": [
+    600,
+    768,
+    1200
+  ],
+  "dx_app/static/css/graph-composer.css": [
+    900,
+    1200
+  ],
+  "dx_app/static/css/style.css": [
+    900
+  ],
+  "dx_benchmark/static/css/style.css": [
+    600,
+    900
+  ],
+  "dx_compiler/static/css/style.css": [
+    600,
+    768,
+    1200
+  ],
+  "dx_edge/static/css/guide.css": [
+    600,
+    900
+  ],
+  "dx_edge/static/css/style.css": [
+    600
+  ],
+  "dx_modelzoo/static/css/style.css": [
+    600,
+    768,
+    900,
+    1440
+  ],
+  "dx_monitor/static/css/style.css": [
+    600,
+    900
+  ],
+  "dx_planner/static/css/style.css": [
+    768,
+    900,
+    1200,
+    1440,
+    1600
+  ],
+  "dx_stream/static/css/pipeline-iso.css": [
+    900
+  ],
+  "dx_stream/static/css/stream.css": [
+    600,
+    1200
+  ],
+  "launcher/static/about-deepx.css": [
+    600,
+    1979
+  ],
+  "launcher/static/home-stage.css": [
+    600,
+    1200
+  ],
+  "launcher/static/sdk-library.css": [
+    600
+  ],
+  "launcher/static/style.css": [
+    600,
+    768,
+    1200,
+    1440
+  ],
+  "shared/chat/static/chat-widget.css": [
+    480
+  ],
+  "shared/static/dx-components.css": [
+    600
+  ],
+  "shared/static/dx-graph-canvas.css": [
+    600
+  ],
+  "shared/static/dx-shell.css": [
+    600,
+    1200
+  ],
+  "shared/static/dx-utilities.css": [
+    600,
+    1200
+  ],
+  "shared/static/tutorial.css": [
+    600
+  ]
+}

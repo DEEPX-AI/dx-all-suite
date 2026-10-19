@@ -1,7 +1,7 @@
-"""GStreamer PipelineManager — PyGObject GI 바인딩 기반.
+"""GStreamer PipelineManager on the PyGObject GI bindings.
 
-Python GI bindings (gi.repository.Gst, GstWebRTC)을 사용.
-import 실패 시 graceful degradation — 파이프라인 직렬화 등 non-GStreamer 기능은 유지.
+Uses the Python GI bindings (gi.repository.Gst, GstWebRTC).
+If the import fails, non-GStreamer features such as pipeline serialization still work.
 """
 from __future__ import annotations
 
@@ -21,10 +21,10 @@ log = logging.getLogger(__name__)
 
 
 def _drain_dxrt_msgqueues():
-    """dxrtd 메시지 큐가 가득 차면 dxinfer가 blocking됨 — 시작 시 비우기."""
+    """dxinfer blocks when the dxrtd message queue is full — drain it at start."""
     try:
         libc = ctypes.CDLL(ctypes.util.find_library("c"), use_errno=True)
-        # IPC 메시지 큐 ID 조회: msgget(key, 0)
+        # Look up the IPC message queue id: msgget(key, 0)
         IPC_NOWAIT = 0x800
         MSG_NOERROR = 0x1000
         buf = ctypes.create_string_buffer(8192)
@@ -40,7 +40,7 @@ def _drain_dxrt_msgqueues():
     except Exception:
         pass
 
-# GI 바인딩 가용성
+# Whether the GI bindings are available
 _gst_available = False
 Gst = None
 GLib = None
@@ -59,7 +59,7 @@ try:
 except (ImportError, ValueError):
     log.warning("GStreamer GI 바인딩 불가 — 파이프라인 실행 비활성화")
 
-# 인코더 폴백 체인
+# Encoder fallback chain
 ENCODER_FALLBACK_CHAIN = [
     # HW H264 (mpph264enc) first on Rockchip: software vp8enc is the throughput bottleneck on
     # ARM (~6-11 fps), while the board's HW H264 block runs near real-time. H264 over webrtcbin
@@ -96,7 +96,7 @@ def payloader_with_payload_type(payloader: str, payload_type: int | None) -> str
 
 
 def detect_encoder() -> dict:
-    """사용 가능한 최고 우선순위 인코더 정보를 반환한다.
+    """The highest-priority encoder that is available.
 
     Returns:
         dict with keys: encoder, payloader, encoding_name, payload_type
@@ -122,7 +122,7 @@ def detect_encoder() -> dict:
 
 
 def get_webrtc_sink_str(encoder: dict) -> str:
-    """WebRTC 브라우저 싱크 문자열을 생성한다."""
+    """Build the WebRTC browser sink string."""
     payloader = payloader_with_payload_type(
         encoder["payloader"], encoder.get("payload_type")
     )
@@ -137,10 +137,10 @@ def get_webrtc_sink_str(encoder: dict) -> str:
 
 
 def _resolve_props(elem_type: str, props: dict) -> dict:
-    """프로퍼티 값을 실제 경로로 보정 (라이브러리/모델 경로 자동 해결)."""
+    """Turn property values into real paths (resolves library and model paths)."""
     from dx_stream.core import config as _config
     resolved = dict(props)
-    # model-path: 절대경로 아니면 MODELS_DIR에서 찾기
+    # model-path: if not absolute, look in MODELS_DIR
     if "model-path" in resolved:
         mp = str(resolved["model-path"])
         if mp and not mp.startswith("/"):
@@ -155,14 +155,14 @@ def _resolve_props(elem_type: str, props: dict) -> dict:
             candidate = _config.CONFIGS_DIR / cp
             if candidate.exists():
                 resolved["config-file-path"] = str(candidate)
-    # library-file-path: 절대경로 아니면 postprocess lib dir에서 찾기
+    # library-file-path: if not absolute, look in the postprocess lib dir
     if "library-file-path" in resolved:
         lp = str(resolved["library-file-path"])
         if lp and not lp.startswith("/"):
             import os
             lib_dir = Path(os.environ.get(
                 "DX_POSTPROC_LIB_DIR", "/usr/local/share/gstdxstream/lib"))
-            # 후보 순서: 원래 이름 → lib*.so → libpostprocess_*.so
+            # Candidates in order: the name as given → lib*.so → libpostprocess_*.so
             candidates = [
                 lib_dir / lp,
                 lib_dir / f"{lp}.so",
@@ -177,13 +177,13 @@ def _resolve_props(elem_type: str, props: dict) -> dict:
 
 
 def pipeline_json_to_gst(pipeline_def: dict) -> str:
-    """JSON 파이프라인 정의 → gst-launch 문자열 변환.
+    """JSON pipeline definition → gst-launch string.
 
-    pipeline_def 형식:
+    pipeline_def format:
       nodes: [{id, type, props: {key: val}}]
-      edges: [[src_id, dst_id]] 또는 [{from, to}]
+      edges: [[src_id, dst_id]] or [{from, to}]
 
-    선형 및 분기(tee/gather) 파이프라인 모두 지원.
+    Handles both linear and branching (tee/gather) pipelines.
     """
     nodes = {n["id"]: n for n in pipeline_def["nodes"]}
     edges = pipeline_def["edges"]
@@ -192,35 +192,35 @@ def pipeline_json_to_gst(pipeline_def: dict) -> str:
     if edges and isinstance(edges[0], dict):
         edges = [(e.get("from") or e.get("source"), e.get("to") or e.get("target")) for e in edges]
 
-    # 인접 리스트 구성
+    # Build the adjacency list
     children = {}
     parents = {}
     for src, dst in edges:
         children.setdefault(src, []).append(dst)
         parents.setdefault(dst, []).append(src)
 
-    # 분기점(out-degree > 1) 및 합류점(in-degree > 1) 감지
+    # Find branch points (out-degree > 1) and merge points (in-degree > 1)
     branch_nodes = {nid for nid, ch in children.items() if len(ch) > 1}
     merge_nodes = {nid for nid, pa in parents.items() if len(pa) > 1}
 
-    # 분기가 없으면 기존 선형 로직 사용
+    # No branches: use the linear path
     if not branch_nodes and not merge_nodes:
         return _linear_pipeline(pipeline_def, nodes, edges)
 
-    # 분기/합류가 있으면 named-link 문법 생성
+    # Branches or merges: emit named-link syntax
     return _branching_pipeline(nodes, edges, children, parents, branch_nodes, merge_nodes)
 
 
 def _linear_pipeline(pipeline_def, nodes, edges):
-    """선형 파이프라인 — 위상 정렬 기반."""
+    """Linear pipeline, ordered by topological sort."""
     ordered = []
     if edges:
-        # 위상 정렬: 엣지 순서에 의존하지 않고 올바른 순서 보장
+        # Topological sort: the right order regardless of edge order
         dst_set = {dst for _, dst in edges}
         child_map = {}
         for src_id, dst_id in edges:
             child_map[src_id] = dst_id
-        # 소스 노드: 어떤 엣지의 dst에도 없는 노드
+        # Source nodes: nodes that are no edge's dst
         source_nodes = [src for src, _ in edges if src not in dst_set]
         if source_nodes:
             current = source_nodes[0]
@@ -234,7 +234,7 @@ def _linear_pipeline(pipeline_def, nodes, edges):
     else:
         ordered = [n["id"] for n in pipeline_def["nodes"]]
 
-    # inference-id 자동 연결: dxinfer에서 선언된 inference-id를 dxpostprocess에 전달
+    # Link inference-id automatically: pass the inference-id declared on dxinfer to dxpostprocess
     infer_id_map = {}  # preprocess-id → inference-id
     for nid in ordered:
         node = nodes[nid]
@@ -246,8 +246,8 @@ def _linear_pipeline(pipeline_def, nodes, edges):
             iid = raw.get("inference-id", 1)
             infer_id_map[nid] = iid
 
-    # dxinfer 바로 다음에 오는 dxpostprocess에 inference-id를 연결하기 위해
-    # 순서대로 마지막으로 본 inference-id를 추적
+    # Track the last inference-id seen, in order, so the dxpostprocess right
+    # after a dxinfer gets its inference-id
     last_inference_id = None
 
     parts = []
@@ -257,28 +257,28 @@ def _linear_pipeline(pipeline_def, nodes, edges):
     for i, nid in enumerate(ordered):
         node = nodes[nid]
         elem_type = node["type"]
-        # Dx* 엘리먼트는 GStreamer에서 소문자 사용
+        # GStreamer names the Dx* elements in lower case
         if elem_type.startswith("Dx") or elem_type.startswith("DX"):
             elem_type = elem_type.lower()
         raw_props = node.get("properties", node.get("props", {}))
         props = _resolve_props(elem_type, raw_props)
 
-        # dxinfer의 inference-id 기록
+        # Remember dxinfer's inference-id
         if elem_type == "dxinfer":
             last_inference_id = props.get("inference-id", 1)
 
-        # dxpostprocess에 inference-id 자동 연결 (없으면 직전 dxinfer 것 사용)
+        # Give dxpostprocess an inference-id (the previous dxinfer's when it has none)
         if elem_type == "dxpostprocess" and "inference-id" not in props:
             if last_inference_id is not None:
                 props["inference-id"] = last_inference_id
 
-        # library-file-path + function-name 유효성 검증 (없으면 GStreamer가 abort)
+        # Validate library-file-path + function-name (GStreamer aborts without them)
         if "library-file-path" in props:
             lib_path = str(props["library-file-path"])
             if not Path(lib_path).exists():
                 raise RuntimeError(
                     f"Postprocess library not found: {lib_path}")
-            # function-name 검증
+            # Validate function-name
             func_name = props.get("function-name", "")
             if func_name:
                 import ctypes
@@ -295,7 +295,7 @@ def _linear_pipeline(pipeline_def, nodes, edges):
                 elem_str += f" {k}={v}"
         parts.append(elem_str)
 
-        # dx 엘리먼트 사이에 queue 자동 삽입 (버퍼링 안정성)
+        # Insert a queue between dx elements (stable buffering)
         if i < len(ordered) - 1 and elem_type in dx_elements:
             next_node = nodes[ordered[i + 1]]
             next_type = next_node["type"]
@@ -308,28 +308,27 @@ def _linear_pipeline(pipeline_def, nodes, edges):
 
 
 def _branching_pipeline(nodes, edges, children, parents, branch_nodes, merge_nodes):
-    """분기/합류 파이프라인 — GStreamer named-link 문법.
+    """Branching/merging pipeline in GStreamer named-link syntax.
 
-    지원 토폴로지:
-      - tee 분기 (out-degree > 1)            → ``t. ! <branch>``
-      - dxgather/compositor 합류 (in-degree>1) → ``<branch> ! gather.sink_<i>``
-      - **다중 소스 합류(멀티스트림)**: 서로 독립적인 N개의 소스 체인이 각각
-        compositor.sink_<i> 로 들어가는 형태. 이전 구현은 첫 번째 소스 체인만
-        방출하고 나머지를 통째로 누락시켰다 — 멀티스트림 빌더(데모 8 로드 등)가
-        한 스트림만 나오거나 동작하지 않던 원인. 이제 모든 루트를 순회한다.
-      - compositor 합류는 들어오는 스트림 수에 맞춰 ``sink_i::xpos/ypos`` 격자를
-        자동 배치해 화면이 겹치지 않게 한다.
+    Supported topologies:
+      - tee branch (out-degree > 1)              → ``t. ! <branch>``
+      - dxgather/compositor merge (in-degree>1)  → ``<branch> ! gather.sink_<i>``
+      - **multi-source merge (multi-stream)**: N independent source chains, each
+        feeding compositor.sink_<i>. Every root is walked, so every stream is
+        emitted (e.g. demo 8 loaded into the builder).
+      - a compositor merge lays out a ``sink_i::xpos/ypos`` grid sized to the
+        number of incoming streams so the tiles do not overlap.
     """
     def _is(nid, *types):
         return nodes[nid]["type"].lower() in types
 
-    # tee 이름 할당 (out-degree>1 이면서 tee)
+    # Name the tees (out-degree>1 and a tee)
     tee_names = {}
     for i, nid in enumerate(sorted(branch_nodes)):
         if _is(nid, "tee"):
             tee_names[nid] = "t" if i == 0 else f"t{i}"
 
-    # gather/compositor 이름 할당 (in-degree>1)
+    # Name the gathers/compositors (in-degree>1)
     merge_names = {}
     mc = 0
     for nid in sorted(merge_nodes):
@@ -340,7 +339,7 @@ def _branching_pipeline(nodes, edges, children, parents, branch_nodes, merge_nod
     merge_in_count = {m: len(parents.get(m, [])) for m in merge_names}
 
     def _grid_props(mid, idx):
-        """compositor sink_idx 의 격자 위치 (1280x720 기준)."""
+        """Grid position of compositor sink_idx (on a 1280x720 canvas)."""
         if not _is(mid, "compositor"):
             return {}
         n = max(1, merge_in_count.get(mid, 1))
@@ -365,7 +364,7 @@ def _branching_pipeline(nodes, edges, children, parents, branch_nodes, merge_nod
                 prop_str += f" {k}={v}"
         return elem + prop_str
 
-    # merge 별 sink pad 인덱스 발급 + compositor grid props 누적
+    # Hand out sink pad indexes per merge and collect the compositor grid props
     _sink_idx = {m: 0 for m in merge_names}
     _merge_props = {m: {} for m in merge_names}
 
@@ -379,9 +378,9 @@ def _branching_pipeline(nodes, edges, children, parents, branch_nodes, merge_nod
     segments = []
 
     def _emit_chain(start, prefix=""):
-        """start 부터 선형 체인 방출. tee/merge 경계에서 종료.
+        """Emit the linear chain from start, stopping at a tee/merge boundary.
 
-        merge 노드를 만나면 ``merge.sink_<i>`` 로 링크하고 끝낸다(merge 정의는 별도).
+        At a merge node, link to ``merge.sink_<i>`` and stop (the merge is defined separately).
         """
         chain = []
         cur = start
@@ -393,7 +392,7 @@ def _branching_pipeline(nodes, edges, children, parents, branch_nodes, merge_nod
             visited.add(cur)
             chain.append(_node_str(cur))
             if cur in tee_names:
-                cur = None  # tee 가지는 별도 방출
+                cur = None  # tee branches are emitted separately
                 break
             ch = children.get(cur, [])
             if len(ch) == 1:
@@ -408,7 +407,7 @@ def _branching_pipeline(nodes, edges, children, parents, branch_nodes, merge_nod
         if chain:
             segments.append(prefix + " ! ".join(chain))
 
-    # 1) 모든 소스(root) 체인 방출 — 멀티스트림 핵심 수정
+    # 1) Emit every source (root) chain — needed for multi-stream
     all_dsts = {dst for _, dst in edges}
     roots = [nid for nid in nodes if nid not in all_dsts]
     if not roots:
@@ -416,13 +415,13 @@ def _branching_pipeline(nodes, edges, children, parents, branch_nodes, merge_nod
     for r in sorted(roots):
         _emit_chain(r)
 
-    # 2) tee 가지 방출
+    # 2) Emit the tee branches
     for tnid in sorted(tee_names, key=lambda n: tee_names[n]):
         tname = tee_names[tnid]
         for ch_nid in children.get(tnid, []):
             _emit_chain(ch_nid, prefix=f"{tname}. ! ")
 
-    # 3) merge 노드 정의 + 하류 선형 체인 방출 (한 번씩)
+    # 3) Define each merge node and emit its downstream linear chain (once each)
     for mnid in sorted(merge_names, key=lambda n: merge_names[n]):
         if mnid in visited:
             continue
@@ -451,10 +450,10 @@ def _branching_pipeline(nodes, edges, children, parents, branch_nodes, merge_nod
 
 
 class PipelineManager:
-    """GStreamer 파이프라인 매니저 — 동시 실행 1개 제한.
+    """GStreamer pipeline manager — one pipeline at a time.
 
-    GLib.MainLoop을 별도 스레드에서 실행한다.
-    HTTP 핸들러에서는 GLib.idle_add()로 GStreamer 호출을 마샬링해야 한다.
+    GLib.MainLoop runs in its own thread.
+    HTTP handlers must marshal GStreamer calls through GLib.idle_add().
     """
 
     def __init__(self):
@@ -468,15 +467,15 @@ class PipelineManager:
         self._saved_env: dict | None = None
 
     def start(self, pipeline_str: str, extra_env: dict | None = None) -> str:
-        """파이프라인 시작. 이미 실행 중이면 이전 것을 중지 후 시작.
+        """Start a pipeline, stopping the running one first.
 
         Returns: pipeline_id (UUID)
-        Raises: RuntimeError — GStreamer 미설치
+        Raises: RuntimeError — GStreamer not installed
         """
         if not _gst_available:
             raise RuntimeError("GStreamer not available — GI 바인딩을 설치하세요")
 
-        # dxrtd 메시지 큐 정리 (이전 프로세스 잔여 메시지로 인한 hang 방지)
+        # Drain the dxrtd message queue (leftover messages from an earlier process cause a hang)
         _drain_dxrt_msgqueues()
 
         with self._lock:
@@ -511,7 +510,7 @@ class PipelineManager:
                     self._saved_env = {}
                 raise RuntimeError(f"파이프라인 파싱 실패: {e.message}")
 
-            # Bus 메시지 핸들링 (set_state 전에 연결해야 에러 감지)
+            # Bus messages (connect before set_state, or errors are missed)
             bus = self._pipeline.get_bus()
             bus.add_signal_watch()
             bus.connect("message::error", self._on_bus_error)
@@ -528,7 +527,7 @@ class PipelineManager:
                 )
                 self._mainloop_thread.start()
 
-            # set_state(PLAYING)을 별도 스레드에서 실행 — NPU 초기화가 blocking될 수 있음
+            # Run set_state(PLAYING) in its own thread — NPU initialization can block
             pipeline_ref = self._pipeline
             state_result = [None]
 
@@ -549,16 +548,16 @@ class PipelineManager:
             return self._pipeline_id
 
     def get_pipeline(self):
-        """현재 GStreamer 파이프라인 객체 반환 (없으면 None)."""
+        """The current GStreamer pipeline object (None if none)."""
         return self._pipeline
 
     def stop(self):
-        """파이프라인 중지 — EOS 후 NULL"""
+        """Stop the pipeline — EOS, then NULL."""
         with self._lock:
             self._stop_internal()
 
     def _stop_internal(self):
-        """내부 중지 (lock 외부에서 호출 금지)"""
+        """Internal stop (call only while holding the lock)."""
         if self._pipeline is not None:
             pipeline = self._pipeline
             self._pipeline = None
@@ -594,13 +593,13 @@ class PipelineManager:
         return self._pipeline_id
 
     def get_webrtcbin(self) -> Any | None:
-        """파이프라인에서 webrtcbin 엘리먼트를 반환한다."""
+        """The webrtcbin element in the pipeline."""
         if self._pipeline is None:
             return None
         return self._pipeline.get_by_name("sendrecv")
 
     def idle_add(self, callback, *args):
-        """GLib.idle_add() 래퍼 — HTTP 스레드에서 GStreamer 호출 시 사용"""
+        """GLib.idle_add() wrapper for GStreamer calls from the HTTP thread."""
         if _gst_available and GLib:
             GLib.idle_add(callback, *args)
         else:
@@ -622,7 +621,7 @@ class PipelineManager:
         return self._last_error
 
     def wait_for_initial_error(self, timeout: float = 1.0) -> str | None:
-        """짧은 시간 동안 즉시 버스 에러 발생 여부를 폴링한다."""
+        """Poll the bus briefly for an immediate error."""
         import time
         deadline = time.monotonic() + timeout
         while time.monotonic() < deadline:
