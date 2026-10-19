@@ -4,7 +4,7 @@
     {
       "id": "mini-game-squat-fitness",
       "category": "npu-apps",
-      "media": "media/dx-agent-dev-squat-gameplay.gif",
+      "media": "media/dx-agent-dev-squat-gameplay.webp",
       "url": "https://github.com/DEEPX-AI/dx-all-suite/blob/staging/dx-agent-dev-showcase/mini-game-squat-fitness/README.md",
       "title": {"en": "Squat-Counting Mini-Game", "ko": "스쿼트 카운팅 미니게임", "ja": "スクワットカウント・ミニゲーム", "es": "Minijuego de conteo de sentadillas", "zh-CN": "深蹲计数小游戏", "zh-TW": "深蹲計數小遊戲"},
       "tagline": {"en": "rep-counting fitness on NPU", "ko": "NPU 기반 횟수 카운팅 피트니스", "ja": "NPUで回数カウントするフィットネス", "es": "fitness con conteo de repeticiones en NPU", "zh-CN": "在 NPU 上计数的健身游戏", "zh-TW": "在 NPU 上計數的健身遊戲"}
@@ -12,7 +12,7 @@
     {
       "id": "mini-game-stretching-coach",
       "category": "npu-apps",
-      "media": "media/dx-agent-dev-stretch-gameplay.gif",
+      "media": "media/dx-agent-dev-stretch-gameplay.webp",
       "url": "https://github.com/DEEPX-AI/dx-all-suite/blob/staging/dx-agent-dev-showcase/mini-game-stretching-coach/README.md",
       "title": {"en": "Stretching Coach Mini-Game", "ko": "스트레칭 코치 미니게임", "ja": "ストレッチコーチ・ミニゲーム", "es": "Minijuego de entrenador de estiramientos", "zh-CN": "拉伸教练小游戏", "zh-TW": "伸展教練小遊戲"},
       "tagline": {"en": "pose-guided arcade coach", "ko": "포즈 가이드 아케이드 코치", "ja": "ポーズガイド付きアーケードコーチ", "es": "entrenador arcade guiado por poses", "zh-CN": "姿势引导的街机教练", "zh-TW": "姿勢引導的街機教練"}
@@ -20,7 +20,7 @@
     {
       "id": "ultralytics-yolo-deepx-export",
       "category": "ultralytics",
-      "media": "media/dx-agent-dev-ultralytics-yolo.gif",
+      "media": "media/dx-agent-dev-ultralytics-yolo.webp",
       "url": "https://github.com/DEEPX-AI/dx-all-suite/blob/staging/dx-agent-dev-showcase/ultralytics-yolo-deepx-export/README.md",
       "title": {"en": "Ultralytics YOLO → DeepX Export", "ko": "Ultralytics YOLO → DeepX 내보내기", "ja": "Ultralytics YOLO → DeepX エクスポート", "es": "Ultralytics YOLO → Exportación DeepX", "zh-CN": "Ultralytics YOLO → DeepX 导出", "zh-TW": "Ultralytics YOLO → DeepX 匯出"},
       "tagline": {"en": "one-command format=deepx", "ko": "명령 한 줄 format=deepx", "ja": "ワンコマンド format=deepx", "es": "format=deepx en un solo comando", "zh-CN": "一条命令 format=deepx", "zh-TW": "一條命令 format=deepx"}
@@ -60,9 +60,9 @@
     {
       "id": "paddleocr-video-ocr",
       "category": "paddlepaddle",
-      "media": "media/dx-agent-dev-paddleocr-gameplay.gif",
+      "media": "media/dx-agent-dev-paddleocr-gameplay.webp",
       "url": "https://github.com/DEEPX-AI/dx-all-suite/blob/staging/dx-agent-dev-showcase/paddleocr-video-ocr/README.md",
-      "title": {"en": "Video / Webcam OCR (PP-OCRv5)", "ko": "영상 / 웹캠 OCR (PP-OCRv5)", "ja": "動画 / ウェブカメラ OCR (PP-OCRv5)", "es": "OCR de vídeo / webcam (PP-OCRv5)", "zh-CN": "视频 / 网络摄像头 OCR (PP-OCRv5)", "zh-TW": "影片 / 網路攝影機 OCR (PP-OCRv5)"},
+      "title": {"en": "Video / Webcam OCR (PP-OCRv5)", "ko": "영상 / 웹캠 OCR (PP-OCRv5)", "ja": "動画 / ウェブカメラ OCR (PP-OCRv5)", "es": "OCR de video / webcam (PP-OCRv5)", "zh-CN": "视频 / 网络摄像头 OCR (PP-OCRv5)", "zh-TW": "影片 / 網路攝影機 OCR (PP-OCRv5)"},
       "tagline": {"en": "PaddleOCR PP-OCRv5 on the NPU", "ko": "NPU에서 실행하는 PaddleOCR PP-OCRv5", "ja": "NPUで動くPaddleOCR PP-OCRv5", "es": "PaddleOCR PP-OCRv5 en la NPU", "zh-CN": "在 NPU 上运行 PaddleOCR PP-OCRv5", "zh-TW": "在 NPU 上運行 PaddleOCR PP-OCRv5"}
     },
     {

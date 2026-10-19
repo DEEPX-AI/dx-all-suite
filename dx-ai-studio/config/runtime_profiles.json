@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "studio_version": "0.1.0",
-  "target_runtime_version": "2.4.1",
+  "studio_version": "0.1.1",
+  "target_runtime_version": "2.4.2",
   "profiles": {
     "2.3.0": {
       "gstreamer_abi": "1.20",
@@ -61,6 +61,37 @@
             "version": "2.5.1",
             "uri": "https://raw.githubusercontent.com/DEEPX-AI/dx_rt_npu_linux_driver/2743a29e6b361e1d07d484ed734ded0981c19418/release/2.5.1/dxrt-driver-dkms_2.5.1-2_all.deb",
             "sha256": "b686c1d83acc0bd5ada7808fc913516ae0db6cceaff757c5cbf05914e0871d64"
+          }
+        }
+      }
+    },
+    "2.4.2": {
+      "gstreamer_abi": "1.20",
+      "suite_revision": "6cbf4a1836bbabe213fc4af2db09f1095f10bc3e",
+      "runtime_revision": "28dde435c6260cee196c5a73d7ca7adde3f08ffd",
+      "architectures": {
+        "x86_64": {
+          "runtime": {
+            "version": "3.4.2",
+            "uri": "https://raw.githubusercontent.com/DEEPX-AI/dx_rt/ed4e8fdb4166e069176870f85a43b10dcbbf35eb/release/3.4.2/libdxrt-bin_3.4.2_amd64.deb",
+            "sha256": "da782deac10acb1c997b52ea6d0160c06f112a68ad5e25035cfc8e16de0a8bdc"
+          },
+          "driver": {
+            "version": "2.6.0",
+            "uri": "https://raw.githubusercontent.com/DEEPX-AI/dx_rt_npu_linux_driver/7074748e7104f470b02f517583abba652b3f05fa/release/2.6.0/dxrt-driver-dkms_2.6.0-2_all.deb",
+            "sha256": "6ab417956d2abd70c181c4aa0bae71bc60e0961ccf37eac9fc82d0e6a8314468"
+          }
+        },
+        "aarch64": {
+          "runtime": {
+            "version": "3.4.2",
+            "uri": "https://raw.githubusercontent.com/DEEPX-AI/dx_rt/ed4e8fdb4166e069176870f85a43b10dcbbf35eb/release/3.4.2/libdxrt-bin_3.4.2_arm64.deb",
+            "sha256": "161223058938c54efadc581b33499210194da58e55cd5ade332e692ca0d649c2"
+          },
+          "driver": {
+            "version": "2.6.0",
+            "uri": "https://raw.githubusercontent.com/DEEPX-AI/dx_rt_npu_linux_driver/7074748e7104f470b02f517583abba652b3f05fa/release/2.6.0/dxrt-driver-dkms_2.6.0-2_all.deb",
+            "sha256": "6ab417956d2abd70c181c4aa0bae71bc60e0961ccf37eac9fc82d0e6a8314468"
           }
         }
       }

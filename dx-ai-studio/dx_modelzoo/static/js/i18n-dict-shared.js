@@ -1,6 +1,17 @@
 /* DX Model Zoo — i18n Dictionary: shared */
 'use strict';
 window._DX_MODELZOO_I18N_REGISTER({
+  // Card and detail summaries (per-task sentences from metadata/merge.py, app.js _summaryText)
+  'Image classification model for visual recognition tasks.': { en: 'Image classification model for visual recognition tasks.', ko: '시각 인식을 위한 이미지 분류 모델입니다.', ja: '視覚認識のための画像分類モデルです。', 'zh-CN': '用于视觉识别的图像分类模型。', 'zh-TW': '用於視覺辨識的影像分類模型。', es: 'Modelo de clasificación de imágenes para tareas de reconocimiento visual.' },
+  'Object detection model for identifying and localizing objects.': { en: 'Object detection model for identifying and localizing objects.', ko: '물체를 찾고 위치를 알려 주는 객체 탐지 모델입니다.', ja: '物体を識別して位置を特定する物体検出モデルです。', 'zh-CN': '用于识别和定位物体的目标检测模型。', 'zh-TW': '用於辨識與定位物體的物件偵測模型。', es: 'Modelo de detección de objetos para identificarlos y localizarlos.' },
+  'Main-body detection model that finds the main object in an image.': { en: 'Main-body detection model that finds the main object in an image.', ko: '이미지에서 가장 중심이 되는 물체를 찾는 주요 객체 탐지 모델입니다.', ja: '画像の中心となる物体を見つける主要物体検出モデルです。', 'zh-CN': '在图像中找出主体物体的主体检测模型。', 'zh-TW': '在影像中找出主體物件的主體偵測模型。', es: 'Modelo de detección del objeto principal que encuentra el objeto principal de una imagen.' },
+  'Semantic segmentation model for pixel-level classification.': { en: 'Semantic segmentation model for pixel-level classification.', ko: '픽셀 단위로 분류하는 의미론적 분할 모델입니다.', ja: 'ピクセル単位で分類するセマンティックセグメンテーションモデルです。', 'zh-CN': '用于像素级分类的语义分割模型。', 'zh-TW': '用於像素級分類的語意分割模型。', es: 'Modelo de segmentación semántica para clasificación a nivel de píxel.' },
+  'Face detection model for detecting facial regions.': { en: 'Face detection model for detecting facial regions.', ko: '얼굴 영역을 찾는 얼굴 탐지 모델입니다.', ja: '顔の領域を検出する顔検出モデルです。', 'zh-CN': '用于检测人脸区域的人脸检测模型。', 'zh-TW': '用於偵測人臉區域的人臉偵測模型。', es: 'Modelo de detección de rostros para localizar regiones faciales.' },
+  'Pose estimation model for detecting body keypoints.': { en: 'Pose estimation model for detecting body keypoints.', ko: '몸의 키포인트를 찾는 자세 추정 모델입니다.', ja: '体のキーポイントを検出する姿勢推定モデルです。', 'zh-CN': '用于检测人体关键点的姿态估计模型。', 'zh-TW': '用於偵測人體關鍵點的姿態估計模型。', es: 'Modelo de estimación de pose para detectar puntos clave del cuerpo.' },
+  'Depth estimation model for predicting depth maps.': { en: 'Depth estimation model for predicting depth maps.', ko: '깊이 맵을 예측하는 깊이 추정 모델입니다.', ja: '深度マップを予測する深度推定モデルです。', 'zh-CN': '用于预测深度图的深度估计模型。', 'zh-TW': '用於預測深度圖的深度估計模型。', es: 'Modelo de estimación de profundidad para predecir mapas de profundidad.' },
+  'Super resolution model for image upscaling.': { en: 'Super resolution model for image upscaling.', ko: '이미지를 확대하는 초해상도 모델입니다.', ja: '画像を拡大する超解像モデルです。', 'zh-CN': '用于图像放大的超分辨率模型。', 'zh-TW': '用於影像放大的超解析度模型。', es: 'Modelo de superresolución para ampliar imágenes.' },
+  'Instance segmentation model for per-object pixel masks.': { en: 'Instance segmentation model for per-object pixel masks.', ko: '물체마다 픽셀 마스크를 만드는 인스턴스 분할 모델입니다.', ja: '物体ごとにピクセルマスクを作るインスタンスセグメンテーションモデルです。', 'zh-CN': '为每个物体生成像素掩码的实例分割模型。', 'zh-TW': '為每個物體產生像素遮罩的實例分割模型。', es: 'Modelo de segmentación de instancias con una máscara de píxeles por objeto.' },
+  '%s model.': { en: '%s model.', ko: '%s 모델입니다.', ja: '%s モデルです。', 'zh-CN': '%s 模型。', 'zh-TW': '%s 模型。', es: 'Modelo de %s.' },
   'DX Model Zoo': {
     en: 'DX Model Zoo',
     ko: 'DX Model Zoo',
@@ -164,7 +175,7 @@ window._DX_MODELZOO_I18N_REGISTER({
   'Run Inference': {
     en: 'Run Inference',
     ko: '추론 실행',
-    ja: '推論を実行',
+    ja: '推論実行',
     'zh-CN': '运行推理',
     'zh-TW': '執行推論',
     es: 'Ejecutar inferencia',
@@ -185,13 +196,29 @@ window._DX_MODELZOO_I18N_REGISTER({
     'zh-TW': 'DX App 未執行',
     es: 'DX App no está en ejecución',
   },
-  'DX App is not running. Run Inference needs the DX App module (port 8080) — launch DX AI Studio (it auto-starts DX App) or start the DX App module, then retry.': {
-    en: 'DX App is not running. Run Inference needs the DX App module (port 8080) — launch DX AI Studio (it auto-starts DX App) or start the DX App module, then retry.',
-    ko: 'DX App가 실행 중이 아닙니다. 추론 실행에는 DX App 모듈(포트 8080)이 필요합니다 — DX AI Studio를 실행하면 DX App이 자동으로 시작되거나, DX App 모듈을 직접 시작한 후 다시 시도하세요.',
-    ja: 'DX App が実行されていません。推論の実行には DX App モジュール（ポート 8080）が必要です — DX AI Studio を起動すると DX App が自動起動します。または DX App モジュールを直接起動してから再試行してください。',
-    'zh-CN': 'DX App 未运行。运行推理需要 DX App 模块（端口 8080）— 启动 DX AI Studio（会自动启动 DX App），或直接启动 DX App 模块，然后重试。',
-    'zh-TW': 'DX App 未執行。執行推論需要 DX App 模組（連接埠 8080）— 啟動 DX AI Studio（會自動啟動 DX App），或直接啟動 DX App 模組，然後重試。',
-    es: 'DX App no está en ejecución. Ejecutar inferencia necesita el módulo DX App (puerto 8080): inicie DX AI Studio (que inicia DX App automáticamente) o inicie el módulo DX App directamente, y vuelva a intentarlo.',
+  'DX App is not running. Run Inference needs the DX App module — DX AI Studio starts it with the launcher; if it stopped, restart the launcher and retry.': {
+    en: 'DX App is not running. Run Inference needs the DX App module — DX AI Studio starts it with the launcher; if it stopped, restart the launcher and retry.',
+    ko: 'DX App가 실행 중이 아닙니다. 추론 실행에는 DX App 모듈이 필요합니다 — DX AI Studio 런처가 함께 시작합니다. 멈췄다면 런처를 다시 시작한 뒤 시도하세요.',
+    ja: 'DX App が実行されていません。推論の実行には DX App モジュールが必要です — DX AI Studio のランチャーが一緒に起動します。停止している場合はランチャーを再起動してから再試行してください。',
+    'zh-CN': 'DX App 未运行。运行推理需要 DX App 模块 — DX AI Studio 启动器会一并启动它；若已停止，请重新启动启动器后重试。',
+    'zh-TW': 'DX App 未執行。執行推論需要 DX App 模組 — DX AI Studio 啟動器會一併啟動它；若已停止，請重新啟動啟動器後重試。',
+    es: 'DX App no está en ejecución. Ejecutar inferencia necesita el módulo DX App, que el lanzador de DX AI Studio inicia; si se detuvo, reinicie el lanzador y vuelva a intentarlo.',
+  },
+  'Params (M)': {
+    en: 'Params (M)',
+    ko: '파라미터 (M)',
+    ja: 'パラメータ (M)',
+    'zh-CN': '参数量 (M)',
+    'zh-TW': '參數量 (M)',
+    es: 'Parámetros (M)',
+  },
+  'Operations (GOPs)': {
+    en: 'Operations (GOPs)',
+    ko: '연산량 (GOPs)',
+    ja: '演算量 (GOPs)',
+    'zh-CN': '运算量 (GOPs)',
+    'zh-TW': '運算量 (GOPs)',
+    es: 'Operaciones (GOPs)',
   },
   'Input Resolution': {
     en: 'Input Resolution',

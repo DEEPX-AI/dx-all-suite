@@ -38,26 +38,32 @@ def _function_body(source: str, name: str) -> str:
 def test_health_status_writes_only_when_class_changes():
     js = _read_all_launcher_js()
 
-    for function_name in ("setDot", "setStatus", "_setOrbStatus"):
+    # Only _setOrbStatus writes health state to the screen.
+    for function_name in ("_setOrbStatus",):
         body = _function_body(js, function_name)
         assert "if (el && el.className !== targetClass)" in body
         assert "el.className = targetClass" in body
 
 
-def test_orbital_resize_is_debounced_and_does_not_stack_hover_listeners():
+def test_home_does_not_relayout_module_cards_on_resize():
+    """Resizing the home must cost nothing.
+
+    The ring recomputed eight card positions and eight SVG connector lines on
+    every resize, debounced at 120ms and watched by a ResizeObserver. A grid
+    reflows in the compositor, so all of that machinery is gone — and this test
+    is what keeps it from coming back.
+    """
     js = _read_all_launcher_js()
 
-    assert "window.addEventListener('resize', scheduleOrbitalLayout)" in js
-    assert "setTimeout(initOrbital, 120)" in js
-    assert "orbital-ready" in js
+    assert "scheduleOrbitalLayout" not in js
+    assert "initOrbital(" not in js
+    assert "orbital-ready" not in js
     assert "ensureStudioReady" in js
-    assert "ResizeObserver" in js
-    assert "mouseenter', _handleOrbitalCardMouseEnter" in js
-    assert "mouseleave', _handleOrbitalCardMouseLeave" in js
-    body = _function_body(js, "initOrbital")
-    assert "rect.width < 80" in body
-    assert "card.addEventListener('mouseenter', () =>" not in body
-    assert "card.addEventListener('mouseleave', () =>" not in body
+    # The hover tooltip existed because a ring card had nowhere to put its
+    # detail — the panel had to float and be positioned by script. A grid card
+    # has room underneath, so the listeners and the tooltip layer went too.
+    assert "_handleOrbitalCardMouseEnter" not in js
+    assert "_orbitalTooltipEl" not in js
 
 
 def test_nav_tabs_are_built_once_and_then_only_toggle_active_classes():

@@ -1,7 +1,6 @@
-"""시스템 상태 감지 — NPU, GStreamer, 모델, 비디오, 빌드 상태를 확인한다.
+"""System status — NPU, GStreamer, models, videos and build state.
 
-대시보드 및 설정 페이지에서 사용.
-실패 시나리오 #1~#3 완화의 핵심 모듈.
+Used by the dashboard and the setup page to show what is missing before a pipeline fails.
 """
 from __future__ import annotations
 
@@ -16,13 +15,13 @@ def _all_model_files() -> list[str]:
 
 
 def _check_npu() -> dict:
-    """NPU 디바이스 존재 여부 — /dev/dxrt* 패턴"""
+    """Whether an NPU device exists (/dev/dxrt*)."""
     devices = sorted(str(p) for p in Path("/dev").glob("dxrt*"))
     return {"ok": len(devices) > 0, "devices": devices}
 
 
 def _check_gst() -> dict:
-    """GStreamer 설치 및 dxstream 플러그인 확인"""
+    """GStreamer installed and the dxstream plugins present."""
     gst_bin = shutil.which("gst-inspect-1.0")
     if not gst_bin:
         return {"ok": False, "installed": False, "plugin": False}
@@ -38,7 +37,7 @@ def _check_gst() -> dict:
 
 
 def _check_models() -> dict:
-    """모델 다운로드 상태 — 카탈로그 기준 각 .dxnn 존재 여부"""
+    """Model download state — whether each catalog .dxnn exists."""
     from dx_stream.core.models import get_catalog_source
     all_models = _all_model_files()
     installed = []
@@ -62,29 +61,45 @@ def _check_models() -> dict:
 
 
 def _check_videos() -> dict:
-    """샘플 비디오 존재 여부"""
+    """Whether the sample videos exist."""
     if not VIDEOS_DIR.is_dir():
         return {"ok": False, "count": 0, "files": []}
-    vids = [f.name for f in VIDEOS_DIR.iterdir()
-            if f.suffix.lower() in (".mp4", ".mov", ".avi", ".mkv")]
+    # setup.sh extracts the tarball into a sample_videos/ subfolder — count what the demos find
+    # (core.demos._video_path also searches below VIDEOS_DIR).
+    vids = [f.name for f in VIDEOS_DIR.rglob("*")
+            if f.is_file() and f.suffix.lower() in (".mp4", ".mov", ".avi", ".mkv")]
     return {"ok": len(vids) > 0, "count": len(vids), "files": sorted(vids)}
 
 
-def _check_webrtc() -> dict:
-    """WebRTC 의존성 확인 — nicesrc 플러그인 필요"""
+def _nice_plugin_ok() -> bool:
     try:
-        r = subprocess.run(
-            ["gst-inspect-1.0", "nicesrc"],
-            capture_output=True, timeout=5
-        )
-        nice_ok = r.returncode == 0
+        return subprocess.run(["gst-inspect-1.0", "nicesrc"], capture_output=True, timeout=5).returncode == 0
     except Exception:
-        nice_ok = False
-    return {"ok": nice_ok, "nice_plugin": nice_ok}
+        return False
+
+
+def _gi_webrtc_ok() -> bool:
+    """Whether this server's Python can load the GstWebRTC binding (it drives webrtcbin)."""
+    try:
+        import gi
+        gi.require_version("GstWebRTC", "1.0")
+        from gi.repository import GstWebRTC  # noqa: F401
+        return True
+    except Exception:
+        return False
+
+
+def _check_webrtc() -> dict:
+    """WebRTC dependencies — both nicesrc and the GstWebRTC binding. With nicesrc alone Setup says "OK" while
+    Local (WebRTC) still falls back to MJPEG (gir1.2-gst-plugins-bad-1.0 missing)."""
+    nice_ok = _nice_plugin_ok()
+    gi_ok = _gi_webrtc_ok()
+    missing = ([] if nice_ok else ["gstreamer1.0-nice"]) + ([] if gi_ok else ["gir1.2-gst-plugins-bad-1.0"])
+    return {"ok": nice_ok and gi_ok, "nice_plugin": nice_ok, "gi_webrtc": gi_ok, "missing": missing}
 
 
 def _check_build() -> dict:
-    """GStreamer 플러그인 빌드 상태 — .so 파일 존재 확인 (통합 finder 위임)."""
+    """GStreamer plugin build state — whether the .so files exist (via the shared finder)."""
     from dx_stream.core import gst_env
 
     so = gst_env.find_dxstream_plugin()
@@ -114,7 +129,7 @@ def _get_npu_driver_version():
 
 
 def check_system(pipeline_mgr=None) -> dict:
-    """전체 시스템 상태 집계"""
+    """All system status in one dict."""
     result = {
         "npu": _check_npu(),
         "gstreamer": _check_gst(),

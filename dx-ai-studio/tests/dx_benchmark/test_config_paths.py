@@ -37,8 +37,5 @@ def test_iter_result_dirs_yields_legacy_only_if_exists(tmp_path):
         assert dirs == [fake_canonical, fake_legacy]
 
 
-# NOTE: runtime aggregation (_aggregate_all_result_dirs, _regenerate_dataset)
-# was removed from dx_benchmark/server.py — the studio now serves the bundled
-# dx_benchmark/dataset.json as-is (see tests/launcher/test_benchmark_endpoints.py).
-# The aggregation-behavior tests that used to live here were dropped along
-# with the functions they exercised.
+# The studio serves the bundled dx_benchmark/dataset.json as-is and does no
+# runtime aggregation (see tests/launcher/test_benchmark_endpoints.py).

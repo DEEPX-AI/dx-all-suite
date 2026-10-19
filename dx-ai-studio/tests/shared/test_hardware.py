@@ -1113,7 +1113,7 @@ def test_get_hw_includes_metadata_from_optional_npu_stats_binary(tmp_path):
 
 
 def test_get_sysinfo_reads_runtime_release_versions_from_suite_root(tmp_path):
-    """F-16: dx_rt/dx_app versions must resolve to <SUITE_ROOT>/dx-runtime/{dx_rt,dx_app}/release.ver,
+    """dx_rt/dx_app versions must resolve to <SUITE_ROOT>/dx-runtime/{dx_rt,dx_app}/release.ver,
     not to the studio's own dx_app dir (which has no release.ver -> always N/A)."""
     import hardware
 

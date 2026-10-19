@@ -1,4 +1,4 @@
-"""dx_modelzoo 테스트 픽스처 — sys.path 격리 + generated catalog bootstrap."""
+"""dx_modelzoo test fixtures: sys.path isolation and generated catalog bootstrap."""
 import subprocess
 import sys
 from pathlib import Path
@@ -34,11 +34,11 @@ def _ensure_generated_catalog():
 
 
 def _isolate_zoo():
-    """core/server 모듈 캐시 제거 + zoo 경로를 sys.path 최상위로."""
+    """Drop the cached core/server modules and put the zoo path first on sys.path."""
     for mod_name in list(sys.modules):
         if mod_name in ("core", "server") or mod_name.startswith("core."):
             del sys.modules[mod_name]
-    # stream 경로를 임시 제거하고 zoo를 맨 앞으로
+    # Remove the stream path for now and put the zoo first
     while _STREAM_ROOT in sys.path:
         sys.path.remove(_STREAM_ROOT)
     if _ZOO_ROOT in sys.path:
@@ -51,15 +51,15 @@ def pytest_sessionstart(session):
 
 
 def pytest_runtest_setup(item):
-    """각 modelzoo 테스트 실행 전 격리."""
+    """Isolate before each modelzoo test."""
     _isolate_zoo()
 
 
 def pytest_runtest_teardown(item, nextitem):
-    """modelzoo 테스트 후 정리 — stream 경로 복원."""
+    """Clean up after a modelzoo test: restore the stream path."""
     for mod_name in list(sys.modules):
         if mod_name in ("core", "server") or mod_name.startswith("core."):
             del sys.modules[mod_name]
-    # stream 경로 복원 (stream 테스트가 나중에 실행될 수 있음)
+    # Restore the stream path (stream tests may run later)
     if _STREAM_ROOT not in sys.path:
         sys.path.append(_STREAM_ROOT)

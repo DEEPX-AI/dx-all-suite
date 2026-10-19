@@ -1,4 +1,4 @@
-"""Phase 4 i18n Audit Contracts — Module Language Bridges.
+"""i18n Contracts — Module Language Bridges.
 
 Validates:
 - Module language bridge integration (postMessage or DXI18n.onLangChange hook)
@@ -263,19 +263,16 @@ class TestCSSLanguageMarkers:
             "shared/i18n.js does not add lang- classes to body"
         )
 
-    def test_dx_stream_relies_on_shared_css_markers(self):
-        """dx_stream uses CSS language spans — shared i18n must provide markers."""
-        source = _read("dx_stream/static/js/stream-app.js")
-        # Module uses language-specific spans like '.ko', '.en'
-        has_lang_spans = (
-            "'.ko'" in source or '".ko"' in source
-            or "'.en'" in source or '".en"' in source
-            or "class=\"ko\"" in source or "class='ko'" in source
-        )
-        assert has_lang_spans, (
-            "dx_stream does not appear to use CSS language spans (.ko/.en)"
-        )
+    def test_dx_stream_language_helper_returns_plain_text(self):
+        """DXStream._L returns the text for the chosen language only.
 
+        Five per-language <span>s toggled by CSS would leak raw HTML into toasts and confirm dialogs, which use
+        textContent, and a language without a span would show blank."""
+        source = _read("dx_stream/static/js/stream-app.js")
+        body = source[source.index("_L: function("):]
+        body = body[: body.index("}") + 1]
+        assert "class=\"ko\"" not in body and "<span" not in body
+        assert "es" in body.split(")")[0], "_L 은 여섯째 인자로 스페인어를 받는다"
 
 
 class TestNoHardcodedCriticalText:

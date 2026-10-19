@@ -1,5 +1,5 @@
 /**
- * WizardController — EdgeGuide 조건 입력 패널 UI 제어.
+ * WizardController — UI control for the EdgeGuide conditions panel.
  */
 const WizardController = {
   _state: {
@@ -16,14 +16,6 @@ const WizardController = {
   _setupUnlocked: false,
   _recommendCallback: null,
   _changeCallbacks: [],
-
-  _TASKS: [
-    { id: 'object_detection', icon: '🎯', ko: '객체 탐지', en: 'Object Detection' },
-    { id: 'pose_estimation', icon: '🏃', ko: '자세 추정', en: 'Pose Estimation' },
-    { id: 'segmentation', icon: '🧩', ko: '분할', en: 'Segmentation' },
-    { id: 'oriented_bbox', icon: '📐', ko: '회전 박스', en: 'Oriented BBox' },
-    { id: 'classification', icon: '🏷️', ko: '분류', en: 'Classification' },
-  ],
 
   _SIZES: [
     { id: 'n', ko: '최고속', en: 'Fastest' },
@@ -248,29 +240,29 @@ const WizardController = {
   },
 
   _syncUI() {
-    // 초기 task 버튼 활성화
+    // Initial task button state
     const taskBtn = document.querySelector(`.task-btn[data-task="${this._state.task}"]`);
     if (taskBtn) taskBtn.classList.add('selected');
 
-    // 초기 size 버튼 활성화
+    // Initial size button state
     const sizeBtn = document.querySelector(`.size-btn[data-size="${this._state.size}"]`);
     if (sizeBtn) sizeBtn.classList.add('selected');
 
-    // 슬라이더 초기값
+    // Initial slider values
     const slider = document.getElementById('channelSlider');
     const display = document.getElementById('channelValue');
     if (slider) slider.value = this._state.cameras;
     if (display) display.textContent = this._state.cameras;
 
-    // FPS 초기값
+    // Initial FPS
     const select = document.getElementById('targetFps');
     if (select) select.value = this._state.targetFps;
 
-    // 우선순위 초기값
+    // Initial priority
     const radio = document.querySelector(`input[name="priority"][value="${this._state.priority}"]`);
     if (radio) radio.checked = true;
 
-    // ORT 초기값
+    // Initial ORT
     const ortBtn = document.querySelector(`.ort-btn[data-ort="${this._state.ort}"]`);
     if (ortBtn) ortBtn.classList.add('selected');
 

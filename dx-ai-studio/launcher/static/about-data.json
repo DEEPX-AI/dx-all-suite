@@ -104,7 +104,7 @@
     },
     "values": [
       {
-        "icon": "💡",
+        "icon": "star",
         "title": {
           "en": "Innovation",
           "ko": "혁신",
@@ -123,7 +123,7 @@
         }
       },
       {
-        "icon": "⚡",
+        "icon": "bolt",
         "title": {
           "en": "Efficiency",
           "ko": "효율성",
@@ -142,7 +142,7 @@
         }
       },
       {
-        "icon": "🤝",
+        "icon": "users",
         "title": {
           "en": "Collaboration",
           "ko": "협업",
@@ -161,7 +161,7 @@
         }
       },
       {
-        "icon": "🏆",
+        "icon": "award",
         "title": {
           "en": "Excellence",
           "ko": "탁월함",
@@ -241,7 +241,7 @@
             "ja": "仕事のオーナーシップ",
             "zh-CN": "为工作负责到底",
             "zh-TW": "為工作負責到底",
-            "es": "Responsabilízate de tu trabajo"
+            "es": "Responsabilidad sobre el propio trabajo"
           },
           "desc": {
             "en": "Full responsibility for every project, from start to finish.",
@@ -1148,7 +1148,7 @@
     ],
     "useCases": [
       {
-        "icon": "📹",
+        "icon": "camera",
         "title": {
           "en": "Edge Camera Systems",
           "ko": "엣지 카메라",
@@ -1167,7 +1167,7 @@
         }
       },
       {
-        "icon": "🏭",
+        "icon": "factory",
         "title": {
           "en": "Smart Factory",
           "ko": "스마트 팩토리",
@@ -1186,7 +1186,7 @@
         }
       },
       {
-        "icon": "🤖",
+        "icon": "robot",
         "title": {
           "en": "Robotics",
           "ko": "로보틱스",
@@ -1205,7 +1205,7 @@
         }
       },
       {
-        "icon": "🏙️",
+        "icon": "city",
         "title": {
           "en": "Smart Cities",
           "ko": "스마트 시티",
@@ -1224,7 +1224,7 @@
         }
       },
       {
-        "icon": "🚗",
+        "icon": "car",
         "title": {
           "en": "Smart Mobility",
           "ko": "스마트 모빌리티",
@@ -1243,7 +1243,7 @@
         }
       },
       {
-        "icon": "🛸",
+        "icon": "drone",
         "title": {
           "en": "Drones",
           "ko": "드론",
@@ -1262,7 +1262,7 @@
         }
       },
       {
-        "icon": "🖥️",
+        "icon": "cpu",
         "title": {
           "en": "Edge Computing",
           "ko": "엣지 컴퓨팅",
@@ -1281,7 +1281,7 @@
         }
       },
       {
-        "icon": "🛍️",
+        "icon": "bag",
         "title": {
           "en": "Smart Retail",
           "ko": "스마트 리테일",
@@ -1419,57 +1419,57 @@
     "awards": [
       {
         "name": "CES Innovation Awards 2026 — Double Honoree",
-        "icon": "🏆",
+        "icon": "award",
         "year": "2026"
       },
       {
         "name": "CTA \"What Not To Miss\" — 2nd Consecutive Year",
-        "icon": "⭐",
+        "icon": "star",
         "year": "2026"
       },
       {
         "name": "Electronic Products / EE Times — 2024 Product of the Year (DX-M1)",
-        "icon": "📰",
+        "icon": "news",
         "year": "2024"
       },
       {
         "name": "WEF — Sustainable & Responsible AI Innovation Company",
-        "icon": "🌍",
+        "icon": "globe",
         "year": "2025"
       },
       {
         "name": "Frost & Sullivan — 2024 Best Practices Award, AI Chip (Global)",
-        "icon": "📊",
+        "icon": "dashboard",
         "year": "2024"
       },
       {
         "name": "CES Innovation Awards 2024 — Triple Honoree",
-        "icon": "🏆",
+        "icon": "award",
         "year": "2024"
       },
       {
         "name": "CTA — Must-See Company (CES 2025)",
-        "icon": "⭐",
+        "icon": "star",
         "year": "2025"
       },
       {
         "name": "NYSE International Day — Representative Company",
-        "icon": "🔔",
+        "icon": "award",
         "year": "2025"
       },
       {
         "name": "InnoVEX Startup Terrace Awards (Computex Taipei) — 2nd Place",
-        "icon": "🥇",
+        "icon": "award",
         "year": "2023"
       },
       {
         "name": "VSD Innovators Awards — Gold Medal",
-        "icon": "🥇",
+        "icon": "award",
         "year": "2023"
       },
       {
         "name": "KIPO — Presidential Citation",
-        "icon": "🇰🇷",
+        "icon": "award",
         "year": "2023"
       }
     ],
@@ -1478,7 +1478,7 @@
   "partners": {
     "solutions": [
       {
-        "icon": "🏭",
+        "icon": "factory",
         "title": {
           "en": "Smart Factory",
           "ko": "스마트 팩토리",
@@ -1497,7 +1497,7 @@
         }
       },
       {
-        "icon": "🚗",
+        "icon": "car",
         "title": {
           "en": "Mobility",
           "ko": "모빌리티",
@@ -1516,7 +1516,7 @@
         }
       },
       {
-        "icon": "📹",
+        "icon": "city",
         "title": {
           "en": "Smart City",
           "ko": "스마트 시티",
@@ -1535,7 +1535,7 @@
         }
       },
       {
-        "icon": "🏥",
+        "icon": "medical",
         "title": {
           "en": "Healthcare",
           "ko": "헬스케어",
@@ -1554,7 +1554,7 @@
         }
       },
       {
-        "icon": "🤖",
+        "icon": "robot",
         "title": {
           "en": "Robotics",
           "ko": "로보틱스",
@@ -1573,7 +1573,7 @@
         }
       },
       {
-        "icon": "🔒",
+        "icon": "shield",
         "title": {
           "en": "Security",
           "ko": "보안",
@@ -1592,7 +1592,7 @@
         }
       },
       {
-        "icon": "🎥",
+        "icon": "video",
         "title": {
           "en": "Video Management Systems",
           "ko": "영상관제시스템(VMS)",
@@ -2153,7 +2153,7 @@
           "ja": "DEEPX、DX-H1 V-NPUを発売 — 30W単一カードのビデオAIチップ",
           "zh-CN": "DEEPX推出DX-H1 V-NPU — 30W单卡视频AI芯片",
           "zh-TW": "DEEPX推出DX-H1 V-NPU — 30W單卡視訊AI晶片",
-          "es": "DEEPX lanza DX-H1 V-NPU — chip de IA de vídeo de 30W en una sola tarjeta"
+          "es": "DEEPX lanza DX-H1 V-NPU — chip de IA de video de 30W en una sola tarjeta"
         },
         "date": "2025.12",
         "type": "news",
@@ -2816,7 +2816,7 @@
     "links": [
       {
         "id": "portal",
-        "icon": "🌐",
+        "icon": "globe",
         "label": {
           "en": "Developer Portal",
           "ko": "개발자 포털",
@@ -2837,7 +2837,7 @@
       },
       {
         "id": "modelzoo",
-        "icon": "📦",
+        "icon": "zoo",
         "label": {
           "en": "Model Zoo",
           "ko": "Model Zoo",
@@ -2858,7 +2858,7 @@
       },
       {
         "id": "dxnn",
-        "icon": "⚙️",
+        "icon": "compiler",
         "label": {
           "en": "DXNN SDK",
           "ko": "DXNN SDK",
@@ -2879,7 +2879,7 @@
       },
       {
         "id": "shop",
-        "icon": "🛒",
+        "icon": "bag",
         "label": {
           "en": "Shop Hardware",
           "ko": "하드웨어 구매",
@@ -2900,7 +2900,7 @@
       },
       {
         "id": "techbridge",
-        "icon": "🔬",
+        "icon": "lab",
         "label": {
           "en": "DX-TechBridge Kit",
           "ko": "DX-TechBridge Kit",
@@ -2921,7 +2921,7 @@
       },
       {
         "id": "newsroom",
-        "icon": "📰",
+        "icon": "news",
         "label": {
           "en": "Newsroom",
           "ko": "뉴스룸",
@@ -2942,7 +2942,7 @@
       },
       {
         "id": "linkedin",
-        "icon": "💼",
+        "icon": "briefcase",
         "label": {
           "en": "LinkedIn",
           "ko": "LinkedIn",
@@ -2957,13 +2957,13 @@
           "ja": "DEEPXをフォロー",
           "zh-CN": "关注DEEPX",
           "zh-TW": "追蹤DEEPX",
-          "es": "Sigue a DEEPX"
+          "es": "Siga a DEEPX"
         },
         "url": "https://www.linkedin.com/company/deepx-corp/"
       },
       {
         "id": "careers",
-        "icon": "🧑‍💼",
+        "icon": "user",
         "label": {
           "en": "Careers",
           "ko": "채용",
@@ -2978,7 +2978,7 @@
           "ja": "チームに参加",
           "zh-CN": "加入团队",
           "zh-TW": "加入團隊",
-          "es": "Únete al equipo"
+          "es": "Únase al equipo"
         },
         "url": "https://deepx.ai/contact-us/career-support/"
       }

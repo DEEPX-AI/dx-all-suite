@@ -1,4 +1,4 @@
-"""models.py 테스트 — 모델 카탈로그"""
+"""models.py — the model catalog"""
 import os, sys, pytest, json, importlib
 from pathlib import Path
 from unittest.mock import patch
@@ -16,9 +16,13 @@ class TestModelCatalog:
     def test_categories_correct(self):
         from core.models import get_catalog_source, get_models
         cats = {m["category"] for m in get_models()}
-        expected = {"object_detection", "face_detection", "pose_estimation", "segmentation", "classification"}
+        # depth_estimation is in BOTH modes: dx-runtime/dx_stream ships the full
+        # yolo26-depth pipeline and model_list.json lists the model, so the studio
+        # carries its metadata rather than dropping it into 'uncategorized'.
+        expected = {"object_detection", "face_detection", "pose_estimation",
+                    "segmentation", "classification", "depth_estimation"}
         if get_catalog_source() == "fallback":
-            expected.add("obb_detection")
+            expected.add("obb_detection")  # not in the runtime manifest
         assert cats == expected
 
     def test_category_counts(self):
@@ -30,6 +34,7 @@ class TestModelCatalog:
         assert counts["pose_estimation"] == 3
         assert counts["segmentation"] == 1
         assert counts["classification"] == 1
+        assert counts["depth_estimation"] == 1
         if get_catalog_source() == "manifest":
             assert counts["obb_detection"] == 0
         else:
@@ -64,7 +69,10 @@ class TestModelCatalog:
 
     def test_total_model_count(self):
         from core.models import get_catalog_source, get_models
-        assert len(get_models()) == (16 if get_catalog_source() == "manifest" else 17)
+        # manifest: 17 — one per entry in dx-runtime/dx_stream/model_list.json.
+        # fallback: 18 — the embedded table additionally carries yolo26n-obb, which
+        # the runtime manifest does not ship.
+        assert len(get_models()) == (17 if get_catalog_source() == "manifest" else 18)
 
 
 DEV_MODELS = [
@@ -111,7 +119,7 @@ def test_manifest_catalog_uses_runtime_models(monkeypatch, tmp_path, request):
 
     files = [m["file"] for m in models.get_models()]
 
-    # manifest 모드에서는 OBB 등 manifest에 없는 항목이 제외된다
+    # In manifest mode, entries missing from the manifest (such as OBB) are excluded
     assert len(files) == 16
     assert "EfficientNet_Lite0.dxnn" in files
     assert "yolo26n-obb.dxnn" not in files

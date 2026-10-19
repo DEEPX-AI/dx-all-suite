@@ -1,7 +1,7 @@
-"""빌드/다운로드 실행 관리.
+"""Runs build and download steps.
 
-DX App의 setup_steps.py 패턴 적용.
-백그라운드 스레드에서 프로세스 실행 + 로그 축적 + 폴링 API 제공.
+Same pattern as DX App's setup_steps.py: a background thread runs the process,
+collects its log, and the client polls for it.
 """
 from __future__ import annotations
 
@@ -62,7 +62,7 @@ SETUP_STEPS = {
     },
 }
 
-# 로그 저장소 — per-step 격리 (동시 실행 시 로그 오염 방지)
+# Logs are kept per step so steps running at the same time do not mix their output
 _log_lock = threading.Lock()
 _step_logs = {}  # {step_id: {"log": str, "done": bool, "exit_code": int}}
 _proc_lock = threading.Lock()
@@ -112,8 +112,8 @@ def _record_worker_start_failure(step_id: str, error: Exception, sudo_cleanup) -
             sudo_cleanup()
 
 
-# sudo-over-web helpers now live in shared/sudo_askpass.py (reused by dx_compiler SDK install
-# too). Kept as module-local aliases so existing callers and tests are unaffected.
+# sudo-over-web helpers live in shared/sudo_askpass.py (shared with the dx_compiler SDK install),
+# aliased here so callers and tests can keep using the module-local names.
 from shared.sudo_askpass import (  # noqa: E402
     configure_sudo_env as _configure_sudo_env,
     preauthorize_sudo as _preauthorize_sudo,
@@ -122,22 +122,22 @@ from shared.sudo_askpass import (  # noqa: E402
 
 
 def get_log_state(step_id: str = None) -> dict:
-    """현재 로그 상태 반환 — 클라이언트 폴링용."""
+    """Current log state, polled by the client."""
     with _log_lock:
         if step_id and step_id in _step_logs:
             return dict(_step_logs[step_id])
-        # 가장 최근 활성(미완료) 로그 반환
+        # The most recent step that is still running
         for sid in reversed(list(_step_logs)):
             if not _step_logs[sid]["done"]:
                 return dict(_step_logs[sid])
-        # 모든 완료면 마지막 로그
+        # All done: the last log
         if _step_logs:
             return dict(list(_step_logs.values())[-1])
         return {"log": "", "done": True, "exit_code": -1}
 
 
 def clear_log(step_id: str = None):
-    """로그 초기화."""
+    """Clear the log."""
     with _log_lock:
         if step_id:
             _step_logs.pop(step_id, None)
@@ -199,8 +199,8 @@ def reconcile_managed_runtime() -> tuple[int, str]:
 
 
 def install_model(model_name: str):
-    """단일 모델 다운로드 — run_step() 패턴 재사용.
-    setup.sh --model=<name>을 백그라운드 스레드에서 실행."""
+    """Download one model, reusing run_step().
+    Runs setup.sh --model=<name> in a background thread."""
     step_id = f"model-{model_name}"
     SETUP_STEPS[step_id] = {
         "label_ko": f"{model_name} 다운로드",
@@ -212,7 +212,7 @@ def install_model(model_name: str):
     try:
         run_step(step_id)
     finally:
-        # 임시 step 정의 정리 (로그는 _step_logs에 유지)
+        # Drop the temporary step definition (its log stays in _step_logs)
         if step_id in SETUP_STEPS and SETUP_STEPS[step_id].get("_temporary"):
             del SETUP_STEPS[step_id]
 
@@ -263,7 +263,7 @@ def _run_managed_runtime_step(step_id: str, sudo_password: str = None):
 
 
 def run_step(step_id: str, sudo_password: str = None, opts: dict = None):
-    """step 실행 — 백그라운드 스레드에서 stdout을 per-step 로그에 축적."""
+    """Run a step; a background thread collects stdout into the step's log."""
     global _running_proc
 
     step = SETUP_STEPS[step_id]  # KeyError if invalid
@@ -273,7 +273,7 @@ def run_step(step_id: str, sudo_password: str = None, opts: dict = None):
 
     cmd_args = build_command_args(step_id, opts)
 
-    # sudo 명령 또는 내부 sudo 스크립트면 먼저 sudo timestamp를 열어 둔다.
+    # For a sudo command or a script that calls sudo inside, open the sudo timestamp first.
     needs_sudo = bool(step.get("needs_sudo")) or (cmd_args[0] == "sudo" if cmd_args else False)
     env = os.environ.copy()
     # PEP 668 (Ubuntu 24.04+): some dependency scripts fall back to `pip install` on system
@@ -307,15 +307,17 @@ def run_step(step_id: str, sudo_password: str = None, opts: dict = None):
         try:
             if needs_sudo:
                 threading.Thread(target=_keep_sudo_alive, args=(sudo_stop,), daemon=True).start()
+            # Own process group: Stop ends the script AND its children (wget, meson, …) — terminating
+            # only the shell left them running.
             proc = subprocess.Popen(
                 cmd_args, cwd=str(cwd),
                 stdin=subprocess.PIPE if direct_sudo else None,
                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                text=True, bufsize=1, env=env
+                text=True, bufsize=1, env=env, start_new_session=True,
             )
             with _proc_lock:
                 _running_proc = proc
-            # sudo 비밀번호 전달
+            # Pass the sudo password
             if direct_sudo and sudo_password and proc.stdin:
                 proc.stdin.write(sudo_password + "\n")
                 proc.stdin.flush()
@@ -353,11 +355,19 @@ def run_step(step_id: str, sudo_password: str = None, opts: dict = None):
 
 
 def stop_step():
-    """현재 실행 중인 스텝 종료"""
+    """Stop the running step."""
     global _running_proc
     with _proc_lock:
+        if _running_proc is True:
+            # runtime-deps / driver run as an in-process transaction — nothing to signal.
+            return {"ok": False, "error": "not_stoppable",
+                    "message": "This step cannot be stopped; it finishes on its own."}
         if _running_proc is not None and hasattr(_running_proc, 'poll') and _running_proc.poll() is None:
-            _running_proc.terminate()
+            import signal
+            try:
+                os.killpg(os.getpgid(_running_proc.pid), signal.SIGTERM)
+            except (ProcessLookupError, PermissionError, OSError):
+                pass
             _running_proc = None
             with _log_lock:
                 for state in _step_logs.values():
@@ -368,10 +378,21 @@ def stop_step():
     return {"ok": False, "error": "No running process"}
 
 
+def running_step() -> str | None:
+    """The step that has not finished yet (None if none). Leaving the page or switching language stops log
+    polling — the page uses this value to bring back that step's log and Stop button."""
+    with _log_lock:
+        for sid in reversed(list(_step_logs)):
+            if not _step_logs[sid].get("done"):
+                return sid
+    return None
+
+
 def get_setup_status() -> dict:
-    """각 step의 완료 상태 — build: .so 존재 여부, models: 파일 존재 여부"""
-    from dx_stream.core.status import _check_build, _check_models
+    """Completion state per step — build: .so exists, models: files exist, running: the step in progress."""
+    from dx_stream.core import status as _status
     return {
-        "build": _check_build(),
-        "download-models": _check_models(),
+        "build": _status._check_build(),
+        "download-models": _status._check_models(),
+        "running": running_step(),
     }

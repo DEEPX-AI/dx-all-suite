@@ -1,0 +1,1184 @@
+{
+ "schema": 1,
+ "about": "DX AI Studio acceptance (SQA) suite: Jira ticket -> TestRail case -> AC (current product wording) -> pytest node ids. Run with: bash scripts/run_ci.sh --acceptance=<all|ticket|alias,...>. requires: npu, camera, dx_com, llm, aws, browser.",
+ "tickets": [
+  {
+   "key": "SDKREQ-473",
+   "alias": "launcher",
+   "testrail": "C18231",
+   "title": "[Launcher] 진입 및 모듈 이동",
+   "ac": [
+    {
+     "id": "473-AC1",
+     "title": "`./launcher.sh` 실행 시 launcher가 포트를 연 뒤 `OPEN THE STUDIO: http://localhost:<port>` 배너를 출력한다.",
+     "requires": [],
+     "tests": [
+      "tests/acceptance/test_sdkreq_473_launcher.py::test_launcher_prints_the_studio_url"
+     ]
+    },
+    {
+     "id": "473-AC2",
+     "title": "첫 접속 시(탭 세션당 1회) 인트로가 재생되고 Enter / Space / Esc / 클릭으로 즉시 건너뛰어 Home이 표시된다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_473_launcher.py::test_the_intro_plays_once_and_any_key_or_click_skips_it"
+     ]
+    },
+    {
+     "id": "473-AC3",
+     "title": "Home에 launcher에 등록된 모든 모듈 카드(현재 9개: DX App, DX Stream, DX Model Zoo, DX Compiler, DX Benchmark, DX EdgeGuide, DX Monitor, DX Agent Dev, DX Cloud)와 SDK Library·About DEEPX 카드가 표시되고, 모듈 카드를 클릭하면 그 모듈이 launcher 안에 열리며 주소가 `/<모듈 경로>`로 바뀐다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_473_launcher.py::test_home_has_a_card_for_every_module_and_a_click_loads_it"
+     ]
+    },
+    {
+     "id": "473-AC4",
+     "title": "모든 모듈 화면의 공유 toolbar에 Language·Theme·Tutorial 버튼이 있고, Settings(⚙)는 DX App·DX Stream에만 있다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_485_toolbar_chat.py::test_every_module_toolbar_has_language_theme_and_tutorial_and_settings_only_in_app_and_stream"
+     ]
+    },
+    {
+     "id": "473-AC5",
+     "title": "About DEEPX 카드는 7개 섹션 탭(Developer·Company·Technology·Products·Partners·Awards·News)이 있는 한 페이지를, SDK Library 카드는 SDK Library 화면(`/sdk-library`)을 연다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_473_launcher.py::test_about_and_sdk_library_cards_open_their_views"
+     ]
+    },
+    {
+     "id": "473-AC6",
+     "title": "상단 Nav(Home + 모듈 9개 + SDK Library + About)로 이동하고, Esc는 Home으로 돌아가며, Alt+1~9로 모듈을 연다(1 App, 2 Stream, 3 Model Zoo, 4 Compiler, 5 EdgeGuide, 6 Benchmark, 7 Monitor, 8 Agent Dev, 9 Cloud; launcher에 focus가 있을 때).",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_473_launcher.py::test_top_nav_escape_and_alt_digit_shortcuts_move_between_modules"
+     ]
+    },
+    {
+     "id": "473-AC7",
+     "title": "응답하지 않는 모듈은 Home 카드가 흐리게(is-down) 표시된다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_473_launcher.py::test_a_module_that_is_down_is_dimmed_on_home"
+     ]
+    },
+    {
+     "id": "473-AC8",
+     "title": "직접 URL(`/zoo`, `/app`, `/about`, `/sdk-library?doc=…`)과 F5로 같은 화면·문서가 다시 열리고, launcher가 재기동되면(launcher_boot 변경) Home 탭이 스스로 새로고침된다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_473_launcher.py::test_a_direct_url_and_f5_reopen_the_same_view",
+      "tests/acceptance/test_sdkreq_473_launcher.py::test_home_reloads_itself_when_the_launcher_restarts"
+     ]
+    }
+   ]
+  },
+  {
+   "key": "SDKREQ-474",
+   "alias": "app",
+   "testrail": "C18232",
+   "title": "[DX App] 통합 워크플로",
+   "ac": [
+    {
+     "id": "474-AC1",
+     "title": "상단 탭 11개(설치·모델·추론 실행·데모 실행·벤치마크·A/B 비교·모델 저장소·그래프 Composer·실험실·출력물·레퍼런스)로 페이지가 바뀐다. 개발자 기능은 별도 버튼 없이 실험실 > 고급 도구에 있다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_474_dx_app.py::test_eleven_top_tabs_switch_pages_and_developer_tools_live_in_lab"
+     ]
+    },
+    {
+     "id": "474-AC2",
+     "title": "설치: 6단계(DX-APP 의존성·DX-RT 의존성·DX-RT Build·NPU Driver·DX-APP Build·Sample Assets) 상태, '나머지 설치'·'데모만 빠르게 시작' 버튼, 진단 실행 결과 카드, 실행 로그가 표시된다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_474_dx_app.py::test_setup_lists_six_steps_runs_deep_diagnostics_and_has_a_run_log"
+     ]
+    },
+    {
+     "id": "474-AC3",
+     "title": "모델: 카탈로그 검색과 카테고리 필터, Detail 창(카테고리·.dxnn 파일), Run 버튼으로 추론 실행 페이지에 그 모델이 선택된다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_474_dx_app.py::test_models_search_category_detail_and_run_button"
+     ]
+    },
+    {
+     "id": "474-AC4",
+     "title": "추론 실행 입력: Single(샘플/업로드 이미지·비디오)과 Continuous(비디오·카메라·RTSP)를 고를 수 있고, 카메라가 없으면 'No cameras found'를 표시한다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_474_dx_app.py::test_run_inference_offers_image_video_camera_and_rtsp_inputs"
+     ]
+    },
+    {
+     "id": "474-AC5",
+     "title": "NPU 추론: 샘플 이미지로 추론을 실행하면 Result 패널에 결과 이미지와 FPS가 표시된다.",
+     "requires": [
+      "npu",
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_474_dx_app.py::test_run_inference_on_the_npu_shows_the_result_image_and_fps"
+     ]
+    },
+    {
+     "id": "474-AC6",
+     "title": "카메라 추론: Continuous에서 카메라 입력으로 실행하면 slot에 실시간 결과 영상이 표시되고 Stop으로 멈춘다.",
+     "requires": [
+      "camera",
+      "npu",
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_474_dx_app.py::test_continuous_camera_inference_on_the_npu_shows_live_frames"
+     ]
+    },
+    {
+     "id": "474-AC7",
+     "title": "데모 실행: 준비된 데모 카드를 실행하면 stage에 결과 이미지와 지표가 표시된다(NPU).",
+     "requires": [
+      "npu",
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_474_dx_app.py::test_run_demo_on_the_npu_puts_the_result_on_the_stage"
+     ]
+    },
+    {
+     "id": "474-AC8",
+     "title": "벤치마크: 모델을 골라 시작하면 결과 표(PASS/FPS/Latency)와 FPS 차트가 표시된다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_474_dx_app.py::test_benchmark_runs_the_checked_models_and_shows_results_and_a_chart"
+     ]
+    },
+    {
+     "id": "474-AC9",
+     "title": "A/B 비교: slot 2/4/6/8을 고르고 slot별 모델로 '전체 실행'하면 slot별 결과와 비교표가 표시되며, 실패한 slot은 이유를 표시한다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_474_dx_app.py::test_ab_compare_has_two_to_eight_slots_and_shows_each_result",
+      "tests/dx_app/test_compare_browser.py::test_a_failed_slot_says_why"
+     ]
+    },
+    {
+     "id": "474-AC10",
+     "title": "모델 저장소: Public/Internal 소스를 고르고, 티어(Q-Lite/Q-Pro/Q-Master)를 장바구니에 담아 '전체 다운로드'를 요청한다. 소스를 바꾼 뒤 늦게 온 이전 응답이 목록을 지우지 않는다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_474_dx_app.py::test_modelzoo_page_shows_sources_cart_and_download_all"
+     ]
+    },
+    {
+     "id": "474-AC11",
+     "title": "실험실: 모델 추가·작업 생성·실험·생성 파일·안전 센터·그래프 Composer 카드가 있고, 실험은 끝까지 진행되어 처리량을 보여 주며 안전 센터 롤백은 이름을 입력해야 실행된다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_474_dx_app.py::test_lab_offers_its_flows_and_opens_graph_composer",
+      "tests/dx_app/test_lab_flows_browser.py::test_experiment_polls_to_the_end_and_shows_throughput",
+      "tests/dx_app/test_lab_flows_browser.py::test_safety_center_rolls_back_only_after_the_typed_confirmation"
+     ]
+    },
+    {
+     "id": "474-AC12",
+     "title": "그래프 Composer: 예제 그래프를 열어 검사하고 프로젝트로 저장·다시 열 수 있으며, 검사 오류가 있으면 실행이 막히고 오류가 표시된다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/dx_app/test_graph_composer_browser.py::test_projects_save_and_open_again",
+      "tests/dx_app/test_graph_composer_browser.py::test_check_errors_are_pinned_and_block_the_run"
+     ]
+    },
+    {
+     "id": "474-AC13",
+     "title": "그래프 Composer NPU 실행: 예제 그래프를 '한 번 실행'하면 결과와 노드별 시간이 표시된다.",
+     "requires": [
+      "npu",
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_474_dx_app.py::test_graph_composer_runs_an_example_once_on_the_npu"
+     ]
+    },
+    {
+     "id": "474-AC14",
+     "title": "출력물: 유형 필터(All·Image·Video·Archive·Other)와 Grid/Table 보기. 레퍼런스: 검색과 Compiler 토픽이 Compiler 모듈로 안내한다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_474_dx_app.py::test_outputs_filter_and_view_and_reference_points_to_the_compiler"
+     ]
+    },
+    {
+     "id": "474-AC15",
+     "title": "잘못된 실행 요청에는 오류 내용(`error`)이 담긴 응답을 돌려준다.",
+     "requires": [],
+     "tests": [
+      "tests/acceptance/test_sdkreq_474_dx_app.py::test_a_bad_run_request_gets_a_clear_error"
+     ]
+    }
+   ]
+  },
+  {
+   "key": "SDKREQ-475",
+   "alias": "stream",
+   "testrail": "C18233",
+   "title": "[DX Stream] 파이프라인 · 데모",
+   "ac": [
+    {
+     "id": "475-AC1",
+     "title": "상단 탭 8개(설치·대시보드·데모 실행·파이프라인 빌더·모델 카탈로그·요소 레퍼런스·커스텀 라이브러리·레퍼런스)로 페이지가 바뀌며 처음 화면은 대시보드다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_475_dx_stream.py::test_eight_tabs_open_on_the_dashboard_and_switch_pages"
+     ]
+    },
+    {
+     "id": "475-AC2",
+     "title": "설치: 6단계·환경 점검 표·정밀 진단. 대시보드: 상태 카드 5개(NPU·GStreamer·Models·Videos·Build), 빠른 실행 3개, 성능 표(FPS·NPU Utilization).",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_475_dx_stream.py::test_setup_steps_environment_check_and_dashboard_cards"
+     ]
+    },
+    {
+     "id": "475-AC3",
+     "title": "데모 실행: 데모의 카테고리로 만든 필터로 카드를 거르고, 시작할 수 없는 데모는 이유를 화면 언어로 표시한다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_475_dx_stream.py::test_demo_cards_filter_by_category",
+      "tests/dx_stream/test_stream_audit_browser.py::test_a_refused_demo_start_says_why_in_the_page_language"
+     ]
+    },
+    {
+     "id": "475-AC4",
+     "title": "데모 라이브 실행(NPU): Start로 stage에 WebRTC(안 되면 MJPEG) 영상과 FPS가 표시되고 Stop으로 멈춘다.",
+     "requires": [
+      "npu",
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_475_dx_stream.py::test_a_demo_runs_live_on_the_npu_and_stops"
+     ]
+    },
+    {
+     "id": "475-AC5",
+     "title": "파이프라인 빌더: 요소를 캔버스로 끌어 추가하고 출력→입력 포트를 끌어 연결하면 GStreamer 명령이 갱신되며, Run으로 노드·연결이 실행 요청에 담긴다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_475_dx_stream.py::test_pipeline_builder_adds_and_connects_elements_and_runs"
+     ]
+    },
+    {
+     "id": "475-AC6",
+     "title": "모델 카탈로그(상세 창)·요소 레퍼런스(검색·상세)·커스텀 라이브러리·레퍼런스(토픽 펼침)가 열린다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_475_dx_stream.py::test_catalog_element_reference_custom_library_and_reference_pages_load"
+     ]
+    }
+   ]
+  },
+  {
+   "key": "SDKREQ-476",
+   "alias": "agent",
+   "testrail": "C18234",
+   "title": "[Agent Dev] 에이전트 콘솔",
+   "ac": [
+    {
+     "id": "476-AC1",
+     "title": "3-column layout: 왼쪽 쇼케이스, 가운데 Agent Console, 오른쪽 쇼케이스.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_476_agent_dev.py::test_three_column_layout_with_showcases_beside_the_console"
+     ]
+    },
+    {
+     "id": "476-AC2",
+     "title": "Agent·Model·Effort dropdown이 있고, Effort 단계는 고른 agent CLI에 따라 바뀐다(설치된 CLI만 Agent 목록에 나온다).",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_476_agent_dev.py::test_agent_model_and_effort_pickers_follow_the_chosen_agent"
+     ]
+    },
+    {
+     "id": "476-AC3",
+     "title": "Target(Suite·dx-runtime·dx_app·dx_stream·dx-compiler)을 고르면 실행 요청에 담긴다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_476_agent_dev.py::test_target_and_mode_are_sent_with_the_request"
+     ]
+    },
+    {
+     "id": "476-AC4",
+     "title": "진행 방식 Interactive / Autopilot(질문 없음)을 고르면 실행 요청에 담긴다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_476_agent_dev.py::test_target_and_mode_are_sent_with_the_request"
+     ]
+    },
+    {
+     "id": "476-AC5",
+     "title": "쇼케이스 카드는 animated thumbnail을 보여 주고, 클릭하면 그 쇼케이스 README를 새 탭으로 연다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_476_agent_dev.py::test_a_showcase_card_shows_a_preview_and_opens_its_readme"
+     ]
+    },
+    {
+     "id": "476-AC6",
+     "title": "오른쪽 아래 SDK Q&A chat은 콘솔과 따로 동작한다(/api/chat, 콘솔 출력 변화 없음).",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_476_agent_dev.py::test_the_sdk_chat_answers_without_touching_the_console"
+     ]
+    }
+   ]
+  },
+  {
+   "key": "SDKREQ-477",
+   "alias": "zoo",
+   "testrail": "C18235",
+   "title": "[Model Zoo] 모델 탐색 · Inference",
+   "ac": [
+    {
+     "id": "477-AC1",
+     "title": "Explorer: Card/List 보기, 카테고리 checkbox 필터, 검색, 정렬(Name·Category·FPS), 필터 초기화.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_477_model_zoo.py::test_explorer_views_category_search_sort_and_reset"
+     ]
+    },
+    {
+     "id": "477-AC2",
+     "title": "스크롤하면 다음 모델이 계속 표시된다(virtualized scroll).",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_477_model_zoo.py::test_the_explorer_keeps_showing_models_as_you_scroll",
+      "tests/test_catalog_virtual_scroll_browser.py::test_scrolling_to_the_end_shows_models_the_top_never_showed"
+     ]
+    },
+    {
+     "id": "477-AC3",
+     "title": "모델 상세 7개 섹션: Key Facts, Specification(Accuracy Matrix·Runtime Performance), How to Compile DXNN, Use Case & Description, Example, Demo Usage(C++·Python·CLI 탭), Legal Information.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_477_model_zoo.py::test_model_detail_has_its_sections_code_tabs_and_downloads"
+     ]
+    },
+    {
+     "id": "477-AC4",
+     "title": "다운로드: ONNX·Q-Lite·Q-Pro badge, Artifacts 표(ONNX, Q-Lite DXNN/JSON, Q-Pro DXNN/JSON) 링크, DX App이 켜져 있으면 'Download Q-Lite/Q-Pro' 버튼.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_477_model_zoo.py::test_model_detail_has_its_sections_code_tabs_and_downloads"
+     ]
+    },
+    {
+     "id": "477-AC5",
+     "title": "Run Inference(NPU): 다운로드된 모델을 기본 이미지로 실행하면 DX App을 거쳐 결과 이미지가 표시된다.",
+     "requires": [
+      "npu",
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_477_model_zoo.py::test_run_inference_with_the_default_image_on_the_npu"
+     ]
+    },
+    {
+     "id": "477-AC6",
+     "title": "DX App이 꺼져 있으면 Run Inference 버튼이 비활성화되고 'DX App is not running' 안내가 보인다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_477_model_zoo.py::test_without_dx_app_run_inference_is_disabled_with_a_reason"
+     ]
+    },
+    {
+     "id": "477-AC7",
+     "title": "'Save as HTML'로 모델 정보를 HTML 파일로 저장한다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_477_model_zoo.py::test_save_as_html_downloads_the_model_card",
+      "tests/dx_modelzoo/test_model_card_export_browser.py::test_save_as_html_in_korean"
+     ]
+    }
+   ]
+  },
+  {
+   "key": "SDKREQ-478",
+   "alias": "compiler",
+   "testrail": "C18236",
+   "title": "[Compiler] ONNX 컴파일 · 그래프 뷰어",
+   "ac": [
+    {
+     "id": "478-AC1",
+     "title": "그래프 뷰어 탭 6개(Input·Prepared·Surgery·Partition·Quant Diagnosis·DXNN). 컴파일 전에는 Input만 열린다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_478_compiler.py::test_six_viewer_tabs_and_only_input_before_a_compile"
+     ]
+    },
+    {
+     "id": "478-AC2",
+     "title": "패널 4개: Explorer(카테고리별 node tree)·Search(node/tensor)·Node Details·Legend.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_478_compiler.py::test_explorer_search_node_details_and_legend"
+     ]
+    },
+    {
+     "id": "478-AC3",
+     "title": "Zoom In/Out/Fit으로 보기가 바뀌고, Collapse/Expand All 버튼이 있다(subgraph가 있을 때 활성).",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_478_compiler.py::test_zoom_and_fit_change_the_view"
+     ]
+    },
+    {
+     "id": "478-AC4",
+     "title": "컴파일: 진행률·현재 단계·로그가 표시되고 끝나면 'Compilation Complete'와 함께 Summary 저장·.dxnn 다운로드 버튼이 켜진다(실패 시 'Compilation Failed').",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_478_compiler.py::test_compile_shows_progress_and_log_then_done"
+     ]
+    },
+    {
+     "id": "478-AC5",
+     "title": "dx_com이 없으면 Compile 버튼이 잠기고 'Compile unavailable: dx_com not installed on server.' 안내와 설치 단계가 표시된다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_478_compiler.py::test_without_dx_com_compile_is_locked_with_a_clear_reason",
+      "tests/dx_compiler/test_setup_steps_browser.py::test_without_the_sdk_the_next_step_is_open_and_compile_says_why"
+     ]
+    },
+    {
+     "id": "478-AC6",
+     "title": "실제 dx_com 컴파일로 .dxnn이 만들어지고 Summary(HTML)를 저장할 수 있다.",
+     "requires": [
+      "dx_com",
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_478_compiler.py::test_a_real_dx_com_compile_produces_a_dxnn_and_a_summary"
+     ]
+    },
+    {
+     "id": "478-AC7",
+     "title": "Agentic Auto Compile: 비대화형(autopilot)·대화형(interactive) 버튼이 Agent Dev에 target `dx-compiler`로 실행을 요청한다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_478_compiler.py::test_auto_compile_sends_autopilot_and_interactive_runs_to_the_agent"
+     ]
+    }
+   ]
+  },
+  {
+   "key": "SDKREQ-479",
+   "alias": "edgeguide",
+   "testrail": "C18237",
+   "title": "[EdgeGuide] 제품 추천",
+   "ac": [
+    {
+     "id": "479-AC1",
+     "title": "4단계 표시: Scenario → Pick → Evidence → Buy (한국어: 시나리오 → 추천 → 근거 → 구매).",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_479_edgeguide.py::test_four_workflow_steps_in_english_and_korean"
+     ]
+    },
+    {
+     "id": "479-AC2",
+     "title": "빠른 시나리오 chip(예: 4채널 CCTV OD)이 조건을 채우고 플랫폼 우선순위 패널(최다 채널·최고 성능·최저 전력)을 연다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_479_edgeguide.py::test_a_scenario_chip_fills_the_conditions_and_opens_the_priority_panel"
+     ]
+    },
+    {
+     "id": "479-AC3",
+     "title": "'추천 받기'로 순위 카드(1순위 표시, DX-M1/DX-H1 등 제품)와 overview chart가 나오고, '추천 원리 보기'가 계산 방법 dialog를 연다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_479_edgeguide.py::test_recommendation_ranks_dx_products_with_a_chart_and_explains_the_method",
+      "tests/dx_planner/test_recommend_explain_browser.py::test_english_methodology_explains_the_plus_and_the_limit"
+     ]
+    },
+    {
+     "id": "479-AC4",
+     "title": "카드 상세: radar chart·benchmark 표 등 근거와 '구매 / 문의' 패널(제품 정보·견적 문의 링크)이 표시된다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_479_edgeguide.py::test_a_card_details_show_evidence_and_the_buy_panel"
+     ]
+    },
+    {
+     "id": "479-AC5",
+     "title": "Benchmark의 EdgeGuide 버튼으로 열면 task·size·ORT 조건으로 바로 추천 결과가 나온다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_479_edgeguide.py::test_opened_from_benchmark_it_recommends_for_those_conditions_at_once"
+     ]
+    }
+   ]
+  },
+  {
+   "key": "SDKREQ-480",
+   "alias": "monitor",
+   "testrail": "C18238",
+   "title": "[Monitor] NPU · 시스템 모니터링",
+   "ac": [
+    {
+     "id": "480-AC1",
+     "title": "시간 범위 버튼 6개(실시간·5m·15m·30m·1h·All)로 차트 범위를 바꾼다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_480_monitor.py::test_six_time_ranges_switch_the_chart_window"
+     ]
+    },
+    {
+     "id": "480-AC2",
+     "title": "차트 모드: NPU(Temp·Voltage·Clock·DRAM·Util·Core Temp), CPU(Load·Memory·Cores), View All. 값이 실시간으로 쌓인다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_480_monitor.py::test_chart_modes_for_npu_cpu_and_view_all_update_live"
+     ]
+    },
+    {
+     "id": "480-AC3",
+     "title": "NPU topology, 시스템 정보 표, Runtime Events 로그가 표시된다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_480_monitor.py::test_npu_topology_system_info_and_runtime_event_log"
+     ]
+    },
+    {
+     "id": "480-AC4",
+     "title": "NPU가 있으면 실제 측정값이 SSE로 들어오고 Mock 배너·연결 경고가 없다.",
+     "requires": [
+      "npu",
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_480_monitor.py::test_real_npu_telemetry_streams_over_sse_without_a_mock_banner"
+     ]
+    },
+    {
+     "id": "480-AC5",
+     "title": "SSE 연결이 끊기면 'Polling' 표시와 함께 polling으로 계속 갱신한다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_480_monitor.py::test_a_broken_live_connection_falls_back_to_polling_and_says_so"
+     ]
+    },
+    {
+     "id": "480-AC6",
+     "title": "NPU 측정값이 없으면 'NPU telemetry unavailable' 안내를, 명시적 mock 모드에서만 Mock 배너를 표시한다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_480_monitor.py::test_without_npu_telemetry_the_page_says_so_and_mock_mode_is_labelled"
+     ]
+    }
+   ]
+  },
+  {
+   "key": "SDKREQ-481",
+   "alias": "benchmark",
+   "testrail": "C18239",
+   "title": "[Benchmark] 성능 대시보드",
+   "ac": [
+    {
+     "id": "481-AC1",
+     "title": "상단 탭 Dashboard / Results / Settings.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_481_benchmark.py::test_dashboard_results_and_settings_tabs"
+     ]
+    },
+    {
+     "id": "481-AC2",
+     "title": "Dashboard 하위 탭 5개(E2E FPS Overview·Full Metrics·Detailed Data·Version Trend·ORT ON/OFF)가 각자 차트/표를 그린다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_481_benchmark.py::test_five_dashboard_subtabs_draw_their_charts_and_tables"
+     ]
+    },
+    {
+     "id": "481-AC3",
+     "title": "환경별 Run 선택과 Task 필터(OD·Pose·Seg·OBB·Cls)로 차트가 바뀐다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_481_benchmark.py::test_run_selection_and_task_filter"
+     ]
+    },
+    {
+     "id": "481-AC4",
+     "title": "Results: 하드웨어 → Run을 고르면 상세(REPORT)가 나오고, Settings는 설정값을 불러와 보여 준다(읽기 전용).",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_481_benchmark.py::test_results_open_a_run_by_hardware_and_settings_load"
+     ]
+    },
+    {
+     "id": "481-AC5",
+     "title": "헤더의 'DX EdgeGuide' 버튼이 지금 조건(task·size·ORT)으로 EdgeGuide를 연다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_481_benchmark.py::test_the_edgeguide_button_opens_edgeguide_with_the_conditions"
+     ]
+    }
+   ]
+  },
+  {
+   "key": "SDKREQ-482",
+   "alias": "boot",
+   "testrail": "C18240",
+   "title": "[Common] 기동 · 접근 · Health",
+   "ac": [
+    {
+     "id": "482-AC1",
+     "title": "모든 모듈 server는 OS가 고른 ephemeral port로 뜨고 launcher는 port-file handshake로 그 포트를 안다(사용자가 쓰는 포트는 launcher 하나).",
+     "requires": [],
+     "tests": [
+      "tests/acceptance/test_sdkreq_482_boot_health.py::test_every_module_runs_on_an_ephemeral_port_found_by_the_port_file_handshake",
+      "tests/shared/test_dx_server_ephemeral.py::test_ephemeral_binds_real_port_and_writes_file"
+     ]
+    },
+    {
+     "id": "482-AC2",
+     "title": "launcher에 등록된 모든 모듈 proxy 경로(`/app/ /stream/ /zoo/ /compiler/ /planner/ /benchmark/ /dx_monitor/ /agent/ /cloud/`)가 모듈 페이지를 응답한다.",
+     "requires": [],
+     "tests": [
+      "tests/acceptance/test_sdkreq_482_boot_health.py::test_every_module_proxy_path_serves_its_page"
+     ]
+    },
+    {
+     "id": "482-AC3",
+     "title": "`/api/health`는 launcher_boot(`<port>-<pid>`)·studio_ready와 모든 모듈의 port/alive를 돌려준다.",
+     "requires": [],
+     "tests": [
+      "tests/acceptance/test_sdkreq_482_boot_health.py::test_health_api_reports_launcher_boot_and_every_module"
+     ]
+    },
+    {
+     "id": "482-AC4",
+     "title": "watchdog: 모듈 프로세스가 죽으면 dead로 표시되고 120초 안에 새 포트로 자동 재기동된다.",
+     "requires": [],
+     "tests": [
+      "tests/acceptance/test_sdkreq_482_boot_health.py::test_watchdog_restarts_a_killed_module_on_a_new_port_within_120s"
+     ]
+    },
+    {
+     "id": "482-AC5",
+     "title": "watchdog: 120초 창 안에서 3번 재기동한 뒤에도 죽으면 unavailable이 되고, launcher가 '복구할 수 없습니다'와 재시도 버튼을 보여 주며 재시도로 다시 뜬다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_482_boot_health.py::test_watchdog_gives_up_after_three_restarts_and_the_user_can_retry"
+     ]
+    },
+    {
+     "id": "482-AC6",
+     "title": "Runtime Profiles: `config/runtime_profiles.json`의 SDK runtime profile로 runtime이 없으면 target을 설치·검증하고, 설치된 runtime이 유효하면 그대로 쓰며, 잘못된 runtime은 Studio 데이터를 건드리지 않고 실패한다.",
+     "requires": [],
+     "tests": [
+      "tests/lifecycle/test_runtime_lifecycle.py::TestRuntimeLifecycle::test_clean_host_bootstrap_activates_verified_target",
+      "tests/lifecycle/test_runtime_lifecycle.py::TestRuntimeLifecycle::test_installed_runtime_accepted_as_is_preserves_studio_data",
+      "tests/lifecycle/test_runtime_lifecycle.py::TestRuntimeLifecycle::test_invalid_installed_runtime_fails_without_touching_studio_data"
+     ]
+    }
+   ]
+  },
+  {
+   "key": "SDKREQ-483",
+   "alias": "i18n",
+   "testrail": "C18241",
+   "title": "[Common] 다국어 i18n",
+   "ac": [
+    {
+     "id": "483-AC1",
+     "title": "공유 toolbar 언어 메뉴는 6개 언어(English·日本語·한국어·Español·简体中文·繁體中文)를 제공한다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_483_i18n.py::test_the_language_menu_offers_six_languages"
+     ]
+    },
+    {
+     "id": "483-AC2",
+     "title": "한 모듈에서 언어를 바꾸면 launcher Home·Nav와 열려 있는 모든 모듈이 같은 언어로 바뀌고, 다른 모듈로 옮기거나 새로고침해도 유지된다(모듈 이름은 제품명이라 영어 그대로).",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_483_i18n.py::test_a_choice_in_one_module_switches_the_launcher_and_every_open_module_and_survives_reload"
+     ]
+    },
+    {
+     "id": "483-AC3",
+     "title": "launcher의 언어 메뉴로 바꿔도 Studio 전체(열린 모듈·새로 여는 모듈)가 같은 언어가 된다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_483_i18n.py::test_the_launcher_menu_switches_the_whole_studio"
+     ]
+    },
+    {
+     "id": "483-AC4",
+     "title": "처음 방문하면 browser 언어를 따르고, 저장된 선택이 있으면 그것이 우선한다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/shared/test_browser_language_default_browser.py::test_a_first_visit_follows_the_browser",
+      "tests/shared/test_browser_language_default_browser.py::test_a_saved_choice_wins_over_the_browser"
+     ]
+    }
+   ]
+  },
+  {
+   "key": "SDKREQ-484",
+   "alias": "sdklib",
+   "testrail": "C18242",
+   "title": "[SDK Library] 기술 문서 허브",
+   "ac": [
+    {
+     "id": "484-AC1",
+     "title": "List(기본)/Cabinet 보기에서 문서를 고르면 viewer에 제목과 Markdown 본문이 표시된다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_484_sdk_library.py::test_list_and_cabinet_views_open_a_document_in_the_viewer"
+     ]
+    },
+    {
+     "id": "484-AC2",
+     "title": "viewer 검색은 일치 항목을 강조하고 개수를 보여 주며, 닫기 버튼/Esc는 viewer만 닫고 SDK Library에 머문다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_484_sdk_library.py::test_viewer_search_highlights_and_counts_and_close_or_escape_stays_in_the_library"
+     ]
+    },
+    {
+     "id": "484-AC3",
+     "title": "문서 검색창에서 Esc는 검색어만 지우고 SDK Library 화면을 유지한다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_484_sdk_library.py::test_escape_in_the_library_search_clears_it_and_stays_in_the_library"
+     ]
+    },
+    {
+     "id": "484-AC4",
+     "title": "상단 Nav로 About DEEPX ↔ SDK Library를 오간다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_484_sdk_library.py::test_top_nav_switches_between_about_and_sdk_library"
+     ]
+    },
+    {
+     "id": "484-AC5",
+     "title": "문서나 문서 목록을 불러오지 못하면 오류와 '재시도' 버튼이 표시되고, 재시도하면 정상으로 불러온다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_484_sdk_library.py::test_a_document_that_fails_to_load_offers_retry_that_works",
+      "tests/acceptance/test_sdkreq_484_sdk_library.py::test_a_library_that_fails_to_load_offers_retry_that_works"
+     ]
+    }
+   ]
+  },
+  {
+   "key": "SDKREQ-485",
+   "alias": "toolbar",
+   "testrail": "C18243",
+   "title": "[Common] 공유 툴바 · Chat",
+   "ac": [
+    {
+     "id": "485-AC1",
+     "title": "launcher에 등록된 모든 모듈(현재 9개)의 공유 toolbar에 Language·Theme·Tutorial 버튼이 있고 Settings(⚙)는 DX App·DX Stream에만 있다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_485_toolbar_chat.py::test_every_module_toolbar_has_language_theme_and_tutorial_and_settings_only_in_app_and_stream"
+     ]
+    },
+    {
+     "id": "485-AC2",
+     "title": "모든 모듈에서 언어 메뉴는 6개 언어를 보여 주고, Tutorial 버튼은 그 모듈의 Tutorial Guide를 연다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_485_toolbar_chat.py::test_every_module_language_menu_lists_six_languages_and_its_tutorial_opens_the_guide"
+     ]
+    },
+    {
+     "id": "485-AC3",
+     "title": "launcher에 등록된 모든 모듈(현재 9개, DX Cloud 포함)에 chat floating button이 있고, panel 열기·AI 설정(⚙)·닫기가 된다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_485_toolbar_chat.py::test_every_module_chat_opens_shows_settings_and_closes"
+     ]
+    },
+    {
+     "id": "485-AC4",
+     "title": "연결된 AI가 없으면 상태줄에 'Basic guidance only'가 보이고, 질문을 보내면 'No AI connected' 안내와 기본 답변이 온다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_485_toolbar_chat.py::test_every_module_chat_sends_and_answers_without_an_ai_connected"
+     ]
+    },
+    {
+     "id": "485-AC5",
+     "title": "Studio chat 설정에 LLM endpoint가 있으면 질문에 그 LLM이 답한다.",
+     "requires": [
+      "llm",
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_485_toolbar_chat.py::test_with_an_llm_configured_the_chat_answers_from_it"
+     ]
+    }
+   ]
+  },
+  {
+   "key": "SDKREQ-486",
+   "alias": "tutorial",
+   "testrail": "C18244",
+   "title": "[Common] 튜토리얼 모드 · 도움말",
+   "ac": [
+    {
+     "id": "486-AC1",
+     "title": "Home의 '튜토리얼 모드' 카드 스위치는 기본 ON이며 ON/OFF가 저장되어 새로고침 후에도 유지된다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_486_tutorial.py::test_home_tutorial_card_is_on_by_default_and_the_switch_is_remembered"
+     ]
+    },
+    {
+     "id": "486-AC2",
+     "title": "ON: 처음 Home에 오면 Launcher 투어가 시작되고, 모든 모듈은 열릴 때 Tutorial Guide 목차를 스스로 연다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_486_tutorial.py::test_on_the_first_home_visit_starts_the_launcher_tour",
+      "tests/acceptance/test_sdkreq_486_tutorial.py::test_with_tutorial_mode_on_every_module_opens_its_guide_by_itself"
+     ]
+    },
+    {
+     "id": "486-AC3",
+     "title": "OFF: 아무것도 자동으로 열리지 않고, toolbar Tutorial 버튼 → '처음부터 시작'으로 수동 시작된다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_486_tutorial.py::test_with_tutorial_mode_off_nothing_opens_until_the_toolbar_button"
+     ]
+    },
+    {
+     "id": "486-AC4",
+     "title": "투어는 ← 이전 / 건너뛰기 / 다음 → / 완료 ✓로 진행하고 섹션이 끝나면 '섹션 완료!' 창을 보여 준다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_486_tutorial.py::test_a_tour_steps_with_previous_next_and_done_in_korean"
+     ]
+    },
+    {
+     "id": "486-AC5",
+     "title": "About DEEPX에는 투어가 없고(Tutorial 버튼 비활성), SDK Library에는 자체 투어가 있다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_486_tutorial.py::test_about_has_no_tour_and_sdk_library_has_its_own"
+     ]
+    },
+    {
+     "id": "486-AC6",
+     "title": "'추천 원리 보기' 같은 화면 도움말 popup은 튜토리얼 모드와 상관없이 열린다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_486_tutorial.py::test_context_help_popups_work_with_tutorial_mode_off"
+     ]
+    }
+   ]
+  },
+  {
+   "key": "SDKREQ-710",
+   "alias": "cloud",
+   "testrail": null,
+   "title": "[DX Cloud] AWS Compiler · Greengrass",
+   "ac": [
+    {
+     "id": "710-AC1",
+     "title": "Home의 DX Cloud 카드(Alt+9)로 `/cloud`가 열리고, 두 솔루션 탭(DEEPX Compiler Solution·DEEPX Greengrass Solution)과 상태 칩(Profile·Region·Account·Subscription·Stacks)이 표시된다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_710_cloud.py::test_entry_from_home_shows_both_solutions_and_the_status_bar"
+     ]
+    },
+    {
+     "id": "710-AC2",
+     "title": "설정은 번호가 붙은 단계로 진행된다(Compiler: 1 AWS 연결 → 2 Marketplace 구독 → 3 Stack → 4 Cloud Compile, Greengrass: 2 → 3 → 4-1 Compile → 4-2 Devices). 앞 단계가 끝나야 다음 단계가 열린다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_710_cloud.py::test_setup_is_a_numbered_flow_that_unlocks_step_by_step"
+     ]
+    },
+    {
+     "id": "710-AC3",
+     "title": "AWS 상태: boto3 유무, AWS CLI profile 목록, region, 연결된 account(ARN)를 보여 주고, boto3가 없으면 설치 방법을 안내하며 AWS 버튼을 잠근다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_710_cloud.py::test_aws_status_names_the_profile_and_region_and_without_boto3_says_how_to_install_it",
+      "tests/dx_edge/test_server.py::test_status_endpoint",
+      "tests/dx_edge/test_server.py::test_missing_boto3_is_a_json_error_with_a_hint",
+      "tests/dx_edge/test_without_boto3.py::test_status_reports_boto3_missing_with_the_install_hint"
+     ]
+    },
+    {
+     "id": "710-AC4",
+     "title": "Marketplace 구독 확인: 솔루션별로 구독/미구독 badge와 Marketplace 링크(미구독이면 'Subscribe on Marketplace')를 보여 준다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_710_cloud.py::test_marketplace_subscription_is_checked_per_solution",
+      "tests/dx_edge/test_server.py::test_subscription_endpoint"
+     ]
+    },
+    {
+     "id": "710-AC5",
+     "title": "Compiler stack 생성·삭제: 이름으로 stack을 만들고 진행 이벤트를 보여 주며, 삭제는 stack 이름을 그대로 입력해야만 실행된다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_710_cloud.py::test_a_compiler_stack_is_created_and_deleted_only_after_typing_its_name",
+      "tests/dx_edge/test_server.py::test_create_stack_hands_the_body_to_the_core",
+      "tests/dx_edge/test_server.py::test_delete_stack_passes_the_typed_confirmation",
+      "tests/dx_edge/test_server.py::test_stack_posts_cross_origin_are_refused"
+     ]
+    },
+    {
+     "id": "710-AC6",
+     "title": "Cloud Compile: .onnx·.json을 올려 compile을 시작하면 job prefix, workflow 단계와 dxcom 로그가 표시되고 끝나면 .dxnn 다운로드·Studio 모델 폴더 저장 버튼이 나온다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_710_cloud.py::test_cloud_compile_uploads_the_model_and_shows_the_workflow_log",
+      "tests/dx_edge/test_server.py::test_compile_hands_the_files_to_the_core_and_ignores_a_client_bucket",
+      "tests/dx_edge/test_server.py::test_compile_log_endpoint",
+      "tests/dx_edge/test_server.py::test_compile_cross_origin_is_refused"
+     ]
+    },
+    {
+     "id": "710-AC7",
+     "title": "Compile jobs 목록은 stack의 모든 compile을 상태와 함께 보여 주고 .dxnn을 내려받을 수 있다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_710_cloud.py::test_the_job_list_shows_every_compile_and_downloads_its_dxnn",
+      "tests/dx_edge/test_server.py::test_jobs_endpoint"
+     ]
+    },
+    {
+     "id": "710-AC8",
+     "title": "Greengrass 탭: thing group, deployment 상태, core device 목록(HEALTHY 등)과 기기 등록용 install script 생성.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_710_cloud.py::test_greengrass_tab_lists_devices_and_generates_an_install_script",
+      "tests/dx_edge/test_server.py::test_greengrass_devices_endpoint",
+      "tests/dx_edge/test_server.py::test_greengrass_install_script_endpoint"
+     ]
+    },
+    {
+     "id": "710-AC9",
+     "title": "AWS CLI 설정 안내(설치·자격 증명·확인·필요 권한)와 AWS Console guide 페이지(`/cloud/guide`, 두 탭에서 링크)가 열린다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_710_cloud.py::test_aws_cli_setup_guide_and_the_console_guide_page",
+      "tests/dx_edge/test_server.py::test_console_guide_page_is_served_and_linked_from_both_tabs"
+     ]
+    },
+    {
+     "id": "710-AC10",
+     "title": "튜토리얼: toolbar Tutorial로 DX Cloud 투어를 시작하고, 투어는 AWS에 쓰는 버튼을 누르지 않는다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_710_cloud.py::test_the_tutorial_guides_through_dx_cloud_without_pressing_aws_buttons",
+      "tests/dx_edge/test_tutorial.py::test_tour_never_clicks_aws_write_buttons",
+      "tests/dx_edge/test_tutorial.py::test_targets_exist_in_rendered_page"
+     ]
+    },
+    {
+     "id": "710-AC11",
+     "title": "AWS Partner·AWS Qualified Software badge가 표시된다.",
+     "requires": [
+      "browser"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_710_cloud.py::test_the_aws_partner_and_qualified_software_badges_show"
+     ]
+    },
+    {
+     "id": "710-AC12",
+     "title": "실제 AWS 계정: 사용 가능한 AWS profile이 있으면 account·구독·stack 조회(read-only)가 실제 AWS에서 응답한다.",
+     "requires": [
+      "aws"
+     ],
+     "tests": [
+      "tests/acceptance/test_sdkreq_710_cloud.py::test_a_real_aws_account_answers_read_only_calls"
+     ]
+    }
+   ]
+  }
+ ]
+}

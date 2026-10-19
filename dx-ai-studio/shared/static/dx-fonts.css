@@ -1,10 +1,14 @@
 /* Shared self-hosted fonts for all DX AI Studio GUI modules. */
-@font-face{font-family:'Inter';font-style:normal;font-weight:100 900;font-display:swap;src:url('/static/shared/fonts/inter-v20-latin-regular.woff2') format('woff2')}
+/* Inter 4.1 variable (wght 100–900, opsz 14–32) — latin subset. Built by scripts/build_font_subsets.py. */
+@font-face{font-family:'Inter';font-style:normal;font-weight:100 900;font-display:swap;src:url('/static/shared/fonts/inter-4.1-var-latin.woff2') format('woff2')}
 @font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:100 800;font-display:swap;src:url('/static/shared/fonts/jetbrains-mono-v24-latin-regular.woff2') format('woff2')}
 @font-face{font-family:'Noto Sans';font-style:normal;font-weight:400;font-display:swap;src:url('/static/shared/fonts/NotoSans-Regular.ttf') format('truetype')}
 @font-face{font-family:'Noto Sans';font-style:normal;font-weight:700;font-display:swap;src:url('/static/shared/fonts/NotoSans-Bold.ttf') format('truetype')}
 @font-face{font-family:'Noto Sans Mono';font-style:normal;font-weight:400;font-display:swap;src:url('/static/shared/fonts/NotoSansMono-Regular.ttf') format('truetype')}
 @font-face{font-family:'Noto Sans Mono';font-style:normal;font-weight:700;font-display:swap;src:url('/static/shared/fonts/NotoSansMono-Bold.ttf') format('truetype')}
-/* CJK coverage (ja/zh/ko) — subset of Noto Sans CJK SC to the glyphs used across the 6-language UI. Bundled so offline/minimal-OS boards render CJK instead of tofu. */
-@font-face{font-family:'Noto Sans CJK';font-style:normal;font-weight:400;font-display:swap;src:url('/static/shared/fonts/NotoSansCJK-subset-Regular.woff2') format('woff2')}
-@font-face{font-family:'Noto Sans CJK';font-style:normal;font-weight:700;font-display:swap;src:url('/static/shared/fonts/NotoSansCJK-subset-Bold.woff2') format('woff2')}
+/* CJK: one face per language so ja / zh-TW stop rendering Simplified glyph shapes.
+   unicode-range keeps each file from loading until its script actually appears. */
+@font-face{font-family:'DX CJK KR';font-style:normal;font-weight:45 930;font-display:swap;src:url('/static/shared/fonts/pretendard-1.3.9-var-ko.woff2') format('woff2');unicode-range:U+1100-11FF,U+3000-303F,U+3130-318F,U+AC00-D7A3,U+FF00-FFEF}
+@font-face{font-family:'DX CJK JP';font-style:normal;font-weight:45 930;font-display:swap;src:url('/static/shared/fonts/pretendard-jp-1.3.9-var-ja.woff2') format('woff2');unicode-range:U+3000-30FF,U+31F0-31FF,U+3400-4DBF,U+4E00-9FFF,U+F900-FAFF,U+FF00-FFEF}
+@font-face{font-family:'DX CJK SC';font-style:normal;font-weight:100 900;font-display:swap;src:url('/static/shared/fonts/noto-sans-sc-var-zh-cn.woff2') format('woff2');unicode-range:U+3000-303F,U+3400-4DBF,U+4E00-9FFF,U+F900-FAFF,U+FF00-FFEF}
+@font-face{font-family:'DX CJK TC';font-style:normal;font-weight:100 900;font-display:swap;src:url('/static/shared/fonts/noto-sans-tc-var-zh-tw.woff2') format('woff2');unicode-range:U+3000-303F,U+3400-4DBF,U+4E00-9FFF,U+F900-FAFF,U+FF00-FFEF}

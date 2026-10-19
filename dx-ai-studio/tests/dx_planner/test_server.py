@@ -84,17 +84,18 @@ def test_index_html_serves_html(server):
 def test_local_css_served(server):
     body, status = _get_raw("/static/css/style.css")
     assert status == 200
-    assert ".planner-topbar" in body
+    # The top bar belongs to the shared shell (dx-shell.css); module CSS styles content only.
+    assert ".planner-main" in body
 
 
 def test_shared_foundation_css_served(server):
     body, status = _get_raw("/static/shared/dx-fonts.css")
     assert status == 200
-    assert "/static/shared/fonts/inter-v20-latin-regular.woff2" in body
+    assert "/static/shared/fonts/inter-4.1-var-latin.woff2" in body
 
 
 def test_shared_font_served(server):
-    data, status, content_type = _get_bytes("/static/shared/fonts/inter-v20-latin-regular.woff2")
+    data, status, content_type = _get_bytes("/static/shared/fonts/inter-4.1-var-latin.woff2")
     assert status == 200
     assert data[:4] == b"wOF2"
     assert len(data) > 100
@@ -120,14 +121,14 @@ def _read_planner_file(relative_path):
 
 
 def test_edgeguide_progressive_workspace_contracts():
-    """워크스페이스 패널 구조, 스크립트, CSS 계약을 검증한다."""
+    """Checks the workspace panel structure, scripts and CSS contracts."""
     index_html = _read_planner_file("templates/index.html")
     style_css = _read_planner_file("static/css/style.css")
     planner_js = _read_planner_file("static/js/planner.js")
     workspace_js = _read_planner_file("static/js/workspace.js")
     explorer_js = _read_planner_file("static/js/explorer.js")
 
-    # 워크스페이스 패널 요소 ID는 반드시 index.html에 존재해야 함
+    # The workspace panel element IDs must exist in index.html
     for element_id in [
         "plannerWorkspace",
         "requirementsPanel",
@@ -136,7 +137,7 @@ def test_edgeguide_progressive_workspace_contracts():
     ]:
         assert element_id in index_html
 
-    # 초기 상태는 HTML에, 모든 전환 상태 이름은 workspace.js에 존재해야 함
+    # The initial state lives in the HTML; every transition state name lives in workspace.js
     assert "workspace-state-empty" in index_html
     for state_token in [
         "workspace-state-empty",
@@ -155,12 +156,12 @@ def test_edgeguide_progressive_workspace_contracts():
         assert token in style_css
 
     assert '<script src="/static/js/workspace.js?m=dx_planner"></script>' in index_html
-    # PlannerWorkspace는 workspace.js에서 정의되고 planner.js에서 사용
+    # PlannerWorkspace is defined in workspace.js and used by planner.js
     assert "PlannerWorkspace" in workspace_js
     assert "PlannerWorkspace" in planner_js
     assert ".detail-empty[hidden]" in style_css
 
-    # 구 step-wizard 흔적이 남아 있으면 안 됨
+    # No step-wizard markup may remain
     assert 'id="step-indicator"' not in index_html
     assert 'id="step-1"' not in index_html
     assert 'id="step-2"' not in index_html
@@ -171,7 +172,7 @@ def test_edgeguide_progressive_workspace_contracts():
 
 
 def test_edgeguide_wizard_no_longer_owns_step_navigation():
-    """WizardController는 입력 수집만 담당하고 제거된 step DOM을 조작하지 않아야 한다."""
+    """WizardController only collects inputs and must not touch step-wizard DOM."""
     wizard_js = _read_planner_file("static/js/wizard.js")
 
     for obsolete_token in [
@@ -187,7 +188,7 @@ def test_edgeguide_wizard_no_longer_owns_step_navigation():
 
 
 def test_edgeguide_workspace_css_removes_obsolete_step_contracts():
-    """워크스페이스 CSS는 제거된 step/back/checkbox UI를 스타일링하지 않아야 한다."""
+    """Workspace CSS must not style step/back/checkbox UI that no longer exists."""
     style_css = _read_planner_file("static/css/style.css")
 
     for obsolete_selector in [
@@ -205,7 +206,7 @@ def test_edgeguide_workspace_css_removes_obsolete_step_contracts():
 
 
 def test_edgeguide_workspace_layout_fills_screen_without_rail_overflow():
-    """1분할은 전체 폭을 쓰고, 2/3분할 rail 내부 요소는 좁은 폭에서 접혀야 한다."""
+    """A single pane uses the full width; rail contents in 2/3-pane splits must fold at narrow widths."""
     style_css = _read_planner_file("static/css/style.css")
 
     for required in [
@@ -233,7 +234,7 @@ def test_edgeguide_workspace_layout_fills_screen_without_rail_overflow():
 
 
 def test_edgeguide_deeplink_prefill_auto_recommend_contract():
-    """딥링크는 입력 프리필 후 즉시 추천을 실행한다 (Benchmark → EdgeGuide 연동)."""
+    """A deep link prefills the inputs and runs the recommendation at once (Benchmark → EdgeGuide)."""
     planner_js = _read_planner_file("static/js/planner.js")
     index_html = _read_planner_file("templates/index.html")
 
@@ -280,12 +281,12 @@ def test_edgeguide_deeplink_prefill_auto_recommend_contract():
 
 
 def test_edgeguide_dense_detail_renderer_contracts():
-    """추천 카드와 차트는 우측 dense detail 패널을 직접 열어야 한다."""
+    """Recommendation cards and charts must open the dense detail panel on the right directly."""
     cards_js = _read_planner_file("static/js/cards.js")
     charts_js = _read_planner_file("static/js/charts.js")
     explorer_js = _read_planner_file("static/js/explorer.js")
 
-    # 비교 체크박스 플로우 대신 카드 자체가 선택 가능한 버튼 역할을 해야 함
+    # The card itself is the selectable button, not a compare checkbox
     assert "compare-check" not in cards_js
     assert "compare-label" not in cards_js
     assert "tabIndex = 0" in cards_js
@@ -293,7 +294,7 @@ def test_edgeguide_dense_detail_renderer_contracts():
     assert "addEventListener('keydown'" in cards_js
     assert "event.key === 'Enter' || event.key === ' '" in cards_js
 
-    # overview chart는 DOM 버튼을 찾아 누르지 않고 콜백으로 detail을 열어야 함
+    # The overview chart opens detail through a callback, not by clicking a DOM button
     assert "function getCanvasParentContentWidth" in charts_js
     assert "parseFloat(style.paddingLeft)" in charts_js
     assert "draw(canvas, results, onBarClick)" in charts_js
@@ -301,7 +302,7 @@ def test_edgeguide_dense_detail_renderer_contracts():
     assert "onBarClick(results[idx].platform.id)" in charts_js
     assert ".btn-detail[data-platform-id=" not in charts_js
 
-    # explorer는 선택 결과 기반의 dense detail, 비교 요약, multi-stream 근거를 렌더링해야 함
+    # The explorer renders dense detail, a comparison summary and multi-stream evidence for the selection
     assert "open(platformId, inputs, results)" in explorer_js
     assert "const result = (results || []).find" in explorer_js
     for token in [
@@ -321,7 +322,7 @@ def test_edgeguide_dense_detail_renderer_contracts():
 
 
 def test_edgeguide_overview_chart_redraws_on_workspace_resize():
-    """workspace 분할 변경으로 차트 컨테이너 폭이 바뀌면 canvas를 다시 그려야 한다."""
+    """The canvas must redraw when a workspace split change resizes the chart container."""
     planner_js = _read_planner_file("static/js/planner.js")
 
     for token in [
@@ -341,7 +342,7 @@ def test_edgeguide_overview_chart_redraws_on_workspace_resize():
 
 
 def test_aggregator_multi_stream_passes_operational_fields(tmp_path):
-    """multi_stream 집계 시 운영 한계 판단용 필드를 보존해야 한다."""
+    """multi_stream aggregation must keep the fields used to judge operating limits."""
     from dx_planner.core.aggregator import aggregate_benchmarks
     from tests.dx_planner.test_aggregator import (
         _make_environment,
@@ -383,7 +384,7 @@ def test_aggregator_multi_stream_passes_operational_fields(tmp_path):
 
 
 def test_edgeguide_tutorial_workspace_contracts():
-    """튜토리얼은 workspace 패널을 설명하고 구 step-wizard 토큰을 제거해야 함."""
+    """The tutorial describes the workspace panels and carries no step-wizard tokens."""
     tutorial_js = _read_planner_file("static/js/tutorial.js")
 
     for token in [
@@ -402,7 +403,7 @@ def test_edgeguide_tutorial_workspace_contracts():
     ]:
         assert token in tutorial_js
 
-    # 구 step-wizard / Step 2·3 언급 금지
+    # No step-wizard or Step 2/3 references
     for forbidden in [
         "goToStep",
         "step-indicator",
@@ -415,10 +416,9 @@ def test_edgeguide_tutorial_workspace_contracts():
 
 
 def test_recommend_js_channels_sort_replaces_cost():
-    """Pricing/cost-sort was removed; ranking now offers a measured 'channels' priority.
+    """Ranking offers a measured 'channels' priority and no pricing or cost sort.
 
-    The old cost comparator (and its price_usd null / Infinity-minus-Infinity guards) no longer
-    exists because EdgeGuide dropped all monetary figures — real prices proved unreliable.
+    EdgeGuide shows no monetary figures because real prices are unreliable.
     """
     recommend_src = _read_planner_file("static/js/recommend.js")
 
@@ -429,22 +429,22 @@ def test_recommend_js_channels_sort_replaces_cost():
 
 
 def test_planner_release_data_state_contracts():
-    """Planner UI는 unknown/stale/empty release data states를 명시적으로 렌더링해야 한다."""
+    """The Planner UI must render unknown/stale/empty release data states explicitly."""
     cards_js = _read_planner_file("static/js/cards.js")
     data_loader_js = _read_planner_file("static/js/data-loader.js")
     explorer_js = _read_planner_file("static/js/explorer.js")
     style_css = _read_planner_file("static/css/style.css")
 
-    # Pricing was removed from EdgeGuide (real prices proved unreliable); no money is rendered
-    # in cards or detail, and cost-based sorting is gone.
+    # EdgeGuide shows no prices (real prices are unreliable): no money in cards or detail,
+    # and no cost-based sorting.
     assert "_formatMoney" not in cards_js
     assert "_formatMoney" not in explorer_js
     assert "price_usd" not in cards_js
     assert "systemPrice" not in cards_js
-    # benchmark date still falls back to 'N/A' when missing
+    # a missing benchmark date falls back to 'N/A'
     assert "'N/A'" in cards_js
 
-    # benchmark meta.generated / benchmark_dates가 UI에 노출되어야 함
+    # benchmark meta.generated / benchmark_dates must be shown in the UI
     for token in [
         "STALE_BENCHMARK_DAYS",
         "getGeneratedAt()",
@@ -462,18 +462,18 @@ def test_planner_release_data_state_contracts():
     ]:
         assert token in cards_js
 
-    # 추천 결과가 비어도 빈 화면 안내를 보여야 함
+    # An empty recommendation result must show an empty-state message
     assert "results.length === 0" in cards_js
     assert "planner-empty-recommendations" in cards_js
     assert "No matching recommendations" in cards_js
     assert ".planner-empty-recommendations" in style_css
 
-    # 동적 innerHTML로 삽입된 data-i18n 텍스트는 즉시 현재 언어로 재적용되어야 함
+    # data-i18n text inserted through innerHTML must be re-translated to the current language at once
     assert "DXI18n.applyLang()" in cards_js
 
 
 def test_planner_release_data_state_i18n_entries():
-    """동적 release data state 문자열은 6개 언어 dict에 있어야 한다."""
+    """Dynamic release data state strings must be in all six language dicts."""
     i18n_js = _read_planner_file("static/js/i18n.js")
     for key in [
         "Generated",

@@ -1,6 +1,6 @@
 """Models + reasoning-effort per agent must match the original .deepx/e2e/test.sh:
-  claude   default claude-sonnet-4-6 (+ --effort supported)
-  copilot  default claude-sonnet-4.6, passes --model
+  claude   default claude-sonnet-5-5 (+ --effort supported)
+  copilot  default auto (the account's own default comes over ACP), passes --model
   opencode default github-copilot/claude-sonnet-4.6, lists models dynamically
   cursor   dynamic list (cursor-agent --list-models), effort via bracket
 """
@@ -15,13 +15,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "dx_agent
 
 def test_claude_default_and_effort():
     from core.agents_config import AGENTS
-    assert AGENTS["claude"]["default_model"] == "claude-sonnet-4-6"
+    assert AGENTS["claude"]["default_model"] == "claude-sonnet-5-5"
     assert AGENTS["claude"]["reasoning_efforts"]  # --effort supported
 
 
 def test_copilot_exposes_model_and_passes_it():
     from core.agents_config import AGENTS
-    assert AGENTS["copilot"]["default_model"] == "claude-sonnet-4.6"  # original default
+    assert AGENTS["copilot"]["default_model"] == "auto"  # per-account default arrives over ACP
     assert "claude-sonnet-4.6" in AGENTS["copilot"]["models"]
     from core.adapters import make_adapter
     cmd = make_adapter("copilot", model="claude-sonnet-4.6").build_command("x", Path("/s"), ["/h"])
@@ -76,7 +76,7 @@ def test_copilot_lists_full_model_set():
 
 
 def test_copilot_exposes_reasoning_effort():
-    """copilot CLI supports --effort/--reasoning-effort → expose it (was hidden: empty)."""
+    """copilot CLI supports --effort/--reasoning-effort → expose it."""
     from core.agents_config import AGENTS
     assert AGENTS["copilot"]["reasoning_efforts"]      # non-empty
     assert AGENTS["copilot"]["default_effort"]

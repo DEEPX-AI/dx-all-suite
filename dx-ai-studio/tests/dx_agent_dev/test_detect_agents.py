@@ -1,4 +1,4 @@
-"""설치된 CLI 어댑터 감지 — 드롭다운 동적 노출용(기존 detect_environment와 별개)."""
+"""Detect installed CLI adapters for the dropdown (separate from detect_environment)."""
 import sys
 from pathlib import Path
 
@@ -7,7 +7,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "dx_agent
 
 def test_detect_available_agents_returns_list(monkeypatch):
     from core import environment
-    # copilot·codex만 설치된 것으로 가정
+    # assume only copilot and codex are installed
     installed = {"copilot": "/usr/bin/copilot", "codex": "/usr/bin/codex"}
     monkeypatch.setattr(environment.shutil, "which", lambda n: installed.get(n))
     agents = environment.detect_available_agents()

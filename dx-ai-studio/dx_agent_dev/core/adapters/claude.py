@@ -1,4 +1,4 @@
-"""claude -p stream-json 어댑터(--add-dir 격리). normalize JSON 매핑은 provisional."""
+"""claude -p stream-json adapter (--add-dir isolation). The normalize JSON mapping is provisional."""
 import json
 
 from dx_agent_dev.core.adapters.base import SubprocessAdapter, _map_json_event, classify_plain_line
@@ -10,7 +10,7 @@ class ClaudeAdapter(SubprocessAdapter):
     # matching the original `cd "$_workdir" && claude --dangerously-skip-permissions ...`
     # (.deepx/e2e/test.sh).
     cwd_mode = "harness"
-    creds_relpath = (".claude", ".credentials.json")  # OAuth 자격증명(일반망 검증)
+    creds_relpath = (".claude", ".credentials.json")  # OAuth credentials
     creds_key = "claudeAiOauth"
     login_cmd_hint = "claude  (실행 후 브라우저 OAuth 로그인)"
 

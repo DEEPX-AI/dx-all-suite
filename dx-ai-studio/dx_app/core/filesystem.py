@@ -3,12 +3,12 @@
 import os
 from pathlib import Path
 
-# 허용된 루트 목록: 사용자 홈 디렉토리 하위만 탐색 가능
+# Allowed roots: only paths under the user's home directory can be browsed
 _FS_ALLOWED_ROOTS = (Path.home(),)
 
 
 def _is_under_allowed_roots(p: Path) -> bool:
-    """경로가 허용된 루트 중 하나의 하위인지 검증."""
+    """Check that the path lies under one of the allowed roots."""
     resolved = p.resolve()
     for root in _FS_ALLOWED_ROOTS:
         r = root.resolve()

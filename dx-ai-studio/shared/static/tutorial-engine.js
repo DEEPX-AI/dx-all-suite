@@ -1,3 +1,25 @@
+/* Shared icons (shared/static/dx-icon.js). The engine runs in every module, so without DXIcon
+   (an older document) the spot stays empty. */
+function _dxtIcon(name) {
+  return (typeof window !== 'undefined' && typeof window.DXIcon === 'function') ? window.DXIcon(name) : '';
+}
+/* Section icon: a sprite name (digits and underscores allowed, e.g. task-object_detection) gives that icon,
+   anything else is used as literal text. None gives file. */
+var _DXT_ICON_NAME = /^[a-z0-9_-]+$/;
+function _dxtSectionIcon(icon) {
+  if (!icon) return _dxtIcon('file');
+  if (_DXT_ICON_NAME.test(icon)) return _dxtIcon(icon);
+  return String(icon);
+}
+/* Icons inside step text: {{i:check}} → sprite icon. Step text points at buttons and badges on screen
+   (e.g. "the Ready badge {{i:check}}"), so it uses the same shapes — emoji render differently per OS. */
+function _dxtExpandIcons(html) {
+  return String(html || '').replace(/\{\{i:([a-z0-9_-]+)\}\}/g, function (m, name) {
+    return (typeof window !== 'undefined' && typeof window.DXIcon === 'function')
+      ? window.DXIcon(name, { cls: 'dxt-inline-ico' }) : '';
+  });
+}
+
 class DXTutorialEngine {
   static _UI = {
     'Tutorial Guide': { ko: '튜토리얼 가이드', ja: 'チュートリアルガイド', 'zh-CN': '教程指南', 'zh-TW': '教學指南',es:'Guía tutorial'},
@@ -42,6 +64,9 @@ class DXTutorialEngine {
   constructor(opts = {}) {
     this.options      = opts || {};
     this.appId        = opts.appId || 'app';
+    /* Buttons call their own engine — with two engines in one document (launcher · SDK Library),
+       window._dxTutorial is whichever was created last and would start the wrong tour. */
+    if (typeof window !== 'undefined') (window._dxTutorials = window._dxTutorials || {})[this.appId] = this;
     this.sections     = opts.sections || [];
     this.getLang      = opts.getLang || (() => localStorage.getItem('dx-lang') || 'en');
     this.onNav        = opts.onNav || (() => {});
@@ -49,7 +74,7 @@ class DXTutorialEngine {
 
     this._curSection  = null;
     this._curStep     = 0;
-    this._stepToken   = 0;  // race condition 방지용 토큰
+    this._stepToken   = 0;  // token that guards against races
     this._spotlight   = null;
     this._overlay     = null;
     this._tooltip     = null;
@@ -93,7 +118,7 @@ class DXTutorialEngine {
         var style = window.getComputedStyle(node);
         if (style.display === 'none' || style.visibility === 'hidden') continue;
         var r = node.getBoundingClientRect();
-        if (r.width > 0 || r.height > 0) return node;
+        if (r.width > 0 && r.height > 0) return node;   // a zero-height strip is not a visible target
       }
       return null;
     };
@@ -337,8 +362,8 @@ class DXTutorialEngine {
     const tutSecs = this.sections.filter(s => !s.helpOnly);
 
     let html = '<div class="dxt-toc-header">' +
-      '<div class="dxt-toc-title">\uD83C\uDF93 ' + this._tl('Tutorial Guide') + '</div>' +
-      '<button class="dxt-toc-close" onclick="window._dxTutorial.hideTOC()">\u2715</button>' +
+      '<div class="dxt-toc-title">' + _dxtIcon('graduation') + ' ' + this._tl('Tutorial Guide') + '</div>' +
+      '<button class="dxt-toc-close" aria-label="Close" onclick="' + this._ref() + '.hideTOC()">' + _dxtIcon('x') + '</button>' +
       '</div>' +
       '<div class="dxt-toc-progress">' +
       '<div class="dxt-toc-pbar"><div class="dxt-toc-pfill" style="width:' + pct + '%"></div></div>' +
@@ -351,23 +376,27 @@ class DXTutorialEngine {
       var stepsTotal = sec.steps.length;
       var hasPrereq = !!this._checkPrereq(sec);
       html += '<div class="dxt-toc-item ' + (done ? 'done' : '') + ' ' + (hasPrereq ? 'has-prereq' : '') + '"' +
-        ' onclick="window._dxTutorial.startSection(\'' + sec.id + '\')">' +
-        '<span class="dxt-toc-icon">' + (sec.icon || '\uD83D\uDCC4') + '</span>' +
+        ' onclick="' + this._ref() + '.startSection(\'' + sec.id + '\')">' +
+        '<span class="dxt-toc-icon">' + _dxtSectionIcon(sec.icon) + '</span>' +
         '<div class="dxt-toc-info">' +
         '<div class="dxt-toc-name">' + this._t(sec.title) + '</div>' +
         '<div class="dxt-toc-desc">' + (this._t(sec.description) || '') + '</div>' +
         '<div class="dxt-toc-meta">' + stepsDone + '/' + stepsTotal + ' ' + this._tl('steps') + '</div>' +
         '</div>' +
-        '<span class="dxt-toc-check">' + (done ? '\u2705' : hasPrereq ? '\uD83D\uDD12' : '\u25CB') + '</span>' +
+        '<span class="dxt-toc-check' + (done ? ' is-done' : hasPrereq ? ' is-locked' : '') + '">' + _dxtIcon(done ? 'check' : hasPrereq ? 'lock' : 'circle') + '</span>' +
         '</div>';
     }.bind(this));
 
     html += '</div><div class="dxt-toc-footer">' +
-      '<button class="dxt-toc-btn dxt-toc-btn-start" onclick="window._dxTutorial.startAll()">\u25B6 ' + this._tl('Start from Beginning') + '</button>' +
-      '<button class="dxt-toc-btn dxt-toc-btn-reset" onclick="window._dxTutorial._confirmReset()">\uD83D\uDD04 ' + this._tl('Reset') + '</button>' +
+      '<button class="dxt-toc-btn dxt-toc-btn-start" onclick="' + this._ref() + '.startAll()">' + _dxtIcon('play') + ' ' + this._tl('Start from Beginning') + '</button>' +
+      '<button class="dxt-toc-btn dxt-toc-btn-reset" onclick="' + this._ref() + '._confirmReset()">' + _dxtIcon('refresh') + ' ' + this._tl('Reset') + '</button>' +
       '</div>';
 
     this._tocEl.innerHTML = html;
+  }
+
+  _ref() {
+    return "window._dxTutorials['" + String(this.appId).replace(/[^\w-]/g, '') + "']";
   }
 
   startAll() {
@@ -392,7 +421,7 @@ class DXTutorialEngine {
     if (prereqMsg) {
       var lang = this.getLang();
       var proceed = await this._showConfirmModal(
-        '⚠️ ' + this._tl('Prerequisites Required'),
+        _dxtIcon('alert') + ' ' + this._tl('Prerequisites Required'),
         prereqMsg,
         [
           { label: this._tl('Proceed Anyway'), value: true },
@@ -420,15 +449,20 @@ class DXTutorialEngine {
 
   async _showStep() {
     if (!this._curSection) return;
-    var token = ++this._stepToken; // 각 호출마다 고유 토큰 — 이전 폴링 중단용
+    var token = ++this._stepToken; // unique per call — stops an earlier poll
     var steps = this._curSection.steps;
     var step = steps[this._curStep];
     if (!step) { this.stop(); return; }
 
     if (step.beforeStep) {
-      var beforeResult = step.beforeStep.call(step);
-      if (beforeResult && typeof beforeResult.then === 'function') {
-        await beforeResult;
+      // Draw this step even if its preparation fails — otherwise the previous step's box stays and Next stops working.
+      try {
+        var beforeResult = step.beforeStep.call(step);
+        if (beforeResult && typeof beforeResult.then === 'function') {
+          await beforeResult;
+        }
+      } catch (err) {
+        console.warn('[DXTutorial] beforeStep failed:', err);
       }
     }
     if (step.beforeStep) await new Promise(r => requestAnimationFrame(() => setTimeout(r, 0)));
@@ -446,13 +480,22 @@ class DXTutorialEngine {
         if (!el) return false;
         if (el.tagName === 'DIALOG' && !el.open) return false;
         var r = el.getBoundingClientRect();
-        return r.width > 0 || r.height > 0;
+        return r.width > 0 && r.height > 0;
       };
       var _vis = _isVisible(target);
       if (!_vis) {
+        // Polling takes up to 2 s. Leaving the previous step's spotlight and tooltip up
+        // meanwhile shows a step the user has already left, and a second Next press
+        // trips the _stepToken guard so nothing renders — the screen stays stuck on
+        // the previous step. So show the new step floating before waiting, and promote
+        // it to anchored below once the target appears. Steps whose first lookup
+        // succeeds skip this path.
+        // (Contract: tests/test_tutorial_stale_step.py)
+        this._spotlight.classList.remove('active');
+        this._renderTooltipFloating(step);
         for (var _pw = 0; _pw < 20; _pw++) {
           await new Promise(function(r) { setTimeout(r, 100); });
-          if (this._stepToken !== token || !this._curSection) return; // 중간에 중단됐으면 종료
+          if (this._stepToken !== token || !this._curSection) return; // stopped meanwhile: bail out
           target = this._queryTarget(step.target);
           if (_isVisible(target)) { _vis = true; break; }
         }
@@ -463,7 +506,7 @@ class DXTutorialEngine {
       }
     }
 
-    if (this._stepToken !== token || !this._curSection) return; // 렌더링 전 최종 체크
+    if (this._stepToken !== token || !this._curSection) return; // last check before rendering
 
     if (target) {
       this._bindScrollRootsFor(target);
@@ -538,21 +581,21 @@ class DXTutorialEngine {
       '<div class="dxt-tip-header">' +
       '<span class="dxt-tip-counter">' + (this._curStep + 1) + ' / ' + steps.length + '</span>' +
       '<span class="dxt-tip-section">' + this._t(this._curSection.title) + '</span>' +
-      '<button class="dxt-tip-close" onclick="window._dxTutorial.stop()">\u2715</button>' +
+      '<button class="dxt-tip-close" aria-label="Close" onclick="' + this._ref() + '.stop()">' + _dxtIcon('x') + '</button>' +
       '</div>' +
       '<div class="dxt-tip-title">' + this._t(step.title) + '</div>' +
-      '<div class="dxt-tip-body">' + this._t(step.content) + '</div>' +
+      '<div class="dxt-tip-body">' + _dxtExpandIcons(this._t(step.content)) + '</div>' +
       '<div class="dxt-tip-nav">' +
-      '<button class="dxt-tip-btn dxt-tip-prev" ' + (isFirst ? 'disabled' : '') + ' onclick="window._dxTutorial.prev()">\u2190 ' + this._tl('Prev') + '</button>' +
-      '<button class="dxt-tip-btn dxt-tip-skip" onclick="window._dxTutorial.stop()">' + this._tl('Skip') + '</button>' +
-      '<button class="dxt-tip-btn dxt-tip-next" onclick="window._dxTutorial.next()">' + (isLast ? (this._tl('Done') + ' \u2713') : (this._tl('Next') + ' \u2192')) + '</button>' +
+      '<button class="dxt-tip-btn dxt-tip-prev" ' + (isFirst ? 'disabled' : '') + ' onclick="' + this._ref() + '.prev()">\u2190 ' + this._tl('Prev') + '</button>' +
+      '<button class="dxt-tip-btn dxt-tip-skip" onclick="' + this._ref() + '.stop()">' + this._tl('Skip') + '</button>' +
+      '<button class="dxt-tip-btn dxt-tip-next" onclick="' + this._ref() + '.next()">' + (isLast ? (this._tl('Done') + ' ' + _dxtIcon('check')) : (this._tl('Next') + ' \u2192')) + '</button>' +
       '</div>';
     this._tooltip.classList.add('active');
     this._positionTooltip(target);
   }
 
   _renderTooltipFloating(step) {
-    if (!this._curSection) return; // stop() 이후 호출 방지
+    if (!this._curSection) return; // ignore calls after stop()
     var lang = this.getLang();
     var steps = this._curSection.steps;
     var isFirst = this._curStep === 0;
@@ -562,14 +605,14 @@ class DXTutorialEngine {
       '<div class="dxt-tip-header">' +
       '<span class="dxt-tip-counter">' + (this._curStep + 1) + ' / ' + steps.length + '</span>' +
       '<span class="dxt-tip-section">' + this._t(this._curSection.title) + '</span>' +
-      '<button class="dxt-tip-close" onclick="window._dxTutorial.stop()">\u2715</button>' +
+      '<button class="dxt-tip-close" aria-label="Close" onclick="' + this._ref() + '.stop()">' + _dxtIcon('x') + '</button>' +
       '</div>' +
       '<div class="dxt-tip-title">' + this._t(step.title) + '</div>' +
-      '<div class="dxt-tip-body">' + this._t(step.content) + '</div>' +
+      '<div class="dxt-tip-body">' + _dxtExpandIcons(this._t(step.content)) + '</div>' +
       '<div class="dxt-tip-nav">' +
-      '<button class="dxt-tip-btn dxt-tip-prev" ' + (isFirst ? 'disabled' : '') + ' onclick="window._dxTutorial.prev()">\u2190 ' + this._tl('Prev') + '</button>' +
-      '<button class="dxt-tip-btn dxt-tip-skip" onclick="window._dxTutorial.stop()">' + this._tl('Skip') + '</button>' +
-      '<button class="dxt-tip-btn dxt-tip-next" onclick="window._dxTutorial.next()">' + (isLast ? (this._tl('Done') + ' \u2713') : (this._tl('Next') + ' \u2192')) + '</button>' +
+      '<button class="dxt-tip-btn dxt-tip-prev" ' + (isFirst ? 'disabled' : '') + ' onclick="' + this._ref() + '.prev()">\u2190 ' + this._tl('Prev') + '</button>' +
+      '<button class="dxt-tip-btn dxt-tip-skip" onclick="' + this._ref() + '.stop()">' + this._tl('Skip') + '</button>' +
+      '<button class="dxt-tip-btn dxt-tip-next" onclick="' + this._ref() + '.next()">' + (isLast ? (this._tl('Done') + ' ' + _dxtIcon('check')) : (this._tl('Next') + ' \u2192')) + '</button>' +
       '</div>';
     this._tooltip.classList.add('active');
     this._tooltip.style.position = 'fixed';
@@ -638,25 +681,40 @@ class DXTutorialEngine {
       tip.style.left = clampX(parseFloat(tip.style.left)) + 'px';
     };
 
-    place(chosen);
-
-    // Try alternate sides until tooltip fits (explicit position + auto)
+    /* Pick the side that does not cover the target, judged by overlap with the target (after clamping into the
+       viewport every side looks unclipped, so clipping alone cannot decide).
+       Try the requested side first, then its opposite, then the two other sides. Under 600px wide, only top and
+       bottom. If no side is clear, dock to the screen edge away from the target (smallest covered area). */
     var flip = { bottom: 'top', top: 'bottom', right: 'left', left: 'right' };
-    var tryOrder = pos === 'auto'
-      ? ['bottom', 'top', 'right', 'left']
-      : [pos, flip[pos], flip[flip[pos]], flip[flip[flip[pos]]]].filter(function(v, i, a) {
-          return v && a.indexOf(v) === i;
-        });
-    for (var ti = 0; ti < tryOrder.length; ti++) {
-      chosen = tryOrder[ti];
-      tip.setAttribute('data-pos', chosen);
-      place(chosen);
-      var tr2 = tip.getBoundingClientRect();
-      var clipped = tr2.top < 4 || tr2.left < 4
-        || tr2.bottom > window.innerHeight - 4
-        || tr2.right > window.innerWidth - 4;
-      if (!clipped) break;
+    var side = { bottom: ['right', 'left'], top: ['right', 'left'], right: ['bottom', 'top'], left: ['bottom', 'top'] };
+    var first = (pos === 'auto' || !flip[pos]) ? chosen : pos;
+    var order = [first, flip[first]].concat(side[first]);
+    if (window.innerWidth < 600) order = order.filter(function(p) { return p === 'top' || p === 'bottom'; });
+    var overlap = function(a) {
+      var w = Math.max(0, Math.min(a.right, rect.right) - Math.max(a.left, rect.left));
+      var h = Math.max(0, Math.min(a.bottom, rect.bottom) - Math.max(a.top, rect.top));
+      return w * h;
+    };
+    var best = null, bestArea = Infinity;
+    for (var ti = 0; ti < order.length; ti++) {
+      place(order[ti]);
+      var area = overlap(tip.getBoundingClientRect());
+      if (area < bestArea) { bestArea = area; best = order[ti]; }
+      if (area === 0) break;
     }
+    if (bestArea > 0) {
+      // Dock: bottom edge if the target's centre is in the upper half of the screen, otherwise the top edge
+      var dockBottom = (rect.top + rect.bottom) / 2 < window.innerHeight / 2;
+      tip.style.top = (dockBottom ? window.innerHeight - tipRect.height - 8 : 8) + 'px';
+      tip.style.left = clampX(rect.left + rect.width / 2 - tipRect.width / 2) + 'px';
+      if (overlap(tip.getBoundingClientRect()) < bestArea) {
+        tip.setAttribute('data-pos', 'dock');
+        return;
+      }
+    }
+    chosen = best;
+    tip.setAttribute('data-pos', chosen);
+    place(chosen);
   }
 
   _hideStepChrome() {
@@ -725,13 +783,13 @@ class DXTutorialEngine {
       if (idx >= 0 && idx < tutSecs.length - 1) {
         var nextSec = tutSecs[idx + 1];
         action = await this._showConfirmModal(
-          '✅ ' + this._tl('Section Complete!'),
+          _dxtIcon('check') + ' ' + this._tl('Section Complete!'),
           '"' + this._t(curSec.title) + '" ' + this._tl('Complete') + '!\n' +
             (lang === 'en' ? 'Next: ' : this._tl('Next') + ': ') + this._t(nextSec.title),
           [
-            { label: '▶ ' + this._tl('Continue'), value: 'continue', primary: true },
-            { label: '📋 ' + this._tl('List'), value: 'toc' },
-            { label: '✕ ' + this._tl('Close'), value: 'close' }
+            { icon: 'play', label: this._tl('Continue'), value: 'continue', primary: true },
+            { icon: 'clipboard', label: this._tl('List'), value: 'toc' },
+            { icon: 'x', label: this._tl('Close'), value: 'close' }
           ]
         );
         this._curSection = null;
@@ -742,11 +800,11 @@ class DXTutorialEngine {
         else this.stop();
       } else if (idx >= 0) {
         action = await this._showConfirmModal(
-          '✅ ' + this._tl('Tutorial Complete!'),
+          _dxtIcon('check') + ' ' + this._tl('Tutorial Complete!'),
           '"' + this._t(curSec.title) + '" ' + this._tl('Complete') + '!',
           [
-            { label: '📋 ' + this._tl('List'), value: 'toc', primary: true },
-            { label: '✕ ' + this._tl('Close'), value: 'close' }
+            { icon: 'clipboard', label: this._tl('List'), value: 'toc', primary: true },
+            { icon: 'x', label: this._tl('Close'), value: 'close' }
           ]
         );
         this._curSection = null;
@@ -799,6 +857,7 @@ class DXTutorialEngine {
         const btn = document.createElement('button');
         btn.className = 'dxt-confirm-btn' + ((b.primary || i === 0) ? ' primary' : '');
         btn.textContent = b.label;
+        if (b.icon) btn.insertAdjacentHTML('afterbegin', _dxtIcon(b.icon) + ' ');
         btn.addEventListener('click', () => { cleanup(b.value); });
         btnWrap.appendChild(btn);
       });
@@ -814,7 +873,7 @@ class DXTutorialEngine {
 
   async _confirmReset() {
     var ok = await this._showConfirmModal(
-      '🔄 ' + this._tl('Confirm Reset'),
+      _dxtIcon('refresh') + ' ' + this._tl('Confirm Reset'),
       this._tl('Reset all progress?'),
       [
         { label: this._tl('Reset'), value: true },
@@ -927,15 +986,16 @@ class DXTutorialEngine {
         return;
       }
       if (e.key === 'Escape') {
-        if (self._curSection) { self.stop(); return; }
-        if (self._tocEl && self._tocEl.classList.contains('open')) { self.hideTOC(); return; }
+        /* Mark it handled — the launcher's Escape (close module) checks this and stands down */
+        if (self._curSection) { self.stop(); e.preventDefault(); return; }
+        if (self._tocEl && self._tocEl.classList.contains('open')) { self.hideTOC(); e.preventDefault(); return; }
         return;
       }
       if (!self._curSection) return;
       if (e.key === 'ArrowRight' || e.key === 'Enter') { self.next(); e.preventDefault(); }
       if (e.key === 'ArrowLeft') { self.prev(); e.preventDefault(); }
     };
-    document.addEventListener('keydown', this._keyHandler);
+    document.addEventListener('keydown', this._keyHandler, true);   // capture — the topmost layer goes first
   }
 
   createToggleBtn(container) {
@@ -944,7 +1004,7 @@ class DXTutorialEngine {
     btn.className = 'dxt-toggle-btn';
     btn.id = 'dxt-toggle';
     btn.title = this._tl('Tutorial Guide');
-    btn.innerHTML = '\uD83C\uDF93';
+    btn.innerHTML = _dxtIcon('graduation');
     var self = this;
     btn.addEventListener('click', function() { self.toggleTOC(); });
     if (container) container.appendChild(btn);
@@ -971,7 +1031,7 @@ class DXTutorialEngine {
   destroy() {
     this.stop();
     if (this._keyHandler) {
-      document.removeEventListener('keydown', this._keyHandler);
+      document.removeEventListener('keydown', this._keyHandler, true);
       this._keyHandler = null;
     }
     if (this._messageHandler) {

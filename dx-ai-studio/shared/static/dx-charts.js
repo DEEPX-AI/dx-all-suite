@@ -1,5 +1,5 @@
-// DX Charts — 공유 차트 헬퍼 라이브러리
-// dx_app/static/js/charts.js + dx_monitor/static/js/charts.js 통합
+// DX Charts — shared chart helper library
+// Used by dx_app and dx_monitor.
 
 function _dxChartCssColor(token,fallback){
   if(typeof _cv==='function'){
@@ -11,10 +11,10 @@ function _dxChartCssColor(token,fallback){
 
 function _dxChartWaterfallColors(){
   return[
-    _dxChartCssColor('--info','#60a5fa'),
+    _dxChartCssColor('--status-info','#60a5fa'),
     _dxChartCssColor('--app-accent','#22d3ee'),
-    _dxChartCssColor('--warning','#f59e0b'),
-    _dxChartCssColor('--error','#ef4444'),
+    _dxChartCssColor('--status-warn','#f59e0b'),
+    _dxChartCssColor('--status-error','#ef4444'),
     _dxChartCssColor('--npu','#a78bfa')
   ];
 }
@@ -53,6 +53,25 @@ function _prepareChartCanvas(canvas,resetInline){
   return{ctx:ctx,W:W,H:H};
 }
 
+/* Y-axis ticks: four steps of 1 · 2 · 2.5 · 5 × 10ⁿ, so flat series still get readable, distinct ticks
+   (no duplicate labels from rounding). When every value is ≥ 0 the axis does not go below 0. */
+function _chartNiceAxis(lo,hi){
+  var nonNeg=lo>=0;
+  if(lo===hi){var d=Math.max(Math.abs(hi)*0.05,0.5);lo-=d;hi+=d;}
+  if(nonNeg&&lo<0)lo=0;
+  var mag=Math.pow(10,Math.floor(Math.log10((hi-lo)/4)));
+  var mults=[1,2,2.5,5,10,20,25,50,100];
+  for(var k=0;k<mults.length;k++){
+    var step=mults[k]*mag,base=Math.floor(lo/step+1e-9)*step;
+    if(base+4*step>=hi-1e-9){
+      var dec=Math.max(0,Math.ceil(-Math.log10(step)-1e-9));
+      if(Math.abs(step*Math.pow(10,dec)-Math.round(step*Math.pow(10,dec)))>1e-6)dec+=1;
+      return{mn:base,mx:base+4*step,dec:Math.min(dec,3)};
+    }
+  }
+  return{mn:lo,mx:hi,dec:1};
+}
+
 function drawLineChart(canvas,datasets,opts){
   if(!opts)opts={};
   var prepared=_prepareChartCanvas(canvas,true);
@@ -61,29 +80,30 @@ function drawLineChart(canvas,datasets,opts){
   var H=prepared.H;
   var pad={t:20,r:16,b:38,l:52};
   var cw=W-pad.l-pad.r, ch=H-pad.t-pad.b;
-  ctx.fillStyle=_dxChartCssColor('--bg-2','#0f172a');ctx.fillRect(0,0,W,H);
+  ctx.fillStyle=_dxChartCssColor('--control-bg','#0f172a');ctx.fillRect(0,0,W,H);
   var finiteValues=_chartFiniteValues(datasets);
   var hasData=datasets.length>0&&datasets.some(function(d){return _chartFiniteValues([d]).length>=2});
-  var mn=0,mx=1,rng=1;
+  var mn=0,mx=1,rng=1,tickDec=1;
   if(hasData){
     var allV=finiteValues;
     mn=opts.min!=null?opts.min:Math.min.apply(null,allV);
     mx=opts.max!=null?opts.max:Math.max.apply(null,allV);
-    if(mn===mx){mn-=1;mx+=1}
+    if(opts.min==null&&opts.max==null){var ax=_chartNiceAxis(mn,mx);mn=ax.mn;mx=ax.mx;tickDec=ax.dec;}
+    else if(mn===mx){mn-=1;mx+=1}
     rng=mx-mn;
   }
   ctx.strokeStyle='rgba(148,163,184,.12)';ctx.lineWidth=0.5;
   for(var i=0;i<=4;i++){
     var y=pad.t+ch*(i/4);
     ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(pad.l+cw,y);ctx.stroke();
-    ctx.fillStyle=_dxChartCssColor('--text-3','#94a3b8');ctx.font='10px sans-serif';ctx.textAlign='right';
-    ctx.fillText(hasData?(mx-rng*(i/4)).toFixed(1):'--',pad.l-6,y+3);
+    ctx.fillStyle=_dxChartCssColor('--text-muted','#94a3b8');ctx.font='10px sans-serif';ctx.textAlign='right';
+    ctx.fillText(hasData?(mx-rng*(i/4)).toFixed(tickDec):'--',pad.l-6,y+3);
   }
   if(!hasData){
     ctx.fillStyle='rgba(139,148,158,0.35)';ctx.font='11px sans-serif';ctx.textAlign='center';
     var emptyText=opts.emptyText||(typeof T==='function'?T('Waiting for data…'):'');
     ctx.fillText(emptyText,W/2,H/2);
-    if(opts.label){ctx.fillStyle=_dxChartCssColor('--text-3','#94a3b8');ctx.textAlign='left';ctx.fillText(opts.label,pad.l,H-4);}
+    if(opts.label){ctx.fillStyle=_dxChartCssColor('--text-muted','#94a3b8');ctx.textAlign='left';ctx.fillText(opts.label,pad.l,H-4);}
     return;
   }
   datasets.forEach(function(ds){
@@ -115,16 +135,18 @@ function drawLineChart(canvas,datasets,opts){
       ctx.restore();
     });
   }
-  if(opts.label){ctx.fillStyle=_dxChartCssColor('--text-2','#cbd5e1');ctx.font='bold 10px sans-serif';ctx.textAlign='left';ctx.fillText(opts.label,pad.l,pad.t-6)}
+  if(opts.label){ctx.fillStyle=_dxChartCssColor('--text-secondary','#cbd5e1');ctx.font='bold 10px sans-serif';ctx.textAlign='left';ctx.fillText(opts.label,pad.l,pad.t-6)}
   if(opts.timeLabels&&opts.timeLabels.length){
-    ctx.fillStyle=_dxChartCssColor('--text-3','#94a3b8');ctx.font='9px sans-serif';ctx.textAlign='center';
+    ctx.fillStyle=_dxChartCssColor('--text-muted','#94a3b8');ctx.font='9px sans-serif';ctx.textAlign='center';
     var len=datasets[0]?datasets[0].data.length:opts.timeLabels.length;
     var lastDrawnX=-999;
     opts.timeLabels.forEach(function(lbl,i){
       if(!lbl)return;
       var x=pad.l+(i/(Math.max(len-1,1)))*cw;
       if(x-lastDrawnX<60)return;
-      ctx.fillText(lbl,x,H-pad.b+14);
+      // Pull centred end labels inward by half their width so they are not clipped at the canvas edge.
+      var half=ctx.measureText(lbl).width/2;
+      ctx.fillText(lbl,Math.min(Math.max(x,half+2),W-half-2),H-pad.b+14);
       lastDrawnX=x;
     });
   }
@@ -138,7 +160,7 @@ function drawBarChart(canvas,items,opts){
   var H=prepared.H;
   var pad={t:16,r:16,b:60,l:48};
   var cw=W-pad.l-pad.r, ch=H-pad.t-pad.b;
-  ctx.fillStyle=_dxChartCssColor('--bg-2','#0f172a');ctx.fillRect(0,0,W,H);
+  ctx.fillStyle=_dxChartCssColor('--control-bg','#0f172a');ctx.fillRect(0,0,W,H);
   if(!items.length){
     ctx.fillStyle='rgba(139,148,158,0.35)';ctx.font='11px sans-serif';ctx.textAlign='center';
     var emptyText=opts.emptyText||(typeof T==='function'?T('No run data yet'):'');
@@ -146,7 +168,7 @@ function drawBarChart(canvas,items,opts){
     return;
   }
   var mx=Math.max.apply(null,items.map(function(i){return i.val}))*1.1||1;
-  ctx.fillStyle=_dxChartCssColor('--bg-2','#0f172a');ctx.fillRect(0,0,W,H);
+  ctx.fillStyle=_dxChartCssColor('--control-bg','#0f172a');ctx.fillRect(0,0,W,H);
   var bw=Math.min(30,cw/items.length-4);
   items.forEach(function(it,i){
     var x=pad.l+(i+0.5)*(cw/items.length)-bw/2;
@@ -156,9 +178,9 @@ function drawBarChart(canvas,items,opts){
     grad.addColorStop(0,it.color||_dxChartCssColor('--app-accent','#22d3ee'));grad.addColorStop(1,_dxChartCssColor('--accent-dim','#0e7490'));
     ctx.fillStyle=grad;ctx.beginPath();
     ctx.roundRect(x,y,bw,bh,3);ctx.fill();
-    ctx.fillStyle=_dxChartCssColor('--text-1','#f8fafc');ctx.font='bold 10px sans-serif';ctx.textAlign='center';
+    ctx.fillStyle=_dxChartCssColor('--text-primary','#f8fafc');ctx.font='bold 10px sans-serif';ctx.textAlign='center';
     ctx.fillText(it.val.toFixed(1),x+bw/2,y-4);
-    ctx.fillStyle=_dxChartCssColor('--text-3','#94a3b8');ctx.font='9px sans-serif';
+    ctx.fillStyle=_dxChartCssColor('--text-muted','#94a3b8');ctx.font='9px sans-serif';
     var lbl=it.label.length>16?it.label.slice(0,15)+'\u2026':it.label;
     ctx.save();ctx.translate(x+bw/2,pad.t+ch+4);ctx.rotate(-0.6);ctx.textAlign='left';
     ctx.fillText(lbl,0,0);ctx.restore();
@@ -171,11 +193,14 @@ function drawGauge(canvas,pct,color){
   ctx.clearRect(0,0,w,h);
   var cx=w/2,cy=h/2+10,r=45;
   var start=0.75*Math.PI,end=2.25*Math.PI;
-  ctx.beginPath();ctx.arc(cx,cy,r,start,end);ctx.strokeStyle=_dxChartCssColor('--bg-3','#1e293b');ctx.lineWidth=10;ctx.lineCap='round';ctx.stroke();
+  ctx.beginPath();ctx.arc(cx,cy,r,start,end);ctx.strokeStyle=_dxChartCssColor('--surface-hover','#1e293b');ctx.lineWidth=10;ctx.lineCap='round';ctx.stroke();
   var angle=start+(end-start)*Math.min(pct/100,1);
   ctx.beginPath();ctx.arc(cx,cy,r,start,angle);ctx.strokeStyle=color||_dxChartCssColor('--app-accent','#22d3ee');ctx.lineWidth=10;ctx.lineCap='round';ctx.stroke();
   ctx.beginPath();ctx.arc(cx,cy,r,start,angle);ctx.strokeStyle=color||_dxChartCssColor('--app-accent','#22d3ee');ctx.globalAlpha=0.2;ctx.lineWidth=16;ctx.stroke();ctx.globalAlpha=1;
 }
+
+/* Shared icons (shared/static/dx-icon.js) — empty if missing. */
+function _dxcIcon(n){return (typeof window.DXIcon==='function')?window.DXIcon(n):'';}
 
 function renderWaterfall(perf){
   if(!perf||!perf.pipeline||!perf.pipeline.length)return'';
@@ -193,7 +218,7 @@ function renderWaterfall(perf){
     var bg=wfColors[i%wfColors.length];
     var bot=p.step===perf.bottleneck;
     var pct=total>0?(p.latency_ms/total*100).toFixed(0):'--';
-    h+='<span><span class="wf-dot'+(bot?' wf-bottleneck':'')+'" style="background:'+bg+'"></span>'+p.step+' '+p.latency_ms.toFixed(1)+'ms ('+pct+'%)'+(bot?' <span class="wf-bot-tag">▲ bottleneck</span>':'')+'</span>';
+    h+='<span><span class="wf-dot'+(bot?' wf-bottleneck':'')+'" style="background:'+bg+'"></span>'+p.step+' '+p.latency_ms.toFixed(1)+'ms ('+pct+'%)'+(bot?' <span class="wf-bot-tag">'+_dxcIcon('alert')+' bottleneck</span>':'')+'</span>';
   });
   h+='</div>';return h;
 }
@@ -204,8 +229,8 @@ function renderPerfCards(res){
   if(p.inference_latency)h+='<div class="perf-item"><div class="pv">'+p.inference_latency+'</div><div class="pl">Inference ms</div></div>';
   if(p.total_frames)h+='<div class="perf-item"><div class="pv">'+p.total_frames+'</div><div class="pl">Frames</div></div>';
   if(p.total_time)h+='<div class="perf-item"><div class="pv">'+p.total_time+'s</div><div class="pl">Total Time</div></div>';
-  var exitColor=res.exit_code===0?'var(--success)':'var(--error)';
-  var exitIcon=res.exit_code===0?'\u2705':'\u274c';
+  var exitColor=res.exit_code===0?'var(--status-ok)':'var(--status-error)';
+  var exitIcon=_dxcIcon(res.exit_code===0?'check':'x');
   h+='<div class="perf-item"><div class="pv" style="color:'+exitColor+'">'+exitIcon+'</div><div class="pl">Exit '+res.exit_code+'</div></div>';
   h+='</div>';
   h+=renderWaterfall(p);
@@ -249,7 +274,7 @@ function renderDetSummary(ds){
   var entries=Object.entries(ds).sort(function(a,b){return b[1].count-a[1].count});
   if(!entries.length){
     var noDetText=typeof T==='function'?T('No detections recorded.'):'No detections recorded.';
-    return'<p style="color:var(--text-3);font-size:12px">'+noDetText+'</p>';
+    return'<p style="color:var(--text-muted);font-size:12px">'+noDetText+'</p>';
   }
   var clsLabel=typeof T==='function'?T('Class'):'Class';
   var detLabel=typeof T==='function'?T('Detections'):'Detections';
@@ -269,8 +294,8 @@ function renderTaskSummary(tag,summary){
   var h='';
   if(tag==='DET'||tag==='ISEG'||tag==='OBB'||tag==='CLS'||tag==='HAND'){
     var entries=Object.entries(summary).sort(function(a,b){return(b[1].count||0)-(a[1].count||0)});
-    if(!entries.length)return'<p style="color:var(--text-3);font-size:12px">'+_t('No results recorded.','기록된 결과가 없습니다.')+'</p>';
-    var lbl=tag==='HAND'?_t('Handedness','손잡이'):_t('Class','클래스');
+    if(!entries.length)return'<p style="color:var(--text-muted);font-size:12px">'+_t('No results recorded.','기록된 결과가 없습니다.')+'</p>';
+    var lbl=tag==='HAND'?_t('Handedness','왼손/오른손'):_t('Class','클래스');
     h='<table class="perf-table"><thead><tr><th>'+lbl+'</th><th style="text-align:right">'+_t('Count','개수')+'</th><th style="text-align:right">'+_t('Avg Conf','평균 신뢰도')+'</th></tr></thead><tbody>';
     entries.forEach(function(e){
       var ca=(e[1].conf_avg||0)*100;
@@ -280,7 +305,7 @@ function renderTaskSummary(tag,summary){
   }
   else if(tag==='SEG'){
     var entries=Object.entries(summary).sort(function(a,b){return(b[1].avg_pct||0)-(a[1].avg_pct||0)});
-    if(!entries.length)return'<p style="color:var(--text-3);font-size:12px">'+_t('No segmentation data.','분할 데이터가 없습니다.')+'</p>';
+    if(!entries.length)return'<p style="color:var(--text-muted);font-size:12px">'+_t('No segmentation data.','분할 데이터가 없습니다.')+'</p>';
     h='<table class="perf-table"><thead><tr><th>'+_t('Class','클래스')+'</th><th style="text-align:right">'+_t('Avg Pixel %','평균 픽셀 %')+'</th></tr></thead><tbody>';
     entries.forEach(function(e){
       h+='<tr><td>'+_e(e[0])+'</td><td style="text-align:right">'+(e[1].avg_pct||0).toFixed(2)+'%</td></tr>';

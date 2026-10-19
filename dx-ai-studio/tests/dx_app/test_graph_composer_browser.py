@@ -1,0 +1,351 @@
+"""Graph Composer page in a browser, with the graph API answered from recorded fixtures.
+
+The server modules have their own tests against recorded CLI output; here the page is checked end to end: palette,
+canvas, inspector edits that change the dx_app graph, validation pins, the memory bar and its suggestions, a run,
+projects and a language switch. /api/graph/* is routed to fixed payloads so no NPU or graph binary is needed.
+"""
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+import pytest
+
+pytest.importorskip("playwright.sync_api")
+
+from tests.server_helpers import start_module_server  # noqa: E402
+
+FIX = Path(__file__).resolve().parent / "fixtures" / "graph"
+CATALOG = json.loads((FIX / "catalog.json").read_text(encoding="utf-8"))
+MB = 1024 * 1024
+RESULT = {"ok": True, "exit_code": 0, "frames": 2, "error_frames": 0, "fps": 14.7, "avg_fps": 14.7, "elapsed": 1.2,
+          "node_ms": {"attr": 6.0, "od": 10.0}, "errors": [], "log_tail": "",
+          "outputs": [{"url": "/static/shared/favicons/dx_app.svg", "kind": "image", "name": "result.jpg"}],
+          "nodes": {"od": {"shape": "boxes", "frames": 2, "items_total": 3, "crops_total": 0,
+                           "last_items": [{"class_name": "person", "score": 0.9}]},
+                    "attr": {"shape": "scores", "frames": 2, "items_total": 0, "crops_total": 3, "last_items": []}}}
+
+
+class FakeGraphApi:
+    """In-page answers for /api/graph/*: --check, memory, run and projects."""
+
+    def __init__(self):
+        self.projects, self.runs, self.over_budget, self.posted = {}, 0, False, []
+
+    def check(self, graph):
+        errors = []
+        for e in graph.get("edges", []):
+            if e["to"] == "depth" and "roi" in e:
+                errors.append({"code": "GRAPH_EDGE", "where": 'edge "%s"->"depth"' % e["from"],
+                               "what": '"depth" requires a full frame', "how": 'remove "roi" from this edge',
+                               "node": None, "edge": e["from"] + "->depth"})
+        for n in graph.get("nodes", []):
+            if n.get("model") == "no_such_model":
+                errors.append({"code": "MODEL_UNKNOWN", "where": 'node "%s"' % n["id"], "what": "unknown model",
+                               "how": "run --list-models", "node": n["id"], "edge": None})
+        return {"ok": not errors, "errors": errors, "models": [], "missing": [], "notes": [], "available": True,
+                "engine_ignored": False}
+
+    def memory(self, graph):
+        nodes = [n for n in graph.get("nodes", []) if n.get("model")]
+        per = {n["id"]: {"model": n["model"], "bytes": 118 * MB, "shared_with": [], "buffers": 6} for n in nodes}
+        sug = [{"kind": "share", "model": nodes[0]["model"], "nodes": [nodes[0]["id"]], "saves_bytes": 100 * MB}] if nodes else []
+        return {"nodes": per, "engines": [{"model": n["model"], "nodes": [n["id"]], "buffers": None, "bytes": 118 * MB} for n in nodes],
+                "total_bytes": 118 * MB * len(nodes), "device": {"total_bytes": 4000 * MB, "used_bytes": 0,
+                "free_bytes": (100 if self.over_budget else 4000) * MB, "source": "device_status"},
+                "over_budget": self.over_budget, "unknown_models": [], "suggestions": sug if self.over_budget else []}
+
+    def handle(self, route):
+        req = route.request
+        url = req.url.split("?")[0]
+        body = json.loads(req.post_data) if req.post_data else {}
+        self.posted.append((url.rsplit("/api/graph/", 1)[1], body))
+        q = dict(p.split("=", 1) for p in req.url.split("?", 1)[1].split("&")) if "?" in req.url else {}
+        if url.endswith("/api/graph/catalog"):
+            out = CATALOG
+        elif url.endswith("/api/graph/validate"):
+            out = self.check(body["graph"])
+        elif url.endswith("/api/graph/memory"):
+            out = self.memory(body["graph"])
+        elif url.endswith("/api/graph/run"):
+            self.runs += 1
+            out = {"job_id": "job1", "status": "started"}
+        elif url.endswith("/api/graph/run/poll"):
+            out = {"running": False, "frames": 2, "fps": 14.7, "avg_fps": 14.7, "node_ms": {"od": 10.2, "attr": 5.9},
+                   "elapsed": 1.2, "has_result": True}
+        elif url.endswith("/api/graph/run/result"):
+            out = RESULT
+        elif url.endswith("/api/graph/projects"):
+            out = {"projects": [{"id": k, "name": v["meta"]["name"], "version": v["meta"]["version"], "saved_at": 0,
+                                 "versions": v["meta"]["version"]} for k, v in self.projects.items()]}
+        elif url.endswith("/api/graph/project/save"):
+            pid = body.get("id") or "my-graph"
+            prev = self.projects.get(pid, {"meta": {"version": 0}})["meta"]["version"]
+            project = body["project"]
+            project["meta"] = dict(project["meta"], version=prev + 1)
+            self.projects[pid] = project
+            out = {"id": pid, "version": prev + 1, "name": project["meta"]["name"]}
+        elif url.endswith("/api/graph/project/versions"):
+            p = self.projects.get(q.get("id"))
+            out = {"id": q.get("id"), "versions": [{"version": p["meta"]["version"], "saved_at": 0}] if p else []}
+        elif url.endswith("/api/graph/project"):
+            p = self.projects[q["id"]]
+            out = {"id": q["id"], "version": p["meta"]["version"], "project": p}
+        else:
+            out = {"error": "not found"}
+        route.fulfill(status=200, content_type="application/json", body=json.dumps(out))
+
+
+@pytest.fixture(scope="module")
+def server(tmp_path_factory):
+    srv, port = start_module_server("dx_app")
+    # /api/graph/* is answered in the page, but should anything reach the server, its projects and runs land in a
+    # temporary outputs folder, never in the user's outputs/dx_app/graph/.
+    from dx_app.core import config
+
+    mp = pytest.MonkeyPatch()
+    mp.setattr(config, "OUTPUTS_DIR", tmp_path_factory.mktemp("outputs"))
+    yield port
+    mp.undo()
+    srv.shutdown()
+
+
+@pytest.fixture(scope="module")
+def browser():
+    from playwright.sync_api import sync_playwright
+
+    pw = sync_playwright().start()
+    br = pw.chromium.launch(headless=True)
+    yield br
+    br.close()
+    pw.stop()
+
+
+@pytest.fixture
+def ui(browser, server):
+    fake = FakeGraphApi()
+    ctx = browser.new_context(viewport={"width": 1440, "height": 1000})
+    ctx.add_init_script("try { localStorage.setItem('dx-tutorial-mode', 'off'); localStorage.setItem('dx-lang', 'en');"
+                        " localStorage.removeItem('dx-graph-draft'); window.confirm = () => true; } catch (e) {}")
+    ctx.route("**/api/graph/**", fake.handle)
+    page = ctx.new_page()
+    errors = []
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    page.goto(f"http://127.0.0.1:{server}/", wait_until="domcontentloaded")
+    page.wait_for_function("() => typeof nav === 'function' && window.GraphComposer")
+    page.evaluate("nav('graph')")
+    page.wait_for_selector("#gc-palette-list .gc-group[data-group='examples'] .gc-item", timeout=20000)
+    yield page, fake
+    assert not errors, errors
+    ctx.close()
+
+
+def _open_example(page):
+    page.click("#gc-palette-list .gc-example button")
+    page.wait_for_function("() => GraphComposer.state().check && GraphComposer.state().check.ok", timeout=10000)
+
+
+def _engine(page):
+    return page.evaluate("GraphComposer.ctx().engine()")
+
+
+def test_the_palette_offers_examples_sources_models_and_cpu_ops(ui):
+    page, _ = ui
+    groups = page.eval_on_selector_all("#gc-palette-list .gc-group:not(.is-empty)", "els => els.map(e => e.dataset.group)")
+    assert groups[:2] == ["examples", "sources"] and groups[-1] == "cpu"
+    assert "task:object_detection" in groups
+    page.click("[data-group='task:object_detection'] .gc-group-head")
+    states = page.eval_on_selector_all("[data-group='task:object_detection'] .gc-item",
+                                       "els => els.map(e => [e.querySelector('.gc-item-name').textContent, e.querySelector('.badge').textContent])")
+    assert ["yolo26-n_640x640_pre-optimized", "Not installed"] in states and ["yolov8-n_640x640", "Installed"] in states
+    assert page.locator("[data-group='task:object_detection'] .gc-item .btn", has_text="Download").count() == 2
+
+
+def test_an_example_opens_as_a_valid_graph_ready_to_run(ui):
+    page, _ = ui
+    _open_example(page)
+    eng = _engine(page)
+    assert [n["id"] for n in eng["nodes"]] == ["cam", "od", "attr"]
+    assert eng["edges"][1] == {"from": "od", "to": "attr", "roi": {"classes": ["person"], "pad": 0.05}}
+    assert page.inner_text("#gc-status") == "Ready to run"
+    assert page.is_enabled("#gc-run")
+
+
+def test_inspector_edits_change_the_dx_app_graph(ui):
+    page, _ = ui
+    _open_example(page)
+    page.evaluate("GraphComposer.canvas().select({nodes: ['od']})")
+    page.fill(".gc-param input[aria-label='score_threshold']", "0.5")
+    page.dispatch_event(".gc-param input[aria-label='score_threshold']", "change")
+    assert _engine(page)["nodes"][1]["params"] == {"score_threshold": 0.5}
+    page.evaluate("GraphComposer.canvas().select({edge: 'od->attr'})")
+    classes = page.locator("#gc-inspector-body .gc-fg", has_text="Classes").locator("input")
+    classes.fill("person, rider")
+    classes.dispatch_event("change")
+    assert _engine(page)["edges"][1]["roi"]["classes"] == ["person", "rider"]
+    assert page.evaluate("GraphComposer.canvas().getGraph().edges[1].label") == "ROI · person, rider"
+
+
+def test_check_errors_are_pinned_and_block_the_run(ui):
+    page, _ = ui
+    _open_example(page)
+    page.evaluate("GraphComposer.canvas().select({nodes: ['attr']})")
+    model = page.locator("#gc-inspector-body .gc-fg", has_text="Model").locator("select")
+    page.evaluate("""() => { const s = [...document.querySelectorAll('#gc-inspector-body select')][0];
+      const o = document.createElement('option'); o.value = 'no_such_model'; s.appendChild(o); }""")
+    model.select_option("no_such_model")
+    page.wait_for_function("() => GraphComposer.state().check && !GraphComposer.state().check.ok")
+    assert page.inner_text("#gc-status") == "1 problems to fix"
+    assert not page.is_enabled("#gc-run")
+    assert "MODEL_UNKNOWN" in page.inner_text("#gc-inspector-body .gc-error")
+
+
+def test_memory_over_budget_offers_a_fix(ui):
+    page, fake = ui
+    fake.over_budget = True
+    _open_example(page)
+    page.wait_for_selector("#gc-memory.is-over .gc-mem-tips button")
+    assert "Share one engine between od" in page.inner_text("#gc-memory")
+    assert not page.is_enabled("#gc-run")
+    page.click("#gc-memory .gc-mem-tips button")
+    assert _engine(page)["nodes"][1]["engine"] == {"share": True}
+
+
+def test_a_run_shows_progress_results_and_per_node_time(ui):
+    page, fake = ui
+    _open_example(page)
+    page.click("#gc-run")
+    page.wait_for_selector(".gc-run-table tbody tr")
+    assert fake.runs == 1
+    posted = [b for path, b in fake.posted if path == "run"][0]
+    assert posted["variant"] == "sync" and [n["id"] for n in posted["graph"]["nodes"]] == ["cam", "od", "attr"]
+    assert "Done: 2 frames in 1.2 s" in page.inner_text(".gc-run-result")
+    rows = page.eval_on_selector_all(".gc-run-table tbody tr", "els => els.map(e => e.textContent)")
+    assert any(r.startswith("od") and r.endswith("10.0") for r in rows)
+    page.click(".gc-run-table tbody button:text('attr')")
+    assert page.evaluate("GraphComposer.canvas().selection().nodes") == ["attr"]
+    assert "Last run" in page.inner_text("#gc-inspector-body")
+
+
+def test_projects_save_and_open_again(ui):
+    page, _ = ui
+    _open_example(page)
+    page.fill("#gc-name", "My graph")
+    page.dispatch_event("#gc-name", "change")
+    page.click("#gc-save")
+    page.wait_for_function("() => GraphComposer.state().projectId === 'my-graph'")
+    page.click("#gc-new")
+    assert page.evaluate("GraphComposer.canvas().getGraph().nodes.length") == 0
+    page.select_option("#gc-projects", "my-graph")
+    page.wait_for_function("() => GraphComposer.canvas().getGraph().nodes.length === 3")
+    assert page.input_value("#gc-name") == "My graph"
+    # The project and version lists refresh after the graph is drawn (refreshProjects is not awaited by loadDoc).
+    page.wait_for_function("() => document.getElementById('gc-versions').value === '1'", timeout=5000)
+
+
+def test_the_page_follows_a_language_change(ui):
+    page, _ = ui
+    _open_example(page)
+    page.evaluate("DXI18n.setLang('ko')")
+    page.wait_for_function("() => document.querySelector(\"[data-group='examples'] .gc-group-title\").textContent === '예제'")
+    assert page.inner_text("#gc-status") == "실행 준비 완료"
+    assert page.get_attribute(".dxg-canvas", "aria-label").startswith("그래프 캔버스")
+
+
+def test_an_example_opens_fitted_to_the_canvas_clear_of_its_overlays(ui):
+    """The fit leaves small side margins and keeps the cards off the canvas toolbar and the minimap."""
+    page, _ = ui
+    _open_example(page)
+    page.wait_for_timeout(200)
+    zoom = page.evaluate("GraphComposer.canvas().view().zoom")
+    assert 0.9 <= zoom <= 1.25, zoom
+    placed = page.evaluate("""() => {
+      const cv = GraphComposer.canvas(), host = document.getElementById('gc-canvas-host').getBoundingClientRect();
+      const boxes = ['#gc-canvas-host .dxg-toolbar', '#gc-canvas-host .dxg-minimap']
+        .map(s => document.querySelector(s).getBoundingClientRect());
+      const hit = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+      return cv.getGraph().nodes.map(n => {
+        const r = cv.nodeRect(n.id), box = {left: r.left, top: r.top, right: r.left + r.width, bottom: r.top + r.height};
+        return box.left >= host.left && box.right <= host.right && !boxes.some(b => hit(box, b));
+      });
+    }""")
+    assert placed == [True, True, True], placed
+
+
+def test_palette_names_keep_their_width_next_to_a_state_and_download(ui):
+    """The install state and Download sit on their own row: in a 260 px palette they left the name no width."""
+    page, _ = ui
+    page.click("[data-group='task:object_detection'] .gc-group-head")
+    widths = page.eval_on_selector_all("[data-group='task:object_detection'] .gc-item-name", "els => els.map(e => e.clientWidth)")
+    assert widths and min(widths) >= 100, widths
+    clipped = page.eval_on_selector_all("[data-group='task:object_detection'] .badge",
+                                        "els => els.filter(e => e.scrollWidth > e.clientWidth + 1 || e.clientHeight > 30).length")
+    assert clipped == 0
+
+
+def test_the_inspector_says_what_a_model_takes_in_words(ui):
+    page, _ = ui
+    _open_example(page)
+    page.evaluate("GraphComposer.canvas().select({nodes: ['od']})")
+    assert "takes full frame" in page.inner_text("#gc-inspector-body")
+    assert "full_frame" not in page.inner_text("#gc-inspector-body")
+
+
+# Phase 1 follow-ups: uploads of one run stay under the server's JSON limit; the download-status poll ends.
+
+def test_an_upload_past_the_run_limit_is_refused_when_picked(ui):
+    import base64
+    page, fake = ui
+    _open_example(page)
+    page.evaluate("GraphComposer.state().catalog.limits = {uploads_total_b64: 100}")   # bytes: any image is over it
+    png = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==")
+    page.set_input_files("#gc-run-body input[type=file]", {"name": "big.png", "mimeType": "image/png", "buffer": png * 4})
+    page.wait_for_function("() => [...document.querySelectorAll('.toast')].some(t => t.textContent.includes('add up to'))")
+    assert page.input_value("#gc-run-input-cam") == "", "the source keeps the graph's own input"
+    page.click("#gc-run")
+    page.wait_for_selector(".gc-run-table tbody tr")
+    posted = [b for path, b in fake.posted if path == "run"][0]
+    assert posted["uploads"] == {}, "the refused image is not sent"
+
+
+def _start_download(page, status):
+    calls = []
+    page.context.route("**/api/modelzoo/download", lambda r: r.fulfill(status=200, content_type="application/json",
+                                                                       body=json.dumps({"ok": True})))
+
+    def answer(route):
+        calls.append(1)
+        code, body = status(len(calls))
+        route.fulfill(status=code, content_type="application/json", body=json.dumps(body))
+    page.context.route("**/api/modelzoo/status", answer)
+    page.click("[data-group='task:object_detection'] .gc-group-head")
+    page.click("[data-group='task:object_detection'] .gc-item .btn:has-text('Download')")
+    return calls
+
+
+def test_the_download_poll_gives_up_after_repeated_failures(ui):
+    page, _ = ui
+    calls = _start_download(page, lambda n: (500, {"error": "boom"}))
+    page.wait_for_function("() => [...document.querySelectorAll('.toast')].some(t => t.textContent.includes('stopped answering'))",
+                           timeout=15000)
+    n = len(calls)
+    assert n == 5 and page.evaluate("GraphPalette.downloading()") is None
+    page.wait_for_timeout(2000)
+    assert len(calls) == n, "no more status requests"
+    assert page.locator("[data-group='task:object_detection'] .gc-item .btn:has-text('Download')").count() == 2
+
+
+def test_the_download_poll_pauses_while_the_page_is_left_and_resumes(ui):
+    page, _ = ui
+    calls = _start_download(page, lambda n: (200, {"finished": False, "done": 1, "total": 4}))
+    page.wait_for_function("() => GraphPalette.following()")
+    page.wait_for_timeout(1700)
+    page.evaluate("nav('models')")
+    page.wait_for_timeout(1700)
+    n = len(calls)
+    page.wait_for_timeout(3200)
+    assert len(calls) == n, "no status requests off the page"
+    page.evaluate("nav('graph')")
+    page.wait_for_function("() => GraphPalette.following()", timeout=5000)
+    page.wait_for_timeout(1700)
+    assert len(calls) > n and page.evaluate("GraphPalette.downloading()") == "yolo26-s_640x640"

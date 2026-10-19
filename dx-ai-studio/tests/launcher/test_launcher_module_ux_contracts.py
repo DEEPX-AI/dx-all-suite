@@ -397,28 +397,30 @@ class TestNavTabKeyboardAccessibility:
 class TestHealthDotsCompleteness:
     """Health dots in index.html must include Benchmark and Monitor."""
 
-    def test_dot_benchmark_exists_in_html(self):
+    def test_benchmark_card_has_a_health_dot(self):
         html = (STATIC / "index.html").read_text(encoding="utf-8")
-        assert 'id="dotBenchmark"' in html, (
-            "index.html missing dotBenchmark health dot"
+        assert 'id="orbStatusBenchmark"' in html, (
+            "the Benchmark card must show its own reachability"
         )
 
-    def test_dot_monitor_exists_in_html(self):
+    def test_monitor_card_has_a_health_dot(self):
         html = (STATIC / "index.html").read_text(encoding="utf-8")
-        assert 'id="dotMonitor"' in html, (
-            "index.html missing dotMonitor health dot"
+        assert 'id="orbStatusMonitor"' in html, (
+            "the Monitor card must show its own reachability"
         )
 
     def test_health_check_updates_dot_benchmark(self):
+        # The contract is that Benchmark's state reaches the screen, so check the code that updates
+        # the card.
         src = _read("launcher-app-frame.js")
-        assert "setDot('dotBenchmark'" in src or 'setDot("dotBenchmark"' in src, (
-            "checkHealth must call setDot for dotBenchmark"
+        assert "_setOrbStatus('orbStatusBenchmark'" in src, (
+            "checkHealth must update the Benchmark card's status dot"
         )
 
     def test_health_check_updates_dot_monitor(self):
         src = _read("launcher-app-frame.js")
-        assert "setDot('dotMonitor'" in src or 'setDot("dotMonitor"' in src, (
-            "checkHealth must call setDot for dotMonitor"
+        assert "_setOrbStatus('orbStatusMonitor'" in src, (
+            "checkHealth must update the Monitor card's status dot"
         )
 
 
@@ -459,12 +461,14 @@ class TestCheckHealthCatchOrbitalStatus:
         ), f"checkHealth catch must call _setOrbStatus('{orb_id}', false)"
 
     def test_catch_has_status_monitor_false(self):
-        """catch block must also call setStatus('statusMonitor', false)."""
+        """A failed health check must also show Monitor as down.
+
+        What matters is that the card switches to down, not the name of the call.
+        """
         catch_body = self._catch_body()
-        assert (
-            "setStatus('statusMonitor', false)" in catch_body
-            or 'setStatus("statusMonitor", false)' in catch_body
-        ), "checkHealth catch must call setStatus('statusMonitor', false)"
+        assert "_setOrbStatus('orbStatusMonitor', false)" in catch_body, (
+            "checkHealth catch must mark the Monitor card unreachable"
+        )
 
 
 

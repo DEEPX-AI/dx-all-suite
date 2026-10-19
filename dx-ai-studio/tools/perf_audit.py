@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""DX AI Studio 성능 측정/전수조사 도구.
+"""DX AI Studio performance measurement and inventory tool.
 
-기본 모드는 파일 읽기만 수행한다. 실행 중인 서버를 건드리는 측정은 명시한
-모드에서만 수행하며, launcher boot benchmark처럼 프로세스를 시작/종료할 수
-있는 작업은 보고서에 "비추천/미실행"으로만 기록한다.
+The default mode only reads files. Measurements that touch a running server run only
+in the modes that ask for them, and work that could start or stop processes (such as
+the launcher boot benchmark) is only recorded in the report as not recommended / not run.
 """
 
 from __future__ import annotations
@@ -109,7 +109,7 @@ EXCLUDED_RELEASE_PREFIXES: tuple[str, ...] = ()
 
 
 def is_release_path(root: Path, path: Path) -> bool:
-    """릴리스 제외 대상 경로(EXCLUDED_RELEASE_PREFIXES)를 필터링한다."""
+    """Filter out paths excluded from the release (EXCLUDED_RELEASE_PREFIXES)."""
     rel = relpath(path, root)
     return not any(
         rel == prefix.rstrip("/") or rel.startswith(prefix)
@@ -334,7 +334,7 @@ class StaticAnalyser:
         return policy
 
     def analyse_modelzoo_optimized_images(self, root: Path) -> dict:
-        """ModelZoo 원본/최적화 이미지 커버리지를 분석한다."""
+        """Measure how many ModelZoo original images have optimized copies."""
         data = root / "dx_modelzoo" / "data"
         image_exts = {".jpg", ".jpeg", ".png", ".webp"}
 
@@ -353,7 +353,7 @@ class StaticAnalyser:
             data / "optimized" / "thumbnails",
             data / "optimized" / "examples",
         )
-        # 옵티마이저는 원본당 2개(WebP + JPG)를 생성하므로 coverage = optimized / (originals * 2)
+        # The optimizer writes two files per original (WebP + JPG), so coverage = optimized / (originals * 2)
         if originals == 0:
             ratio = 0.0
         else:

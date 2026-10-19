@@ -31,8 +31,6 @@
   window.LauncherRouter = ns.LauncherRouter;
   window.updateNavTabs = ns.updateNavTabs;
   window.checkHealth = ns.checkHealth;
-  window.initOrbital = ns.initOrbital;
-  window.scheduleOrbitalLayout = ns.scheduleOrbitalLayout;
   window.appFromPath = ns.appFromPath;
   window.setVisibleView = ns.setVisibleView;
   window._updateToggleActive = ns._updateToggleActive;
@@ -58,7 +56,14 @@
         return;
       }
     }
+    if (e.key === 'Escape' && e.defaultPrevented) return;   // chat, tutorial or search already closed something
     if (e.key === 'Escape') {
+      /* On home, Escape steps the stage back: the console first (when idle), then the answer. */
+      if (!ns.currentApp) {
+        if ((ns.closeHomeWork && ns.closeHomeWork()) ||
+            (ns.closeHomeAnswer && ns.closeHomeAnswer())) e.preventDefault();
+        return;
+      }
       if (ns.currentApp === 'about' && window._aboutHasActivePanel) {
         if (window.closeAboutPanel) window.closeAboutPanel();
       } else if (ns.currentApp === 'about') {
@@ -81,6 +86,7 @@
     if (e.altKey && e.key === '6') { ns.launch('benchmark'); e.preventDefault(); }
     if (e.altKey && e.key === '7') { ns.launch('dx_monitor'); e.preventDefault(); }
     if (e.altKey && e.key === '8') { ns.launch('agent'); e.preventDefault(); }
+    if (e.altKey && e.key === '9') { ns.launch('edge'); e.preventDefault(); }
   });
 
   document.addEventListener('DOMContentLoaded', function() {

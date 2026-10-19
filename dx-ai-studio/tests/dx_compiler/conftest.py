@@ -1,4 +1,4 @@
-"""tests/dx_compiler conftest — dx_compiler 모듈 테스트용 경로 설정."""
+"""tests/dx_compiler conftest — path setup for the dx_compiler module tests."""
 import sys
 from pathlib import Path
 

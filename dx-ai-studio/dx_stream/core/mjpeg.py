@@ -1,8 +1,8 @@
-"""MJPEG 스트리밍 — subprocess 기반.
+"""MJPEG streaming through a subprocess.
 
-gst-launch-1.0를 별도 프로세스로 실행하여 JPEG 프레임을 stdout pipe로 수신.
-GStreamer crash가 서버를 죽이지 않는 안전한 구조.
-브라우저에서 <img src="/api/stream/mjpeg"> 또는 fetch로 수신 가능.
+gst-launch-1.0 runs as its own process and writes JPEG frames to a stdout pipe,
+so a GStreamer crash cannot take the server down.
+The browser reads it with <img src="/api/stream/mjpeg"> or fetch.
 """
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ from dx_stream.core import gst_env
 
 log = logging.getLogger(__name__)
 
-# 최신 JPEG 프레임 공유 버퍼
+# Shared buffer holding the latest JPEG frame
 _frame_lock = threading.Lock()
 _latest_frame: Optional[bytes] = None
 _frame_event = threading.Event()
@@ -75,11 +75,11 @@ def _jpeg_encoder() -> str:
 
 
 def build_mjpeg_pipeline(base_pipeline: str) -> str:
-    """webrtcbin/fpsdisplaysink 대신 MJPEG 출력으로 파이프라인 변환.
+    """Rewrite a pipeline to end in MJPEG output instead of webrtcbin/fpsdisplaysink.
 
-    멀티스트림(compositor) 파이프라인: compositor 출력 뒤 sink 교체
-    단일 스트림: 마지막 dxosd 이후 sink 교체
-    반환값은 gst-launch-1.0에 전달할 파이프라인 문자열.
+    Multi-stream (compositor) pipeline: replace the sink after the compositor output.
+    Single stream: replace everything after the last dxosd.
+    Returns the pipeline string to pass to gst-launch-1.0.
     """
     mjpeg_sink = (
         # NOTE: a forced "video/x-raw,width=1280,height=720" caps here segfaults the
@@ -89,19 +89,19 @@ def build_mjpeg_pipeline(base_pipeline: str) -> str:
         f"{_jpeg_encoder()} ! fdsink fd=1"
     )
 
-    # 멀티스트림: compositor 뒤의 sink를 교체
+    # Multi-stream: replace the sink after the compositor
     comp_idx = base_pipeline.find("compositor")
     if comp_idx >= 0:
-        # "compositor name=comp ... ! videoconvert ! ..." 에서 compositor 블록 끝 찾기
+        # Find where the compositor block ends in "compositor name=comp ... ! videoconvert ! ..."
         after_comp = base_pipeline.find("!", comp_idx)
         if after_comp >= 0:
-            # compositor의 속성(sink_0::xpos=... 등)은 다음 '!' 전까지
-            # 남은 부분에서 sink 관련을 제거하고 MJPEG sink 추가
+            # The compositor's properties (sink_0::xpos=... etc.) run up to the next '!'
+            # Drop the sink part of the rest and append the MJPEG sink
             comp_block = base_pipeline[:after_comp].rstrip()
             return f"{comp_block} ! {mjpeg_sink}"
         return base_pipeline.rstrip() + f" ! {mjpeg_sink}"
 
-    # 단일 스트림: 마지막 dxosd 이후를 MJPEG로 교체
+    # Single stream: replace everything after the last dxosd with MJPEG
     idx = base_pipeline.rfind("dxosd")
     if idx >= 0:
         base = base_pipeline[:idx] + "dxosd"
@@ -125,7 +125,7 @@ def build_mjpeg_pipeline(base_pipeline: str) -> str:
 
 
 def get_sink_str() -> str:
-    """파이프라인 끝에 추가할 MJPEG sink 문자열 (gst-launch-1.0 용)."""
+    """The MJPEG sink string appended to the pipeline (for gst-launch-1.0)."""
     return (
         # NOTE: a forced "video/x-raw,width=1280,height=720" caps here segfaults the
         # pipeline (SIGSEGV) on the dxosd→videoscale path; leave videoscale uncapped so
@@ -136,14 +136,14 @@ def get_sink_str() -> str:
 
 
 def start(pipeline_str: str, extra_env: Optional[dict] = None):
-    """gst-launch-1.0 subprocess로 파이프라인 시작.
+    """Start the pipeline as a gst-launch-1.0 subprocess.
 
-    JPEG 프레임이 stdout으로 출력되며, 별도 스레드에서 읽어서 _latest_frame에 저장.
-    EOS(파일 끝) 시 자동 재시작으로 무한 루프 재생.
+    JPEG frames arrive on stdout; a separate thread reads them into _latest_frame.
+    On EOS (end of file) the pipeline restarts, so playback loops forever.
     """
     global _streaming, _process, _reader_thread, _pipeline_cmd, _pipeline_env, _latest_frame, _last_error, _frame_count
 
-    stop()  # 이전 실행 중지
+    stop()  # stop the previous run
     _drain_dxrt_msgqueues()
 
     env = os.environ.copy()
@@ -168,15 +168,15 @@ def start(pipeline_str: str, extra_env: Optional[dict] = None):
 
 
 def stop():
-    """MJPEG 스트리밍 중지 — subprocess 종료.
+    """Stop MJPEG streaming — end the subprocess.
 
-    중지는 반드시 **SIGINT(graceful)** 먼저 보낸다. gst-launch-1.0은 SIGINT을
-    가로채 EOS를 흘려보내고 NULL 상태로 정상 종료하므로, dxinfer가 NPU 추론
-    task를 정상적으로 반납한다. SIGTERM/SIGKILL로 곧장 죽이면 task를 쥔 채
-    프로세스가 사라져 **dxrtd 데몬이 크래시**(systemd가 auto-restart)하고,
-    그 사이 다음 파이프라인 start가 "dxrt service is not running" /
-    "Failed to initialize task on device"로 실패하는 연쇄 장애가 발생한다.
-    따라서 SIGINT → (미종료 시) SIGTERM → SIGKILL 순으로 단계적 escalation 한다.
+    Always send **SIGINT (graceful)** first. gst-launch-1.0 catches SIGINT, pushes
+    EOS and shuts down to the NULL state, so dxinfer releases its NPU inference
+    task cleanly. Killing it outright with SIGTERM/SIGKILL makes the process vanish
+    while holding the task, which **crashes the dxrtd daemon** (systemd restarts it);
+    meanwhile the next pipeline start fails with "dxrt service is not running" /
+    "Failed to initialize task on device".
+    So escalate step by step: SIGINT → (if still alive) SIGTERM → SIGKILL.
     """
     global _streaming, _process, _latest_frame
 
@@ -196,7 +196,7 @@ def stop():
             except (ProcessLookupError, OSError):
                 pass
 
-        # 1) graceful: SIGINT → gst-launch EOS → dxinfer가 NPU task 정상 반납
+        # 1) graceful: SIGINT → gst-launch EOS → dxinfer releases its NPU task
         _signal(signal.SIGINT)
         try:
             _process.wait(timeout=5)
@@ -206,7 +206,7 @@ def stop():
             try:
                 _process.wait(timeout=3)
             except subprocess.TimeoutExpired:
-                # 3) last resort: SIGKILL (dxrtd 크래시 가능 — 최후의 수단)
+                # 3) last resort: SIGKILL (may crash dxrtd)
                 _signal(signal.SIGKILL)
         _process = None
         log.info("MJPEG subprocess 종료")
@@ -260,10 +260,10 @@ def wait_until_ready(timeout: float = 2.0, require_frame: bool = False) -> tuple
 
 
 def generate_frames():
-    """MJPEG 프레임 제너레이터 — HTTP multipart/x-mixed-replace 응답에 사용.
+    """MJPEG frame generator for the HTTP multipart/x-mixed-replace response.
 
-    프레임 스로틀링: 최소 간격(33ms ≈ 30fps)을 두어
-    단일 스레드 HTTP 서버 과부하를 방지.
+    Frames are throttled to a minimum gap (33 ms ≈ 30 fps) so the
+    single-threaded HTTP server is not overloaded.
     """
     boundary = b"--frame\r\n"
     min_interval = 0.033  # ~30fps cap
@@ -295,16 +295,16 @@ def generate_frames():
 
 
 def get_latest_frame() -> Optional[bytes]:
-    """최신 JPEG 프레임 1장 반환 (snapshot 용도)."""
+    """The latest JPEG frame (for snapshots)."""
     with _frame_lock:
         return _latest_frame
 
 
 def _spawn_process(cmd, env):
-    """gst-launch-1.0 subprocess 생성.
+    """Spawn the gst-launch-1.0 subprocess.
 
-    CWD를 DX_STREAM_ROOT로 설정 — config JSON 내 상대 경로
-    (e.g. ./dx_stream/samples/models/…)가 올바르게 해석되도록.
+    CWD is DX_STREAM_ROOT so relative paths inside the config JSON
+    (e.g. ./dx_stream/samples/models/…) resolve correctly.
     """
     from dx_stream.core.config import DX_STREAM_ROOT
 
@@ -322,7 +322,7 @@ def _spawn_process(cmd, env):
 
 
 def _read_frames_loop():
-    """EOS 시 자동 재시작하며 JPEG 프레임을 읽는 스레드."""
+    """Thread that reads JPEG frames and restarts the pipeline on EOS."""
     global _process, _latest_frame, _streaming, _last_error
 
     while _streaming:
@@ -333,7 +333,7 @@ def _read_frames_loop():
 
         _read_frames_from(proc)
 
-        # Process 종료 확인
+        # Has the process exited?
         if not _streaming:
             break
         code = proc.poll()
@@ -344,7 +344,7 @@ def _read_frames_loop():
             log.error("MJPEG pipeline failed: %s", _last_error)
             break
 
-        # EOS — 자동 재시작 (0.5초 딜레이)
+        # EOS — restart after 0.5 s
         log.info("MJPEG pipeline EOS — 재시작")
         time.sleep(0.5)
         if not _streaming:
@@ -360,7 +360,7 @@ def _read_frames_loop():
 
 
 def _read_frames_from(proc):
-    """단일 subprocess에서 JPEG 프레임을 읽기."""
+    """Read JPEG frames from one subprocess."""
     global _latest_frame, _frame_count
 
     buffer = bytearray()
@@ -374,7 +374,7 @@ def _read_frames_from(proc):
                 break
             buffer.extend(chunk)
 
-            # JPEG 프레임 추출 (SOI...EOI)
+            # Extract JPEG frames (SOI...EOI)
             while True:
                 soi_pos = buffer.find(SOI)
                 if soi_pos < 0:
@@ -410,12 +410,12 @@ def _read_stderr(proc) -> str:
 
 
 def _split_pipeline(pipeline_str: str) -> list:
-    """파이프라인 문자열을 gst-launch-1.0 인자 리스트로 분할.
+    """Split a pipeline string into gst-launch-1.0 arguments.
 
-    gst-launch-1.0는 '!'를 별도 인자로 받아야 함.
+    gst-launch-1.0 needs each '!' as its own argument.
     """
     # shell-like splitting respecting spaces within element properties
     import shlex
-    # '!' 주변에 공백 보장
+    # Make sure '!' has spaces around it
     normalized = pipeline_str.replace("!", " ! ")
     return shlex.split(normalized)

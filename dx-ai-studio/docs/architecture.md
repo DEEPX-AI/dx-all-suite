@@ -1,11 +1,14 @@
 # Architecture
 
 DX AI Studio is a browser front-end that unifies the DEEPX NPU SDK tools into one
-experience. It is a **launcher hub** plus **eight independent module servers**, all
+experience. It is a **launcher hub** plus **nine independent module servers**, all
 built on the Python standard-library `http.server` (no FastAPI/Flask/Node). It has
 **no third-party runtime dependencies** — pure Python standard library (3.8+),
 including a tiny built-in template renderer for DX Compiler (no Jinja2) and a stdlib
-`html.parser` DOM for the dx_app Model Zoo tab (no BeautifulSoup, no requests).
+`html.parser` DOM for the dx_app Model Zoo tab (no BeautifulSoup, no requests). The one
+optional AWS extra is `boto3` (`pip install -e '.[aws]'`), needed for DX Cloud's
+actual AWS API operations, not for opening its page or guide. SDKs, native runtimes
+and feature-specific tools remain separate requirements.
 
 ## Big picture
 
@@ -18,17 +21,18 @@ Browser ──▶ Launcher :8890 ──(reverse proxy)──▶ dx_app       :80
                                                 dx_benchmark :8097  /benchmark/
                                                 dx_monitor   :8098  /dx_monitor/
                                                 dx_agent_dev :8099  /agent/
+                                                dx_edge      :8100  /cloud/
 
 shared/dx_server.py  ← base HTTP handler + server wrapper for ALL servers
 shared/chat/         ← ChatEngine (per-module AI assistant)
-shared/hardware.py   ← NPU / CPU / memory telemetry (DX Monitor + HW widget)
+shared/hardware.py   ← telemetry cache adapter + host CPU / memory / disk
 shared/static/       ← i18n, toolbar, tutorial engine, design tokens
 ```
 
 ## The proxy model
 
 The launcher is both a **process supervisor** and a **reverse proxy**
-(`launcher/launcher.py`, ~1470 lines):
+(`launcher/launcher.py`):
 
 1. **Spawn** — on boot it starts each module as a detached subprocess
    (`python3 <module>/server.py --port 0 --no-browser`, `preexec_fn=os.setsid`).
@@ -45,7 +49,7 @@ The launcher is both a **process supervisor** and a **reverse proxy**
    for EventSource/fetch calls that lack a usable prefix.
 4. **Proxy** — `_proxy()` forwards over `http.client` to `127.0.0.1:<port>`, strips
    hop-by-hop headers, streams SSE line-by-line, and injects the hardware-monitor
-   widget into HTML responses (all modules except `dx_monitor` and `dx_agent_dev`).
+   widget into HTML responses (all modules except `dx_monitor`, `dx_agent_dev` and `dx_edge`).
 5. **Supervise** — a watchdog thread polls each module (process alive + port open) and
    restarts a dead module up to 3 times / 120 s, else marks it `unavailable`.
 
@@ -65,6 +69,7 @@ Top-level browser navigations (deep links, F5) are detected via `Sec-Fetch-Dest`
 | DX Benchmark | `dx_benchmark/` | 8097 | `/benchmark/` | `DX_BENCHMARK_PORT` |
 | DX Monitor | `dx_monitor/` | 8098 | `/dx_monitor/` | `DX_MONITOR_PORT` |
 | DX Agent Dev | `dx_agent_dev/` | 8099 | `/agent/` | `DX_AGENT_PORT` |
+| DX Cloud | `dx_edge/` | 8100 | `/cloud/` | `DX_EDGE_PORT` |
 
 The `DX_*_PORT` variables are read only by `launcher/launcher.py` (as proxy-map
 defaults). The module `server.py` files do **not** read them — a standalone module
@@ -84,23 +89,33 @@ handle_chat_routes(_chat_engine)   # /api/chat* (SSE), config, local models
 
 `DXBaseHandler` provides: JSON/HTML/file/bytes responses, static serving with ETag +
 gzip + 304 + content-hash cache-busting (`render_html_with_asset_hashes`), multipart
-parsing, SSE helpers, optional `DX_API_TOKEN` auth, CORS/origin checks, and a
-corporate-TLS CA bridge. `DXServer` wraps CLI parsing, IPv6 dual-stack bind,
+parsing, SSE helpers, the remote-access gate (Host allowlist, same-origin checks for
+state-changing requests, no CORS; local requests pass, remote ones need `DX_API_TOKEN`
+or a paired-browser session from `shared/remote_access.py`), and a corporate-TLS CA
+bridge. Module servers bind 127.0.0.1 and trust the launcher's proxied requests by the
+per-run `DX_PROXY_SECRET` it puts in their env. `DXServer` wraps CLI parsing, the 127.0.0.1 default bind,
 port-collision retry, and ephemeral-port reporting via `DX_PORT_FILE`.
 
 - **`shared/chat/`** — `ChatEngine` powers the per-module "DX Chat" assistant.
-  Providers: OpenAI, Anthropic, Google (Gemini), a local OpenAI-compatible endpoint,
-  and an `agent-cli` backend. Rule-based `FallbackEngine` answers when no key is set.
+  Providers: OpenAI, Anthropic, Google (Gemini), GitHub Models, a Custom OpenAI-compatible
+  endpoint, a local (Ollama-compatible) server, and an `agent-cli` backend. Rule-based `FallbackEngine` answers when no key is set.
   Module knowledge lives in `shared/chat/knowledge/*.md` and is auto-synced from the
   suite docs — no manual regen. The launcher pre-syncs it once, unconditionally, at
   boot (single writer, before any module starts); `ChatEngine.stream()` also does a
   lazy, env-gated (`DX_CHAT_KNOWLEDGE_SYNC=1`) fallback sync for a module server run
   standalone without the launcher. Both paths call `knowledge_sync.sync_if_stale()`,
   which writes atomically (temp file + `os.replace()`).
-- **`shared/hardware.py`** — `get_hw()` / `get_sysinfo()` collect NPU telemetry via
-  the `dx_engine` SDK's `DeviceStatus` API, optional per-board `dx_npu_stats`
-  metadata, and CPU/memory/disk from
-  `/proc`. Falls back to synthetic mock data when no NPU/SDK is present.
+- **`shared/hardware.py`** — `get_hw()` / `get_sysinfo()` merge cached NPU telemetry
+  with host CPU/memory/disk metrics from `/proc`. DX Monitor's
+  `core/telemetry_supervisor.py` owns an isolated `telemetry_worker.py` subprocess
+  running with the runtime-specific Python/environment. Native `dx_engine` access
+  stays in that worker, not in the Monitor HTTP process. The supervisor validates
+  worker records, caches snapshots/events and bounds restart attempts.
+  Missing hardware/SDK or a failed worker produces `unavailable`; stale data is
+  marked `stale`, not current measurement. Demo telemetry requires
+  `DX_MONITOR_EXPLICIT_MOCK=1`. `DX_MONITOR_SKIP_HARDWARE_INIT=1` bypasses initialization
+  and leaves NPU telemetry unavailable; it is not mock mode. An SSE connection only
+  establishes transport, not telemetry health.
 - **`shared/static/`** — the 6-language i18n runtime (`i18n.js`, `window.DXI18n`),
   unified toolbar, tutorial engine, and design-token CSS (`dx-tokens/base/utilities`).
 
@@ -110,8 +125,8 @@ port-collision retry, and ephemeral-port reporting via `DX_PORT_FILE`.
 streams their output into the browser console. Five CLI adapters live under
 `dx_agent_dev/core/adapters/`: `claude.py`, `copilot.py`, `codex.py`, `cursor.py`,
 `opencode.py` (plus a `mock.py` used under `DX_AGENT_ADAPTER=mock` for closed-net/CI
-runs). Cursor and OpenCode enumerate models dynamically (`cursor-agent
---list-models`, `opencode models`); both fall back to a static table in
+runs). Copilot (the account's models, over ACP), Cursor and OpenCode enumerate models
+dynamically (`cursor-agent --list-models`, `opencode models`); all fall back to a static table in
 `dx_agent_dev/core/agents_config.py` when the dynamic call fails or times out. It
 depends on the `.deepx` harness (agent knowledge/skills) resolved via
 `DX_HARNESS_ROOT` — see [`development.md`](development.md#environment-variables).
@@ -136,9 +151,41 @@ defaulting to the sibling suite paths). SDK coupling is deliberately **optional*
   subprocess (`compile_worker.py`). Without it, graph parsing / config wizard / setup
   still work; only the actual compile + HTML summary need it.
 - **`dx_engine` / dx-runtime** — DX App runs inference through the sibling
-  `dx-runtime/dx_app` example binaries; DX Monitor reads NPU stats via `dx_engine`;
-  DX Benchmark's CLI needs the full NPU stack. All degrade to mock data when absent,
-  so the GUI is fully browsable on a machine with no NPU.
+  `dx-runtime/dx_app` runners; DX Monitor's isolated worker reads NPU stats;
+  DX Benchmark's separate CLI needs the NPU stack (Studio is a dataset viewer).
+  Missing prerequisites do **not** imply automatic mock inference. Setup/status and
+  reference views can be used without running an NPU job; execution paths report
+  their missing requirements.
+- **Managed runtime** — `shared/runtime_*` tracks installation/validation state and
+  resolves App/Stream child-process environments. The inference launch gate accepts
+  an active runtime profile, or a degraded path when that module's own contracts
+  validate live. Otherwise it blocks launch with remediation rather than fabricating
+  a result. For example, use Stream **Setup → DX-Runtime Dependencies**, resolve the
+  reported failed checks, validate and retry the operation.
+- **Graph Composer inside DX App** — `core/graph_cli.py` discovers
+  `multi_model_graph_sync` / `multi_model_graph_async` and invokes them as bounded
+  subprocesses; `graph_validate.py` delegates graph rules to the runner's `--check`
+  and maps diagnostics to nodes/edges. `graph_run.py` owns run-once jobs/results;
+  `graph_live.py` owns Live display/stream lifecycles. `graph_projects.py` stores
+  projects under `outputs/dx_app/graph/projects` with the newest 50 saved versions;
+  runs and C++ project exports have separate `graph/runs` and `graph/exports`
+  directories. JSON project export is distinct from a C++ project ZIP generated
+  through the sibling app's exporter. None of this provides a missing-runner mock.
+  For example, prepare models, validate a graph, then Run once and inspect its
+  report; a valid editor layout alone does not establish runnable artifacts.
+- **NPU arbitration inside DX App** — `core/npu_jobs.py` reserves the NPU for graph
+  run-once, graph Live, Run-page Live and gallery builds. Run-page Live slots may
+  coexist with one another; they cannot overlap a graph job or gallery build.
+  Reservations track attached runner processes and release on exit, with a timeout
+  for abandoned preparation. This is a Studio App registry, not a system-wide lock
+  on unrelated external processes. Stop/wait for the reported holder before
+  retrying a conflicting job.
+- **DX Cloud** — the internal `dx_edge` package serves `/cloud/`, independently of
+  DX EdgeGuide and the suite's `dx-edge` product. boto3 uses the Studio host's
+  credential chain/profile for subscription probes, stacks, compile jobs/logs/results
+  and Greengrass queries. A generated registration script runs manually on the
+  device; Studio neither SSH-executes it nor automatically deploys compiled models.
+  See the [Cloud manual](source/13_DX_Edge_AWS.md) for storage, cost and cleanup limits.
 
 ## Further reading
 

@@ -17,6 +17,7 @@ _MODULE_FACTORIES: dict[str, str] = {
     "dx_agent_dev": "dx_agent_dev.server",
     "dx_benchmark": "dx_benchmark.server",
     "dx_compiler": "dx_compiler.server",
+    "dx_edge": "dx_edge.server",
     "dx_modelzoo": "dx_modelzoo.server",
     "dx_monitor": "dx_monitor.server",
     "dx_planner": "dx_planner.server",

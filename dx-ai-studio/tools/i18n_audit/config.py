@@ -15,6 +15,7 @@ MODULES = {
     "dx_benchmark": ("dx_benchmark",),
     "dx_monitor": ("dx_monitor",),
     "dx_agent_dev": ("dx_agent_dev",),
+    "dx_edge": ("dx_edge",),
     "shared": ("shared",),
 }
 
@@ -30,6 +31,7 @@ BRAND_TERMS = {
     "DX Benchmark",
     "DX Monitor",
     "DX Agent Dev",
+    "DX Cloud",
     "DX All Suite",
     "DX Runtime",
     "DX Firmware",

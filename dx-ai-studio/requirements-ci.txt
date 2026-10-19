@@ -8,3 +8,7 @@ Jinja2>=3.1
 # The platform PyNaCl package is inherited by the test venv and declares cffi
 # in its Python metadata; install it here so `python -m pip check` is reliable.
 cffi>=1.15
+# Font subsetting and the CJK coverage gate read woff2 (scripts/build_font_subsets.py,
+# scripts/font_coverage_gate.py). Development and CI only; the runtime never imports it.
+fonttools>=4.50
+brotli>=1.1

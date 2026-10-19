@@ -1,0 +1,667 @@
+{
+ "lang": "zh-CN",
+ "ui": {
+  "title": "AWS 控制台指南",
+  "lead": "从在 AWS Marketplace 订阅、部署 Stack、编译模型到部署 DEEPX 运行时，全部在 AWS Management Console 中按步骤完成。",
+  "back": "返回 DX Cloud",
+  "guide": "指南",
+  "onThisPage": "本页内容",
+  "jumpTo": "跳转到步骤",
+  "consolePath": "控制台路径",
+  "note": "注意",
+  "copy": "复制",
+  "copied": "已复制",
+  "copyFailed": "复制失败",
+  "zoom": "点击放大",
+  "close": "关闭",
+  "loadError": "无法加载指南。"
+ },
+ "guides": [
+  {
+   "id": "compiler",
+   "name": "DEEPX Compiler Solution",
+   "title": "DEEPX Compiler Solution",
+   "intro": "在 AWS 上将 ONNX 模型编译为 DEEPX NPU 使用的 DXNN 格式：可以在 Amazon EC2 实例上交互式编译，也可以使用 CloudFormation Stack 自动编译上传到 Amazon S3 的每个模型。两种方式使用相同的编译器和校准数据集，结果完全相同。",
+   "sections": [
+    {
+     "id": "prep",
+     "title": "开始之前",
+     "steps": [
+      {
+       "id": "choose",
+       "title": "选择部署方式",
+       "path": [
+        "AWS Marketplace",
+        "DEEPX Compiler Solution"
+       ],
+       "items": [
+        "在 AWS Marketplace 打开 [DEEPX Compiler Solution](https://aws.amazon.com/marketplace/pp/prodview-ev6ed5omu4ulo) 产品页面。其启动页面提供两种服务。",
+        "**Amazon EC2**（使用 AMI 的自定义部署）：自行启动实例并运行编译器。适合反复尝试编译选项和交互式调试。",
+        "**AWS CloudFormation**（一步完成的自动部署）：将文件上传到 Amazon S3 后自动开始编译，由工作流启动和终止实例。适合重复执行标准化编译以及与 CI 集成。"
+       ],
+       "image": {
+        "src": "compiler-marketplace.png",
+        "width": 1377,
+        "height": 428,
+        "alt": "AWS Marketplace 上的 DEEPX Compiler Solution 产品页面"
+       }
+      },
+      {
+       "id": "prereq",
+       "title": "前提条件",
+       "items": [
+        "可以启动 EC2 实例或创建 CloudFormation Stack 的 AWS 账户和权限。",
+        "ONNX 模型及其 JSON 配置文件。经过验证的模型和配置可从 [DEEPX Model Zoo](https://developer.deepx.ai/modelzoo/) 获取。",
+        "可以通过 HTTPS 访问 Amazon S3、AWS Systems Manager 和 Amazon CloudWatch Logs 的现有 VPC 和子网。私有子网需要 NAT 网关或 VPC 终端节点。",
+        "如需在本机运行 AWS CLI 命令，请先配置一次凭证。`aws sts get-caller-identity` 输出账户 ID 和用户 ARN 即表示配置完成。"
+       ],
+       "commands": [
+        "aws configure\n# AWS Access Key ID [None]: <access-key-id>\n# AWS Secret Access Key [None]: <secret-access-key>\n# Default region name [None]: <region, for example us-east-1>\n# Default output format [None]: json\n\naws sts get-caller-identity"
+       ]
+      }
+     ]
+    },
+    {
+     "id": "ec2",
+     "title": "方式 A — 在 Amazon EC2 上编译",
+     "steps": [
+      {
+       "id": "ec2-1",
+       "title": "订阅并启动实例",
+       "path": [
+        "AWS Marketplace",
+        "DEEPX Compiler Solution",
+        "Launch DEEPX Compiler Solution"
+       ],
+       "items": [
+        "在产品页面选择 **View purchase options** 并订阅。",
+        "在 **Launch DEEPX Compiler Solution** 页面，将 **Service** 设为 **Amazon EC2**。",
+        "在 **Launch method** 中选择 **One-click launch from AWS Marketplace**。只有需要表单中没有的选项（如实例配置文件、用户数据或额外卷）时，才使用 **Launch from EC2 Console**。",
+        "填写 **Version**（默认选中最新稳定版 `dx-com`）、**Region**、**Number of instances**、**Instance type**、**VPC**、**Subnet**、**Security group** 和 **Key pair**。",
+        "选择 **Launch**。"
+       ],
+       "note": "编译会大量占用 CPU 和内存。启动页面将 `t3.xlarge`（4 vCPU、16 GiB）标记为 **Vendor recommended**；模型较大或校准图片较多时，更大的实例类型可能更快。安全组除 SSH 外无需其他入站访问。",
+       "image": {
+        "src": "compiler-launch.png",
+        "width": 2648,
+        "height": 1639,
+        "alt": "Service 设为 Amazon EC2 的启动配置"
+       }
+      },
+      {
+       "id": "ec2-2",
+       "title": "连接并准备模型",
+       "path": [
+        "EC2",
+        "Instances"
+       ],
+       "items": [
+        "在 **EC2 › Instances** 中找到实例地址，以 `ubuntu` 用户通过 SSH 连接。",
+        "激活编译器的 Python 环境。编译器和校准数据集已预装在 `/opt/dx-compiler` 下。",
+        "下载模型及其 Model Zoo 配置文件，然后将 `dataset_path` 指向 AMI 自带的校准数据集。"
+       ],
+       "note": "请以 Model Zoo 的配置文件为基础：缺少 `preprocessings` 列表的手写文件会编译失败。校准图片比 AMI 说明的目录深一层：`/opt/dx-compiler/calibration_dataset/calibration_dataset`。",
+       "commands": [
+        "ssh -i <your-key>.pem ubuntu@<instance-address>\n\nsource /opt/dx-compiler/venv/bin/activate",
+        "curl -fLO https://sdk.deepx.ai/modelzoo/onnx/yolov5-s-face_640x640.onnx\ncurl -fLO https://sdk.deepx.ai/modelzoo/q-lite-json/2_4_0/yolov5-s-face_640x640.json\n\nsed -i 's#\"dataset_path\": *\"[^\"]*\"#\"dataset_path\": \"/opt/dx-compiler/calibration_dataset/calibration_dataset\"#' \\\n    yolov5-s-face_640x640.json"
+       ]
+      },
+      {
+       "id": "ec2-3",
+       "title": "运行编译",
+       "items": [
+        "指定模型（`-m`）、配置文件（`-c`）和输出目录（`-o`）运行 `dxcom`。只有在 `(venv)` 环境激活时，它才在 `PATH` 中。",
+        "编译器先输出配置、量化和预处理的决定，然后显示进度条。"
+       ],
+       "note": "开始时出现的 `GPU device discovery failed` 警告可以忽略：实例没有 GPU，编译会改用 CPU 进行。",
+       "image": {
+        "src": "compiler-dxcom-run.png",
+        "width": 2029,
+        "height": 1122,
+        "alt": "在 EC2 实例上用 dxcom 编译 ONNX 模型"
+       },
+       "commands": [
+        "dxcom -m yolov5-s-face_640x640.onnx \\\n      -c yolov5-s-face_640x640.json \\\n      -o output/yolov5-s-face_640x640"
+       ]
+      },
+      {
+       "id": "ec2-4",
+       "title": "检查输出并上传",
+       "items": [
+        "`.dxnn` 文件生成在 `-o` 指定的目录中，以模型名称命名。",
+        "将其上传到 Amazon S3，供边缘设备和其他环境下载使用。"
+       ],
+       "image": {
+        "src": "compiler-dxnn-output.png",
+        "width": 854,
+        "height": 252,
+        "alt": "输出目录中的 .dxnn 文件"
+       },
+       "commands": [
+        "ls -lhR output/",
+        "aws s3 cp output/yolov5-s-face_640x640/yolov5-s-face_640x640.dxnn s3://<your-bucket>/<path>/"
+       ]
+      },
+      {
+       "id": "ec2-5",
+       "title": "终止实例",
+       "path": [
+        "EC2",
+        "Instances",
+        "Instance state"
+       ],
+       "items": [
+        "在 **EC2 › Instances** 中选择编译器实例。",
+        "选择 **Instance state › Terminate instance** 以停止计费。未随实例删除的 EBS 卷需单独删除。",
+        "如果经常编译，方式 B 可管理编译实例的生命周期。但空闲时，存储和其他保留的 AWS 资源仍可能产生费用。"
+       ]
+      }
+     ]
+    },
+    {
+     "id": "cfn",
+     "title": "方式 B — 使用 CloudFormation 自动化",
+     "steps": [
+      {
+       "id": "cfn-1",
+       "title": "从产品页面启动 Stack",
+       "path": [
+        "AWS Marketplace",
+        "DEEPX Compiler Solution",
+        "Launch DEEPX Compiler Solution"
+       ],
+       "items": [
+        "如尚未订阅，请在产品页面通过 **View purchase options** 订阅。",
+        "在 **Launch DEEPX Compiler Solution** 页面，将 **Service** 设为 **AWS CloudFormation** 并选择 Region。",
+        "启动后，CloudFormation 控制台会打开 **Create stack** 页面，模板已选好。"
+       ]
+      },
+      {
+       "id": "cfn-2",
+       "title": "填写 Stack 参数",
+       "path": [
+        "CloudFormation",
+        "Stacks",
+        "Create stack",
+        "Specify stack details"
+       ],
+       "items": [
+        "输入 **Stack name**（字母、数字和连字符）。",
+        "`ImageId` — 指向 DX Compiler AMI 的 SSM 参数路径。它会自动解析为所在 Region 的 AMI，请保留默认值。",
+        "`ModelBucketName` — 存放 `.onnx`/`.json` 输入和 `.dxnn` 结果的 S3 存储桶，名称须全局唯一。",
+        "`InstanceType` — 编译器实例类型，默认为 `t3.xlarge`。",
+        "`VpcId` / `SubnetId` — 运行编译器实例的现有 VPC 和子网，需能通过 HTTPS 出站访问 AWS 服务。"
+       ],
+       "note": "截图来自 Greengrass Stack，多了 `ThingGroupName` 和运行时相关字段。Compiler Stack 只显示 AMI、网络、实例和存储几组参数。",
+       "image": {
+        "src": "cfn-parameters.png",
+        "width": 1974,
+        "height": 1658,
+        "alt": "在 CloudFormation 控制台中指定 Stack 详细信息"
+       }
+      },
+      {
+       "id": "cfn-3",
+       "title": "创建 Stack 并查看输出",
+       "path": [
+        "CloudFormation",
+        "Stacks",
+        "<stack-name>",
+        "Outputs"
+       ],
+       "items": [
+        "选择 **Next**，保留 Stack 选项，然后在审核页面选择 **Submit**。如有提示，请确认 CloudFormation 可能会创建 IAM 资源。",
+        "等待 Stack 变为 **CREATE_COMPLETE**。它会创建模型存储桶、Lambda 函数、Step Functions 状态机和最小权限的 IAM 角色。",
+        "在 **Outputs** 选项卡中记下 `ModelBucketName`、`StateMachineArn` 和 `CompilerExecutionLogGroupName`。"
+       ],
+       "image": {
+        "src": "cfn-create-complete.png",
+        "width": 1998,
+        "height": 890,
+        "alt": "处于 CREATE_COMPLETE 状态的 Stack"
+       }
+      },
+      {
+       "id": "cfn-4",
+       "title": "将 .onnx 和 .json 上传到 S3",
+       "path": [
+        "S3",
+        "Buckets",
+        "<ModelBucketName>",
+        "models/<model-name>/"
+       ],
+       "items": [
+        "在 **S3 › Buckets** 中打开 `ModelBucketName` 存储桶。",
+        "选择 **Create folder**，创建 `models/<model-name>/`。每个模型使用单独的文件夹。",
+        "打开该文件夹，选择 **Upload › Add files**，添加同名的 `.onnx` 模型和 `.json` 配置文件，然后选择 **Upload**。",
+        "只有两个文件都在同一文件夹中时才会开始编译。下面的 CLI 命令可在终端完成同样的操作。"
+       ],
+       "note": "无论配置文件中的 `dataset_path` 是什么值，流水线都会将其替换为 AMI 自带的校准数据集路径（`/opt/dx-compiler/calibration_dataset`）。",
+       "image": {
+        "src": "s3-upload.png",
+        "width": 1977,
+        "height": 652,
+        "alt": "上传到同一 S3 路径的模型和配置文件"
+       },
+       "commands": [
+        "export STACK_NAME=<cloudformation-stack-name>\n\nexport MODEL_BUCKET=$(aws cloudformation describe-stacks \\\n  --stack-name \"$STACK_NAME\" \\\n  --query \"Stacks[0].Outputs[?OutputKey=='ModelBucketName'].OutputValue\" \\\n  --output text)\n\nexport MODEL_PREFIX=models/yolov5-s-face_640x640\n\ncurl -fLO https://sdk.deepx.ai/modelzoo/onnx/yolov5-s-face_640x640.onnx\ncurl -fLO https://sdk.deepx.ai/modelzoo/q-lite-json/2_4_0/yolov5-s-face_640x640.json\n\naws s3 cp --only-show-errors yolov5-s-face_640x640.onnx \"s3://${MODEL_BUCKET}/${MODEL_PREFIX}/\"\naws s3 cp --only-show-errors yolov5-s-face_640x640.json \"s3://${MODEL_BUCKET}/${MODEL_PREFIX}/\""
+       ]
+      },
+      {
+       "id": "cfn-5",
+       "title": "查看 Step Functions 工作流",
+       "path": [
+        "Step Functions",
+        "State machines",
+        "CompilerStateMachine-…",
+        "Execution"
+       ],
+       "items": [
+        "在 **Step Functions › State machines** 中打开 `StateMachineArn` 对应的状态机，选择最新的执行。",
+        "图中依次显示实例启动、通过 Systems Manager 运行编译命令、轮询状态和终止实例。失败时同样会终止实例。",
+        "等待状态变为 **Succeeded**。`dxcom` 的详细日志位于 CloudWatch Logs 的 `/dx-compiler/<stack-name>/execution`。"
+       ],
+       "image": {
+        "src": "sfn-succeeded.png",
+        "width": 2174,
+        "height": 1286,
+        "alt": "Step Functions 控制台中的编译工作流"
+       },
+       "commands": [
+        "export STATE_MACHINE_ARN=$(aws cloudformation describe-stacks \\\n  --stack-name \"$STACK_NAME\" \\\n  --query \"Stacks[0].Outputs[?OutputKey=='StateMachineArn'].OutputValue\" \\\n  --output text)\n\naws stepfunctions list-executions \\\n  --state-machine-arn \"$STATE_MACHINE_ARN\" \\\n  --max-results 5 \\\n  --query \"executions[].[status,startDate,stopDate,name]\" \\\n  --output table",
+        "export COMPILER_LOG_GROUP=$(aws cloudformation describe-stacks \\\n  --stack-name \"$STACK_NAME\" \\\n  --query \"Stacks[0].Outputs[?OutputKey=='CompilerExecutionLogGroupName'].OutputValue\" \\\n  --output text)\n\naws logs tail \"$COMPILER_LOG_GROUP\" --since 1h --follow"
+       ]
+      },
+      {
+       "id": "cfn-6",
+       "title": "下载 .dxnn",
+       "path": [
+        "S3",
+        "Buckets",
+        "<ModelBucketName>",
+        "models/<model-name>/"
+       ],
+       "items": [
+        "回到存储桶中的模型文件夹，编译好的 `.dxnn` 就在原始 `.onnx` 和 `.json` 旁边。",
+        "选中它并选择 **Download**，或使用 CLI 复制。"
+       ],
+       "image": {
+        "src": "s3-dxnn.png",
+        "width": 1971,
+        "height": 479,
+        "alt": "与源模型位于同一 S3 路径的 .dxnn"
+       },
+       "commands": [
+        "aws s3 ls \"s3://${MODEL_BUCKET}/${MODEL_PREFIX}/\"\n# yolov5-s-face_640x640.onnx\n# yolov5-s-face_640x640.json\n# yolov5-s-face_640x640.dxnn",
+        "aws s3 cp \"s3://${MODEL_BUCKET}/${MODEL_PREFIX}/yolov5-s-face_640x640.dxnn\" ."
+       ]
+      }
+     ]
+    },
+    {
+     "id": "end",
+     "title": "收尾",
+     "steps": [
+      {
+       "id": "cost",
+       "title": "费用",
+       "items": [
+        "软件价格和订阅条件请参阅 AWS Marketplace 产品页面；AWS 资源费用另行计算。",
+        "**Amazon EC2 和 EBS**：编译器实例及其卷的运行时间。CloudFormation 流水线只在作业期间运行实例；自行启动的实例在终止前会一直计费。",
+        "**Amazon S3、AWS Lambda、AWS Step Functions、Amazon CloudWatch Logs**（CloudFormation 方式）：存储、事件处理、工作流执行和日志保留。",
+        "部署前请使用 [AWS Pricing Calculator](https://calculator.aws/) 估算费用。"
+       ]
+      },
+      {
+       "id": "cleanup",
+       "title": "清理资源",
+       "path": [
+        "CloudFormation",
+        "Stacks",
+        "Delete"
+       ],
+       "items": [
+        "EC2 方式：终止实例并删除残留的 EBS 卷。",
+        "CloudFormation 方式：在 **CloudFormation › Stacks** 中选择该 Stack，然后选择 **Delete**。",
+        "为保护数据，模型存储桶会保留。如不再需要，请在 S3 控制台中清空并删除。",
+        "如不再需要订阅，请在 [Manage subscriptions](https://aws.amazon.com/marketplace/library) 中取消。"
+       ]
+      },
+      {
+       "id": "troubleshoot",
+       "title": "故障排除",
+       "items": [
+        "**上传后工作流没有启动** — `.onnx` 和 `.json` 必须位于同一 S3 路径；只有一个文件时触发器会等待。",
+        "**工作流失败** — 查看 `/dx-compiler/<stack-name>/execution` 日志组中的 `dxcom` 日志。",
+        "**实例无法启动** — 确认子网有 HTTPS 出站访问（NAT 网关或 VPC 终端节点），并且订阅已完成。",
+        "**`dxcom: command not found`** — 先运行 `source /opt/dx-compiler/venv/bin/activate`。",
+        "**找不到校准图片** — `dataset_path` 应为 `/opt/dx-compiler/calibration_dataset/calibration_dataset`，而不是其上级目录。",
+        "**输入形状错误或精度偏低** — 让 `inputs` 与 ONNX 模型一致、`preprocessings` 与训练时一致，必要时增大 `calibration_num`。"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "greengrass",
+   "name": "DEEPX Greengrass Solution",
+   "title": "DEEPX Greengrass Solution",
+   "intro": "一个 CloudFormation Stack 即可提供云端编译流水线，并将 DEEPX 运行时（NPU 驱动、固件、dx_rt 和 dx_stream）通过 OTA 部署到 Thing Group 中的每台 Greengrass 核心设备。",
+   "sections": [
+    {
+     "id": "prep",
+     "title": "开始之前",
+     "steps": [
+      {
+       "id": "how",
+       "title": "解决方案的工作原理",
+       "items": [
+        "在云端，将 `.onnx` 和 `.json` 上传到同一 S3 前缀后，AWS Lambda 会启动 Step Functions 工作流。工作流用 DEEPX Compiler AMI 启动临时 EC2 实例，通过 Systems Manager Run Command 运行 `dxcom`，将 `.dxnn` 存放在源文件旁边，然后终止实例。",
+        "在边缘端，Stack 发布 `com.deepx.dx-runtime` Greengrass component 并部署到 Thing Group。组内每台核心设备都会安装 NPU 驱动、固件、dx_rt 和 dx_stream 并上报结果。",
+        "只需把已注册的设备加入 Thing Group 即可完成配置（零接触配置）。在生产阶段注入证书或使用队列预置需要另行设计。"
+       ],
+       "image": {
+        "src": "gg-architecture.png",
+        "width": 1100,
+        "height": 700,
+        "alt": "云端编译流水线与 Greengrass 运行时部署"
+       }
+      },
+      {
+       "id": "prereq",
+       "title": "前提条件",
+       "items": [
+        "可以创建 CloudFormation Stack 的 AWS 账户和权限。",
+        "装有 DEEPX DX-M1 M.2 模块的边缘设备，例如 Raspberry Pi 5（arm64）或 x86_64 Ubuntu 主机。",
+        "ONNX 模型及其 JSON 配置文件，例如来自 [DEEPX Model Zoo](https://developer.deepx.ai/modelzoo/)。",
+        "用于编译器实例的现有 VPC 和子网，需能通过 HTTPS 出站访问 Amazon S3、AWS Systems Manager 和 Amazon CloudWatch Logs（私有子网需 NAT 网关或 VPC 终端节点）。"
+       ]
+      }
+     ]
+    },
+    {
+     "id": "stack",
+     "title": "订阅并部署 Stack",
+     "steps": [
+      {
+       "id": "subscribe",
+       "title": "在 AWS Marketplace 订阅",
+       "path": [
+        "AWS Marketplace",
+        "DEEPX Greengrass Solution"
+       ],
+       "items": [
+        "在 AWS Marketplace 中搜索 [DEEPX Greengrass Solution](https://aws.amazon.com/marketplace/pp/prodview-732s46qfzuh34)，选中并订阅。",
+        "选择要部署的 AWS Region，然后选择 **Launch with CloudFormation**。",
+        "如果只需要编译、不需要部署到设备，请改用 DEEPX Compiler Solution 指南。"
+       ],
+       "image": {
+        "src": "gg-marketplace.png",
+        "width": 1722,
+        "height": 586,
+        "alt": "AWS Marketplace 上 DEEPX 解决方案的订阅页面"
+       }
+      },
+      {
+       "id": "stack-1",
+       "title": "填写 Stack 参数",
+       "path": [
+        "CloudFormation",
+        "Stacks",
+        "Create stack",
+        "Specify stack details"
+       ],
+       "items": [
+        "输入 **Stack name**。",
+        "`ImageId` — 指向 DX Compiler AMI 的 SSM 参数路径，请保留默认值。",
+        "`ModelBucketName` — 存放 ONNX 输入和 DXNN 结果的 S3 存储桶，名称须全局唯一。",
+        "`InstanceType` — 编译器实例类型，默认为 `t3.xlarge`。",
+        "`VpcId` / `SubnetId` — 运行编译器实例的现有 VPC 和子网，需能通过 HTTPS 出站访问 AWS 服务。",
+        "`ThingGroupName` — 此模板为运行时创建的 Thing Group 的名称。留空则创建 `<stack-name>-cores`，也可以指定新的组名。这不是导入现有组；名称冲突可能导致 Stack 创建失败。"
+       ],
+       "image": {
+        "src": "cfn-parameters.png",
+        "width": 1974,
+        "height": 1658,
+        "alt": "在 CloudFormation 控制台中指定 Stack 详细信息"
+       }
+      },
+      {
+       "id": "stack-2",
+       "title": "创建 Stack 并查看输出",
+       "path": [
+        "CloudFormation",
+        "Stacks",
+        "<stack-name>",
+        "Outputs"
+       ],
+       "items": [
+        "选择 **Next** 进入审核页面，然后选择 **Submit**。如有提示，请确认 CloudFormation 可能会创建 IAM 资源。",
+        "Stack 会创建模型存储桶、Lambda 函数、Step Functions 状态机、最小权限的 IAM 角色，以及 Greengrass component 和部署。等待其变为 **CREATE_COMPLETE**。",
+        "在 **Outputs** 中记下 `ModelBucketName`、`StateMachineArn`、`CompilerExecutionLogGroupName`、`ThingGroupName` 和 `TokenExchangeRoleName`。"
+       ],
+       "image": {
+        "src": "cfn-create-complete.png",
+        "width": 1998,
+        "height": 890,
+        "alt": "处于 CREATE_COMPLETE 状态的 Stack"
+       }
+      }
+     ]
+    },
+    {
+     "id": "compile",
+     "title": "编译模型",
+     "steps": [
+      {
+       "id": "compile-1",
+       "title": "将 .onnx 和 .json 上传到 S3",
+       "path": [
+        "S3",
+        "Buckets",
+        "<ModelBucketName>",
+        "models/<model-name>/"
+       ],
+       "items": [
+        "在 **S3 › Buckets** 中打开 `ModelBucketName` 存储桶，为每个模型创建单独的文件夹，例如 `models/yolov5-s-face_640x640/`。",
+        "选择 **Upload › Add files**，添加同名的 `.onnx` 模型和 `.json` 配置文件，然后选择 **Upload**。",
+        "使用该模型的 Model Zoo 配置文件。流水线会将其 `dataset_path` 替换为 AMI 自带的校准数据集。"
+       ],
+       "image": {
+        "src": "s3-upload.png",
+        "width": 1977,
+        "height": 652,
+        "alt": "上传到同一 S3 路径的模型和配置文件"
+       },
+       "commands": [
+        "export STACK_NAME=<cloudformation-stack-name>\n\nexport MODEL_BUCKET=$(aws cloudformation describe-stacks \\\n  --stack-name \"$STACK_NAME\" \\\n  --query \"Stacks[0].Outputs[?OutputKey=='ModelBucketName'].OutputValue\" \\\n  --output text)\n\nexport MODEL_PREFIX=models/yolov5-s-face_640x640\n\ncurl -fLO https://sdk.deepx.ai/modelzoo/onnx/yolov5-s-face_640x640.onnx\ncurl -fLO https://sdk.deepx.ai/modelzoo/q-lite-json/2_4_0/yolov5-s-face_640x640.json\n\naws s3 cp --only-show-errors yolov5-s-face_640x640.onnx \"s3://${MODEL_BUCKET}/${MODEL_PREFIX}/\"\naws s3 cp --only-show-errors yolov5-s-face_640x640.json \"s3://${MODEL_BUCKET}/${MODEL_PREFIX}/\""
+       ]
+      },
+      {
+       "id": "compile-2",
+       "title": "查看 Step Functions 工作流",
+       "path": [
+        "Step Functions",
+        "State machines",
+        "CompilerStateMachine-…",
+        "Execution"
+       ],
+       "items": [
+        "在 **Step Functions › State machines** 中打开 `StateMachineArn` 对应的状态机，选择最新的执行。",
+        "工作流依次启动实例、运行编译、轮询状态并终止实例；失败时同样会终止实例。",
+        "在 `/dx-compiler/<stack-name>/execution` 日志组中，应依次看到 S3 下载、`dxcom` 运行和 `.dxnn` 上传。"
+       ],
+       "image": {
+        "src": "sfn-succeeded.png",
+        "width": 2174,
+        "height": 1286,
+        "alt": "状态为 Succeeded 的编译工作流"
+       },
+       "commands": [
+        "export STATE_MACHINE_ARN=$(aws cloudformation describe-stacks \\\n  --stack-name \"$STACK_NAME\" \\\n  --query \"Stacks[0].Outputs[?OutputKey=='StateMachineArn'].OutputValue\" \\\n  --output text)\n\naws stepfunctions list-executions \\\n  --state-machine-arn \"$STATE_MACHINE_ARN\" \\\n  --max-results 5 \\\n  --query \"executions[].[status,startDate,stopDate,name]\" \\\n  --output table",
+        "export COMPILER_LOG_GROUP=$(aws cloudformation describe-stacks \\\n  --stack-name \"$STACK_NAME\" \\\n  --query \"Stacks[0].Outputs[?OutputKey=='CompilerExecutionLogGroupName'].OutputValue\" \\\n  --output text)\n\naws logs tail \"$COMPILER_LOG_GROUP\" --since 1h --follow"
+       ]
+      },
+      {
+       "id": "compile-3",
+       "title": "在 S3 中找到 .dxnn",
+       "path": [
+        "S3",
+        "Buckets",
+        "<ModelBucketName>",
+        "models/<model-name>/"
+       ],
+       "items": [
+        "编译好的 `.dxnn` 出现在与源模型相同的 S3 文件夹中。",
+        "无需常驻编译服务器：EC2 实例只在作业运行期间存在。"
+       ],
+       "image": {
+        "src": "s3-dxnn.png",
+        "width": 1971,
+        "height": 479,
+        "alt": "与源模型位于同一 S3 路径的 .dxnn"
+       },
+       "commands": [
+        "aws s3 ls \"s3://${MODEL_BUCKET}/${MODEL_PREFIX}/\"\n# yolov5-s-face_640x640.onnx\n# yolov5-s-face_640x640.json\n# yolov5-s-face_640x640.dxnn"
+       ]
+      }
+     ]
+    },
+    {
+     "id": "device",
+     "title": "将运行时部署到设备",
+     "steps": [
+      {
+       "id": "device-1",
+       "title": "将设备注册为 Greengrass 核心设备",
+       "path": [
+        "IoT Greengrass",
+        "Core devices"
+       ],
+       "items": [
+        "在设备上安装 Java 11 或更高版本，并提供有权配置 Greengrass（IoT 事物、证书和策略、IAM 角色别名）的 AWS 凭证。IAM 用户的长期密钥仅限开发使用。",
+        "下载 AWS IoT Greengrass Core 软件，并使用 Stack 输出进行安装：`--thing-group-name` 为 `ThingGroupName`，`--tes-role-name` 为 `TokenExchangeRoleName`。",
+        "确认服务正在运行，然后在 **IoT Greengrass › Core devices** 中确认设备状态为 **Healthy**。"
+       ],
+       "note": "加入 Thing Group 会触发运行时部署。已注册的设备只需加入该组即可。",
+       "commands": [
+        "curl -s https://d2s8p88vqu9w66.cloudfront.net/releases/greengrass-nucleus-latest.zip -o greengrass-nucleus-latest.zip\nunzip greengrass-nucleus-latest.zip -d GreengrassInstaller\n\nsudo -E java -Droot=\"/greengrass/v2\" -Dlog.store=FILE \\\n  -jar ./GreengrassInstaller/lib/Greengrass.jar \\\n  --aws-region <region> \\\n  --thing-name <thing-name> \\\n  --thing-group-name <ThingGroupName> \\\n  --tes-role-name <TokenExchangeRoleName> \\\n  --component-default-user ggc_user:ggc_group \\\n  --provision true \\\n  --setup-system-service true",
+        "sudo systemctl status greengrass.service"
+       ]
+      },
+      {
+       "id": "device-2",
+       "title": "查看 com.deepx.dx-runtime 部署",
+       "path": [
+        "IoT Greengrass",
+        "Deployments",
+        "<stack-name> DX Runtime Deployment"
+       ],
+       "items": [
+        "在 **IoT Greengrass › Deployments** 中打开 **<stack-name> DX Runtime Deployment**。它以 Thing Group 为目标，会对组内每台核心设备启动。",
+        "Greengrass 通过受 TLS 保护的 MQTT，以 AWS IoT 作业的形式下发 component。随附 recipe 通过 HTTPS 下载文件，安装 NPU 驱动（`dxrt-driver-dkms`），在 dx_rt 中依次运行 `./install.sh --all` 和 `./build.sh`，用 `/usr/local/bin/dxrt-cli -u fw.bin` 写入固件，并在 dx_stream 中依次运行 `./install.sh`（不带 `--all`）和 `./build.sh`。已有安装状态检查可能跳过部分步骤。",
+        "等待每台设备显示 **Succeeded**。如有设备报告问题，请查看设备上的 component 日志。",
+        "以后发布新的运行时版本时，同样提高 component 版本并为 Thing Group 创建新的部署。"
+       ],
+       "note": "安装时间取决于设备性能和网络状况。需要从源码构建依赖库的低配置 arm64 设备可能需要数十分钟甚至更久。",
+       "image": {
+        "src": "gg-deployment.png",
+        "width": 1970,
+        "height": 1095,
+        "alt": "目标设备的部署状态"
+       },
+       "commands": [
+        "# Classic Greengrass nucleus\nsudo tail -f /greengrass/v2/logs/com.deepx.dx-runtime.log\n\n# Greengrass nucleus lite\nsudo journalctl -f -u ggl.com.deepx.dx-runtime.service"
+       ]
+      },
+      {
+       "id": "device-3",
+       "title": "在设备上检查 NPU",
+       "items": [
+        "运行 `/usr/local/bin/dxrt-cli -s`，查看检测到的 NPU 及其固件版本。下方旧截图显示的是以前的命令名 `dxcli`。"
+       ],
+       "image": {
+        "src": "dxcli-status.png",
+        "width": 632,
+        "height": 557,
+        "alt": "显示检测到的 NPU 和固件版本的 dxcli -s 输出"
+       },
+       "commands": [
+        "/usr/local/bin/dxrt-cli -s"
+       ]
+      },
+      {
+       "id": "device-4",
+       "title": "检查 dx_stream 插件",
+       "items": [
+        "设置 dx_stream 可执行文件和库的路径。该代码段会自动选择 x86_64 或 aarch64 的插件目录；如需在所有 shell 中生效，请将其添加到 `~/.bashrc` 末尾。",
+        "`gst-inspect-1.0 dxstream` 会列出已注册的 dx_stream 元素。"
+       ],
+       "image": {
+        "src": "gst-inspect.png",
+        "width": 1041,
+        "height": 815,
+        "alt": "列出已注册元素的 gst-inspect-1.0 dxstream"
+       },
+       "commands": [
+        "GST_ARCH_TRIPLET=\"$(gcc -dumpmachine 2>/dev/null || true)\"\nif [ -z \"$GST_ARCH_TRIPLET\" ]; then\n  case \"$(uname -m)\" in\n    x86_64) GST_ARCH_TRIPLET=\"x86_64-linux-gnu\" ;;\n    aarch64|arm64) GST_ARCH_TRIPLET=\"aarch64-linux-gnu\" ;;\n    armv7l|armv6l) GST_ARCH_TRIPLET=\"arm-linux-gnueabihf\" ;;\n    *) GST_ARCH_TRIPLET=\"$(uname -m)-linux-gnu\" ;;\n  esac\nfi\n\nGST_PLUGIN_DIR=\"/usr/local/lib/$GST_ARCH_TRIPLET/gstreamer-1.0\"\nexport GST_PLUGIN_PATH=\"$GST_PLUGIN_DIR:$GST_PLUGIN_PATH\"\nexport LD_LIBRARY_PATH=\"$GST_PLUGIN_DIR:/usr/local/share/gstdxstream/lib:$LD_LIBRARY_PATH\"\nexport PATH=\"/usr/local/share/gstdxstream/bin:/usr/local/bin:$PATH\"\n\ngst-inspect-1.0 dxstream"
+       ]
+      },
+      {
+       "id": "device-5",
+       "title": "运行测试推理",
+       "items": [
+        "Stack 部署的是运行时，编译好的模型保存在 S3 中。本测试将 `.dxnn` 手动复制到设备。若要通过 OTA 部署模型，需要另建 Greengrass component。",
+        "下载示例视频并运行流水线：`dxpreprocess` 将帧缩放为 640×640，`dxinfer` 在 NPU 上推理，`dxpostprocess` 解析 YOLOv5s-Face 结果，`dxosd` 绘制边框，`fpsdisplaysink` 连同帧率一起显示。"
+       ],
+       "note": "后处理库与模型相关。使用其他模型时，请同时修改 `model-path` 和 `library-file-path`。",
+       "image": {
+        "src": "dxstream-result.png",
+        "width": 1914,
+        "height": 1111,
+        "alt": "在 DEEPX dx_stream 中运行的人脸检测"
+       },
+       "commands": [
+        "aws s3 cp \"s3://${MODEL_BUCKET}/${MODEL_PREFIX}/yolov5-s-face_640x640.dxnn\" .",
+        "curl -fSLO https://sdk.deepx.ai/res/video/sample_videos.tar.gz\ntar xzf sample_videos.tar.gz\n\nexport MODEL_PATH=\"$PWD/yolov5-s-face_640x640.dxnn\"\nexport INPUT_VIDEO_PATH=\"$PWD/dance-group.mov\"\nexport VIDEOCONVERT_PIPELINE=\"videoconvert\"\n\ngst-launch-1.0 urisourcebin uri=file://$INPUT_VIDEO_PATH ! decodebin ! \\\n  dxpreprocess preprocess-id=1 resize-width=640 resize-height=640 ! \\\n  queue max-size-buffers=1 ! \\\n  dxinfer preprocess-id=1 inference-id=1 model-path=$MODEL_PATH ! \\\n  queue max-size-buffers=1 ! \\\n  dxpostprocess inference-id=1 \\\n  library-file-path=/usr/local/share/gstdxstream/lib/libpostprocess_yolov5s_face.so \\\n  function-name=PostProcess ! \\\n  queue max-size-buffers=1 ! dxosd ! \\\n  $VIDEOCONVERT_PIPELINE ! fpsdisplaysink sync=false"
+       ]
+      }
+     ]
+    },
+    {
+     "id": "end",
+     "title": "收尾",
+     "steps": [
+      {
+       "id": "cost",
+       "title": "费用",
+       "items": [
+        "软件价格和订阅条件请参阅 AWS Marketplace 产品页面；AWS 资源费用另行计算。",
+        "**Amazon EC2**：编译器实例只在编译期间运行，成功或失败都会终止，因此只按编译时间计费。",
+        "**Amazon S3、AWS Lambda、AWS Step Functions、Amazon CloudWatch Logs**：存储、事件处理、工作流执行和日志保留。",
+        "**AWS IoT Core 和 AWS IoT Greengrass**：取决于使用的功能和设备数量。",
+        "部署前请使用 [AWS Pricing Calculator](https://calculator.aws/) 估算费用。"
+       ]
+      },
+      {
+       "id": "cleanup",
+       "title": "清理资源",
+       "path": [
+        "CloudFormation",
+        "Stacks",
+        "Delete"
+       ],
+       "items": [
+        "在 **CloudFormation › Stacks** 中选择该 Stack，然后选择 **Delete**。此模板创建自己的 Thing Group，不复用现有组；删除 Stack 时会尝试删除该组和 component 版本。如果组删除失败，请移除成员后重试。设备身份、证书和本地安装的软件需要单独清理。",
+        "为保护数据，模型存储桶会保留。如不再需要，请清空并删除。",
+        "如不再需要订阅，请在 [Manage subscriptions](https://aws.amazon.com/marketplace/library) 中取消。",
+        "可选：在 Greengrass 控制台中修订部署，从设备上移除该 component。"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

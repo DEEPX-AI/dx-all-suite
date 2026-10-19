@@ -1,7 +1,8 @@
 
 async function loadModels(){
-  const data=await api('/api/models');
+  const [data,labels]=await Promise.all([api('/api/models'),api('/api/category_labels').catch(function(){return {};})]);
   S.models=Array.isArray(data)?data:[];
+  S.catLabels=(labels&&typeof labels==='object'&&!Array.isArray(labels))?labels:{};
 }
 
 // Full ModelZoo catalog (354 = 352 homepage + 2 PPU) for the Models page only.
@@ -18,5 +19,5 @@ window.addEventListener('message', function(e) {
   }
 });
 
-window.addEventListener('DOMContentLoaded',init);
+window.addEventListener('DOMContentLoaded',initDxApp);
 

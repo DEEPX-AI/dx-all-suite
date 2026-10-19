@@ -1,0 +1,26 @@
+{
+  "frames": [
+    {
+      "stream": "cam",
+      "frame": 0,
+      "base": "result_000000_base.png",
+      "layers": [
+        {
+          "node": "seg",
+          "model": "bisenetv2_1024x2048",
+          "file": "result_000000_seg.png"
+        },
+        {
+          "node": "depth",
+          "model": "fastdepth_224x224",
+          "file": "result_000000_depth.png"
+        },
+        {
+          "node": "od",
+          "model": "yolov8-n_640x640",
+          "file": "result_000000_od.png"
+        }
+      ]
+    }
+  ]
+}

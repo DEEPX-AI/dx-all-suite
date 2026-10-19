@@ -1,0 +1,23 @@
+{
+ "ok": true,
+ "available": true,
+ "engine_ignored": false,
+ "errors": [],
+ "missing": [],
+ "unusable": {},
+ "notes": [],
+ "models": [
+  {
+   "node": "od",
+   "model": "yolov8-n_640x640",
+   "produces": "boxes",
+   "consumes": "full_frame",
+   "artifact": "yolov8-n_640x640.dxnn",
+   "present": true,
+   "file": "v9",
+   "missing": false,
+   "state": "present",
+   "engine": null
+  }
+ ]
+}

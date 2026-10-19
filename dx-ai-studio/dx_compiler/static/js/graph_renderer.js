@@ -1055,6 +1055,34 @@
             applyTransform();
         }
 
+        /* First view of a graph. Fitting a 300-node model put it at 2 % — a pale column nobody can read.
+           When the whole graph would be drawn below READABLE, start at a readable
+           zoom with the inputs at the top instead; Fit still shows everything. */
+        const READABLE = 0.5;
+        const FIRST_VIEW_SCALE = 0.8;
+        function initialView() {
+            const bbox = graphContent.getBBox();
+            if (bbox.width === 0 || bbox.height === 0) return;
+            const svgRect = svgElement.getBoundingClientRect();
+            const svgW = svgRect.width || svgElement.clientWidth || 800;
+            const svgH = svgRect.height || svgElement.clientHeight || 600;
+            const pad = 40;
+            const fit = Math.min((svgW - pad * 2) / bbox.width, (svgH - pad * 2) / bbox.height, 3.0);
+            if (fit >= READABLE) { fitToView(); return; }
+            const scale = FIRST_VIEW_SCALE;
+            // centre on the topmost node (the input), not on the whole graph — a wide graph pushed it off-screen
+            let top = null;
+            graphContent.querySelectorAll('g.node-group').forEach(function (g) {
+                const b = g.getBBox();
+                if (top === null || b.y < top.y) top = b;
+            });
+            const cx = top ? top.x + top.width / 2 : bbox.x + bbox.width / 2;
+            transform.scale = scale;
+            transform.x = svgW / 2 - cx * scale;
+            transform.y = pad - bbox.y * scale;
+            applyTransform();
+        }
+
         /** Focus on a specific node position, centering it without changing zoom level. */
         function focusNode(nodeX, nodeY, nodeW, nodeH) {
             // Reject NaN inputs to prevent permanent transform corruption
@@ -1092,6 +1120,7 @@
                 applyTransform();
             },
             fitToView: fitToView,
+            initialView: initialView,
             focusNode: focusNode,
         };
     }
@@ -1411,7 +1440,7 @@
                     class: 'subgraph-label',
                     'pointer-events': 'none',
                 });
-                label.textContent = '\u25B6 ' + sg.id + (sg.device ? ' (' + sg.device + ')' : '') + ' \u2014 ' + nodeCount + ' nodes';
+                label.textContent = '+ ' + sg.id + (sg.device ? ' (' + sg.device + ')' : '') + ' \u2014 ' + nodeCount + ' nodes';
                 label.setAttribute('data-subgraph-id', sg.id);
                 bgLayer.appendChild(label);
             } else {
@@ -1424,7 +1453,7 @@
                     class: 'subgraph-label subgraph-toggle',
                     cursor: 'pointer',
                 });
-                toggle.textContent = '\u25BC ' + sg.id + (sg.device ? ' (' + sg.device + ')' : '');
+                toggle.textContent = '\u2212 ' + sg.id + (sg.device ? ' (' + sg.device + ')' : '');
                 toggle.setAttribute('data-subgraph-id', sg.id);
                 bgLayer.appendChild(toggle);
             }

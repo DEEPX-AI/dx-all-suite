@@ -1,4 +1,4 @@
-"""메타데이터 동기화 스키마, 정규화, 어댑터 테스트."""
+"""Metadata sync schema, normalization and adapter tests."""
 import json
 import os
 import tempfile
@@ -127,6 +127,30 @@ def test_internal_gap_fill_does_not_clobber_existing_public_qpro():
     assert model["artifacts"]["qpro_dxnn"]["remote_url"].endswith("YOLOV5S-1.dxnn")
 
 
+def test_publish_display_name_replaces_a_name_guessed_from_the_local_id():
+    """The publish page's Display Name ("YOLOv12-m") beats a name capitalized from the local id ("Yolov12 M").
+
+    internal_modelzoo only fills gaps and local_runtime fills the name first, so without this rule most models would show
+    their id. For the name, the human-given publish value wins, but it does not replace a name from another network
+    source such as public."""
+    from dx_modelzoo.metadata.merge import merge_adapter_results
+
+    local = {"adapter": "local_runtime", "ok": True, "errors": [], "warnings": [],
+             "models": {"yolov12-m": {"display.name": "Yolov12 M", "display.task": "object_detection"}}}
+    internal = {"adapter": "internal_modelzoo", "ok": True, "errors": [], "warnings": [],
+                "models": {"yolov12-m": {"display.name": "YOLOv12-m", "performance.fps": 100.0}}}
+    catalog = merge_adapter_results([local, internal], source_profile="internal")
+    model = next(m for m in catalog["models"] if m["id"] == "yolov12-m")
+    assert model["display"]["name"] == "YOLOv12-m"
+    assert model["provenance"]["display.name"]["source"] == "internal_modelzoo"
+
+    public = {"adapter": "public_modelzoo", "ok": True, "errors": [], "warnings": [],
+              "models": {"yolov12-m": {"display.name": "YOLOv12 Medium"}}}
+    catalog = merge_adapter_results([local, public, internal], source_profile="public")
+    model = next(m for m in catalog["models"] if m["id"] == "yolov12-m")
+    assert model["display"]["name"] == "YOLOv12 Medium"
+
+
 def test_local_runtime_adapter_reads_registry_manifest_and_examples(tmp_path):
     suite_root = tmp_path
     dx_app = suite_root / "dx-runtime" / "dx_app"
@@ -162,13 +186,52 @@ def test_local_runtime_adapter_reads_registry_manifest_and_examples(tmp_path):
     assert "demo.python_example" in alexnet
 
 
-def test_local_runtime_adapter_stores_relative_local_artifact_path(tmp_path):
-    """로컬 artifact 경로는 artifact resolver가 수용하는 DX_APP_ROOT 상대 경로여야 한다."""
+def test_local_runtime_adapter_takes_the_registry_task_in_studio_task_keys(tmp_path):
+    """display.task comes from the registry's current ``task`` (add_model_task is dx_app's legacy column, which
+    files CLIP and PP-Matting under embedding / semantic_segmentation). Renamed tasks keep Studio's legacy key so
+    a model still groups with the rest of the Model Zoo, and the ``ppu`` group stays a group."""
     suite_root = tmp_path
     dx_app = suite_root / "dx-runtime" / "dx_app"
     (dx_app / "config").mkdir(parents=True)
     (dx_app / "scripts").mkdir()
-    (dx_app / "models").mkdir()
+    rows = [
+        ("clip_text_resnet50_77x512_openai", "embedding", "image_retrieval"),
+        ("ppmatting_hrnet_w48_composition_512x512", "semantic_segmentation", "image_matting"),
+        ("alexnet", "classification", "image_classification"),
+        ("arcface_mobilefacenet", "embedding", "face_recognition"),
+        ("yolo26n_obb", "obb_detection", "oriented_object_detection"),
+        ("yolov5s_ppu", "ppu", "object_detection"),
+        ("legacy_only", "pose_estimation", None),
+    ]
+    (dx_app / "config" / "model_registry.json").write_text(json.dumps([
+        {"model_name": name, "dxnn_file": f"{name}.dxnn", "add_model_task": legacy,
+         **({"task": task} if task else {})}
+        for name, legacy, task in rows
+    ]), encoding="utf-8")
+    (dx_app / "scripts" / "modelzoo_manifest.json").write_text("[]", encoding="utf-8")
+
+    models = local_runtime_adapter(suite_root)["models"]
+
+    assert {mid: models[mid]["display.task"] for mid, _, _ in rows} == {
+        "clip_text_resnet50_77x512_openai": "image_retrieval",
+        "ppmatting_hrnet_w48_composition_512x512": "image_matting",
+        "alexnet": "classification",
+        "arcface_mobilefacenet": "embedding",
+        "yolo26n_obb": "obb_detection",
+        "yolov5s_ppu": "ppu",
+        "legacy_only": "pose_estimation",
+    }
+
+
+def test_local_runtime_adapter_stores_relative_local_artifact_path(tmp_path):
+    """A local artifact path must be relative to DX_APP_ROOT, as the artifact resolver accepts.
+
+    dx_app keeps models in ``assets/models``; a ``models/`` path would leave local_exists always False."""
+    suite_root = tmp_path
+    dx_app = suite_root / "dx-runtime" / "dx_app"
+    (dx_app / "config").mkdir(parents=True)
+    (dx_app / "scripts").mkdir()
+    (dx_app / "assets" / "models").mkdir(parents=True)
 
     (dx_app / "config" / "model_registry.json").write_text(json.dumps([{
         "model_name": "AlexNet",
@@ -179,18 +242,18 @@ def test_local_runtime_adapter_stores_relative_local_artifact_path(tmp_path):
         "input_height": 224,
     }]), encoding="utf-8")
     (dx_app / "scripts" / "modelzoo_manifest.json").write_text("[]", encoding="utf-8")
-    (dx_app / "models" / "AlexNet.dxnn").write_text("dxnn", encoding="utf-8")
+    (dx_app / "assets" / "models" / "AlexNet.dxnn").write_text("dxnn", encoding="utf-8")
 
     result = local_runtime_adapter(suite_root)
 
     assert result["ok"] is True
     alexnet = result["models"]["alexnet"]
-    assert alexnet["artifacts.qlite_dxnn.local_path"] == "models/AlexNet.dxnn"
+    assert alexnet["artifacts.qlite_dxnn.local_path"] == "assets/models/AlexNet.dxnn"
     assert alexnet["artifacts.qlite_dxnn.local_exists"] is True
 
 
 def test_local_runtime_adapter_uses_dx_app_model_name_as_catalog_id(tmp_path):
-    """dxnn 파일명 정규화가 dx_app 모델 ID와 다를 때도 model_name을 catalog ID로 써야 한다."""
+    """model_name must use the catalog ID even when the normalized dxnn file name differs from the dx_app model ID."""
     suite_root = tmp_path
     dx_app = suite_root / "dx-runtime" / "dx_app"
     (dx_app / "config").mkdir(parents=True)
@@ -237,7 +300,7 @@ def test_parse_internal_table_fixture_extracts_requested_fields():
 
 
 def test_parse_internal_table_uses_name_without_variant_suffix_for_join_key():
-    """사이트 Name이 버전/variant suffix를 가져도 dx_app 모델 ID 기준으로 merge되어야 한다."""
+    """A site Name with a version/variant suffix must still merge by the dx_app model ID."""
     html = """
     <table>
       <thead>
@@ -272,7 +335,7 @@ def test_parse_internal_table_uses_name_without_variant_suffix_for_join_key():
 
 
 def test_parse_internal_table_multilevel_headers_keep_links_and_face_model_values():
-    """실제 사이트의 그룹 헤더/링크 셀에서도 값과 다운로드 링크가 맞는 column에 들어가야 한다."""
+    """With the real site's group headers and link cells, values and download links must land in the right column."""
     html = """
     <table>
       <thead>
@@ -373,7 +436,7 @@ def test_parse_internal_table_multilevel_headers_keep_links_and_face_model_value
 
 
 def test_parse_internal_table_uses_each_table_header_independently():
-    """여러 task table이 있는 실제 publish HTML에서는 table별 header를 섞으면 안 된다."""
+    """In real publish HTML with several task tables, headers must not mix across tables."""
     table = """
     <table>
       <thead>
@@ -446,7 +509,7 @@ def test_parse_internal_table_uses_each_table_header_independently():
 
 
 def test_parse_internal_table_joins_by_artifact_basename_for_dx_app_id():
-    """Class Name/Name이 dx_app ID와 달라도 artifact 파일명으로 internal metadata를 붙여야 한다."""
+    """Internal metadata must attach by artifact file name even when Class Name/Name differs from the dx_app ID."""
     html = """
     <table>
       <thead>
@@ -477,7 +540,7 @@ def test_parse_internal_table_joins_by_artifact_basename_for_dx_app_id():
 
 
 def test_parse_internal_table_maps_hailo_artifact_suffix_to_h_model_id():
-    """homepage의 *_Hailo artifact는 dx_app의 *_h 모델 ID로 merge되어야 한다."""
+    """Homepage *_Hailo artifacts must merge into the dx_app *_h model IDs."""
     html = """
     <table>
       <thead>
@@ -503,7 +566,7 @@ def test_parse_internal_table_maps_hailo_artifact_suffix_to_h_model_id():
 
 
 def test_parse_internal_table_does_not_overwrite_base_model_with_hailo_variant():
-    """Name suffix를 제거한 fallback join이 기본 모델을 Hailo 변형으로 덮어쓰면 안 된다."""
+    """The fallback join on a stripped Name suffix must not overwrite the base model with its Hailo variant."""
     html = """
     <table>
       <thead>
@@ -534,7 +597,7 @@ def test_parse_internal_table_does_not_overwrite_base_model_with_hailo_variant()
 
 
 def test_parse_internal_table_maps_npu_scoped_performance_headers():
-    """실제 사이트처럼 Performance가 NPU 그룹 아래 있어도 FPS/FPS-Watt를 읽어야 한다."""
+    """FPS/FPS-Watt must be read even when Performance sits under an NPU group, as on the real site."""
     html = """
     <table>
       <thead>
@@ -575,7 +638,7 @@ def test_parse_internal_table_maps_npu_scoped_performance_headers():
 
 
 def test_internal_modelzoo_adapter_fetches_publish_html_and_parses_rows():
-    """internal_modelzoo는 stub이 아니라 publish HTML을 가져와 parser 결과를 반환해야 한다."""
+    """internal_modelzoo must fetch the publish HTML and return the parser result, not a stub."""
     html = """
     <table>
       <thead>
@@ -654,7 +717,7 @@ def test_parse_modelzoo_modelinfo_fixture_extracts_metadata():
 
 
 def test_parse_modelzoo_yaml_file_extracts_current_repo_metadata(tmp_path):
-    """현재 dx-modelzoo YAML 구조에서도 dataset/spec/input 정보를 추출해야 한다."""
+    """dataset/spec/input info must be extracted from the current dx-modelzoo YAML structure."""
     yaml_path = tmp_path / "SampleModel.yaml"
     yaml_path.write_text("""
 name: SampleModel
@@ -699,7 +762,7 @@ profiles:
 
 
 def test_parse_modelzoo_yaml_file_keeps_dynamic_batch_shape_and_resolution(tmp_path):
-    """YAML shape의 -1 batch도 input shape/resolution 추출을 깨지 않아야 한다."""
+    """A -1 batch in the YAML shape must not break input shape/resolution extraction."""
     yaml_path = tmp_path / "DynamicBatch.yaml"
     yaml_path.write_text("""
 name: DynamicBatch
@@ -721,7 +784,7 @@ dataset:
 
 
 def test_parse_modelzoo_yaml_file_keeps_section_after_blank_lines(tmp_path):
-    """YAML section 내부 빈 줄 때문에 dataset.type을 놓치면 안 된다."""
+    """A blank line inside a YAML section must not lose dataset.type."""
     yaml_path = tmp_path / "BlankDataset.yaml"
     yaml_path.write_text("""
 name: BlankDataset
@@ -752,7 +815,7 @@ def test_local_modelzoo_repo_adapter_reads_real_model_sources():
 
 
 def test_modelinfo_with_parentheses_in_strings_extracts_all_fields():
-    """ModelInfo 블록 내 문자열에 괄호가 포함되어도 모든 필드를 파싱해야 함."""
+    """All fields must parse even when a string in a ModelInfo block contains parentheses."""
     text = '''
 class SomeModel:
     info = ModelInfo(
@@ -775,7 +838,7 @@ class SomeModel:
 
 
 def test_modelinfo_malformed_block_does_not_crash():
-    """잘못된 ModelInfo 블록은 크래시 없이 빈 결과를 반환해야 함."""
+    """A malformed ModelInfo block must return an empty result, not crash."""
     text = '''
 class Broken:
     info = ModelInfo(
@@ -784,25 +847,25 @@ class Broken:
     # missing closing paren for ModelInfo
 '''
     results = _extract_all_model_infos(text)
-    # 잘못된 블록은 무시됨
+    # the malformed block is ignored
     assert results == {}
 
 
 
 
 def test_parse_modelzoo_model_file_always_returns_dict_of_models():
-    """단일 모델이든 멀티 모델이든 항상 {cid: fields} dict를 반환."""
+    """Always returns a {cid: fields} dict, for single- and multi-model files alike."""
     fixture = ROOT / "tests" / "dx_modelzoo" / "fixtures" / "dx_modelzoo_model_info.py"
     result = parse_modelzoo_model_file(fixture)
     assert isinstance(result, dict)
-    # 각 value는 또 다른 dict (fields)
+    # each value is itself a dict (fields)
     for cid, fields in result.items():
         assert isinstance(cid, str)
         assert isinstance(fields, dict)
 
 
 def test_parse_modelzoo_multi_model_file_returns_stable_shape():
-    """멀티 모델 파일도 동일한 {cid: fields} 형태."""
+    """A multi-model file has the same {cid: fields} shape."""
     text = '''
 class ModelA:
     info = ModelInfo(
@@ -832,7 +895,7 @@ class ModelB:
 
 
 def test_modelinfo_source_url_extraction():
-    """source 필드가 정의된 ModelInfo에서 legal.source_url을 추출해야 함."""
+    """legal.source_url must be extracted from a ModelInfo that defines source."""
     text = '''
 class ResNet:
     info = ModelInfo(
@@ -852,7 +915,7 @@ class ResNet:
 
 
 def test_benchmark_cache_empty_model_id_is_skipped(tmp_path):
-    """빈 model id는 결과에 포함되지 않고 경고를 생성해야 함."""
+    """An empty model id must be left out of the result and raise a warning."""
     cache_data = {
         "schema_version": "1.0",
         "device": "DX-M1",
@@ -866,16 +929,16 @@ def test_benchmark_cache_empty_model_id_is_skipped(tmp_path):
     cache_file.write_text(json.dumps(cache_data))
     result = benchmark_cache_adapter(cache_file)
     assert result["ok"] is True
-    # 빈/무의미 id는 포함되지 않아야 함
+    # empty/meaningless ids must be left out
     assert "" not in result["models"]
-    # valid_model은 포함
+    # valid_model is included
     assert "valid_model" in result["models"]
-    # 경고가 있어야 함
+    # there must be a warning
     assert len(result["warnings"]) > 0
 
 
 def test_extract_all_model_infos_empty_name_is_skipped():
-    """name이 빈 문자열인 ModelInfo는 결과에 포함되면 안 됨."""
+    """A ModelInfo with an empty name must not be in the result."""
     text = '''
 class Empty:
     info = ModelInfo(
@@ -892,7 +955,7 @@ class Empty:
 
 
 def test_benchmark_cache_adapter_missing_path(tmp_path):
-    """존재하지 않는 캐시 파일 → ok True, 빈 models, warning."""
+    """Missing cache file → ok True, empty models, a warning."""
     result = benchmark_cache_adapter(tmp_path / "nonexistent.json")
     assert result["ok"] is True
     assert result["models"] == {}
@@ -900,7 +963,7 @@ def test_benchmark_cache_adapter_missing_path(tmp_path):
 
 
 def test_benchmark_cache_adapter_malformed_json(tmp_path):
-    """잘못된 JSON → ok False, errors."""
+    """Invalid JSON → ok False, errors."""
     bad_file = tmp_path / "bad.json"
     bad_file.write_text("{invalid json content")
     result = benchmark_cache_adapter(bad_file)
@@ -909,14 +972,14 @@ def test_benchmark_cache_adapter_malformed_json(tmp_path):
 
 
 def test_local_runtime_adapter_missing_registry(tmp_path):
-    """registry 파일 없음 → ok False, errors."""
+    """No registry file → ok False, errors."""
     result = local_runtime_adapter(tmp_path)
     assert result["ok"] is False
     assert len(result["errors"]) > 0
 
 
 def test_local_modelzoo_repo_adapter_missing_models_dir(tmp_path):
-    """models 디렉토리 없음 → ok False, errors."""
+    """No models directory → ok False, errors."""
     result = local_modelzoo_repo_adapter(tmp_path)
     assert result["ok"] is False
     assert len(result["errors"]) > 0
@@ -925,17 +988,17 @@ def test_local_modelzoo_repo_adapter_missing_models_dir(tmp_path):
 
 
 def test_local_runtime_adapter_manifest_missing_name_skips_and_warns(tmp_path):
-    """manifest 항목에 name 없으면 해당 항목만 건너뛰고 뒤 항목은 정상 처리."""
-    # 최소 디렉토리 구조
+    """A manifest entry without name is skipped alone; later entries are processed normally."""
+    # minimal directory structure
     config_dir = tmp_path / "dx-runtime" / "dx_app" / "config"
     config_dir.mkdir(parents=True)
     scripts_dir = tmp_path / "dx-runtime" / "dx_app" / "scripts"
     scripts_dir.mkdir(parents=True)
-    # example dirs (빈 디렉토리)
+    # example dirs (empty)
     (tmp_path / "dx-runtime" / "dx_app" / "src" / "cpp_example").mkdir(parents=True)
     (tmp_path / "dx-runtime" / "dx_app" / "src" / "python_example").mkdir(parents=True)
 
-    # registry: ValidModel 하나
+    # registry: one ValidModel
     registry = [
         {
             "model_name": "ValidModel",
@@ -948,7 +1011,7 @@ def test_local_runtime_adapter_manifest_missing_name_skips_and_warns(tmp_path):
     ]
     config_dir.joinpath("model_registry.json").write_text(json.dumps(registry))
 
-    # manifest: 첫 항목 name 없음, 둘째 항목 ValidModel
+    # manifest: first entry has no name, second is ValidModel
     manifest = [
         {"dxnn_url": "http://bad/no_name.dxnn"},
         {"name": "ValidModel", "dxnn_url": "http://good/ValidModel.dxnn"},
@@ -957,17 +1020,17 @@ def test_local_runtime_adapter_manifest_missing_name_skips_and_warns(tmp_path):
 
     result = local_runtime_adapter(tmp_path)
     assert result["ok"] is True
-    # 뒷 항목의 artifact URL이 정상 매핑되어야 함
+    # the later entry's artifact URL must still map
     assert "validmodel" in result["models"]
     assert result["models"]["validmodel"]["artifacts.qlite_dxnn.remote_url"] == "http://good/ValidModel.dxnn"
-    # name 누락 경고가 있어야 함
+    # there must be a missing-name warning
     assert any("missing" in w and "name" in w for w in result["warnings"])
 
 
 
 
 def test_modelinfo_source_none_yields_legal_source_url_none():
-    """source=None인 ModelInfo에서 legal.source_url이 None으로 설정되어야 함."""
+    """A ModelInfo with source=None must set legal.source_url to None."""
     text = '''
 class NoSource:
     info = ModelInfo(
@@ -982,7 +1045,7 @@ class NoSource:
     results = _extract_all_model_infos(text)
     assert "nosourcemodel" in results
     fields = results["nosourcemodel"]
-    # source=None → legal.source_url 키가 존재하며 값이 None
+    # source=None → the legal.source_url key exists with value None
     assert "legal.source_url" in fields
     assert fields["legal.source_url"] is None
 
@@ -1082,7 +1145,7 @@ def test_sync_metadata_cli_local_writes_only_dx_ai_studio(tmp_path):
     out = tmp_path / "generated_catalog.json"
     report = tmp_path / "sync_report.json"
     cache = tmp_path / "generated_catalog.cache.json"
-    # I1: 소스 트리에 캐시가 남지 않도록 --cache를 tmp_path로 지정
+    # Point --cache at tmp_path so no cache is left in the source tree
     default_cache = ROOT / "dx_modelzoo" / "data" / "generated_catalog.cache.json"
     previous_default_cache = default_cache.read_bytes() if default_cache.exists() else None
     cmd = [
@@ -1097,7 +1160,7 @@ def test_sync_metadata_cli_local_writes_only_dx_ai_studio(tmp_path):
     assert result.returncode == 0, result.stderr
     assert out.exists()
     assert report.exists()
-    # 명시한 --cache 외의 기본 캐시 경로를 생성하거나 변경해서는 안 됨
+    # The default cache path must not be created or changed when --cache is given
     if previous_default_cache is None:
         assert not default_cache.exists(), "CLI should not create the default cache when --cache is explicit"
     else:
@@ -1108,7 +1171,7 @@ from dx_modelzoo.metadata.sync import run_sync, adapter_names_for_profile
 
 
 def test_sync_failure_keeps_prior_cache_and_marks_stale(tmp_path):
-    """모든 어댑터가 실패할 때 이전 캐시를 stale_cache로 마킹하여 사용."""
+    """When every adapter fails, the previous cache is used and marked stale_cache."""
     cache = tmp_path / "generated_catalog.cache.json"
     previous = {
         "schema_version": "2.0",
@@ -1199,9 +1262,9 @@ def test_local_sync_cannot_downgrade_existing_public_catalog(tmp_path):
 
 
 def test_sync_network_failure_preserves_fresh_local_catalog(tmp_path):
-    """로컬 어댑터가 성공하고 네트워크만 실패하면 fresh 카탈로그를 유지해야 함."""
+    """When the local adapter succeeds and only the network fails, the fresh catalog must be kept."""
     cache = tmp_path / "generated_catalog.cache.json"
-    # 이전 캐시: alexnet fps 123.0
+    # previous cache: alexnet fps 123.0
     previous = {
         "schema_version": "2.0",
         "source_profile": "internal",
@@ -1215,7 +1278,7 @@ def test_sync_network_failure_preserves_fresh_local_catalog(tmp_path):
     }
     atomic_write_json(cache, previous)
 
-    # 로컬 어댑터: 성공 (fresh display + artifact)
+    # local adapter: succeeds (fresh display + artifact)
     def local_runtime_ok(*a, **kw):
         return {
             "adapter": "local_runtime", "ok": True,
@@ -1235,7 +1298,7 @@ def test_sync_network_failure_preserves_fresh_local_catalog(tmp_path):
     def bench_ok(*a, **kw):
         return {"adapter": "benchmark_cache", "ok": True, "models": {}, "errors": [], "warnings": []}
 
-    # 네트워크 어댑터: 실패
+    # network adapter: fails
     def net_fail(*a, **kw):
         return {"adapter": "internal_modelzoo", "ok": False, "models": {}, "errors": ["network down"], "warnings": []}
 
@@ -1254,17 +1317,17 @@ def test_sync_network_failure_preserves_fresh_local_catalog(tmp_path):
     )
 
     model = result["catalog"]["models"][0]
-    # fresh 로컬 카탈로그를 사용해야 함 – stale fps 123.0으로 교체되면 안 됨
+    # the fresh local catalog must be used, not replaced by the stale fps 123.0
     assert model["display"]["name"] == "AlexNet"
     assert model["artifacts"]["qlite_dxnn"]["remote_url"] == "http://fresh/AlexNet.dxnn"
-    assert model["performance"].get("fps") != 123.0  # stale 값이 아님
+    assert model["performance"].get("fps") != 123.0  # not the stale value
     assert model["performance"]["source_status"] != "stale_cache"
-    # 네트워크 에러가 report에 기록되어야 함
+    # the network error must be recorded in the report
     assert any("network down" in e for e in result["report"]["adapter_errors"])
 
 
 def test_sync_all_adapters_fail_uses_stale_cache(tmp_path):
-    """모든 어댑터 실패 시에만 이전 캐시를 stale_cache로 사용."""
+    """The previous cache is used as stale_cache only when every adapter fails."""
     cache = tmp_path / "generated_catalog.cache.json"
     previous = {
         "schema_version": "2.0",
@@ -1305,7 +1368,7 @@ def test_sync_all_adapters_fail_uses_stale_cache(tmp_path):
 
 
 def test_missing_includes_fps_per_watt_when_absent():
-    """fps_per_watt가 없으면 missing에 포함되어야 함 (_REQUIRED_PERF_FIELDS 활용)."""
+    """A missing fps_per_watt must be listed in missing (via _REQUIRED_PERF_FIELDS)."""
     runtime = {
         "adapter": "local_runtime", "ok": True, "models": {
             "alexnet": {"display.name": "AlexNet", "display.task": "classification"}
@@ -1320,7 +1383,7 @@ def test_missing_includes_fps_per_watt_when_absent():
 
 
 def test_merge_performance_defaults_to_none_when_absent():
-    """fps, fps_per_watt가 없으면 None으로 출력 (deterministic)."""
+    """Missing fps and fps_per_watt are output as None (deterministic)."""
     runtime = {
         "adapter": "local_runtime", "ok": True, "models": {
             "alexnet": {"display.name": "AlexNet", "display.task": "classification"}
@@ -1333,7 +1396,7 @@ def test_merge_performance_defaults_to_none_when_absent():
 
 
 def test_merge_missing_includes_artifact_ids_when_absent():
-    """아티팩트가 없으면 모든 ARTIFACT_IDS가 missing에 포함되어야 함."""
+    """Without artifacts, every ARTIFACT_ID must be listed in missing."""
     runtime = {
         "adapter": "local_runtime", "ok": True, "models": {
             "alexnet": {"display.name": "AlexNet", "display.task": "classification"}
@@ -1346,7 +1409,7 @@ def test_merge_missing_includes_artifact_ids_when_absent():
 
 
 def test_merge_present_artifact_not_in_missing():
-    """아티팩트가 있으면 missing에서 제외되어야 함."""
+    """A present artifact must not be listed in missing."""
     runtime = {
         "adapter": "local_runtime", "ok": True, "models": {
             "alexnet": {
@@ -1359,13 +1422,13 @@ def test_merge_present_artifact_not_in_missing():
     catalog = merge_adapter_results([runtime], source_profile="local")
     model = catalog["models"][0]
     assert "qlite_dxnn" not in model["missing"]
-    # 다른 아티팩트는 여전히 missing
+    # the other artifacts are still missing
     assert "onnx" in model["missing"]
     assert "qlite_json" in model["missing"]
 
 
 def test_string_none_input_resolution_not_propagated():
-    """문자열 'None'이 input_resolution에 전파되지 않아야 한다."""
+    """The string 'None' must not reach input_resolution."""
     runtime = {
         "adapter": "local_runtime", "ok": True,
         "models": {
@@ -1390,7 +1453,7 @@ def test_string_none_input_resolution_not_propagated():
 
 
 def test_dash_placeholder_stripped_through_parse_and_merge():
-    """통합 테스트: HTML 대시 플레이스홀더가 parse → merge를 거치면 필드에서 제거된다."""
+    """Integration: HTML dash placeholders are removed from fields through parse → merge."""
     html = """
     <table>
       <thead>
@@ -1432,20 +1495,20 @@ def test_dash_placeholder_stripped_through_parse_and_merge():
     catalog = merge_adapter_results([runtime, table_adapter], source_profile="internal")
     model = [m for m in catalog["models"] if m["id"] == "smokemodel"][0]
 
-    # 대시 플레이스홀더가 제거되어야 함
+    # dash placeholders must be removed
     spec = model.get("specification", {})
     assert spec.get("input_resolution") != "-"
     evaluation = model.get("evaluation", {})
     assert evaluation.get("qlite", {}).get("accuracy") != "-"
 
-    # 숫자 0은 보존되어야 함
+    # the number 0 must be kept
     assert spec.get("input_width") == 0
 
 
 
 
 def test_modelinfo_block_quarantines_qlite_zero_accuracy():
-    """ModelInfo에서 q_lite_performance='0.0'은 suspect로 격리되어야 한다."""
+    """q_lite_performance='0.0' in a ModelInfo must be quarantined as suspect."""
     text = '''
 ModelInfo(
     name="ZeroModel",
@@ -1460,13 +1523,13 @@ ModelInfo(
     assert "evaluation.qlite.accuracy" not in fields
     assert fields["evaluation.qlite.source_status"] == "suspect"
     assert fields["evaluation.qlite.suspect_value"] == "0.0"
-    # raw 정상 값은 그대로
+    # a normal raw value is kept as is
     assert fields["evaluation.raw.accuracy"] == "72.5"
     assert "evaluation.raw.source_status" not in fields
 
 
 def test_modelinfo_block_does_not_quarantine_real_qlite_accuracy():
-    """정상 q_lite_performance 값은 quarantine하지 않아야 한다."""
+    """A normal q_lite_performance value must not be quarantined."""
     text = '''
 ModelInfo(
     name="NormalModel",
@@ -1481,7 +1544,7 @@ ModelInfo(
 
 
 def test_modelinfo_block_quarantines_all_performance_zero_variants():
-    """raw/qlite/qpro/qmaster 모두 0 값이면 suspect로 처리되어야 한다."""
+    """Zero values in raw/qlite/qpro/qmaster must all be treated as suspect."""
     text = '''
 ModelInfo(
     name="AllZero",
@@ -1520,7 +1583,7 @@ def test_internal_table_marks_qlite_zero_accuracy_as_suspect():
 
 
 def test_internal_table_does_not_quarantine_real_accuracy():
-    """정상적인 accuracy 값(0이 아닌)은 quarantine하지 않아야 한다."""
+    """A normal (non-zero) accuracy value must not be quarantined."""
     html = """
     <table><thead><tr>
       <th>Name</th><th>Class Name</th><th>NPU Q-Lite Accuracy</th>
@@ -1536,7 +1599,7 @@ def test_internal_table_does_not_quarantine_real_accuracy():
 
 
 def test_internal_table_does_not_quarantine_fps_zero():
-    """FPS 0 값은 quarantine하지 않아야 한다 – accuracy 필드만 대상."""
+    """An FPS of 0 must not be quarantined; only accuracy fields are."""
     html = """
     <table><thead><tr>
       <th>Name</th><th>Class Name</th><th>FPS</th>
@@ -1550,7 +1613,7 @@ def test_internal_table_does_not_quarantine_fps_zero():
 
 
 def test_internal_table_quarantines_all_zero_accuracy_variants():
-    """0, 0.0, 0.00 모두 suspect로 처리되어야 한다."""
+    """0, 0.0 and 0.00 must all be treated as suspect."""
     for zero_str in ("0", "0.0", "0.00"):
         html = f"""
         <table><thead><tr>
@@ -1572,7 +1635,7 @@ from dx_modelzoo.metadata.sync import run_sync
 
 
 def test_coverage_report_counts_missing_and_suspect_fields(tmp_path):
-    """run_sync 리포트에 coverage 섹션이 포함되어야 한다."""
+    """The run_sync report must include a coverage section."""
     def fake_runtime(*a, **kw):
         return {
             "adapter": "local_runtime", "ok": True, "errors": [], "warnings": [],
@@ -1621,7 +1684,7 @@ def test_coverage_report_counts_missing_and_suspect_fields(tmp_path):
 
 
 def test_display_fields_have_summary_and_category_label():
-    """병합 결과의 각 모델에 display.summary와 display.category_label이 있어야 한다."""
+    """Every merged model must have display.summary and display.category_label."""
     runtime = {
         "adapter": "local_runtime", "ok": True, "errors": [], "warnings": [],
         "models": {
@@ -1644,7 +1707,7 @@ def test_display_fields_have_summary_and_category_label():
 
 
 def test_resolve_source_profile_reads_from_data_subdir(tmp_path):
-    """resolve_source_profile이 dx_modelzoo/data/ 하위 config를 읽을 수 있어야 한다."""
+    """resolve_source_profile must read the config under dx_modelzoo/data/."""
     config_dir = tmp_path / "dx-ai-studio" / "dx_modelzoo" / "data"
     config_dir.mkdir(parents=True)
     config_path = config_dir / "metadata_sync_config.json"
@@ -1653,7 +1716,7 @@ def test_resolve_source_profile_reads_from_data_subdir(tmp_path):
 
 
 def test_sync_metadata_config_path_prefers_data_subdir_over_legacy(tmp_path):
-    """preferred config가 있으면 legacy config보다 우선해야 한다."""
+    """A preferred config must win over the legacy config."""
     from dx_modelzoo.tools.sync_metadata import _resolve_metadata_config_path
 
     dx_ai_studio_root = tmp_path / "dx-ai-studio"
@@ -1670,7 +1733,7 @@ def test_sync_metadata_config_path_prefers_data_subdir_over_legacy(tmp_path):
 
 
 def test_sync_metadata_config_path_falls_back_to_legacy_when_preferred_absent(tmp_path):
-    """preferred config가 없고 legacy config가 있으면 legacy를 사용해야 한다."""
+    """Without a preferred config, an existing legacy config must be used."""
     from dx_modelzoo.tools.sync_metadata import _resolve_metadata_config_path
 
     dx_ai_studio_root = tmp_path / "dx-ai-studio"
@@ -1685,7 +1748,7 @@ def test_sync_metadata_config_path_falls_back_to_legacy_when_preferred_absent(tm
 
 
 def test_sync_metadata_config_path_defaults_public_when_configs_absent(tmp_path):
-    """config 파일이 모두 없으면 preferred 경로를 반환하고 source는 public으로 fallback해야 한다."""
+    """With no config file at all, the preferred path is returned and the source falls back to public."""
     from dx_modelzoo.tools.sync_metadata import _resolve_metadata_config_path
 
     dx_ai_studio_root = tmp_path / "dx-ai-studio"
@@ -1696,7 +1759,7 @@ def test_sync_metadata_config_path_defaults_public_when_configs_absent(tmp_path)
 
 
 def test_internal_adapter_passes_verify_tls_to_fetch(monkeypatch):
-    """internal_modelzoo_adapter가 verify_tls 파라미터를 _fetch_url_text에 전달해야 한다."""
+    """internal_modelzoo_adapter must pass verify_tls to _fetch_url_text."""
     from dx_modelzoo.metadata import adapters
 
     captured = {}
@@ -1706,14 +1769,14 @@ def test_internal_adapter_passes_verify_tls_to_fetch(monkeypatch):
         return "<html><body><table></table></body></html>"
 
     monkeypatch.setattr(adapters, "_fetch_url_text", mock_fetch)
-    # fetch_text를 전달하지 않으면 기본 동작으로 _fetch_url_text 사용
+    # without fetch_text, _fetch_url_text is used by default
     adapters.internal_modelzoo_adapter("fake_root")
     assert captured.get("verify_tls") is True, \
         f"Expected verify_tls=True by default, got {captured.get('verify_tls')}"
 
 
 def test_internal_adapter_respects_verify_tls_false(monkeypatch):
-    """verify_tls=False를 명시적으로 전달하면 _fetch_url_text에 전파되어야 한다."""
+    """An explicit verify_tls=False must reach _fetch_url_text."""
     from dx_modelzoo.metadata import adapters
 
     captured = {}
@@ -1729,7 +1792,7 @@ def test_internal_adapter_respects_verify_tls_false(monkeypatch):
 
 
 def test_run_sync_passes_adapter_kwargs_to_internal_adapter(tmp_path):
-    """run_sync가 명시적 adapter kwargs를 internal_modelzoo 어댑터에 전달해야 한다."""
+    """run_sync must pass explicit adapter kwargs to the internal_modelzoo adapter."""
     captured = {}
 
     def empty_adapter(name):
@@ -1799,7 +1862,7 @@ def test_adapter_kwargs_from_config_merges_defaults_with_cli_overrides(tmp_path)
 
 
 def test_sync_metadata_cli_no_verify_tls_passes_adapter_kwargs(tmp_path, monkeypatch):
-    """CLI의 --no-verify-tls 옵션은 internal_modelzoo 어댑터 kwargs로 전달되어야 한다."""
+    """The CLI --no-verify-tls option must reach the internal_modelzoo adapter kwargs."""
     import sys
     from dx_modelzoo.tools import sync_metadata
 
@@ -1826,7 +1889,7 @@ def test_sync_metadata_cli_no_verify_tls_passes_adapter_kwargs(tmp_path, monkeyp
 
 
 def test_sync_metadata_cli_no_verify_tls_warns_to_stderr(tmp_path, monkeypatch, capsys):
-    """TLS 검증 비활성화 시 운영자가 로그에서 확인할 수 있어야 한다."""
+    """Disabled TLS verification must be visible to the operator in the log."""
     import sys
     from dx_modelzoo.tools import sync_metadata
 

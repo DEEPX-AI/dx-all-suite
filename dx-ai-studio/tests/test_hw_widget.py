@@ -3,10 +3,10 @@ from __future__ import annotations
 from pathlib import Path
 import json
 import re
-import shutil
 import subprocess
 
 import pytest
+from tests.browser_support import resolve_node_executable
 
 ROOT = Path(__file__).resolve().parent.parent
 WIDGET = ROOT / "shared" / "hw_widget" / "widget.html"
@@ -105,6 +105,8 @@ global.window.innerHeight = 800;
 global.window.addEventListener = function() {};
 global.window.__DX_HW_WIDGET_TEST_HOOK__ = {};
 global.requestAnimationFrame = function(fn) { fn(); };
+// _drawSpark reads --accent from the root (canvas cannot read CSS variables)
+global.getComputedStyle = function() { return { getPropertyValue() { return '#2997ff'; } }; };
 global.setTimeout = function() { return 1; };
 global.clearTimeout = function() {};
 global.EventSource = function() {};
@@ -132,7 +134,7 @@ console.log('ALL ASSERTIONS PASSED');
 
 
 def _run_widget_harness(tmp_path: Path, scenario: str, storage: dict[str, str] | None = None) -> str:
-    node = shutil.which("node")
+    node = resolve_node_executable()
     if not node:
         pytest.skip("node is required for hardware widget runtime test")
     harness = (
@@ -180,7 +182,7 @@ assert.strictEqual(storage['hw-float-npu-idx'], '1');
 assert.strictEqual(elements['hf-temp'].textContent, '66.8°C');
 assert.strictEqual(elements['hf-util'].textContent, '85.0%');
 assert.strictEqual(elements['hf-dram'].textContent, '72.4%');
-assert.strictEqual(elements['hf-cpu'].textContent, '1.3');
+assert.strictEqual(elements['hf-cpu'].textContent, '1.30');
 assert.strictEqual(elements['hf-mem'].textContent, '40.1%');
 assert.strictEqual(elements['hf-disk'].textContent, '55.2%');
 """
@@ -295,3 +297,11 @@ def test_hw_widget_static_contracts():
     assert "d.npus[0]" not in script
     for token in ("hf-cpu", "hf-mem", "hf-disk"):
         assert token in html
+
+
+def test_the_widget_starts_folded_on_the_left_and_remembers_the_choice():
+    """The widget starts folded on the left, because unfolded at the bottom right it covers the chat button, tables and Run button."""
+    html = WIDGET.read_text(encoding="utf-8")
+    assert '<div class="hw-float minimized" id="hw-float">' in html
+    assert "bottom:20px;left:20px" in html
+    assert "hw-float-open" in html and "_hwFloatToggle" in html

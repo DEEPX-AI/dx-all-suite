@@ -48,7 +48,10 @@ class TestChatEngineNoConfig(unittest.TestCase):
 
     def test_config_status_no_key(self):
         status = self.engine.get_config_status()
-        self.assertEqual(status, {"configured": False})
+        self.assertFalse(status["configured"])
+        self.assertNotIn("api_key", status)          # nothing saved, nothing to mask
+        self.assertIn("source", status)              # who answers now
+        self.assertIn("agents", status)
 
     def test_error_response_points_to_chat_settings(self):
         text = "".join(self.engine._error_response("RuntimeError", "network", lang="en"))

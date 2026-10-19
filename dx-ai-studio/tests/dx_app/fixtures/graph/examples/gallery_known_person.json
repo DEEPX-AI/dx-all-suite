@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "name": "known-person",
+  "nodes": [
+    { "id": "cam",   "type": "source", "uri": "sample/img/sample_people.jpg" },
+    { "id": "od",    "model": "yolov8-n_640x640",
+      "params": { "score_threshold": 0.35 },
+      "track":  { "algo": "iou", "iou": 0.3, "max_age": 30 } },
+    { "id": "reid",  "model": "repvgg-a0-reid_256x128" },
+    { "id": "known", "type": "logic", "op": "gallery",
+      "params": { "gallery": "sample/gallery/reid_repvgg-a0-reid_256x128.bin",
+                  "threshold": 0.7, "events": "all" } }
+  ],
+  "edges": [
+    { "from": "cam",  "to": "od" },
+    { "from": "od",   "to": "reid",  "roi": { "classes": ["person"], "pad": 0.05, "max": 16 } },
+    { "from": "reid", "to": "known", "carry": "result" }
+  ]
+}

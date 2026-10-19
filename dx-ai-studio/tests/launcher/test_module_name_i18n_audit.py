@@ -12,9 +12,13 @@ LAUNCHER = ROOT / "launcher" / "static"
 REQUIRED_LANGS = ("en", "ko", "ja", "zh-CN", "zh-TW", "es")
 
 # Top-bar nav tabs and status-dot abbreviations stay English for all UI languages.
+# The strip carries eleven tabs and, at 1440, exactly 939px to put them in.
+# "DX " was 25px per tab of nothing — everything on this row is DX, and each
+# module's own chrome renders the brand separately ("DX | Stream"). The home's
+# module list already used the short names; the strip now agrees with it.
 ENGLISH_NAV_TAB_LABELS = {
-    "app": "DX App",
-    "stream": "DX Stream",
+    "app": "App",
+    "stream": "Stream",
     "zoo": "Model Zoo",
     "compiler": "Compiler",
     "planner": "EdgeGuide",
@@ -22,7 +26,7 @@ ENGLISH_NAV_TAB_LABELS = {
     "dx_monitor": "Monitor",
     "agent": "Agent Dev",
     "sdk-library": "SDK Library",
-    "about": "About DEEPX",
+    "about": "About",
 }
 
 PROHIBITED_PATTERNS = (
@@ -55,9 +59,14 @@ def frame_js() -> str:
 @pytest.mark.parametrize("app_key", list(ENGLISH_NAV_TAB_LABELS.keys()))
 def test_nav_tab_labels_are_english_fixed(app_key: str, frame_js: str):
     raw = _extract_nav_tab_label(frame_js, app_key)
-    normalized = re.sub(r"^[\U0001F300-\U0001FAFF]\s*", "", raw)
     expected = ENGLISH_NAV_TAB_LABELS[app_key]
-    assert expected in normalized, f"{app_key}: got {raw!r}, want fragment {expected!r}"
+    assert expected == raw, f"{app_key}: got {raw!r}, want {expected!r}"
+    # The labels must not lead with an emoji: each cost 22px in a strip with no room
+    # to spare, and the launcher's chrome carries no emoji. Compare the raw label,
+    # without stripping, so an emoji cannot slip through.
+    assert not re.search(r"[\U0001F300-\U0001FAFF]", raw), (
+        f"{app_key}: {raw!r} carries an emoji"
+    )
 
 
 def test_nav_tab_labels_do_not_use_runtime_localization(frame_js: str):

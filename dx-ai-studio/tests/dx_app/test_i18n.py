@@ -123,12 +123,14 @@ def test_app_dictionary_entries_cover_target_languages():
 
 def test_app_global_t5_defaults_to_en_and_keeps_legacy_order():
     source = i18n_source()
-    assert "function _T5(ko, en, ja, zhCN, zhTW)" in source
+    # the five languages keep their order; Spanish is the sixth argument
+    assert "function _T5(ko, en, ja, zhCN, zhTW, es)" in source
     body = _extract_braced_body(source, "function _T5")
     assert "|| 'en'" in body
     assert "|| 'ko'" not in body
     assert "if (lang === 'ko') return ko || en;" in body
     assert "if (lang === 'ja') return ja || en;" in body
+    assert "if (lang === 'es') return es || en;" in body
 
 
 def test_app_no_visible_locale_formatting_is_pinned_to_ko_kr():
@@ -195,8 +197,15 @@ def test_app_refresh_language_has_no_unsafe_initializers():
 
 
 def test_app_dictionary_has_no_duplicate_keys():
-    """Every key in _DX_I18N_DICT must appear exactly once."""
-    source = i18n_source()
+    """Every key in _DX_I18N_DICT must appear exactly once.
+
+    Scoped to the dictionary object. _DX_I18N_PLACEHOLDERS is a separate map
+    keyed by placeholder text and feeds a different attribute, so the same
+    English string may legitimately appear in both ("Class" is a table header
+    and a filter placeholder). dx_compiler's sibling contract is scoped the
+    same way; scanning the whole file would report such strings as duplicates.
+    """
+    source = i18n_source().split("window._DX_I18N_PLACEHOLDERS")[0]
     keys = re.findall(r"'((?:\\.|[^'\\])+)':\s*\{", source)
     from collections import Counter
     counts = Counter(keys)
@@ -374,3 +383,13 @@ def test_app_html_lang_defaults_to_en():
     assert m.group(1) == "en", (
         f'<html lang="{m.group(1)}"> should be <html lang="en">'
     )
+
+
+def test_sync_mode_reads_as_synchronous_in_spanish():
+    """'Sync' is the inference mode (synchronous), not the verb — es must not say 'Sincronizar' (to synchronise)."""
+    import re
+    from pathlib import Path
+
+    src = (Path(__file__).resolve().parents[2] / "dx_app/static/js/i18n.js").read_text(encoding="utf-8")
+    entry = re.search(r"\n  'Sync': \{([^}]*)\}", src).group(1)
+    assert "es: 'Síncrono'" in entry, entry

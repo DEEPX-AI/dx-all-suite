@@ -1,4 +1,4 @@
-"""dx_agent_dev 쇼케이스 카탈로그 테스트 (실제 예제 9개·6언어)."""
+"""dx_agent_dev showcase catalog (9 examples, 6 languages)."""
 import sys
 from pathlib import Path
 
@@ -38,3 +38,11 @@ def test_showcase_media_and_url():
         assert sc["media"].startswith("media/"), sc["id"]
         assert (MEDIA_DIR / Path(sc["media"]).name).exists(), sc["media"]
         assert sc["url"].startswith("https://"), sc["id"]
+
+
+def test_showcase_thumbnails_stay_light():
+    """The cards show each media at 194 px, so full-size GIFs (4-5 MB each) would make Agent Dev's first
+    visit heavy. Thumbnails are 2x animated WebP with the GIF frame timing."""
+    for sc in _load():
+        size = (MEDIA_DIR / Path(sc["media"]).name).stat().st_size
+        assert size <= 1_500_000, (sc["id"], size)

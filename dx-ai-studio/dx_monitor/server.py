@@ -27,6 +27,8 @@ else:
 from shared.hardware import get_hw, get_sysinfo
 from shared.dx_server import DXBaseHandler, DXServer, _resolve_bind_host
 from shared.chat import ChatEngine
+from shared.chat import module_fallbacks as _module_fallbacks
+from shared.shell import ShellSpec
 
 PORT = DEFAULT_PORT
 
@@ -36,22 +38,26 @@ _lifecycle_shutdown = False
 
 _chat_engine = ChatEngine(
     app_name="dx_monitor",
-    fallback_rules=[
-        (["hardware", "monitor", "npu", "하드웨어", "모니터", "상태"], {
-            "ko": "DX Monitor에서 NPU, CPU, 메모리, 디스크 상태를 실시간으로 확인할 수 있습니다.",
-            "en": "Use DX Monitor to check NPU, CPU, memory, and disk status in real time.",
-        }),
-        (["event", "events", "로그", "이벤트"], {
-            "ko": "Events API와 화면 로그에서 최근 하드웨어 상태 변화를 확인할 수 있습니다.",
-            "en": "Use the Events API and on-screen logs to review recent hardware status changes.",
-        }),
-    ],
+    fallback_rules=_module_fallbacks.rules("dx_monitor"),
+)
+
+
+# ── Shared App Shell ──────────────────────────────────────────
+# The NPU mock-data banner is specific to dx_monitor, so it goes in the shared header's .toolbar slot.
+_MOCK_BANNER = (
+    '<span id="mock-banner" class="mock-banner" style="display:none"></span>'
+)
+
+DX_MONITOR_SHELL = ShellSpec(
+    module_key="monitor",
+    toolbar_extra=_MOCK_BANNER,
 )
 
 class MonitorHandler(DXBaseHandler):
     server_name = SERVER_NAME
     static_dir = STATIC_DIR
     templates_dir = TEMPLATES_DIR
+    shell_spec = DX_MONITOR_SHELL
     log_filter = ["/static/", "/api/hw", "/api/hb"]
 
     def _sse(self):

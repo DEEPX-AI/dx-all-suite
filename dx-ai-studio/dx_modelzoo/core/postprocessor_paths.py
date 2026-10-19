@@ -83,6 +83,7 @@ _PREFIX_STEMS: tuple[tuple[str, str], ...] = (
 _CATEGORY_DEFAULT_STEM = {
     "classification": "classification",
     "object_detection": "yolov8",
+    "mainbody_detection": "picodet",
     "face_detection": "scrfd",
     "pose_estimation": "yolov8pose",
     "instance_segmentation": "yolov8seg",
@@ -108,7 +109,8 @@ _CATEGORY_DEFAULT_STEM = {
 
 def format_postprocessor_path(stem: str, *, lang: str = "python") -> str:
     """Return a suite-relative path string for UI (always prefixed with dx_app/)."""
-    stem = stem.removesuffix("_postprocessor")
+    if stem.endswith("_postprocessor"):
+        stem = stem[: -len("_postprocessor")]
     if lang == "cpp":
         rel = f"src/cpp_example/common/processors/{stem}_postprocessor.hpp"
     else:
@@ -163,13 +165,49 @@ def _scan_factory_postprocessor(category: str, model_id: str) -> str | None:
         pp_name = match.group(1) or match.group(2)
         if not pp_name:
             continue
-        stem = pp_name.removesuffix("_postprocessor")
+        stem = pp_name[: -len("_postprocessor")] if pp_name.endswith("_postprocessor") else pp_name
         proc_py = PY_DIR / "common" / "processors" / f"{pp_name}.py"
         if proc_py.is_file():
             rel = proc_py.relative_to(DX_APP_ROOT).as_posix()
             return f"dx_app/{rel}"
         return format_postprocessor_path(stem)
     return None
+
+
+@lru_cache(maxsize=4)
+def _processor_files(py_dir: str) -> dict[str, str]:
+    """``class Name`` in common/processors → its file (a path starting with dx_app/)."""
+    out: dict[str, str] = {}
+    proc = Path(py_dir) / "common" / "processors"
+    if not proc.is_dir():
+        return out
+    for f in sorted(proc.glob("*.py")):
+        try:
+            text = f.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        for name in re.findall(r"^class\s+([A-Za-z_][A-Za-z0-9_]*)", text, re.M):
+            out.setdefault(name, f"dx_app/{f.relative_to(Path(py_dir).parent.parent).as_posix()}")
+    return out
+
+
+def _per_model_postprocessor(model: dict) -> str | None:
+    """Per-model dx_app: the family factory builds the postprocessor from ``postprocessor.class`` in
+    ``<stem>/config.json``, so it is not visible from the factory imports.
+    Contract: tests/dx_modelzoo/test_postprocessor_paths.py"""
+    from shared import dx_app_layout as layout
+    if not DX_APP_ROOT.exists() or layout.detect(DX_APP_ROOT) != layout.PER_MODEL:
+        return None
+    stem = Path(model.get("model_file") or "").stem or model.get("id") or ""
+    ex = next((e for e in layout.examples(DX_APP_ROOT) if e.name == stem and e.py_dir), None)
+    if ex is None:
+        return None
+    try:
+        spec = json.loads((ex.py_dir / "config.json").read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    cls = ((spec.get("postprocessor") or {}) if isinstance(spec, dict) else {}).get("class")
+    return _processor_files(str(PY_DIR)).get(cls) if cls else None
 
 
 def _infer_stem(model_id: str, category: str) -> str | None:
@@ -195,6 +233,10 @@ def resolve_postprocessor_path(model: dict) -> str | None:
     """Best-effort postprocessor source path for a catalog model entry."""
     model_id = model.get("id") or ""
     category = model.get("category") or model.get("display", {}).get("task") or ""
+
+    per_model = _per_model_postprocessor(model)
+    if per_model:
+        return per_model
 
     mapped = _load_postprocessor_map().get(model_id)
     if mapped:

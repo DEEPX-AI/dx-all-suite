@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 
@@ -69,16 +70,34 @@ def test_benchmark_canvas_resize_writes_only_on_dimension_changes():
 
 
 def test_safe_transition_contracts_avoid_transition_all_on_hot_controls():
+    """These controls must name the properties they animate, not use `all`.
+
+    The check does not pin the exact declaration text (easing curve, duration):
+    that would be a value assertion, and changing the studio's motion curve
+    would turn it red for no reason. What matters is the shape — named
+    properties, no `all`, on the controls that are hot enough for it to cost
+    something.
+    """
     checks = [
-        (ROOT / "launcher/static/style.css", ".dot", "transition: background-color 0.5s, box-shadow 0.5s"),
-        (ROOT / "launcher/static/style.css", ".launch-card", "transition: background 0.3s cubic-bezier"),
-        (ROOT / "dx_app/static/css/style.css", ".chat-model-btn", "transition: background-color .15s, color .15s, border-color .15s, box-shadow .15s"),
-        (ROOT / "dx_stream/static/css/stream.css", ".palette-item", "transition: background-color .12s ease, color .12s ease"),
-        (ROOT / "dx_benchmark/static/css/style.css", ".edgeguide-link", "transition: box-shadow .18s ease, transform .18s ease"),
+        # Module status is shown by .orbital-status on the module cards.
+        (ROOT / "launcher/static/style.css", ".orbital-status", ("background",)),
+        (ROOT / "launcher/static/style.css", ".launch-card", ("background", "transform")),
+        (ROOT / "dx_app/static/css/style.css", ".chat-model-btn",
+         ("background-color", "color", "border-color", "box-shadow")),
+        (ROOT / "dx_stream/static/css/stream.css", ".palette-item", ("background-color", "color")),
+        (ROOT / "dx_benchmark/static/css/style.css", ".edgeguide-link", ("box-shadow", "transform")),
     ]
-    for path, selector, expected in checks:
+    for path, selector, props in checks:
         source = _read(path)
-        start = source.index(selector)
+        # Find the start of the rule itself. The first plain occurrence of the selector
+        # may be a comment that mentions it, which would check the wrong block.
+        m = re.search(rf"(?m)^\s*{re.escape(selector)}\s*(?:,[^{{]*)?\{{", source)
+        assert m, f"{selector} has no rule in {path.name}"
+        start = m.start()
         block = source[start:source.index("}", start)]
-        assert expected in block
-        assert "transition: all" not in block
+        assert "transition:" in block, f"{selector} lost its transition"
+        assert "transition: all" not in block, f"{selector} animates everything"
+        line = block[block.index("transition:"):]
+        line = line[:line.index(";")]
+        for prop in props:
+            assert prop in line, f"{selector} no longer names {prop}"

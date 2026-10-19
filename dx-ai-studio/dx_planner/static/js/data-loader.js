@@ -1,6 +1,6 @@
 /**
- * DataLoader — benchmarks.json 로드 + 에러 처리.
- * 사용: const data = await DataLoader.load();
+ * DataLoader — loads benchmarks.json, with error handling.
+ * Usage: const data = await DataLoader.load();
  */
 const DataLoader = {
   _data: null,

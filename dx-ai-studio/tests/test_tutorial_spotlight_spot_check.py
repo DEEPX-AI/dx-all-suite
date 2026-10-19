@@ -1,4 +1,4 @@
-"""Spot-check tutorial steps that previously had misaligned spotlights."""
+"""Spot-check tutorial steps prone to misaligned spotlights."""
 from __future__ import annotations
 
 import math
@@ -80,7 +80,7 @@ SPOT_CHECKS = [
     ("dx_app", "outputs", None, "#gallery-lightbox", 0.20),
     # dx_stream
     ("dx_stream", "global", None, "#dxt-mock-stream-toast", 0.35),
-    ("dx_stream", "demo", None, "#demo-pipeline-info", 0.25),
+    ("dx_stream", "demo", None, "#demo-root .dds-stage .dds-extra", 0.25),
     ("dx_stream", "pipeline", None, ".palette-item", 0.20),
     ("dx_stream", "models", None, "#model-detail-modal .modal", 0.15),
     ("dx_stream", "models", None, "#model-detail-download-btn", 0.20),
@@ -91,6 +91,7 @@ SPOT_CHECKS = [
 APP_EXPORT_STEP = None
 APP_CART_STEP = None
 APP_LIGHTBOX_STEP = None
+APP_GRAPH_RESULTS_STEP = None
 STREAM_TOAST_STEP = None
 STREAM_PIPELINE_STEP = None
 STREAM_PALETTE_STEP = None
@@ -101,7 +102,7 @@ STREAM_ENV_STEP = None
 
 
 def _resolve_step_indices():
-    global APP_EXPORT_STEP, APP_CART_STEP, APP_LIGHTBOX_STEP
+    global APP_EXPORT_STEP, APP_CART_STEP, APP_LIGHTBOX_STEP, APP_GRAPH_RESULTS_STEP
     global STREAM_TOAST_STEP, STREAM_PIPELINE_STEP, STREAM_PALETTE_STEP
     global STREAM_MODAL_STEP, STREAM_DL_BTN_STEP, STREAM_INDIV_DL_STEP, STREAM_ENV_STEP
     from pathlib import Path
@@ -119,8 +120,9 @@ def _resolve_step_indices():
     APP_EXPORT_STEP = idx(app_src, "run-single", "#r-export-btn")
     APP_CART_STEP = idx(app_src, "modelzoo", "#mz-cart")
     APP_LIGHTBOX_STEP = idx(app_src, "outputs", "#gallery-lightbox")
+    APP_GRAPH_RESULTS_STEP = idx(app_src, "graph", "#gc-run-results")
     STREAM_TOAST_STEP = idx(stream_src, "global", "#dxt-mock-stream-toast")
-    STREAM_PIPELINE_STEP = idx(stream_src, "demo", "#demo-pipeline-info")
+    STREAM_PIPELINE_STEP = idx(stream_src, "demo", "#demo-root .dds-stage .dds-extra")
     STREAM_PALETTE_STEP = idx(stream_src, "pipeline", ".palette-item")
     STREAM_MODAL_STEP = idx(stream_src, "models", "#model-detail-modal .modal")
     STREAM_DL_BTN_STEP = idx(stream_src, "models", "#model-detail-download-btn")
@@ -135,8 +137,9 @@ RESOLVED_CHECKS = [
     ("dx_app", "run-single", APP_EXPORT_STEP, "#r-export-btn", 0.25),
     ("dx_app", "modelzoo", APP_CART_STEP, "#mz-cart", 0.25),
     ("dx_app", "outputs", APP_LIGHTBOX_STEP, "#gallery-lightbox", 0.20),
+    ("dx_app", "graph", APP_GRAPH_RESULTS_STEP, "#gc-run-results", 0.25),
     ("dx_stream", "global", STREAM_TOAST_STEP, "#dxt-mock-stream-toast", 0.35),
-    ("dx_stream", "demo", STREAM_PIPELINE_STEP, "#demo-pipeline-info", 0.25),
+    ("dx_stream", "demo", STREAM_PIPELINE_STEP, "#demo-root .dds-stage .dds-extra", 0.25),
     ("dx_stream", "pipeline", STREAM_PALETTE_STEP, ".palette-item", 0.20),
     ("dx_stream", "models", STREAM_MODAL_STEP, "#model-detail-modal .modal", 0.15),
     ("dx_stream", "models", STREAM_DL_BTN_STEP, "#model-detail-download-btn", 0.20),

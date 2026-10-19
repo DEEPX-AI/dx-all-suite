@@ -1,4 +1,4 @@
-"""ModelZoo 메타데이터 동기화 CLI."""
+"""ModelZoo metadata sync CLI."""
 
 import argparse
 import os
@@ -18,7 +18,7 @@ from dx_modelzoo.metadata.sync import resolve_source_profile, run_sync
 
 
 def _resolve_metadata_config_path(dx_ai_studio_root):
-    """메타데이터 동기화 config의 preferred/legacy 경로를 결정."""
+    """Resolve the preferred/legacy path of the metadata sync config."""
     preferred_config_path = dx_ai_studio_root / "dx_modelzoo" / "data" / "metadata_sync_config.json"
     legacy_config_path = dx_ai_studio_root / "metadata_sync_config.json"
     if not preferred_config_path.exists() and legacy_config_path.exists():
@@ -26,7 +26,7 @@ def _resolve_metadata_config_path(dx_ai_studio_root):
     return preferred_config_path
 
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser(description="ModelZoo 메타데이터 동기화")
     parser.add_argument("--source", default=None, help="소스 프로필 (local/internal/public)")
     parser.add_argument("--output", default=None, help="출력 카탈로그 경로")
@@ -38,11 +38,16 @@ def main():
         action="store_true",
         help="내부 인증서 환경에서만 TLS 검증을 명시적으로 비활성화",
     )
-    args = parser.parse_args()
+    parser.add_argument(
+        "--internal-html",
+        default=None,
+        help="Read the internal publish page from this saved file instead of fetching it",
+    )
+    args = parser.parse_args(argv)
 
     suite_root = _DX_AI_STUDIO_ROOT.parent
 
-    # 소스 프로필 결정: 선호 경로 → legacy fallback
+    # Decide the source profile: preferred path → legacy fallback
     config_path = _resolve_metadata_config_path(_DX_AI_STUDIO_ROOT)
     source_profile = resolve_source_profile(
         cli_source=args.source,
@@ -64,6 +69,9 @@ def main():
     if args.no_verify_tls:
         print("WARNING: TLS verification disabled (--no-verify-tls)", file=sys.stderr)
         adapter_kwargs["internal_modelzoo"] = {"verify_tls": False}
+    if args.internal_html:
+        saved = Path(args.internal_html)
+        adapter_kwargs["internal_modelzoo"] = {"fetch_text": lambda _url: saved.read_text(encoding="utf-8")}
 
     if source_profile == "local" and args.offline:
         print(

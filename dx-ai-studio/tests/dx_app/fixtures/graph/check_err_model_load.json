@@ -1,0 +1,41 @@
+{
+  "errors": [
+    {
+      "code": "MODEL_LOAD",
+      "edge": null,
+      "how": "download it again: python3 scripts/download_models.py --models yolo26s --output /home/deepx/hj_ws/dx-all-suite/dx-runtime/dx_app/assets/models",
+      "node": "od",
+      "what": "model \"yolo26-s_640x640\" (yolo26-s_640x640.dxnn) is not a loadable .dxnn: /home/deepx/hj_ws/dx-all-suite/dx-runtime/dx_app/assets/models/yolo26-s_640x640.dxnn: too short for a .dxnn header (8 bytes)",
+      "where": "node \"od\""
+    }
+  ],
+  "graph": "bad4",
+  "models": [
+    {
+      "container": null,
+      "engine": {
+        "buffers": 0,
+        "share": false,
+        "shared_with": null
+      },
+      "file": "yolo26-s_640x640.dxnn",
+      "model": "yolo26-s_640x640",
+      "node": "od",
+      "state": "invalid"
+    },
+    {
+      "container": null,
+      "engine": {
+        "buffers": 0,
+        "share": false,
+        "shared_with": null
+      },
+      "file": "yolo26-n_640x640_pre-optimized.dxnn",
+      "model": "yolo26-n_640x640_pre-optimized",
+      "node": "p",
+      "state": "missing"
+    }
+  ],
+  "notes": [],
+  "ok": false
+}

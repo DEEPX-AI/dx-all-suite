@@ -4,6 +4,7 @@ from __future__ import annotations
 import re
 import difflib
 from pathlib import Path
+from . import live_facts
 
 SYNONYMS = {
     "compile":  ["컴파일", "빌드", "변환", "build", "convert", "onnx", "dxnn"],
@@ -199,6 +200,11 @@ def build_system_prompt(
             sdk_sections = []
         for sec in match_sections(sdk_sections, user_message, max_sections=3):
             parts.append(f"## {sec['title']}\n{sec['content']}")
+
+    # 2.6 This PC's installation. The knowledge pages describe both layouts, so state which one is here.
+    facts = live_facts.system_facts()
+    if facts:
+        parts.append(facts)
 
     if runtime_context:
         lines = [f"- {k}: {v}" for k, v in runtime_context.items()]

@@ -1,7 +1,7 @@
-"""에이전트 실행 러너. 어댑터는 core.adapters로 이전(import 호환 재노출)."""
-import os  # noqa: F401 — 보호 테스트 test_copilot_adapter_cancel_kills_process_group가
-            # monkeypatch.setattr(agent_runner.os, ...)로 패치한다. os는 싱글톤이라
-            # 전역 패치가 base.os.killpg까지 도달하므로 이 import만 유지하면 테스트 보존.
+"""Agent run driver. The adapters live in core.adapters (re-exported here for import compatibility)."""
+import os  # noqa: F401 — test_copilot_adapter_cancel_kills_process_group patches it via
+            # monkeypatch.setattr(agent_runner.os, ...). os is a singleton, so the patch reaches
+            # base.os.killpg; keeping this import keeps that test working.
 import queue
 import threading
 import time
@@ -44,18 +44,18 @@ def detect_session_dirs(target) -> set:
     return found
 
 
-_STREAM_END = object()  # 워커 스레드가 어댑터 스트림 종료 시 큐에 넣는 센티널
+_STREAM_END = object()  # sentinel the worker thread queues when the adapter stream ends
 
 
 class AgentRunner:
-    """서버당 실행 세션 1개. 요청별 어댑터 주입 지원(H3)."""
+    """One run session per server. Supports injecting an adapter per request."""
     def __init__(self, adapter, workspace_root, timeout: float = GENERATION_TIMEOUT_SEC):
         self._adapter = adapter
         self._workspace = Path(workspace_root)
         self._lock = threading.Lock()
         self._busy = False
         self._active_adapter = None
-        self._timeout = timeout  # 단일 생성 wall-clock 상한(초). F-19: 슬롯 영구 점유 방지.
+        self._timeout = timeout  # wall-clock cap for one generation (s), so a run cannot hold the slot forever
 
     def is_busy(self) -> bool:
         return self._busy
@@ -88,7 +88,7 @@ class AgentRunner:
         target = harness_dirs[0] if harness_dirs else None
         before = detect_session_dirs(target) if target else set()
 
-        # F-19: the adapter stream is consumed in a worker thread so that a hung
+        # The adapter stream is consumed in a worker thread so that a hung
         # generation (a subprocess that stops emitting output) cannot block the
         # request thread — and thus hold the single concurrency slot — forever.
         # The consumer below enforces a wall-clock deadline; when it elapses the
@@ -99,7 +99,7 @@ class AgentRunner:
             try:
                 for ev in active.run(prompt, session_dir, harness_dirs, run_ctx=run_ctx):
                     events.put(ev)
-            except Exception as exc:  # 어댑터 예외를 스트림 이벤트로 표면화
+            except Exception as exc:  # surface adapter exceptions as stream events
                 events.put({"type": "error", "text": f"run failed: {exc}"})
             finally:
                 events.put(_STREAM_END)
@@ -109,6 +109,7 @@ class AgentRunner:
 
         deadline = time.monotonic() + self._timeout if self._timeout else None
         timed_out = False
+        fresh_dirs = None
         try:
             while True:
                 if deadline is not None:
@@ -122,7 +123,7 @@ class AgentRunner:
                 try:
                     ev = events.get(timeout=wait)
                 except queue.Empty:
-                    # 유휴 상태 — SSE 연결 유지용 keepalive ping.
+                    # Idle: keepalive ping to hold the SSE connection open.
                     yield {"type": "ping", "text": ""}
                     continue
                 if ev is _STREAM_END:
@@ -131,12 +132,18 @@ class AgentRunner:
             if timed_out:
                 yield {"type": "error",
                        "text": f"agent timeout after {self._timeout:g}s"}
+            # The app lands in the target project's dx-agent-dev/<session>/. The session_dir in done is Studio's
+            # tracking folder, so without this the console showed only "Output saved to var/dx_agent_dev/sessions/…".
+            if target:
+                fresh_dirs = sorted(detect_session_dirs(target) - before)
+                if fresh_dirs:
+                    yield {"type": "artifacts", "dirs": fresh_dirs}
         finally:
-            # 정상 완료·타임아웃·소비자 조기 종료(GeneratorExit) 모두 여기로 수렴한다.
-            # cancel()은 멈춘 subprocess를 종료해 워커 스레드가 빠져나오게 하고 슬롯을 푼다.
+            # Normal completion, timeout and early consumer exit (GeneratorExit) all end here.
+            # cancel() stops a stuck subprocess so the worker thread exits and the slot is released.
             active.cancel()
             if target:
-                fresh = sorted(detect_session_dirs(target) - before)
+                fresh = fresh_dirs if fresh_dirs is not None else sorted(detect_session_dirs(target) - before)
                 if fresh and conversation is not None:
                     try:
                         conversation.artifact_dirs = fresh
@@ -155,12 +162,12 @@ class AgentRunner:
     def _build_session_dir(self, adapter):
         name = getattr(adapter, "name", None)
         if not name:
-            return self._workspace / uuid.uuid4().hex  # 기본·Mock 폴백(하위호환)
+            return self._workspace / uuid.uuid4().hex  # default / Mock fallback (backward compatible)
         model = getattr(adapter, "model", None)
         short = MODEL_SHORT.get(model, model) if model else "default"
-        ts = datetime.now().strftime("%Y%m%d-%H%M%S")  # 로컬 타임존(UTC 금지)
+        ts = datetime.now().strftime("%Y%m%d-%H%M%S")  # local timezone (not UTC)
         sid = f"{ts}_{name}_{short}_default_chat"
         path = self._workspace / sid
         if path.exists():
-            sid = f"{sid}_{uuid.uuid4().hex[:8]}"  # 동일초 충돌 회피
+            sid = f"{sid}_{uuid.uuid4().hex[:8]}"  # avoid a clash within the same second
         return self._workspace / sid

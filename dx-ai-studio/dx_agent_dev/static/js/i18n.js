@@ -1,4 +1,4 @@
-/* DX Agent Dev — i18n dictionary (콘솔 동적 라벨) */
+/* DX Agent Dev — i18n dictionary (console dynamic labels) */
 window._DX_I18N_DICT = {
   'Describe what you want to build...': {
     ko: '만들고 싶은 것을 설명하세요...',
@@ -14,6 +14,12 @@ window._DX_I18N_DICT = {
     'zh-TW': '就緒',
     es: 'Listo',
   },
+  'Stop': { ko: '중지', ja: '停止', 'zh-CN': '停止', 'zh-TW': '停止', es: 'Detener' },
+  'Stopping...': { ko: '중지하는 중...', ja: '停止しています...', 'zh-CN': '正在停止...', 'zh-TW': '正在停止...', es: 'Deteniendo...' },
+  'Stopped': { ko: '중지됨', ja: '停止済み', 'zh-CN': '已停止', 'zh-TW': '已停止', es: 'Detenido' },
+  'Stopped.': { ko: '중지했습니다.', ja: '停止しました。', 'zh-CN': '已停止。', 'zh-TW': '已停止。', es: 'Detenido.' },
+  'The connection to the agent ended before it finished.': { ko: 'agent가 끝나기 전에 연결이 끊겼습니다.', ja: 'エージェントが終わる前に接続が切れました。', 'zh-CN': 'agent 完成前连接已断开。', 'zh-TW': 'agent 完成前連線已中斷。', es: 'La conexión con el agente terminó antes de que acabara.' },
+  'App written to': { ko: '앱 위치:', ja: 'アプリの保存先:', 'zh-CN': '应用位置：', 'zh-TW': '應用程式位置：', es: 'App escrita en' },
   'Running...': {
     ko: '실행 중...',
     ja: '実行中...',
@@ -22,7 +28,7 @@ window._DX_I18N_DICT = {
     es: 'Ejecutando...',
   },
   'Completed': {
-    ko: '완료됨',
+    ko: '완료',
     ja: '完了',
     'zh-CN': '已完成',
     'zh-TW': '已完成',
@@ -147,6 +153,13 @@ window._DX_I18N_DICT = {
     'zh-TW': '代理程式執行中…',
     es: 'Agente en ejecución…',
   },
+  'Resumed run': {
+    ko: '이어받은 실행',
+    ja: '引き継いだ実行',
+    'zh-CN': '接续的运行',
+    'zh-TW': '接續的執行',
+    es: 'Ejecución retomada',
+  },
   'Interactive': {
     ko: '대화형',
     ja: '対話型',
@@ -181,5 +194,76 @@ window._DX_I18N_DICT = {
     'zh-CN': '已安装',
     'zh-TW': '已安裝',
     es: 'Instalado',
+  },
+  // ── Entries moved from the markup lang-spans ──
+  'Agent': {
+    ko: '에이전트',
+    ja: 'エージェント',
+    'zh-CN': '智能体',
+    'zh-TW': '代理程式',
+    es: 'Agente',
+  },
+  'Agent Console': {
+    ko: '에이전트 콘솔',
+    ja: 'エージェントコンソール',
+    'zh-CN': '智能体控制台',
+    'zh-TW': '代理程式主控台',
+    es: 'Consola del agente',
+  },
+  'Agent knowledge comes from the dx-all-suite <code>.deepx</code> harness; the agent writes the app to <code>dx-agent-dev/</code> inside the project it works on.': {
+    ko: '에이전트 지식은 dx-all-suite <code>.deepx</code> 하네스에서 오고, 에이전트는 작업한 프로젝트 안의 <code>dx-agent-dev/</code>에 앱을 만듭니다.',
+    ja: 'エージェント知識は dx-all-suite の <code>.deepx</code> ハーネスから来て、エージェントは作業したプロジェクト内の <code>dx-agent-dev/</code> にアプリを作成します。',
+    'zh-CN': '智能体知识来自 dx-all-suite 的 <code>.deepx</code> harness；智能体把应用写入所处理项目中的 <code>dx-agent-dev/</code>。',
+    'zh-TW': '代理程式知識來自 dx-all-suite 的 <code>.deepx</code> harness；代理程式把應用程式寫入所處理專案中的 <code>dx-agent-dev/</code>。',
+    es: 'El conocimiento del agente viene del harness <code>.deepx</code> de dx-all-suite; el agente escribe la app en <code>dx-agent-dev/</code> dentro del proyecto en el que trabaja.',
+  },
+  'Effort': {
+    ko: '사고 강도',
+    ja: '推論強度',
+    'zh-CN': '推理强度',
+    'zh-TW': '推理強度',
+    es: 'Esfuerzo',
+  },
+  'Interaction': {
+    ko: '진행 방식',
+    ja: '実行モード',
+    'zh-CN': '交互方式',
+    'zh-TW': '互動方式',
+    es: 'Interacción',
+  },
+  'Plans, commands and results from the agent appear here. Describe an app below, or start from a showcase.': {
+    ko: '에이전트의 계획 · 명령 · 결과가 여기에 나옵니다. 아래에 만들 앱을 적거나 쇼케이스에서 시작하세요.',
+    ja: 'エージェントの計画・コマンド・結果がここに表示されます。下に作りたいアプリを書くか、ショーケースから始めてください。',
+    'zh-CN': '智能体的计划、命令和结果会显示在这里。请在下方描述要构建的应用，或从示例开始。',
+    'zh-TW': '代理程式的計畫、命令與結果會顯示在這裡。請在下方描述要建構的應用，或從範例開始。',
+    es: 'Aquí aparecen el plan, los comandos y los resultados del agente. Describa una app abajo o empiece desde un caso de ejemplo.',
+  },
+  'Main chat for building NPU apps. The chat button (bottom-right) is for SDK Q&A.': {
+    ko: 'NPU 앱을 만들 메인 채팅입니다. 우하단 채팅 버튼은 SDK 질문용입니다.',
+    ja: 'NPUアプリ構築用のメインチャットです。右下のチャットボタンはSDK質問用です。',
+    'zh-CN': '用于构建 NPU 应用的主聊天。右下角的聊天按钮用于 SDK 问答。',
+    'zh-TW': '用於建構 NPU 應用的主聊天。右下角的聊天按鈕用於 SDK 問答。',
+    es: 'Chat principal para crear apps NPU. El botón de chat (abajo a la derecha) es para preguntas del SDK.',
+  },
+  'Model': {
+    ko: '모델',
+    ja: 'モデル',
+    'zh-CN': '模型',
+    'zh-TW': '模型',
+    es: 'Modelo',
+  },
+  'Send': {
+    ko: '전송',
+    ja: '送信',
+    'zh-CN': '发送',
+    'zh-TW': '傳送',
+    es: 'Enviar',
+  },
+  'Target': {
+    ko: '작업 대상',
+    ja: '対象',
+    'zh-CN': '目标',
+    'zh-TW': '目標',
+    es: 'Objetivo',
   },
 };

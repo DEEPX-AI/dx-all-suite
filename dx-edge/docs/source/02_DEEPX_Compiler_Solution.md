@@ -1,6 +1,11 @@
-# DEEPX Compiler Solution
+# DEEPX Compiler Solution <picture><source media="(prefers-color-scheme: dark)" srcset="img/badges/available-in-aws-marketplace-dark.png"><img src="img/badges/available-in-aws-marketplace-light.png" alt="Available in AWS Marketplace" height="40" align="right"></picture><picture><source media="(prefers-color-scheme: dark)" srcset="img/badges/powered-by-aws-dark.png"><img src="img/badges/powered-by-aws-light.png" alt="Powered by AWS" height="32" align="right"></picture>
 
 **Compiling ONNX models into the DEEPX NPU execution format (DXNN) on AWS**
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="img/badges/aws-qualified-software-dark.png">
+  <img src="img/badges/aws-qualified-software-light.png" alt="AWS Qualified Software" width="120" align="right">
+</picture>
 
 A DEEPX NPU does not run a standard ONNX model as is. The model must first be converted into the DXNN (`.dxnn`) format, which contains the instruction set and weights the NPU executes. The DEEPX compiler (`dx-com`) performs this conversion. Compilation includes a calibration step for INT8 quantization, so it requires a representative dataset along with sufficient CPU and memory resources.
 

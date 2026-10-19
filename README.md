@@ -2,22 +2,6 @@
 
 **DX-AllSuite** is an all-in-one software platform designed to streamline the entire process of compiling, optimizing, simulating, and deploying AI inference applications on **DEEPX NPUs**. It ensures optimal compatibility and powerful hardware performance through a complete toolchain that covers everything from model creation to real-world "Physical AI" deployment.  
 
-## Documentation Navigation
-
-If you are a first-time user, we recommend following the documentation in this order.  
-
-- **[Introduction](./docs/source/index.md)**: DX-AS overview and component descriptions
-- **★ [Agent-Driven Development (Beta)](./docs/source/00_Agent_Driven_Development.md)**: Build DEEPX apps with natural-language prompts using AI coding agents (Claude Code, Cursor, GitHub Copilot, OpenCode, Codex CLI)  
-- **[DX-Benchmark (Beta)](./dx-benchmark/README.md)**: Reproducible YOLO26 NPU benchmarks (Model-Level + E2E Pipeline) with an interactive performance dashboard  
-- **[DX-Edge](./dx-edge/README.md)**: Deploying DEEPX NPUs through AWS Marketplace — Greengrass Solution (ZTP runtime deployment), Compiler Solution (ONNX → `.dxnn` on AWS), and the DX-AIPlayer N97 Getting Started Guide
-- **Step 1. [DX-AllSuite Architecture Overview](./docs/source/01_DX-AllSuite_Architecture_Overview.md)**: SDK overview, module descriptions, and ModelZoo usage  
-- **Step 2. [Setting Up Environment](./docs/source/02_Setting_Up_Environment.md)**: Detailed Local/Docker installation and troubleshooting  
-- **Step 3. [Running Your First NPU Model](./docs/source/03_Running_Your_First_NPU_Model.md)**: Step-by-step hands-on script execution  
-- **Step 4. [Checking Version Compatibility](./docs/source/04_Version_Compatibility.md)**: SDK, Driver, and Firmware dependency matrix  
-- **Step 5. [FAQ Troubleshooting Guide](./docs/source/05_FAQ_Troubleshooting_Guide.md)**: Solutions for environment conflicts and GUI session (X11) errors  
-- **Optional. [Kubernetes Quickstart](./docs/source/06_Kubernetes_Quickstart.md)**: Schedule DX-M1 NPUs as a Kubernetes resource with the `dx-npu` Helm chart
-- **Optional. [Kubernetes Beginner Guide](./docs/source/07_Kubernetes_Beginner_Guide.md)**: Kubernetes explained from scratch, with hands-on NPU examples
-
 <div align="center">
   <img src="./docs/source/img/DXNN-SDK-Full-Architecture.png" width="600">
   <p><strong>Figure. DXNN SDK Full Architecture Overview.</strong></p>
@@ -33,6 +17,173 @@ If you are a first-time user, we recommend following the documentation in this o
   <img src="./docs/source/img/DXNN-SDK-Simple-Architecture.png" width="600">
   <p><strong>Figure. DXNN SDK Simple Architecture Overview.</strong></p>
 </div>
+
+## Documentation Navigation
+
+If you are a first-time user, we recommend following the documentation in this order.
+
+- **[Introduction](./docs/source/index.md)**: DX-AS overview and component descriptions
+- **Step 1. [DX-AllSuite Architecture Overview](./docs/source/01_DX-AllSuite_Architecture_Overview.md)**: SDK overview, module descriptions, and ModelZoo usage
+- **Step 2. [Setting Up Environment](./docs/source/02_Setting_Up_Environment.md)**: Detailed Local/Docker installation and troubleshooting
+- **Step 3. [Running Your First NPU Model](./docs/source/03_Running_Your_First_NPU_Model.md)**: Step-by-step hands-on script execution
+- **Step 4. [Checking Version Compatibility](./docs/source/04_Version_Compatibility.md)**: SDK, Driver, and Firmware dependency matrix
+- **Step 5. [FAQ Troubleshooting Guide](./docs/source/05_FAQ_Troubleshooting_Guide.md)**: Solutions for environment conflicts and GUI session (X11) errors
+
+**Optional** — Kubernetes deployment:
+
+- **[Kubernetes Quickstart](./docs/source/06_Kubernetes_Quickstart.md)**: Schedule DX-M1 NPUs as a Kubernetes resource with the `dx-npu` Helm chart
+- **[Kubernetes Beginner Guide](./docs/source/07_Kubernetes_Beginner_Guide.md)**: Kubernetes explained from scratch, with hands-on NPU examples
+
+**Tools and solutions** — pick what fits your project:
+
+- **★ [Agent-Driven Development (Beta)](./docs/source/00_Agent_Driven_Development.md)**: Build DEEPX apps with natural-language prompts using AI coding agents (Claude Code, Cursor, GitHub Copilot, OpenCode, Codex CLI)
+- **[DX AI Studio (Beta)](./dx-ai-studio/README.md)**: All-in-one desktop web workspace — Model Zoo, Compiler, App, Stream, Benchmark, Monitor, EdgeGuide, and Agent Dev in one browser
+- **[DX-Benchmark (Beta)](./dx-benchmark/README.md)**: Reproducible YOLO26 NPU benchmarks (Model-Level + E2E Pipeline) with an interactive performance dashboard
+- **[DX-Edge](./dx-edge/README.md)**: Deploying DEEPX NPUs through AWS Marketplace — Greengrass Solution (ZTP runtime deployment), Compiler Solution (ONNX → `.dxnn` on AWS), and Getting Started Guides for the DX-AIPlayer N97 and the DX-M1 Raspberry Pi 5 Dev Kit
+
+## Getting Started
+
+**DX-AllSuite** provides two environments depending on your intended use. Choose the environment that fits your needs to get started.
+
+### AI Model Compile Environment (Host PC)  
+
+This environment is used for converting and optimizing trained AI models into DEEPX NPU-specific binaries.  
+
+- **Arch**: x86_64  
+- **OS**: Ubuntu 26.04 / 24.04 / 22.04 / 20.04 (LTS), Fedora 42-45, Red Hat Enterprise Linux 9-10, and CentOS Stream 9-10
+- **Hardware**: x86_64 Host PC  
+- **Software**: Python 3.8~3.14, CUDA (Optional for simulation)
+- **Key Tasks**: AI model (`.onnx`) compilation, Quantization, `.dxnn` generation  
+- **Action**: DX-Compiler Local Installation Guide [Link](./docs/source/02_Setting_Up_Environment.md)
+
+### AI Model Runtime Environment (Target Device)
+
+This environment is for performing inference and running applications on devices physically equipped with DEEPX NPUs.  
+
+- **Arch**: x86_64, aarch64 
+- **OS**: Ubuntu 26.04 / 24.04 / 22.04 / 20.04 (LTS), Debian 13 / 12
+- **Hardware**: Host PC / Target Board (DEEPX NPU is required)
+- **Software**: Python 3.8+
+- **Key Tasks**: `.dxnn` model execution, real-time data inference, resource management
+- **Action**: DX-Runtime Installation Guide [Link](./docs/source/02_Setting_Up_Environment.md)
+
+> **Warning: Activation Required (Runtime Environment)**  
+> A system reboot is mandatory after installing DX-Runtime on the target device to properly load the NPU Driver into the kernel. The Compile Environment (Host PC) does not need this step.  
+> ```bash  
+> sudo reboot  
+> ```
+
+## Quick Install (one-line)
+
+Install a single component without cloning this repository:
+
+```bash
+# DX-Compiler (x86_64 Host PC)
+curl -fsSL https://raw.githubusercontent.com/DEEPX-AI/dx-compiler/main/oneline-install.sh | sh
+
+# DX-Runtime (target device with a DEEPX NPU: NPU driver + dx_rt + firmware)
+curl -fsSL https://raw.githubusercontent.com/DEEPX-AI/dx-runtime/main/oneline-install.sh | sh
+```
+
+DX-Compiler installs `dx-com` from PyPI into `~/deepx/venv-dx-compiler` and links the
+`dxcom` launcher into `~/.local/bin`, so you can run `dxcom --help` straight afterwards.
+It also apt-installs `libgl1-mesa-dev` and `libglib2.0-0`, which `opencv-python` needs to
+import, so it requires root or `sudo` on a Debian/Ubuntu host. Note this route does not
+bring the sample data — clone the repository for that.
+
+Pin a specific version with `DX_VERSION` (DX-Compiler), or per component with
+`DX_RT_VERSION` / `DX_DRIVER_VERSION` / `DX_FW_VERSION` (DX-Runtime, which otherwise
+tracks each component's `main`). DX-Compiler also accepts `DX_INSTALL_DIR` to move the
+install root; DX-Runtime has none, since it installs system packages via `dpkg`:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/DEEPX-AI/dx-compiler/main/oneline-install.sh | DX_VERSION=2.4.1 sh
+```
+
+> **DX-Runtime notes**
+> One-line install covers `dx_fw`, `dx_rt`, and `dx_rt_npu_linux_driver`; `dx_app`
+> and `dx_stream` still use the environment guides in [Getting Started](#getting-started). The firmware update
+> step is skipped when no NPU device is detected — rerun the same command once the
+> device is available.
+
+### Uninstalling
+
+Remove a one-line install without cloning either repository:
+
+```bash
+# DX-Compiler
+curl -fsSL https://raw.githubusercontent.com/DEEPX-AI/dx-compiler/main/oneline-uninstall.sh | sh
+
+# DX-Runtime
+curl -fsSL https://raw.githubusercontent.com/DEEPX-AI/dx-runtime/main/oneline-uninstall.sh | sh
+```
+
+Pass DX-Compiler the same `DX_INSTALL_DIR` / `DX_BIN_DIR` you installed with, or it looks in
+the default location and finds nothing. DX-Runtime needs no such argument, and because both
+of its install routes produce the same Debian packages, that one command also removes an
+`install.sh` install — you do not have to remember which way it went on.
+
+Two things are never undone: firmware already flashed to the NPU, which has no uninstall path
+at all, and the `dx_engine` Python wheel, which `libdxrt-bin` deliberately leaves to you and
+explains how to remove while it is being purged.
+
+### APT Repository (DX-Runtime)
+
+The NPU driver and the DX-RT runtime are also published as Debian packages in the DEEPX
+APT repository (Ubuntu / Debian, `amd64` / `arm64`), so you can install and upgrade them with `apt`.
+Verify the signing key before trusting it: `gpg --show-keys` must print the fingerprint
+`3A20CC853C64AE328D0F58CFD816AAC6689DBDEA`. If it does not match, stop — do not install the key.
+
+```bash
+wget -O deepx-archive-keyring.asc https://apt.releases.deepx.ai/gpg
+gpg --show-keys deepx-archive-keyring.asc   # fingerprint must be 3A20CC853C64AE328D0F58CFD816AAC6689DBDEA
+sudo gpg --dearmor -o /usr/share/keyrings/deepx-archive-keyring.gpg deepx-archive-keyring.asc
+rm deepx-archive-keyring.asc
+
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/deepx-archive-keyring.gpg] https://apt.releases.deepx.ai $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") main" | sudo tee /etc/apt/sources.list.d/deepx.list
+
+sudo apt update
+sudo apt install dxrt-driver-dkms   # NPU kernel driver, built for your kernel via DKMS
+sudo apt install libdxrt-bin        # DX-RT library, dxrt-cli and tools
+```
+
+The `dx_engine` Python wheels matching the installed `libdxrt-bin` are staged in
+`/usr/share/libdxrt-bin/python`; install the one for your Python version into your virtualenv.
+Firmware is not part of these packages; update it with the one-line
+installer or `./dx-runtime/install.sh --target=dx_fw`, and reboot after installing the driver.
+Later releases arrive through `sudo apt update && sudo apt upgrade`.
+
+For the full suite (all components, source builds, Docker), use the environment
+guides in [Getting Started](#getting-started).
+
+## Containers & Kubernetes
+
+### Prebuilt Container Images (GHCR)
+
+Prefer containers over a local install? Official Ubuntu 24.04 images are published to GitHub Container Registry, so you can skip building the suite entirely.  
+
+```bash
+docker pull ghcr.io/deepx-ai/dx-runtime:latest
+docker run --rm -it --privileged --ipc=host --pid=host -v /dev:/dev \
+    --entrypoint bash ghcr.io/deepx-ai/dx-runtime:latest
+```
+
+`dx-runtime` ships in four variants (`rt`, `rt-app`, `rt-stream`, `rt-app-stream`) alongside `dx-compiler` and `dx-modelzoo`.
+
+`dx-runtime` is published for both `linux/amd64` and `linux/arm64`; **`dx-compiler` and `dx-modelzoo` are `linux/amd64` only**.
+
+- **Action**: Container image tags, variant selection, and NPU passthrough options [Link](./docker/README.md)
+
+### Kubernetes Cluster (Optional)
+
+This environment schedules DEEPX NPUs across a Kubernetes cluster, so a pod asks for an NPU the
+same way it asks for CPU or memory.
+
+- **Platform**: k3s or vanilla Kubernetes with containerd (CDI is on by default in containerd 2.x)
+- **Hardware**: One or more nodes with DX-M1 installed, each set up as a Runtime Environment above
+- **Components**: Device plugin (`deepx.ai/dx-m1` resource), NFD node labels (firmware/driver versions), CDI injection of the device and runtime libraries, Prometheus metrics, one-command Helm chart (`dx-npu`)
+- **Usage**: Add `resources.limits: {deepx.ai/dx-m1: 1}` to a pod — the scheduler places it on an NPU node and the device arrives inside the container, with no manual device mounts
+- **Action**: [Kubernetes Quickstart](./docs/source/06_Kubernetes_Quickstart.md) · new to Kubernetes? [Beginner Guide](./docs/source/07_Kubernetes_Beginner_Guide.md)
 
 ## ✨ DEEPX Agent-Driven Development — dx-agent-dev (Beta)
 
@@ -107,7 +258,9 @@ If you are a first-time user, we recommend following the documentation in this o
   <img src="./dx-ai-studio/docs/source/resources/hub.png" width="820">
 </div>
 
-**DX AI Studio is here — currently in Beta.** An all-in-one desktop web workspace for building on the DEEPX NPU: eight specialized tools in one browser, launched with a single command — **DX Model Zoo** (model catalog), **DX Compiler** (ONNX/`.pt` → `.dxnn`), **DX App** (inference + one-click **Run Demo**), **DX Stream** (GStreamer pipelines), **DX Benchmark**, **DX Monitor** (live NPU telemetry), **DX EdgeGuide** (deployment planner from measured benchmark data), and **DX Agent Dev** (the agent-driven builder above). Compile a model, run a curated demo, stream a pipeline, and watch NPU utilization live — all on-device.
+**DX AI Studio is here — currently in Beta.** An all-in-one desktop web workspace for building on the DEEPX NPU: **nine specialized tools** in one browser, launched with a single command — **DX Model Zoo** (model catalog), **DX Compiler** (ONNX → `.dxnn`), **DX App** (inference, **Run Demo** and **Graph Composer**), **DX Stream** (GStreamer pipelines), **DX Benchmark**, **DX Monitor** (NPU telemetry), **DX EdgeGuide** (hardware recommendations from benchmark data), **DX Agent Dev** (the agent-driven builder above), and **DX Cloud** (AWS compile and Greengrass device workflows). Local compilation needs the compiler SDK; real NPU inference needs the runtime, driver and NPU. Cloud actions use your AWS environment and can incur charges.
+
+The October 2026 catalog reference contains **497 canonical model variants across 29 tasks**, not 497 distinct architectures; **492** are runnable in DX App's Graph Composer. The Hub's **Build it** presents tool routes or an agent plan before you choose to proceed. Use the left module rail, bottom **Hub** button and top page tabs to navigate.
 
 **Explore the studio →** [`dx-ai-studio/README.md`](./dx-ai-studio/README.md)  ·  **Install & launch →** [Installation and Launch](./dx-ai-studio/docs/source/01_Installation_and_Launch.md)
 
@@ -124,7 +277,12 @@ interactive dashboard for cross-environment and cross-version comparison. Measur
 
 **Get started →** [`dx-benchmark/README.md`](./dx-benchmark/README.md)  ·  **Performance analysis →** [`dx-benchmark/docs/ANALYSIS_EN.md`](./dx-benchmark/docs/ANALYSIS_EN.md)
 
-## 📦 DX-Edge — Powered by AWS, available on AWS Marketplace
+## 📦 DX-Edge <picture><source media="(prefers-color-scheme: dark)" srcset="./dx-edge/docs/source/img/badges/available-in-aws-marketplace-dark.png"><img src="./dx-edge/docs/source/img/badges/available-in-aws-marketplace-light.png" alt="Available in AWS Marketplace" height="34" align="right"></picture><picture><source media="(prefers-color-scheme: dark)" srcset="./dx-edge/docs/source/img/badges/powered-by-aws-dark.png"><img src="./dx-edge/docs/source/img/badges/powered-by-aws-light.png" alt="Powered by AWS" height="28" align="right"></picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./dx-edge/docs/source/img/badges/aws-partner-dark.png">
+  <img src="./dx-edge/docs/source/img/badges/aws-partner-light.png" alt="AWS Partner" width="120" align="right">
+</picture>
 
 **Take a trained model to a DEEPX NPU in the field, entirely through AWS.** DX-Edge covers the three
 things that stand between a trained ONNX model and a working edge deployment — compiling the model
@@ -134,153 +292,11 @@ compilation pipeline and the edge runtime from a single AWS CloudFormation stack
 driver, firmware, `dx_rt`, and `dx_stream` over the air (Zero-Touch Provisioning) via AWS IoT
 Greengrass V2. The **DEEPX Compiler Solution** compiles ONNX to `.dxnn` on AWS — interactively from
 an Amazon EC2 instance, or automatically through an event-driven S3 → Lambda → Step Functions pipeline.
-The **AWS HW Path** documents the **DX-AIPlayer N97** (Intel® N97 + DX-M1) as an AWS IoT Greengrass
-core device, following the AWS Device Qualification Program Getting Started Guide template. Every
+The **AWS HW Path** documents the **DX-AIPlayer N97** (Intel® N97 + DX-M1) and the **DX-M1 Edge AI
+Development Kit with Raspberry Pi 5** (Raspberry Pi 5 + DX-M1) as AWS IoT Greengrass core devices, following the AWS Device Qualification Program Getting Started Guide template. Every
 document is published in English and Korean.
 
 **Explore DX-Edge →** [`dx-edge/README.md`](./dx-edge/README.md)  ·  **한국어 →** [`dx-edge/README-KO.md`](./dx-edge/README-KO.md)
-
-## Getting Started
-
-**DX-AllSuite** provides two environments depending on your intended use. Choose the environment that fits your needs to get started.
-
-### Quick Install (one-line)
-
-Install a single component without cloning this repository:
-
-```bash
-# DX-Compiler (x86_64 Host PC)
-curl -fsSL https://raw.githubusercontent.com/DEEPX-AI/dx-compiler/main/oneline-install.sh | sh
-
-# DX-Runtime (target device with a DEEPX NPU: NPU driver + dx_rt + firmware)
-curl -fsSL https://raw.githubusercontent.com/DEEPX-AI/dx-runtime/main/oneline-install.sh | sh
-```
-
-DX-Compiler installs `dx-com` from PyPI into `~/deepx/venv-dx-compiler` and links the
-`dxcom` launcher into `~/.local/bin`, so you can run `dxcom --help` straight afterwards.
-It also apt-installs `libgl1-mesa-dev` and `libglib2.0-0`, which `opencv-python` needs to
-import, so it requires root or `sudo` on a Debian/Ubuntu host. Note this route does not
-bring the sample data — clone the repository for that.
-
-Pin a specific version with `DX_VERSION` (DX-Compiler), or per component with
-`DX_RT_VERSION` / `DX_DRIVER_VERSION` / `DX_FW_VERSION` (DX-Runtime, which otherwise
-tracks each component's `main`). DX-Compiler also accepts `DX_INSTALL_DIR` to move the
-install root; DX-Runtime has none, since it installs system packages via `dpkg`:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/DEEPX-AI/dx-compiler/main/oneline-install.sh | DX_VERSION=2.4.1 sh
-```
-
-> **DX-Runtime notes**
-> One-line install covers `dx_fw`, `dx_rt`, and `dx_rt_npu_linux_driver`; `dx_app`
-> and `dx_stream` still use the full installation guide below. The firmware update
-> step is skipped when no NPU device is detected — rerun the same command once the
-> device is available.
-
-#### Uninstalling
-
-Remove a one-line install without cloning either repository:
-
-```bash
-# DX-Compiler
-curl -fsSL https://raw.githubusercontent.com/DEEPX-AI/dx-compiler/main/oneline-uninstall.sh | sh
-
-# DX-Runtime
-curl -fsSL https://raw.githubusercontent.com/DEEPX-AI/dx-runtime/main/oneline-uninstall.sh | sh
-```
-
-Pass DX-Compiler the same `DX_INSTALL_DIR` / `DX_BIN_DIR` you installed with, or it looks in
-the default location and finds nothing. DX-Runtime needs no such argument, and because both
-of its install routes produce the same Debian packages, that one command also removes an
-`install.sh` install — you do not have to remember which way it went on.
-
-Two things are never undone: firmware already flashed to the NPU, which has no uninstall path
-at all, and the `dx_engine` Python wheel, which `libdxrt-bin` deliberately leaves to you and
-explains how to remove while it is being purged.
-
-#### APT Repository (DX-Runtime)
-
-The NPU driver and the DX-RT runtime are also published as Debian packages in the DEEPX
-APT repository (Ubuntu / Debian, `amd64` / `arm64`), so you can install and upgrade them with `apt`.
-Verify the signing key before trusting it: `gpg --show-keys` must print the fingerprint
-`3A20CC853C64AE328D0F58CFD816AAC6689DBDEA`. If it does not match, stop — do not install the key.
-
-```bash
-wget -O deepx-archive-keyring.asc https://apt.releases.deepx.ai/gpg
-gpg --show-keys deepx-archive-keyring.asc   # fingerprint must be 3A20CC853C64AE328D0F58CFD816AAC6689DBDEA
-sudo gpg --dearmor -o /usr/share/keyrings/deepx-archive-keyring.gpg deepx-archive-keyring.asc
-rm deepx-archive-keyring.asc
-
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/deepx-archive-keyring.gpg] https://apt.releases.deepx.ai $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") main" | sudo tee /etc/apt/sources.list.d/deepx.list
-
-sudo apt update
-sudo apt install dxrt-driver-dkms   # NPU kernel driver, built for your kernel via DKMS
-sudo apt install libdxrt-bin        # DX-RT library, dxrt-cli and tools
-```
-
-The `dx_engine` Python wheels matching the installed `libdxrt-bin` are staged in
-`/usr/share/libdxrt-bin/python`; install the one for your Python version into your virtualenv.
-Firmware is not part of these packages; update it with the one-line
-installer or `./dx-runtime/install.sh --target=dx_fw`, and reboot after installing the driver.
-Later releases arrive through `sudo apt update && sudo apt upgrade`.
-
-For the full suite (all components, source builds, Docker), use the environment
-guides below.
-
-### AI Model Compile Environment (Host PC)  
-
-This environment is used for converting and optimizing trained AI models into DEEPX NPU-specific binaries.  
-
-- **Arch**: x86_64  
-- **OS**: Ubuntu 26.04 / 24.04 / 22.04 / 20.04 (LTS), Fedora 42-45, Red Hat Enterprise Linux 9-10, and CentOS Stream 9-10
--	**Hardware**: x86_64 Host PC  
-- **Software**: Python 3.8~3.14, CUDA (Optional for simulation)
--	**Key Tasks**: AI model (`.onnx`) compilation, Quantization, `.dxnn` generation  
--	**Action**: DX-Compiler Local Installation Guide [Link](./docs/source/02_Setting_Up_Environment.md)
-
-### AI Model Runtime Environment (Target Device)
-
-This environment is for performing inference and running applications on devices physically equipped with DEEPX NPUs.  
-
--	**Arch**: x86_64, aarch64 
--	**OS**: Ubuntu 26.04 / 24.04 / 22.04 / 20.04 (LTS), Debian 13 / 12
--	**Hardware**: Host PC / Target Board (DEEPX NPU is required)
--	**Software**: Python 3.8+
--	**Key Tasks**: `.dxnn` model execution, real-time data inference, resource management
--	**Action**: DX-Runtime Installation Guide [Link](./docs/source/02_Setting_Up_Environment.md)
-
-> **Warning: Activation Required**  
-> A system reboot is mandatory after installation to properly load the NPU Driver into the kernel.  
-> ```Bash  
-> sudo reboot  
-> ```
-
-### Prebuilt Container Images (GHCR)
-
-Prefer containers over a local install? Official Ubuntu 24.04 images are published to GitHub Container Registry, so you can skip building the suite entirely.  
-
-```Bash
-docker pull ghcr.io/deepx-ai/dx-runtime:latest
-docker run --rm -it --privileged --ipc=host --pid=host -v /dev:/dev \
-    --entrypoint bash ghcr.io/deepx-ai/dx-runtime:latest
-```
-
-`dx-runtime` ships in four variants (`rt`, `rt-app`, `rt-stream`, `rt-app-stream`) alongside `dx-compiler` and `dx-modelzoo`.
-
-`dx-runtime` is published for both `linux/amd64` and `linux/arm64`; **`dx-compiler` and `dx-modelzoo` are `linux/amd64` only**.
-
-- **Action**: Container image tags, variant selection, and NPU passthrough options [Link](./docker/README.md)
-
-### Kubernetes Cluster (Optional)
-
-This environment schedules DEEPX NPUs across a Kubernetes cluster, so a pod asks for an NPU the
-same way it asks for CPU or memory.
-
--	**Platform**: k3s or vanilla Kubernetes with containerd (CDI is on by default in containerd 2.x)
--	**Hardware**: One or more nodes with DX-M1 installed, each set up as a Runtime Environment above
--	**Components**: Device plugin (`deepx.ai/dx-m1` resource), NFD node labels (firmware/driver versions), CDI injection of the device and runtime libraries, Prometheus metrics, one-command Helm chart (`dx-npu`)
--	**Usage**: Add `resources.limits: {deepx.ai/dx-m1: 1}` to a pod — the scheduler places it on an NPU node and the device arrives inside the container, with no manual device mounts
--	**Action**: [Kubernetes Quickstart](./docs/source/06_Kubernetes_Quickstart.md) · new to Kubernetes? [Beginner Guide](./docs/source/07_Kubernetes_Beginner_Guide.md)
 
 ## Supported Models
 

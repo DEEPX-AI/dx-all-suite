@@ -1,4 +1,4 @@
-"""구조화 session_id: agent 지정 시 YYYYMMDD-HHMMSS_<agent>_<model>_default_chat, 미지정 uuid 폴백."""
+"""Structured session_id: YYYYMMDD-HHMMSS_<agent>_<model>_default_chat with an agent, a uuid without one."""
 import re
 import sys
 from pathlib import Path
@@ -25,14 +25,14 @@ def test_structured_session_id_with_agent(tmp_path):
     assert len(sessions) == 1
     sid = sessions[0]
     assert "_claude_" in sid
-    assert "sonnet46" in sid  # MODEL_SHORT 매핑
+    assert "sonnet46" in sid  # MODEL_SHORT mapping
     assert sid.endswith("_default_chat") or "_default_chat" in sid
     assert re.match(r"\d{8}-\d{6}_", sid)
-    assert "_auto_" not in sid  # 원본 R 규칙
+    assert "_auto_" not in sid  # harness naming rule
 
 
 def test_uuid_fallback_when_no_name(tmp_path):
-    """name 없는 어댑터(Mock/기본) → uuid4 hex 폴백(하위호환)."""
+    """An adapter without a name (Mock/default) falls back to a uuid4 hex."""
     from core.agent_runner import AgentRunner
     from core.adapters.mock import MockAdapter
     runner = AgentRunner(MockAdapter(), tmp_path)

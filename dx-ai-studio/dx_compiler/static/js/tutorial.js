@@ -1,23 +1,35 @@
 /**
- * DX Compiler — 5개 멀티 튜토리얼
+ * DX Compiler — five tutorials
  * Quick Start | Graph Viewer | Config Wizard | Advanced | Agentic Auto Compile
  * 6-language support (ko/en/ja/zh-CN/zh-TW/es)
  *
- * 수정 이력:
- *  - beforeStep 추가: 동적/숨겨진 요소 사전 표시
- *  - 존재하지 않는 타겟 수정 (.progress-container → #result, .input-shape-row → #btn-add-input)
- *  - 위자드 스텝 네비게이션(wizGoTo) 연동
- *  - 채팅 위젯 셀렉터 수정 (.chat-widget-toggle → .dx-chat-fab)
- *  - 미커버 기능 스텝 추가 (zoom, expand-all, wizard-close 등)
- *  - 챗봇 위젯 스텝(quick-start 마지막 단계, ai-assist 섹션 전체) 제거 → 런처 튜토리얼로 통합
+ * beforeStep reveals dynamic or hidden elements before a step points at them.
  */
+
+  /* Tour preview of #result during and after a compile. Left alone if it already has real content. */
+  function _tutResultMock(kind) {
+    var el = document.getElementById('result');
+    if (!el) return;
+    var mock = el.querySelector('[data-dxt-mock]');
+    if (!kind) { if (mock) el.innerHTML = ''; return; }
+    if (el.children.length && !mock) return;
+    var T_ = (typeof T === 'function') ? T : function (x) { return x; };
+    var ico = (typeof DXIcon === 'function') ? DXIcon : function () { return ''; };
+    el.innerHTML = kind === 'progress'
+      ? '<div class="progress-container" data-dxt-mock="1"><h3>' + ico('spinner') + ' ' + T_('Compiling...') + '</h3>' +
+        '<div class="progress-bar-wrapper"><div class="progress-bar" style="width: 40%">40%</div></div>' +
+        '<div class="phase-indicator"><span class="phase-label">' + T_('Current Phase') + '</span> ' +
+        '<span class="phase-value">' + T_('Initializing...') + '</span></div></div>'
+      : '<div class="result success" data-dxt-mock="1"><p>' + T_('Compilation finished successfully.') + '</p></div>';
+  }
+
 (function () {
   'use strict';
 
   function openWizardStep(step) {
     var wiz = document.getElementById('config-wizard');
     if (wiz) wiz.style.display = 'flex';
-    // wizard-step 직접 전환 (wizGoTo는 클로저 내부 함수)
+    // Switch wizard steps directly (wizGoTo is private to a closure)
     document.querySelectorAll('.wizard-step').forEach(function (s) {
       s.classList.toggle('active', parseInt(s.dataset.step) === step);
     });
@@ -68,19 +80,19 @@
   }
 
   var quickStartSteps = [
-    { target: '#header', position: 'bottom',
+    { target: '.dx-shell-header', position: 'bottom',
       title: { en: 'Welcome', ko: 'DX Compiler에 오신 걸 환영합니다', ja: 'ようこそ', 'zh-CN': '欢迎', 'zh-TW': '歡迎', es: 'Bienvenido' },
       content: { en: 'Welcome to DX Compiler. You can switch language at the top right.', ko: 'DX Compiler에 오신 걸 환영합니다. 우측 상단에서 언어를 전환할 수 있습니다.', ja: 'DX Compilerへようこそ。右上で言語を切り替えられます。', 'zh-CN': '欢迎使用DX Compiler。您可以在右上角切换语言。', 'zh-TW': '歡迎使用DX Compiler。您可以在右上角切換語言。', es: 'Bienvenido a DX Compiler. Puede cambiar el idioma en la esquina superior derecha.' } },
     { target: '#setup-panel', position: 'left',
       title: { en: 'Setup Panel', ko: '설정 패널', ja: 'セットアップパネル', 'zh-CN': '设置面板', 'zh-TW': '設定面板', es: 'Panel de configuración' },
       content: { en: 'Set up your compile environment here. Check the status of SDK, sample models, and calibration data.', ko: '여기서 컴파일 환경을 설정합니다. SDK, 샘플 모델, 캘리브레이션 데이터 상태를 확인하세요.', ja: 'ここでコンパイル環境を設定します。SDK、サンプルモデル、キャリブレーションデータの状態を確認してください。', 'zh-CN': '在此设置编译环境。检查SDK、示例模型和校准数据的状态。', 'zh-TW': '在此設定編譯環境。檢查SDK、範例模型和校準資料的狀態。', es: 'Configure aquí su entorno de compilación. Compruebe el estado del SDK, los modelos de ejemplo y los datos de calibración.' } },
-    { target: '#setup-toggle', position: 'left',
+    { target: '#setup-toggle', position: 'left', beforeStep: function () { if (window.setupPanel && setupPanel.revealForTour) setupPanel.revealForTour(); },
       title: { en: 'Toggle Panel', ko: '패널 접기/펼치기', ja: 'パネル切替', 'zh-CN': '折叠/展开面板', 'zh-TW': '折疊/展開面板', es: 'Alternar panel' },
       content: { en: 'Click to collapse or expand the Setup Panel.', ko: '클릭하여 설정 패널을 접거나 펼칩니다.', ja: 'クリックしてセットアップパネルを折りたたみ/展開します。', 'zh-CN': '点击折叠或展开设置面板。', 'zh-TW': '點擊折疊或展開設定面板。', es: 'Haga clic para contraer o expandir el panel de configuración.' } },
-    { target: '#setup-install-btn', position: 'left',
+    { target: '#setup-install-btn', position: 'left', beforeStep: function () { if (window.setupPanel && setupPanel.revealForTour) setupPanel.revealForTour(); },
       title: { en: 'Install SDK', ko: 'SDK 설치', ja: 'SDKインストール', 'zh-CN': '安装SDK', 'zh-TW': '安裝SDK', es: 'Instalar SDK' },
       content: { en: 'DX Compiler SDK is required. Click Install to set it up automatically.', ko: 'DX Compiler SDK가 필요합니다. 설치 버튼을 클릭하면 자동으로 설치됩니다.', ja: 'DX Compiler SDKが必要です。インストールをクリックすると自動的にセットアップされます。', 'zh-CN': '需要DX Compiler SDK。点击安装以自动设置。', 'zh-TW': '需要DX Compiler SDK。點擊安裝以自動設定。', es: 'Se requiere el SDK de DX Compiler. Haga clic en Instalar para configurarlo automáticamente.' } },
-    { target: '#setup-download-btn', position: 'left',
+    { target: '#setup-download-btn', position: 'left', beforeStep: function () { if (window.setupPanel && setupPanel.revealForTour) setupPanel.revealForTour(); },
       title: { en: 'Download Samples', ko: '샘플 다운로드', ja: 'サンプルダウンロード', 'zh-CN': '下载示例', 'zh-TW': '下載範例', es: 'Descargar muestras' },
       content: { en: 'Download sample models and calibration data to try out.', ko: '체험용 샘플 모델과 캘리브레이션 데이터를 다운로드합니다.', ja: 'サンプルモデルとキャリブレーションデータをダウンロードして試します。', 'zh-CN': '下载示例模型和校准数据进行试用。', 'zh-TW': '下載範例模型和校準資料進行試用。', es: 'Descargue modelos de ejemplo y datos de calibración para probar.' } },
     { target: '#model-dropzone', position: 'left',
@@ -97,12 +109,16 @@
       title: { en: 'Config', ko: '설정 파일', ja: '設定ファイル', 'zh-CN': '配置文件', 'zh-TW': '設定檔', es: 'Configuración' },
       content: { en: 'Upload a config JSON or create one with Build Config.', ko: '설정 JSON을 업로드하거나 Build Config로 직접 생성합니다.', ja: '設定JSONをアップロードするか、Build Configで作成します。', 'zh-CN': '上传配置JSON或使用Build Config创建。', 'zh-TW': '上傳設定JSON或使用Build Config建立。', es: 'Cargue un JSON de configuración o créelo con Build Config.' } },
     { target: '#output_dir_row', position: 'left',
-      title: { en: 'Output', ko: '출력 경로', ja: '出力パス', 'zh-CN': '输出路径', 'zh-TW': '輸出路徑', es: 'Salida' },
-      content: { en: 'Output directory for compiled results. Type a path, or click 📁 to browse server folders (and create new ones).', ko: '컴파일 결과물이 저장될 경로입니다. 직접 입력하거나 📁 버튼으로 서버 폴더를 탐색(새 폴더 생성)할 수 있습니다.', ja: 'コンパイル結果の出力ディレクトリです。パスを入力するか、📁 でサーバーのフォルダを参照（新規作成も）できます。', 'zh-CN': '编译结果的输出目录。可直接输入路径，或点击 📁 浏览服务器文件夹（并新建文件夹）。', 'zh-TW': '編譯結果的輸出目錄。可直接輸入路徑，或點擊 📁 瀏覽伺服器資料夾（並新增資料夾）。', es: 'Directorio de salida para los resultados. Escriba una ruta o haga clic en 📁 para explorar carpetas del servidor (y crear nuevas).' } },
+      title: { en: 'Output', ko: '출력', ja: '出力', 'zh-CN': '输出', 'zh-TW': '輸出', es: 'Salida' },
+      content: { en: 'Output directory for compiled results. Type a path, or click {{i:folder}} to browse server folders (and create new ones).', ko: '컴파일 결과물이 저장될 경로입니다. 직접 입력하거나 {{i:folder}} 버튼으로 서버 폴더를 탐색(새 폴더 생성)할 수 있습니다.', ja: 'コンパイル結果の出力ディレクトリです。パスを入力するか、{{i:folder}} でサーバーのフォルダを参照（新規作成も）できます。', 'zh-CN': '编译结果的输出目录。可直接输入路径，或点击 {{i:folder}} 浏览服务器文件夹（并新建文件夹）。', 'zh-TW': '編譯結果的輸出目錄。可直接輸入路徑，或點擊 {{i:folder}} 瀏覽伺服器資料夾（並新增資料夾）。', es: 'Directorio de salida para los resultados. Escriba una ruta o haga clic en {{i:folder}} para explorar carpetas del servidor (y crear nuevas).' } },
     { target: '#compile-main-btn', position: 'left',
       title: { en: 'Compile', ko: '컴파일', ja: 'コンパイル', 'zh-CN': '编译', 'zh-TW': '編譯', es: 'Compilar' },
       content: { en: 'Start compilation when everything is ready.', ko: '모든 준비가 완료되면 컴파일을 시작합니다.', ja: '準備が整ったらコンパイルを開始します。', 'zh-CN': '一切准备就绪后开始编译。', 'zh-TW': '一切準備就緒後開始編譯。', es: 'Inicie la compilación cuando todo esté listo.' } },
+    /* Before a compile, #result is an empty div (height 0) with nothing to point at — show a preview
+       during the tour and remove it afterwards. Real results are left untouched. */
     { target: '#result', position: 'left',
+      beforeStep: function () { _tutResultMock('progress'); },
+      afterStep: function () { _tutResultMock(null); },
       title: { en: 'Progress', ko: '진행률', ja: '進捗', 'zh-CN': '进度', 'zh-TW': '進度', es: 'Progreso' },
       content: { en: 'Progress bar and current compilation phase are shown here in real-time during compilation.', ko: '컴파일 중 진행률 바와 현재 페이즈가 이 영역에 실시간으로 표시됩니다.', ja: 'コンパイル中にプログレスバーと現在のフェーズがリアルタイムで表示されます。', 'zh-CN': '编译期间进度条和当前编译阶段将在此实时显示。', 'zh-TW': '編譯期間進度條和目前編譯階段將在此即時顯示。', es: 'Durante la compilación, la barra de progreso y la fase actual se muestran aquí en tiempo real.' } },
     { target: '#log-panel', position: 'top',
@@ -113,6 +129,8 @@
         if (lp && lp.style.display === 'none') lp.style.display = '';
       } },
     { target: '#result', position: 'top',
+      beforeStep: function () { _tutResultMock('result'); },
+      afterStep: function () { _tutResultMock(null); },
       title: { en: 'Result', ko: '결과', ja: '結果', 'zh-CN': '结果', 'zh-TW': '結果', es: 'Resultado' },
       content: { en: 'Compilation results (success/failure) appear here.', ko: '컴파일 성공/실패 결과가 여기에 표시됩니다.', ja: 'コンパイル結果（成功/失敗）がここに表示されます。', 'zh-CN': '编译结果（成功/失败）显示在此处。', 'zh-TW': '編譯結果（成功/失敗）顯示在此處。', es: 'Los resultados de compilación (éxito o fallo) aparecen aquí.' } },
     { target: '#save-summary-btn', position: 'left',
@@ -161,7 +179,7 @@
 
   var configWizardSteps = [
     { target: '#config_build_toggle', position: 'left',
-      title: { en: 'Build Config', ko: '설정 생성', ja: '設定を生成', 'zh-CN': '生成配置', 'zh-TW': '產生設定', es: 'Configuración de compilación' },
+      title: { en: 'Build Config', ko: '설정 생성', ja: '設定を生成', 'zh-CN': '生成配置', 'zh-TW': '產生設定', es: 'Crear configuración' },
       content: { en: 'Check Build Config to open the configuration wizard.', ko: 'Build Config를 체크하면 설정 마법사가 열립니다.', ja: 'Build Configにチェックを入れると設定ウィザードが開きます。', 'zh-CN': '勾选Build Config打开配置向导。', 'zh-TW': '勾選Build Config開啟設定精靈。', es: 'Marque Build Config para abrir el asistente de configuración.' } },
     { target: '#btn-auto-detect', position: 'bottom',
       title: { en: 'Auto Detect', ko: '자동 감지', ja: '自動検出', 'zh-CN': '自动检测', 'zh-TW': '自動偵測', es: 'Detección automática' },
@@ -180,7 +198,7 @@
       content: { en: 'Specify calibration dataset path and file extensions.', ko: '캘리브레이션 데이터셋 경로와 파일 확장자를 지정합니다.', ja: 'キャリブレーションデータセットのパスとファイル拡張子を指定します。', 'zh-CN': '指定校准数据集路径和文件扩展名。', 'zh-TW': '指定校準資料集路徑和檔案副檔名。', es: 'Especifique la ruta del conjunto de calibración y las extensiones de archivo.' },
       beforeStep: function () { openWizardStep(3); } },
     { target: '#prep-select', position: 'bottom',
-      title: { en: 'Preprocessing', ko: '전처리', ja: '前処理', 'zh-CN': '预处理', 'zh-TW': '預處理', es: 'Preprocesamiento' },
+      title: { en: 'Preprocessing', ko: '전처리', ja: '前処理', 'zh-CN': '预处理', 'zh-TW': '預處理', es: 'Pre-procesamiento' },
       content: { en: 'Add preprocessing transforms (resize, normalize, etc.) to the pipeline.', ko: 'resize, normalize 등 14종 전처리를 순서대로 파이프라인에 추가합니다.', ja: '前処理（resize、normalizeなど）をパイプラインに追加します。', 'zh-CN': '将预处理变换（resize、normalize等）添加到管线。', 'zh-TW': '將預處理轉換（resize、normalize等）新增到管線。', es: 'Añada transformaciones de preprocesamiento (resize, normalize, etc.) a la canalización.' },
       beforeStep: function () { openWizardStep(3); } },
     { target: '#wiz-calib-num', position: 'bottom',
@@ -196,7 +214,7 @@
       content: { en: 'Click "Use This Config" to auto-fill the config path in the compile form.', ko: 'Use This Config를 클릭하면 컴파일 폼에 config 경로가 자동 입력됩니다.', ja: '「Use This Config」をクリックするとコンパイルフォームに設定パスが自動入力されます。', 'zh-CN': '点击“Use This Config”自动填充编译表单中的配置路径。', 'zh-TW': '點擊「Use This Config」自動填入編譯表單中的設定路徑。', es: 'Haga clic en "Use This Config" para rellenar automáticamente la ruta de configuración en el formulario de compilación.' },
       beforeStep: function () { openWizardStep(4); } },
     { target: '#wiz-prev', position: 'top',
-      title: { en: 'Back', ko: '이전 단계', ja: '戻る', 'zh-CN': '返回', 'zh-TW': '返回', es: 'Atrás' },
+      title: { en: 'Back', ko: '뒤로', ja: '戻る', 'zh-CN': '返回', 'zh-TW': '返回', es: 'Atrás' },
       content: { en: 'Go back to the previous wizard step.', ko: '이전 마법사 단계로 돌아갑니다.', ja: '前のウィザードステップに戻ります。', 'zh-CN': '返回向导的上一步。', 'zh-TW': '返回上一步精靈步驟。', es: 'Vuelva al paso anterior del asistente.' },
       beforeStep: function () { openWizardStep(2); } },
     { target: '.wizard-close', position: 'bottom',
@@ -269,12 +287,12 @@
   var agenticAutoCompileSteps = [
     { target: '#agentic-agent-select', position: 'left',
       title: { ko: '에이전트 자동 컴파일', en: 'Agentic Auto Compile', ja: 'エージェント自動コンパイル', 'zh-CN': '智能体自动编译', 'zh-TW': '代理程式自動編譯', es: 'Compilación con agente' },
-      content: { ko: '모델 이름·경로·URL만 주면 .deepx 에이전트가 다운로드·변환·컴파일·검증까지 합니다. ⚡는 질문 없이 한 번에, 💬는 대화형으로 진행합니다.', en: 'Give a model name/path/URL and the .deepx agent downloads, converts, compiles and verifies it. ⚡ runs to completion without asking; 💬 is interactive.', ja: 'モデル名・パス・URL を渡すと .deepx エージェントが取得・変換・コンパイル・検証します。⚡は質問なしで一気に、💬は対話型で進みます。', 'zh-CN': '提供模型名称/路径/URL，.deepx 智能体会下载、转换、编译并验证。⚡ 无提问一次完成；💬 为交互式。', 'zh-TW': '提供模型名稱/路徑/URL，.deepx 代理程式會下載、轉換、編譯並驗證。⚡ 無提問一次完成；💬 為互動式。', es: 'Indique un nombre/ruta/URL de modelo y el agente .deepx lo descarga, convierte, compila y verifica. ⚡ se ejecuta sin preguntar; 💬 es interactivo.' } },
+      content: { ko: '모델 이름·경로·URL만 주면 .deepx 에이전트가 다운로드·변환·컴파일·검증까지 합니다. {{i:bolt}}는 질문 없이 한 번에, {{i:chat}}는 대화형으로 진행합니다.', en: 'Give a model name/path/URL and the .deepx agent downloads, converts, compiles and verifies it. {{i:bolt}} runs to completion without asking; {{i:chat}} is interactive.', ja: 'モデル名・パス・URL を渡すと .deepx エージェントが取得・変換・コンパイル・検証します。{{i:bolt}}は質問なしで一気に、{{i:chat}}は対話型で進みます。', 'zh-CN': '提供模型名称/路径/URL，.deepx 智能体会下载、转换、编译并验证。{{i:bolt}} 无提问一次完成；{{i:chat}} 为交互式。', 'zh-TW': '提供模型名稱/路徑/URL，.deepx 代理程式會下載、轉換、編譯並驗證。{{i:bolt}} 無提問一次完成；{{i:chat}} 為互動式。', es: 'Indique un nombre/ruta/URL de modelo y el agente .deepx lo descarga, convierte, compila y verifica. {{i:bolt}} se ejecuta sin preguntar; {{i:chat}} es interactivo.' } },
     { target: '#auto-compile-noninteractive', position: 'left',
-      title: { ko: '⚡ 질문 없이 자동 컴파일', en: '⚡ Auto Compile (no interaction)', ja: '⚡ 自動コンパイル（質問なし）', 'zh-CN': '⚡ 自动编译（无交互）', 'zh-TW': '⚡ 自動編譯（無互動）', es: '⚡ Compilar auto (sin interacción)' },
+      title: { ko: '질문 없이 자동 컴파일', en: 'Auto Compile (no interaction)', ja: '自動コンパイル（質問なし）', 'zh-CN': '自动编译（无交互）', 'zh-TW': '自動編譯（無互動）', es: 'Compilar auto (sin interacción)' },
       content: { ko: '에이전트가 추가 질문 없이 모든 단계를 자동으로 완료합니다.', en: 'The agent completes all steps automatically without any additional questions.', ja: 'エージェントが追加の質問なしにすべてのステップを自動で完了します。', 'zh-CN': '智能体无需额外提问，自动完成所有步骤。', 'zh-TW': '代理程式無需額外提問，自動完成所有步驟。', es: 'El agente completa todos los pasos automáticamente sin preguntas adicionales.' } },
     { target: '#auto-compile-interactive', position: 'left',
-      title: { ko: '💬 대화형 자동 컴파일', en: '💬 Auto Compile (interactive)', ja: '💬 自動コンパイル（対話型）', 'zh-CN': '💬 自动编译（交互式）', 'zh-TW': '💬 自動編譯（互動式）', es: '💬 Compilar auto (interactivo)' },
+      title: { ko: '자동 컴파일 (대화형)', en: 'Auto Compile (interactive)', ja: '自動コンパイル（対話型）', 'zh-CN': '自动编译（交互式）', 'zh-TW': '自動編譯（互動式）', es: 'Compilar auto (interactivo)' },
       content: { ko: '에이전트가 각 단계마다 확인을 거치며 대화형으로 진행합니다. 세밀한 제어가 필요할 때 사용하세요.', en: 'The agent proceeds interactively, confirming at each step. Use this for finer control.', ja: 'エージェントが各ステップで確認しながら対話型で進みます。細かい制御が必要な場合に使用してください。', 'zh-CN': '智能体在每个步骤进行确认，以交互方式进行。需要精细控制时使用。', 'zh-TW': '代理程式在每個步驟進行確認，以互動方式進行。需要精細控制時使用。', es: 'El agente avanza de forma interactiva, confirmando en cada paso. Úselo para un control más preciso.' } },
   ];
 
@@ -293,24 +311,24 @@
     },
     patchNav: function () {},
     sections: [
-      { id: 'quick-start', icon: '📖',
-        title: { en: '📖 Quick Start', ko: '📖 빠른 시작', ja: '📖 クイックスタート', 'zh-CN': '📖 快速入门', 'zh-TW': '📖 快速入門', es: '📖 Inicio rápido' },
+      { id: 'quick-start', icon: 'book',
+        title: { en: 'Quick Start', ko: '빠른 시작', ja: 'クイックスタート', 'zh-CN': '快速开始', 'zh-TW': '快速開始', es: 'Inicio rápido' },
         description: { en: 'Compile an ONNX model step by step', ko: 'ONNX 모델 컴파일을 단계별로 알아봅니다', ja: 'ONNXモデルのコンパイルをステップバイステップで学びます', 'zh-CN': '逐步编译ONNX模型', 'zh-TW': '逐步編譯ONNX模型', es: 'Compile un modelo ONNX paso a paso' },
         steps: quickStartSteps },
-      { id: 'graph-viewer', icon: '📊',
-        title: { en: '📊 Graph Viewer', ko: '📊 그래프 뷰어', ja: '📊 グラフビューア', 'zh-CN': '📊 模型图查看器', 'zh-TW': '📊 圖形檢視器', es: '📊 Visor de gráficos' },
+      { id: 'graph-viewer', icon: 'dashboard',
+        title: { en: 'Graph Viewer', ko: '그래프 뷰어', ja: 'グラフビューア', 'zh-CN': '模型图查看器', 'zh-TW': '圖形檢視器', es: 'Visor de gráficos' },
         description: { en: 'Navigate and inspect compilation graphs', ko: '컴파일 그래프를 탐색하고 상세 정보를 확인합니다', ja: 'コンパイルグラフを探索して確認します', 'zh-CN': '浏览和检查编译图', 'zh-TW': '瀏覽和檢查編譯圖形', es: 'Navegue e inspeccione los gráficos de compilación' },
         steps: graphViewerSteps },
-      { id: 'config-wizard', icon: '⚙️',
-        title: { en: '⚙️ Config Wizard', ko: '⚙️ 설정 마법사', ja: '⚙️ 設定ウィザード', 'zh-CN': '⚙️ 配置向导', 'zh-TW': '⚙️ 設定精靈', es: '⚙️ Asistente de configuración' },
+      { id: 'config-wizard', icon: 'gear',
+        title: { en: 'Config Wizard', ko: '설정 마법사', ja: '設定ウィザード', 'zh-CN': '配置向导', 'zh-TW': '設定精靈', es: 'Asistente de configuración' },
         description: { en: 'Build a compile config JSON', ko: '컴파일 설정 JSON을 생성합니다', ja: 'コンパイル設定JSONを生成します', 'zh-CN': '生成编译配置JSON', 'zh-TW': '產生編譯設定JSON', es: 'Genere un JSON de configuración de compilación' },
         steps: configWizardSteps },
-      { id: 'advanced', icon: '🔬',
-        title: { en: '🔬 Advanced', ko: '🔬 고급 기능', ja: '🔬 高度な機能', 'zh-CN': '🔬 高级功能', 'zh-TW': '🔬 進階功能', es: '🔬 Avanzado' },
+      { id: 'advanced', icon: 'lab',
+        title: { en: 'Advanced', ko: '고급', ja: '詳細', 'zh-CN': '高级', 'zh-TW': '進階', es: 'Avanzado' },
         description: { en: 'DXQ, Quant Diagnosis, Node Selection, QXNN Resume', ko: 'DXQ 양자화, 양자화 진단, 노드 선택, QXNN 재개', ja: 'DXQ量子化、量子化診断、ノード選択、QXNN再開', 'zh-CN': 'DXQ量化、量化诊断、节点选择、QXNN恢复', 'zh-TW': 'DXQ量化、量化診斷、節點選擇、QXNN恢復', es: 'DXQ, diagnóstico cuant., selección de nodos, reanudación QXNN' },
         steps: advancedSteps },
-      { id: 'agentic-auto-compile', icon: '🤖',
-        title: { ko: '🤖 에이전트 자동 컴파일', en: '🤖 Agentic Auto Compile', ja: '🤖 エージェント自動コンパイル', 'zh-CN': '🤖 智能体自动编译', 'zh-TW': '🤖 代理程式自動編譯', es: '🤖 Compilación con agente' },
+      { id: 'agentic-auto-compile', icon: 'agent',
+        title: { ko: '에이전트 자동 컴파일', en: 'Agentic Auto Compile', ja: 'エージェント自動コンパイル', 'zh-CN': '智能体自动编译', 'zh-TW': '代理程式自動編譯', es: 'Compilación con agente' },
         description: { ko: '.deepx 에이전트로 모델 다운로드·변환·컴파일·검증을 자동화합니다', en: 'Automate model download, conversion, compilation and verification with .deepx agents', ja: '.deepx エージェントでモデルの取得・変換・コンパイル・検証を自動化します', 'zh-CN': '使用 .deepx 智能体自动化模型下载、转换、编译和验证', 'zh-TW': '使用 .deepx 代理程式自動化模型下載、轉換、編譯和驗證', es: 'Automatice la descarga, conversión, compilación y verificación de modelos con agentes .deepx' },
         steps: agenticAutoCompileSteps },
     ],

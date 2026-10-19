@@ -117,7 +117,7 @@ def test_constructor_accepts_plain_dict():
     assert record.texts["en"] == "ok"
 
 
-# --- Issue 3: record_id must include source_file ---
+# --- record_id must include source_file ---
 
 def test_record_id_unique_across_source_files():
     """Same module/surface/selector but different source_file => different record_id."""

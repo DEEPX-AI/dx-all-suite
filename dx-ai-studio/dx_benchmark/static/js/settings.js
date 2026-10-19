@@ -17,15 +17,15 @@ var Settings = {
           _t('Paths are configured at deployment and cannot be changed at runtime.') +
         '</p>' +
         '<div class="setting-row">' +
-          '<label data-i18n="Model Directory">' + _t('Model Directory') + '</label>' +
+          '<label for="settModelDir" data-i18n="Model Directory">' + _t('Model Directory') + '</label>' +
           '<input type="text" id="settModelDir" readonly class="setting-input">' +
         '</div>' +
         '<div class="setting-row">' +
-          '<label data-i18n="Video Directory">' + _t('Video Directory') + '</label>' +
+          '<label for="settVideoDir" data-i18n="Video Directory">' + _t('Video Directory') + '</label>' +
           '<input type="text" id="settVideoDir" readonly class="setting-input">' +
         '</div>' +
         '<div class="setting-row">' +
-          '<label data-i18n="Results Directory">' + _t('Results Directory') + '</label>' +
+          '<label for="settResultsDir" data-i18n="Results Directory">' + _t('Results Directory') + '</label>' +
           '<input type="text" id="settResultsDir" readonly class="setting-input">' +
         '</div>' +
       '</div>' +
@@ -35,26 +35,26 @@ var Settings = {
           _t('Thermal and benchmark parameters are deployment-fixed. Adjust via configuration files before starting the server.') +
         '</p>' +
         '<div class="setting-row">' +
-          '<label>Cooldown Threshold (°C)</label>' +
+          '<label for="settCooldownTemp" data-i18n="Cooldown Threshold (°C)">' + _t('Cooldown Threshold (°C)') + '</label>' +
           '<input type="number" id="settCooldownTemp" value="55" readonly class="setting-input">' +
         '</div>' +
         '<div class="setting-row">' +
-          '<label>Wait Interval (s)</label>' +
+          '<label for="settWaitInterval" data-i18n="Wait Interval (s)">' + _t('Wait Interval (s)') + '</label>' +
           '<input type="number" id="settWaitInterval" value="10" readonly class="setting-input">' +
         '</div>' +
       '</div>' +
       '<div class="settings-group">' +
         '<h3 data-i18n="Benchmark Parameters">' + _t('Benchmark Parameters') + '</h3>' +
         '<div class="setting-row">' +
-          '<label data-i18n="Iterations">' + _t('Iterations') + '</label>' +
+          '<label for="settIterations" data-i18n="Iterations">' + _t('Iterations') + '</label>' +
           '<input type="number" id="settIterations" value="100" readonly class="setting-input">' +
         '</div>' +
         '<div class="setting-row">' +
-          '<label data-i18n="Warmup Runs">' + _t('Warmup Runs') + '</label>' +
+          '<label for="settWarmup" data-i18n="Warmup Runs">' + _t('Warmup Runs') + '</label>' +
           '<input type="number" id="settWarmup" value="10" readonly class="setting-input">' +
         '</div>' +
         '<div class="setting-row">' +
-          '<label data-i18n="FPS Threshold">' + _t('FPS Threshold') + '</label>' +
+          '<label for="settFpsThreshold" data-i18n="FPS Threshold">' + _t('FPS Threshold') + '</label>' +
           '<input type="number" id="settFpsThreshold" value="0" step="0.1" readonly class="setting-input">' +
         '</div>' +
       '</div>' +

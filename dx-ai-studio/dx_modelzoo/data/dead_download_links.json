@@ -1,0 +1,8 @@
+{
+  "checked": "2026-10-13",
+  "dead_links": [
+    "https://sdk.deepx.ai/modelzoo/json/deit-b_384x384_distilled.json",
+    "https://sdk.deepx.ai/modelzoo/q-master-dxnn/2_4_0/DeiTBaseDistilled-2.dxnn",
+    "https://sdk.deepx.ai/modelzoo/q-master-json/2_4_0/DeiTBaseDistilled-2.json"
+  ]
+}

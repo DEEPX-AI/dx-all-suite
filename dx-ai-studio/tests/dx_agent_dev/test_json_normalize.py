@@ -1,4 +1,4 @@
-"""stream-json / result 이벤트 → UI 슬롯 매핑 계약."""
+"""Contract for mapping stream-json / result events to UI slots."""
 import json
 import sys
 from pathlib import Path

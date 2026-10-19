@@ -37,70 +37,76 @@ def _platform_values(html: str) -> str:
     return match.group("body")
 
 
-def test_landing_poster_uses_m1_m2_product_card():
+def test_the_product_artwork_is_reachable_but_not_on_the_home():
+    """The renders stopped being cards on the home and became rows in Learn.
+
+    They are cyberpunk product art — 400px of neon blue and gold. Restraint is
+    the whole point of the current language, and in it they were the loudest
+    thing on the screen by a wide margin. The artwork itself did not go
+    anywhere: both rows open the overlay they always opened, so the images are
+    one click away instead of unavoidable.
+    """
     html = (ROOT / "launcher/static/index.html").read_text(encoding="utf-8")
     image_rel = "img/about/marketing/m1_m2.webp"
-    image_path = ROOT / "launcher/static" / image_rel
-    poster = re.search(
-        r'<div class="landing-poster"[^>]*>.*?</div>',
-        html,
-        re.DOTALL,
-    )
+    assert (ROOT / "launcher/static" / image_rel).exists(), "the render itself must stay"
 
-    assert poster is not None
-    assert f'src="/static/{image_rel}"' in poster.group(0)
-    assert "DX-M1 and DX-M2 NPU lineup" in poster.group(0)
-    assert "poster-hint-icon" in poster.group(0)
-    assert "representative-1.jpg" not in poster.group(0)
-    assert "DEEPX representative" not in poster.group(0)
-    assert 'src="/static/img/about/marketing/intelligented.png"' not in poster.group(0)
-    assert "dxnn-sdk-fullstack-architecture-diagram" not in poster.group(0)
-    assert image_path.exists()
+    for element_id, opener in (
+        ("landingPoster", "openPlatformInfo()"),
+        ("ecosystemPoster", "openEcosystemInfo()"),
+    ):
+        row = re.search(r'<\w+[^>]*id="%s"[^>]*>' % element_id, html)
+        assert row, f"{element_id} must still exist — the tutorial points at it"
+        assert opener in row.group(0), f"{element_id} must still open its overlay"
+        assert 'role="button"' in row.group(0)
+        assert 'tabindex="0"' in row.group(0)
+
+    # It is the overlay that carries the picture now, not the home.
+    assert f'src="/static/{image_rel}"' in html, "the platform overlay lost its render"
+    assert "representative-1.jpg" not in html
+    assert "DEEPX representative" not in html
 
 
-def test_landing_poster_does_not_stack_above_module_cards():
-    """Poster must not intercept clicks on About/SDK cards or lower orbital modules."""
+def test_the_home_has_no_absolutely_positioned_furniture():
+    """Everything on this page is placed by flow.
+
+    The poster was the last of it: right:10%, top:50%, z-index 4, 400px wide,
+    pointer-events juggled so clicks could reach the cards behind it — and
+    display:none below 1200px, so on a laptop it was simply absent. Nothing on
+    the home stacks now, so nothing on the home can cover anything.
+    """
     css = (ROOT / "launcher/static/style.css").read_text(encoding="utf-8")
-    poster = re.search(r"\.landing-poster\s*\{(?P<body>[^}]*)\}", css)
-    cards = re.search(r"\.about-cards-row\s*\{(?P<body>[^}]*)\}", css)
-    book = re.search(r"/\* ── All About DEEPX.*?\.about-book-card\s*\{(?P<body>[^}]*)\}", css, re.DOTALL)
-    orbital = re.search(
-        r"/\* ── Orbital Cards ── \*/\s*\.orbital-card\s*\{(?P<body>[^}]*)\}",
-        css,
-        re.DOTALL,
-    )
-
-    assert poster is not None
-    assert cards is not None
-    assert book is not None
-    assert orbital is not None
-    assert "z-index: 4" in poster.group("body")
-    assert "pointer-events: none" in poster.group("body")
-    assert "z-index: 10" in cards.group("body")
-    assert "z-index: 10" in book.group("body")
-    assert "z-index: 7" in orbital.group("body")
+    assert ".landing-poster" not in css, "the floating poster component is back"
+    # The stage layout lives in one file, home-stage.css.
+    home = (ROOT / "launcher/static/home-stage.css").read_text(encoding="utf-8")
+    # A ::before/::after anchored inside its own relatively-positioned parent
+    # is a mark, not a layer — the chevrons between the workflow steps are
+    # drawn that way. What must not come back is a positioned *element*.
+    floating = [
+        selector.strip()
+        for selector, body in re.findall(r"(?m)^([^{@}\n][^{}]*)\{([^}]*)\}", home)
+        if re.search(r"position:\s*(absolute|fixed)", body)
+        and "::" not in selector
+    ]
+    assert not floating, f"positioned elements on the home: {floating}"
 
 
-def test_orbital_cards_hidden_until_layout_ready():
-    """Avoid stacked cards flash before initOrbital sets --orbit-x/y."""
+def test_module_cards_need_no_javascript_to_be_placed():
+    """The cards must not flash stacked before a script positions them.
+
+    The ring solved this by hiding every card until initOrbital() had written
+    --orbit-x/--orbit-y onto each one — a JS layout pass the page had to wait
+    for. A grid has no such window: CSS places the cards on first paint, so the
+    guard, the ready class and the debounced resize handler are all gone with it.
+    """
     css = (ROOT / "launcher/static/style.css").read_text(encoding="utf-8")
-    assert ".orbital-container:not(.orbital-ready) .orbital-card" in css
-    assert "visibility: hidden" in css
+    assert re.search(r"(?m)^\.studio-grid\s*\{", css), ".studio-grid rule missing"
+    assert "--orbit-x" not in css, "rows must not be positioned by script"
     js = (ROOT / "launcher/static/launcher-app-frame.js").read_text(encoding="utf-8")
-    assert "container.classList.add('orbital-ready')" in js
+    assert "orbital-ready" not in js, "the JS layout pass should be gone"
     assert "ensureStudioReady" in js
     assert "_initLauncherCore" in js
 
 
-def test_landing_poster_hint_sits_below_image():
-    css = (ROOT / "launcher/static/style.css").read_text(encoding="utf-8")
-    poster = re.search(r"\.landing-poster\s*\{(?P<body>[^}]*)\}", css)
-    hint = re.search(r"^\.poster-hint\s*\{(?P<body>[^}]*)\}", css, re.MULTILINE)
-
-    assert poster is not None
-    assert hint is not None
-    assert "flex-direction: column" in poster.group("body")
-    assert "position: static" in hint.group("body")
 
 
 def test_top_nav_tabs_scroll_instead_of_clipping_under_status_dots():
@@ -141,9 +147,10 @@ def test_platform_info_left_uses_requested_five_image_sequence():
 def test_platform_info_panel_uses_flex_layout():
     html = (ROOT / "launcher/static/index.html").read_text(encoding="utf-8")
     assert 'data-help-id="pm-agent-dev"' in html
+    assert 'data-help-id="pm-dx-edge"' in html
     assert "Agent Dev" in html
-    assert "8개의 전문 모듈" in html
-    assert "8 specialized modules" in html
+    assert "9개의 전문 모듈" in html
+    assert "9 specialized modules" in html
     assert 'class="platform-info-gallery"' not in html
     assert 'class="platform-info-body"' not in html
 
@@ -220,16 +227,18 @@ def test_platform_value_badges_cover_core_studio_capabilities():
     values = _platform_values(html)
 
     assert values.count('class="pv-badge"') == 7
+    # A badge shows a sprite icon plus text.
     for label in [
-        "🚀 Zero-Code Deploy",
-        "📦 End-to-End Solution",
-        "⚡ 25~100+ TOPS",
-        "🧠 On-Device AI",
-        "🔧 ONNX→DXNN Compile",
-        "🎛️ Simulation Ready",
-        "📊 Real-Time Monitor",
+        "Zero-Code Deploy",
+        "End-to-End Solution",
+        "25~100+ TOPS",
+        "On-Device AI",
+        "ONNX→DXNN Compile",
+        "Simulation Ready",
+        "Real-Time Monitor",
     ]:
         assert label in values
+    assert values.count('dx-icons.svg#') >= 7
     assert "🌐 Multi-App Studio" not in values
 
 

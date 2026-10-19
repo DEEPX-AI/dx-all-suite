@@ -1,0 +1,178 @@
+<!-- Captured from modelzoo-publish-api.devops.dpx.ai/publish/html.
+     The original is 1.3 MB with 25 tables and 571 rows; only the 3 header rows of the 20-column table and 3 data
+     rows are kept. The contract checks that the HTML has the shape we assume, not the full data. -->
+<html><body>
+<h2 class="task-title">Image Classification</h2>
+<table border="1" class="dataframe model-zoo-table">
+<tr style="text-align: right;">
+      <th rowspan="3">Task</th>
+      <th rowspan="3">Name</th>
+      <th rowspan="3">Display Name</th>
+      <th rowspan="3">Dataset</th>
+      <th rowspan="3">Input Resolution</th>
+      <th rowspan="3">Operations</th>
+      <th rowspan="3">Parameters</th>
+      <th rowspan="3">License</th>
+      <th rowspan="3">Metric</th>
+      <th rowspan="3">Source</th>
+      <th colspan="2" rowspan="2">Raw</th>
+      <th colspan="11">NPU</th>
+    </tr>
+<tr style="text-align: right;">
+      <th colspan="3">Q-Lite</th>
+      <th colspan="3">Q-Pro</th>
+      <th colspan="3">Q-Master</th>
+      <th colspan="2">Performance</th>
+    </tr>
+<tr style="text-align: right;">
+      <th>Accuracy</th>
+      <th>ONNX</th>
+      <th>Accuracy</th>
+      <th>DXNN</th>
+      <th>JSON</th>
+      <th>Accuracy</th>
+      <th>DXNN</th>
+      <th>JSON</th>
+      <th>Accuracy</th>
+      <th>DXNN</th>
+      <th>JSON</th>
+      <th>FPS</th>
+      <th>FPS/Watt</th>
+    </tr>
+<tr>
+      <td>Image Classification</td>
+      <td>DenseNet121-1</td>
+      <td>DenseNet-121</td>
+      <td>ImageNet</td>
+      <td>224x224x3</td>
+      <td>3.18</td>
+      <td>8.04</td>
+      <td>BSD-3-Clause</td>
+      <td>Top1</td>
+      <td><a href="https://github.com/pytorch/vision" target="_blank" rel="noopener noreferrer" title="Source"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+       <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+       <polyline points="15 3 21 3 21 9"></polyline>
+       <line x1="10" y1="14" x2="21" y2="3"></line>
+    </svg></a></td>
+      <td>74.436</td>
+      <td><a href="https://sdk.deepx.ai/modelzoo/onnx/densenet121_224x224.onnx" onclick="showDownloadWarning('https://sdk.deepx.ai/modelzoo/onnx/densenet121_224x224.onnx', event); return false;" title="onnx"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+        <polyline points="7 10 12 15 17 10"></polyline>
+        <line x1="12" y1="15" x2="12" y2="3"></line>
+    </svg></a></td>
+      <td>73.96</td>
+      <td><a href="https://sdk.deepx.ai/modelzoo/q-lite-dxnn/2_4_0/densenet121_224x224.dxnn" onclick="showDownloadWarning('https://sdk.deepx.ai/modelzoo/q-lite-dxnn/2_4_0/densenet121_224x224.dxnn', event); return false;" title="Compiled"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+        <polyline points="7 10 12 15 17 10"></polyline>
+        <line x1="12" y1="15" x2="12" y2="3"></line>
+    </svg></a></td>
+      <td><a href="https://sdk.deepx.ai/modelzoo/q-lite-json/2_4_0/densenet121_224x224.json" onclick="showDownloadWarning('https://sdk.deepx.ai/modelzoo/q-lite-json/2_4_0/densenet121_224x224.json', event); return false;" title="json"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+        <polyline points="7 10 12 15 17 10"></polyline>
+        <line x1="12" y1="15" x2="12" y2="3"></line>
+    </svg></a></td>
+      <td>74.250</td>
+      <td><a href="https://sdk.deepx.ai/modelzoo/q-pro-dxnn/2_4_0/densenet121_224x224.dxnn" onclick="showDownloadWarning('https://sdk.deepx.ai/modelzoo/q-pro-dxnn/2_4_0/densenet121_224x224.dxnn', event); return false;" title="Q-Pro Compiled"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+        <polyline points="7 10 12 15 17 10"></polyline>
+        <line x1="12" y1="15" x2="12" y2="3"></line>
+    </svg></a></td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+      <td>94</td>
+      <td>213.80</td>
+    </tr>
+<tr>
+      <td>Image Classification</td>
+      <td>DenseNet161-1</td>
+      <td>DenseNet-161</td>
+      <td>ImageNet</td>
+      <td>224x224x3</td>
+      <td>8.43</td>
+      <td>28.86</td>
+      <td>BSD-3-Clause</td>
+      <td>Top1</td>
+      <td><a href="https://github.com/pytorch/vision" target="_blank" rel="noopener noreferrer" title="Source"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+       <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+       <polyline points="15 3 21 3 21 9"></polyline>
+       <line x1="10" y1="14" x2="21" y2="3"></line>
+    </svg></a></td>
+      <td>77.108</td>
+      <td><a href="https://sdk.deepx.ai/modelzoo/onnx/densenet161_224x224.onnx" onclick="showDownloadWarning('https://sdk.deepx.ai/modelzoo/onnx/densenet161_224x224.onnx', event); return false;" title="onnx"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+        <polyline points="7 10 12 15 17 10"></polyline>
+        <line x1="12" y1="15" x2="12" y2="3"></line>
+    </svg></a></td>
+      <td>77.012</td>
+      <td><a href="https://sdk.deepx.ai/modelzoo/q-lite-dxnn/2_4_0/densenet161_224x224.dxnn" onclick="showDownloadWarning('https://sdk.deepx.ai/modelzoo/q-lite-dxnn/2_4_0/densenet161_224x224.dxnn', event); return false;" title="Compiled"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+        <polyline points="7 10 12 15 17 10"></polyline>
+        <line x1="12" y1="15" x2="12" y2="3"></line>
+    </svg></a></td>
+      <td><a href="https://sdk.deepx.ai/modelzoo/q-lite-json/2_4_0/densenet161_224x224.json" onclick="showDownloadWarning('https://sdk.deepx.ai/modelzoo/q-lite-json/2_4_0/densenet161_224x224.json', event); return false;" title="json"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+        <polyline points="7 10 12 15 17 10"></polyline>
+        <line x1="12" y1="15" x2="12" y2="3"></line>
+    </svg></a></td>
+      <td>76.948</td>
+      <td><a href="https://sdk.deepx.ai/modelzoo/q-pro-dxnn/2_4_0/densenet161_224x224.dxnn" onclick="showDownloadWarning('https://sdk.deepx.ai/modelzoo/q-pro-dxnn/2_4_0/densenet161_224x224.dxnn', event); return false;" title="Q-Pro Compiled"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+        <polyline points="7 10 12 15 17 10"></polyline>
+        <line x1="12" y1="15" x2="12" y2="3"></line>
+    </svg></a></td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+      <td>43</td>
+      <td>99.93</td>
+    </tr>
+<tr>
+      <td>Image Classification</td>
+      <td>EfficientNetB2-1</td>
+      <td>EfficientNet-B2</td>
+      <td>ImageNet</td>
+      <td>288x288x3</td>
+      <td>1.60</td>
+      <td>9.08</td>
+      <td>BSD-3-Clause</td>
+      <td>Top1</td>
+      <td><a href="https://github.com/pytorch/vision" target="_blank" rel="noopener noreferrer" title="Source"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+       <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+       <polyline points="15 3 21 3 21 9"></polyline>
+       <line x1="10" y1="14" x2="21" y2="3"></line>
+    </svg></a></td>
+      <td>80.612</td>
+      <td><a href="https://sdk.deepx.ai/modelzoo/onnx/efficientnet-b2_288x288.onnx" onclick="showDownloadWarning('https://sdk.deepx.ai/modelzoo/onnx/efficientnet-b2_288x288.onnx', event); return false;" title="onnx"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+        <polyline points="7 10 12 15 17 10"></polyline>
+        <line x1="12" y1="15" x2="12" y2="3"></line>
+    </svg></a></td>
+      <td>79.314</td>
+      <td><a href="https://sdk.deepx.ai/modelzoo/q-lite-dxnn/2_4_0/efficientnet-b2_288x288.dxnn" onclick="showDownloadWarning('https://sdk.deepx.ai/modelzoo/q-lite-dxnn/2_4_0/efficientnet-b2_288x288.dxnn', event); return false;" title="Compiled"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+        <polyline points="7 10 12 15 17 10"></polyline>
+        <line x1="12" y1="15" x2="12" y2="3"></line>
+    </svg></a></td>
+      <td><a href="https://sdk.deepx.ai/modelzoo/q-lite-json/2_4_0/efficientnet-b2_288x288.json" onclick="showDownloadWarning('https://sdk.deepx.ai/modelzoo/q-lite-json/2_4_0/efficientnet-b2_288x288.json', event); return false;" title="json"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+        <polyline points="7 10 12 15 17 10"></polyline>
+        <line x1="12" y1="15" x2="12" y2="3"></line>
+    </svg></a></td>
+      <td>79.568</td>
+      <td><a href="https://sdk.deepx.ai/modelzoo/q-pro-dxnn/2_4_0/efficientnet-b2_288x288.dxnn" onclick="showDownloadWarning('https://sdk.deepx.ai/modelzoo/q-pro-dxnn/2_4_0/efficientnet-b2_288x288.dxnn', event); return false;" title="Q-Pro Compiled"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+        <polyline points="7 10 12 15 17 10"></polyline>
+        <line x1="12" y1="15" x2="12" y2="3"></line>
+    </svg></a></td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+      <td>743</td>
+      <td>834.04</td>
+    </tr>
+</table>
+</body></html>

@@ -1,4 +1,4 @@
-"""tests/dx_planner conftest — dx_planner 모듈 테스트용 경로 설정."""
+"""tests/dx_planner conftest: import paths for the dx_planner module tests."""
 import sys
 from pathlib import Path
 

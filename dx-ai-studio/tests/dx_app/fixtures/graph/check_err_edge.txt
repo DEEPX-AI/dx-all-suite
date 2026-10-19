@@ -1,0 +1,2 @@
+ERROR [GRAPH_EDGE] edge "od"->"depth": "depth" requires a full frame
+  -> remove "roi" from this edge

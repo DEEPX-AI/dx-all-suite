@@ -1,10 +1,23 @@
 # SPDX-License-Identifier: Apache-2.0
-"""KB model/task counts must equal the live registry.
+"""Inventory counts belong to the sub-project that owns them.
 
-2026-09-04 audit: model_registry.json held 353 models while the KB said 347 (EN),
-349 (KO) and the suite template still said 133 models / 15 AI tasks. Nothing
-guarded these numbers. This test scans every place the numbers are written and
-fails with file:line so the fix is mechanical.
+2026-09-04: model_registry.json held 353 models while the KB said 347 (EN), 349
+(KO) and the suite template said 133 models / 15 AI tasks. The fix then was a
+guard that forced every number in every KB to equal the live registry.
+
+2026-10-16: that guard turned out to measure quantities the KB never meant.
+`model_count` is `len(model_registry.json)` = 498 raw rows, while the KB
+deliberately counts published variants (497 — rows can share a `.dxnn`, one is an
+alias). Its per-task grouping uses the registry's `add_model_task` labels, which
+are still the pre-Model-Zoo-2.5.0 names (23 of them), while the KB's table counts
+the example directories under the current taxonomy (28). The KB was right and the
+guard was stale, so enforcing equality produced false failures and pressure to
+write wrong numbers.
+
+The rule now: the suite and dx-runtime state NO sub-project counts at all — they
+point at the file that owns each number (see the `inventory-counts` fragment).
+A sub-project may state its own counts; it sits next to the file that defines
+them and owns that call, so this level does not police it.
 """
 from __future__ import annotations
 
@@ -14,9 +27,7 @@ from pathlib import Path
 
 import pytest
 
-from dx_agent_dev_gen.counts import model_count, task_model_counts, task_names
-
-from .conftest import APP_ROOT, SUITE_ROOT, iter_markdown_files, read_markdown
+from .conftest import APP_ROOT, SUITE_ROOT, iter_markdown_files
 
 # A line carrying this marker is exempt from both count scans below — e.g. a doc
 # that legitimately cites a different project's count (dx_stream's own model
@@ -83,104 +94,60 @@ def _scan_targets() -> list[Path]:
 SCAN_TARGETS = _scan_targets()
 
 
-@pytest.fixture(scope="module")
-def live_counts() -> tuple[int, int]:
-    # Skips (not fails) when the submodule is absent — CI must init submodules or
-    # this guard is vacuous.
-    models = model_count(APP_ROOT)
-    names = task_names(APP_ROOT)
-    if models is None or names is None:
-        pytest.skip("dx_app model_registry.json / src/python_example not found (submodule not initialized)")
-    return models, len(names)
+# ── The suite must not carry another repo's counts at all ────────────────────
+# A number borrowed from a sub-repo becomes a committed SNAPSHOT of whatever that
+# repo happened to be at generation time. dx_app main has 353 models and dev has
+# 498: no single committed number satisfies both, so the suite gate is red in one
+# mode or the other forever. The suite therefore states no counts and points at
+# the file that owns them.
+STREAM_RE = re.compile(
+    r"(?<![~\d.A-Za-z])(\d{1,3})\s+(?:GStreamer\s+)?elements\b"
+    r"|(?<![~\d.A-Za-z])(\d{1,3})\s+pipeline categories\b"
+    r"|(?<![~\d.A-Za-z])(\d{1,3})개\s*(?:GStreamer\s*)?(?:element|엘리먼트|요소)"
+    r"|(?<![~\d.A-Za-z])(\d{1,3})개\s*파이프라인\s*(?:카테고리|분류)",
+    re.IGNORECASE,
+)
+# py3.8: Path.is_relative_to is 3.9+, so compare prefixes as strings.
+_OWNS_ITS_COUNTS = tuple(str(SUITE_ROOT / d) + "/" for d in ("dx-runtime/dx_app", "dx-runtime/dx_stream",
+                                                            "dx-compiler", "dx-modelzoo"))
+SUITE_SCAN = [f for f in SCAN_TARGETS if not str(f).startswith(_OWNS_ITS_COUNTS)]
+# dx-runtime is an integration layer: it names its sub-projects but owns none of
+# their numbers, so it is scanned exactly like the suite.
+for _sub in ("", "dx-runtime"):
+    _root = SUITE_ROOT / _sub if _sub else SUITE_ROOT
+    SUITE_SCAN += iter_markdown_files(_root / ".deepx", "**/*.md")
+    SUITE_SCAN += iter_markdown_files(_root / ".deepx" / "templates", "**/*.tmpl")
+    for _name in ("CLAUDE.md", "CLAUDE-KO.md", "AGENTS.md", "AGENTS-KO.md",
+                  ".github/copilot-instructions.md", ".github/copilot-instructions-KO.md"):
+        _p = _root / _name
+        if _p.is_file():
+            SUITE_SCAN.append(_p)
+SUITE_SCAN = sorted(set(SUITE_SCAN))
+SUITE_TEMPLATES = sorted((SUITE_ROOT / ".deepx" / "templates").rglob("*.tmpl"))
+REGISTRY_VARS = ("{{MODEL_COUNT}}", "{{TASK_COUNT}}", "{{TASK_LIST}}")
 
 
-def _mismatches(regex: re.Pattern, expected: int) -> list[str]:
-    out: list[str] = []
-    for f in SCAN_TARGETS:
+def test_suite_kb_does_not_state_sub_project_counts():
+    bad: list[str] = []
+    for f in SUITE_SCAN:
         for i, line in enumerate(f.read_text(encoding="utf-8").splitlines(), 1):
             if IGNORE_MARK in line:
                 continue
-            for m in regex.finditer(line):
-                n = int(m.group(m.lastindex))
-                if n != expected:
+            for regex in (MODEL_RE, TASK_RE, STREAM_RE):
+                if regex.search(line):
                     s = line.strip()
-                    s = s[:90] + "…" if len(s) > 90 else s
-                    out.append(f"{f.relative_to(SUITE_ROOT)}:{i}: {n} (expected {expected}) — {s}")
-    return out
+                    bad.append(f"{f.relative_to(SUITE_ROOT)}:{i}: {s[:90]}")
+                    break
+    assert not bad, (
+        "The suite KB must not state a sub-project's counts — point at the file that "
+        "owns them instead (dx_app: config/model_registry.json + src/python_example/, "
+        "dx_stream: model_list.json + gst-dxstream-plugin/src/):\n  " + "\n  ".join(bad))
 
 
-def test_model_counts_match_registry(live_counts):
-    models, _ = live_counts
-    bad = _mismatches(MODEL_RE, models)
-    assert not bad, f"Stale model counts (registry has {models}):\n  " + "\n  ".join(bad)
-
-
-def test_task_counts_match_python_example_dirs(live_counts):
-    _, tasks = live_counts
-    bad = _mismatches(TASK_RE, tasks)
-    assert not bad, f"Stale task counts (src/python_example has {tasks} task dirs):\n  " + "\n  ".join(bad)
-
-
-def test_model_manager_total_row_matches_registry(live_counts):
-    models, _ = live_counts
-    f = APP_ROOT / ".deepx" / "agents" / "dx-model-manager.md"
-    text = read_markdown(f)
-    rows = [(i, int(m.group(1))) for i, l in enumerate(text.splitlines(), 1)
-            if (m := TOTAL_ROW_RE.match(l))]
-    assert rows, "dx-model-manager.md: '| **Total** | **N** |' row not found"
-    bad = [f"line {i}: {n}" for i, n in rows if n != models]
-    assert not bad, f"dx-model-manager.md Total row stale (registry {models}): {bad}"
-
-
-CSV_TASK_HEADER_RE = re.compile(r"^\s*\|.*\bcsv_task\b.*\|\s*$")
-# A genuine table header is immediately followed by a "|---|---|" separator row.
-# Without this check, a data row that merely *mentions* csv_task — e.g. a schema
-# field-reference row like "| `csv_task` | string | Yes | ... |" — is mistaken
-# for a header, and every ordinary field name in the rows below it (postprocessor,
-# input_width, ...) gets misread as a fabricated csv_task code.
-CSV_TASK_SEP_RE = re.compile(r"^\s*\|[\s\-:|]+\|\s*$")
-
-
-def _csv_task_column_values(text: str) -> list[tuple[int, str]]:
-    """(line_no, code) for every code in the csv_task column of every markdown
-    table whose header row mentions csv_task."""
-    out, lines, i = [], text.splitlines(), 0
-    while i < len(lines):
-        if (CSV_TASK_HEADER_RE.match(lines[i]) and i + 1 < len(lines)
-                and CSV_TASK_SEP_RE.match(lines[i + 1])):
-            cols = [c.strip() for c in lines[i].strip().strip("|").split("|")]
-            col = next(j for j, c in enumerate(cols) if "csv_task" in c)
-            i += 2  # skip separator row
-            while i < len(lines) and lines[i].lstrip().startswith("|"):
-                cells = [c.strip() for c in lines[i].strip().strip("|").split("|")]
-                if len(cells) > col:
-                    for code in re.split(r"[,/]", cells[col]):
-                        code = code.strip("` *")
-                        if code and code != "csv_task":
-                            out.append((i + 1, code))
-                i += 1
-        else:
-            i += 1
-    return out
-
-
-def test_csv_task_codes_exist_in_registry(live_counts):
-    registry = json.loads((APP_ROOT / "config" / "model_registry.json").read_text(encoding="utf-8"))
-    valid = {m.get("csv_task") for m in registry if isinstance(m, dict)} - {None}
-    bad = []
-    for f in iter_markdown_files(APP_ROOT / ".deepx", "**/*.md"):
-        for ln, code in _csv_task_column_values(f.read_text(encoding="utf-8")):
-            if code not in valid:
-                bad.append(f"{f.relative_to(SUITE_ROOT)}:{ln}: csv_task `{code}` not in registry")
-    assert not bad, "Fabricated csv_task codes (valid: " + ", ".join(sorted(valid)) + "):\n  " + "\n  ".join(bad)
-
-
-def test_model_manager_per_task_rows_match_registry(live_counts):
-    want = task_model_counts(APP_ROOT)
-    assert want is not None
-    text = read_markdown(APP_ROOT / ".deepx" / "agents" / "dx-model-manager.md")
-    got = {m[1]: int(m[2]) for line in text.splitlines()
-           if (m := TASK_ROW_RE.match(line)) and m[1] in want}
-    assert got == dict(want), (
-        "dx-model-manager.md per-task rows drift (task, n): "
-        f"{sorted(set(want.items()) ^ set(got.items()))}")
+def test_suite_templates_do_not_depend_on_dx_app_registry():
+    bad = [f"{f.relative_to(SUITE_ROOT)}: {v}" for f in SUITE_TEMPLATES
+           for v in REGISTRY_VARS if v in f.read_text(encoding="utf-8")]
+    assert not bad, (
+        "Suite templates must render without dx_app's registry (otherwise the suite "
+        "cannot be generated unless the submodule is initialised, and its output is a "
+        "snapshot of whichever dx_app branch was checked out):\n  " + "\n  ".join(bad))

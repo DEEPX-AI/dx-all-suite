@@ -10,7 +10,7 @@ SCRIPT_DIR    = Path(__file__).resolve().parent.parent   # dx_compiler/
 STATIC_DIR    = SCRIPT_DIR / "static"
 TEMPLATES_DIR = SCRIPT_DIR / "templates"
 CORE_DIR      = SCRIPT_DIR / "core"
-SDK_ROOT      = SUITE_ROOT / "dx-compiler"               # SDK 패키지 (install.sh, example/)
+SDK_ROOT      = SUITE_ROOT / "dx-compiler"               # SDK package (install.sh, example/)
 SDK_EXAMPLE   = SDK_ROOT / "example"
 SDK_PROPS     = SDK_ROOT / "compiler.properties"
 SAMPLE_MODELS_DIR = SDK_ROOT / "dx_com" / "sample_models"
@@ -29,7 +29,18 @@ _ALLOWED_ROOTS: list = [
 
 
 def is_safe_path(p: str) -> bool:
-    """Check that *p* resolves to a location under an allowed root."""
+    """Check that *p* resolves to a location under an allowed root.
+
+    **This is not a security boundary.** It is a UX guardrail that keeps the file
+    browser from walking the whole filesystem (the fs_browse.py module docstring
+    says the same).
+
+    Compile paths (model_path, config_path, output_dir, qxnn_path and dataset_path
+    of `/compile`, `/compile/resume` and `/config/generate`) are checked by
+    `dx_compiler.core.path_policy` instead: only real files and folders inside the
+    allowed roots. The server binds to all interfaces by default, so compile paths
+    cannot rely on the server staying on localhost.
+    """
     try:
         Path(p).resolve()
     except (OSError, ValueError):

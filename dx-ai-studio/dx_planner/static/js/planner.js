@@ -1,6 +1,6 @@
 /**
  * DX EdgeGuide — Main Entry Point
- * 모듈 와이어링: DataLoader, I18n, WizardController, RecommendEngine,
+ * Module wiring: DataLoader, I18n, WizardController, RecommendEngine,
  *               CardRenderer, BarChart, GaugeChart, ExplorerView, PlannerWorkspace
  */
 
@@ -29,7 +29,7 @@ function recommendationSignature(inputs, compareId) {
 }
 
 // ── Share link: build a URL that fully reproduces the current inputs ──
-// (task/size/cameras/fps/ort plus priority + latency, which were previously dropped).
+// (task/size/cameras/fps/ort plus priority + latency).
 function buildShareParams(inputs) {
   const params = new URLSearchParams();
   if (!inputs) return params;
@@ -262,7 +262,7 @@ async function initConfigurator() {
     await DataLoader.load();
   } catch (e) {
     const panel = document.getElementById('requirementsPanel');
-    if (panel) panel.innerHTML = '<p style="color:var(--error);padding:2rem;">⚠️ 벤치마크 데이터를 로드할 수 없습니다.</p>';
+    if (panel) panel.innerHTML = '<p style="color:var(--status-error);padding:2rem;">' + ((typeof DXIcon === 'function') ? DXIcon('alert') : '') + ' ' + ((typeof T === 'function') ? T('Could not load the benchmark data.') : 'Could not load the benchmark data.') + '</p>';
     return;
   }
 
@@ -357,3 +357,11 @@ async function initConfigurator() {
 }
 
 document.addEventListener('DOMContentLoaded', initConfigurator);
+
+// The condition and result summary chips are drawn only when a recommendation runs, so redraw them on a language
+// change.
+if (typeof registerPlannerLangRefresher === 'function') {
+  registerPlannerLangRefresher(function() {
+    if (_lastInputs && _lastResults) PlannerWorkspace.renderRecommendationSummary(_lastInputs, _lastResults);
+  });
+}

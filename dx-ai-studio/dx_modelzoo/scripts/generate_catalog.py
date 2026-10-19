@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""test_models.conf → model_catalog.json 자동 생성."""
+"""Generate model_catalog.json from test_models.conf."""
 import sys, json
 from pathlib import Path
 

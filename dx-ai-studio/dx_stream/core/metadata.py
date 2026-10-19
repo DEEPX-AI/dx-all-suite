@@ -1,6 +1,6 @@
-"""모델 메타데이터 추출 — dx_rt의 parse_model 래퍼.
+"""Model metadata — a wrapper around dx_rt's parse_model.
 
-.dxnn 모델 파일에서 그래프 정보, 입출력 텐서, 컴파일 옵션 등을 추출한다.
+Reads graph info, input/output tensors and compile options from a .dxnn file.
 """
 import os
 import subprocess
@@ -11,7 +11,7 @@ from shared.runtime import dx_rt_cli_python, dx_rt_cli_pythonpath
 
 
 def get_model_metadata(model_path: str) -> dict:
-    """parse_model을 호출하여 .dxnn 메타데이터 추출."""
+    """Run parse_model and return the .dxnn metadata."""
     model_file = Path(model_path)
     if not model_file.is_file():
         return {"error": f"Model file not found: {model_path}"}

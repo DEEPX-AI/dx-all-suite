@@ -1,0 +1,6 @@
+OK: graph "person-attributes" is valid (3 nodes, 2 edges, 2 models)
+
+node      model                         produces   consumes   artifact
+cam       (source)                      frame      -          sample/img/sample_people.jpg
+od        yolov8-n_640x640              boxes      full_frame yolov8-n_640x640.dxnn  [present, v9]
+attr      deepmar_resnet50_224x224      scores     either     deepmar_resnet50_224x224.dxnn  [present, v8]

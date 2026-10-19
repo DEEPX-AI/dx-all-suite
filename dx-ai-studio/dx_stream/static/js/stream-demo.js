@@ -1,11 +1,19 @@
 /**
- * DX Stream — 데모 런처
- * 데모 카드 렌더링, 시작/중지, WebRTC 연결
+ * DX Stream — demo launcher
+ * Renders demo cards, starts/stops demos, connects WebRTC
  */
 DXStream._runningDemoId = null;
 DXStream._startingDemo = false;
 
-/* ── XSS 방지: HTML 특수문자 이스케이프 ── */
+/* The server's /static/img/demo/… paths are module-relative; inside the launcher (/stream/) they would resolve
+   to the launcher's /static and 404, so add the module prefix. */
+function _thumbUrl(u) {
+  if (!u) return '';
+  var base = (window.DXStream && DXStream._base) || '';
+  return u.charAt(0) === '/' && base && u.indexOf(base + '/') !== 0 ? base + u : u;
+}
+
+/* ── XSS guard: escape HTML special characters ── */
 function _escHtml(s) {
     if (s == null) return '';
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
@@ -18,12 +26,30 @@ var _demoCatI18n = {
     segmentation:     { en: 'Segmentation',     ko: '분할',      es: 'Segmentación', ja: 'セグメンテーション', 'zh-CN': '分割', 'zh-TW': '分割' },
     tracking:         { en: 'Tracking',         ko: '추적',      es: 'Seguimiento', ja: '追跡', 'zh-CN': '追踪', 'zh-TW': '追蹤' },
     multi_stream:     { en: 'Multi-Stream',     ko: '멀티 스트림', es: 'Multi',    ja: 'マルチストリーム', 'zh-CN': '多路流', 'zh-TW': '多路串流' },
+    depth_estimation: { en: 'Depth Estimation', ko: '깊이 추정', es: 'Profundidad', ja: '深度推定', 'zh-CN': '深度估计', 'zh-TW': '深度估計' },
     secondary:        { en: 'Secondary',        ko: '2차 추론',  es: 'Secundario', ja: '二次推論', 'zh-CN': '二次推理', 'zh-TW': '二次推論' }
 };
 function _demoCatLabel(cat) {
     var t = _demoCatI18n[cat];
     if (!t) return cat || '';
     return t[DXStream.S.lang] || t.en || cat || '';
+}
+
+// Task icons share one table with Model Zoo · DX App (sprite task-<key>). Stream-only groups
+// (tracking · multi-stream · secondary inference) use the closest shared icon.
+var _DEMO_ICON = {
+    segmentation: 'task-instance_segmentation', tracking: 'video', multi_stream: 'dashboard',
+    secondary: 'task-attribute_recognition'
+};
+function _demoIco(name, cls) {
+    return (typeof window.DXIcon === 'function') ? window.DXIcon(name, cls ? { cls: cls } : undefined) : '';
+}
+function _demoTaskIco(cat) {
+    var name = _DEMO_ICON[cat] || (/^[a-z0-9_]+$/.test(cat || '') ? 'task-' + cat : 'models');
+    return _demoIco(name, 'demo-task-ico');
+}
+function _demoStateHtml(cls, icon, label) {
+    return '<span class="dx-step-state ' + cls + '">' + _demoIco(icon) + '<span>' + _escHtml(label) + '</span></span>';
 }
 
 function _demoText(d, field) {
@@ -79,66 +105,188 @@ function _demoUnavailableReason(availability) {
 }
 
 DXStream.demoInit = async function () {
-    DXStream.setPlaybackMode(DXStream._playbackMode); // sync toggle UI with persisted choice
-    var grid = DXStream.$('demo-grid');
-    if (grid) grid.innerHTML = '<div class="loading-placeholder"><span class="spin"></span>' +
-        '<span class="ko">데모 로드 중…</span><span class="en">Loading demos…</span></div>';
+    DXStream.setPlaybackMode(DXStream._playbackMode); // sync the Pipeline Builder bar with the persisted choice
+    var root = DXStream.$('demo-root');
+    if (root && !DXStream._demoCtl) root.innerHTML = '<div class="loading-placeholder"><span class="spin"></span>' +
+        '<span data-i18n="Loading demos…">Loading demos…</span></div>';
     var demos = await DXStream.api('/api/demos');
     if (demos.error) {
-        if (grid) grid.innerHTML = '<div class="empty-state"><span class="txt-dim">' +
+        if (root) root.innerHTML = '<div class="empty-state"><span class="txt-dim">' +
             T('Failed to load demos') + '</span></div>';
         return;
     }
     DXStream._allDemos = demos;
-    _renderDemoCards(demos);
+    _mountDemoStage(demos);
 };
 
-function _renderDemoCards(demos) {
-    var grid = DXStream.$('demo-grid');
-    if (!grid) return;
+// ── Result stage (shared shared/static/dx-demo-stage.js) ─────────────────────────────────────
+// The chosen demo opens on the stage at the top of the page (Playback · RTSP · Start) and its video plays
+// there; cards only select. There is a single video box (#demo-video-section — <video id="webrtc-video"> ·
+// #webrtc-stats-overlay). It moves into the stage media only while the stage shows the running demo and
+// otherwise waits in the hidden #demo-video-park — it must stay in the document so webrtc-client and the
+// cleanup code can find it by id.
+function _demoItem(d) {
+    var availability = d.availability || {};
+    var items = availability.reason_items || [];
+    var first = (Array.isArray(items) && items[0]) || null;
+    var shortReason = '';
+    if (first && _demoReasonI18n[first.code]) {
+        var lab = _demoReasonI18n[first.code];
+        shortReason = String(lab[DXStream.S.lang] || lab.en || '').replace(/:\s*$/, '');
+    } else if (first) {
+        shortReason = first.code;
+    }
+    var full = _demoUnavailableReason(availability) || d.reason || '';
+    return {
+        id: String(d.id),
+        title: _demoText(d, 'name'),
+        category: d.category || '',
+        task: { icon: _DEMO_ICON[d.category] || (/^[a-z0-9_]+$/.test(d.category || '') ? 'task-' + d.category : 'models'),
+                label: _demoCatLabel(d.category) },
+        thumb: _thumbUrl(d.thumbnail),
+        ready: !!d.available,
+        sub: d.model || '',
+        reason: d.available ? '' : (shortReason || full),
+        reasonTitle: d.available ? '' : full
+    };
+}
+
+function _mountDemoStage(demos) {
+    var root = DXStream.$('demo-root');
+    if (!root || !window.DXDemoStage) return;
+    _demoParkVideo();
     if (!demos || demos.length === 0) {
-        grid.innerHTML = '<div class="empty-state"><span class="txt-dim">' +
-            '<span class="ko">해당하는 데모가 없습니다</span>' +
-            '<span class="en">No demos found</span></span></div>';
+        DXStream._demoCtl = null;
+        root.innerHTML = '<div class="empty-state"><span class="txt-dim">' + _escHtml(T('No demos found')) + '</span></div>';
         return;
     }
-    var runId = DXStream._runningDemoId;
-    grid.innerHTML = demos.map(function (d) {
-        var availability = d.availability || {};
-        var reason = _demoUnavailableReason(availability) || d.reason || '';
-        return `
-        <div class="demo-card${d.id === runId ? ' demo-running' : ''}" data-id="${d.id}" data-category="${_escHtml(d.category)}">
-            <div class="demo-card-header">
-                <span class="demo-card-num">#${d.id}</span>
-                ${d.id === runId ? '<span class="status-pill pill-running">▶</span>' : ''}
-                <span class="status-pill ${d.available ? 'pill-ok' : 'pill-warn'}">${d.available ? '✓' : '⚠'}</span>
-            </div>
-            <h3 class="demo-card-title">
-                ${_escHtml(_demoText(d, 'name'))}
-            </h3>
-            <p class="txt-dim txt-sm">
-                ${_escHtml(_demoText(d, 'description'))}
-            </p>
-            <div class="demo-card-meta">
-                <span class="demo-card-model">📦 ${_escHtml(d.model)}</span>
-                <span class="demo-card-cat">${_escHtml(_demoCatLabel(d.category))}</span>
-            </div>
-            ${!d.available && reason ? '<p class="txt-xs txt-warn demo-unavailable-reason">' + _escHtml(reason) + '</p>' : ''}
-            ${d.pipeline_type === 'rtsp' ? '<input class="demo-rtsp-input" id="rtsp-url-' + d.id + '" type="text" placeholder="rtsp://host:port/path" title="RTSP" style="width:100%;box-sizing:border-box;margin:2px 0 6px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg-0,var(--bg-2));color:var(--text-1);font-size:12px"><p class="txt-xs txt-dim" style="margin:0 0 6px"><span class="ko">RTSP 주소 입력 (비우면 데모 CCTV 사용)</span><span class="en">Enter an RTSP URL (blank = demo CCTV)</span><span class="ja">RTSP URLを入力 (空欄=デモCCTV)</span><span class="zh-CN">输入RTSP地址 (留空=演示CCTV)</span><span class="zh-TW">輸入RTSP位址 (留空=示範CCTV)</span><span class="es">Ingrese URL RTSP (vacío = CCTV demo)</span></p>' : ''}
-            <div class="demo-card-actions">
-                <button class="btn btn-primary btn-sm" onclick="DXStream._startDemo(${d.id})"
-                    ${!d.available || d.id === runId ? 'disabled' : ''} id="start-demo-${d.id}"
-                    ${d.id === runId ? 'style="display:none"' : ''}>
-                    <span class="ko">실행</span><span class="en">Start</span>
-                </button>
-                <button class="btn btn-ghost btn-sm" onclick="DXStream._stopDemo(${d.id})"
-                    ${d.id !== runId ? 'style="display:none"' : ''} id="stop-demo-${d.id}">
-                    <span class="ko">중지</span><span class="en">Stop</span>
-                </button>
-            </div>
-        </div>
-    `;
-    }).join('');
+    var cats = [];
+    demos.forEach(function (d) { if (d.category && cats.indexOf(d.category) < 0) cats.push(d.category); });
+    DXStream._demoCtl = window.DXDemoStage.mount(root, {
+        items: demos.map(_demoItem),
+        filters: [{ key: 'all', label: T('All') }].concat(cats.map(function (c) { return { key: c, label: _demoCatLabel(c) }; })),
+        labels: { setup: T('Set up'), none: T('Install a model in Setup to run a demo.'), ready: T('Ready'),
+                  running: T('Running'), unready: T('Needs setup') },
+        onSelect: function (item, stage) { _demoOpen(+item.id, stage); },
+        onSetup: function () { DXStream.nav('setup'); }
+    });
+    // On a re-render (language switch etc.), put the running demo back on the stage
+    if (DXStream._runningDemoId != null) {
+        DXStream._demoCtl.setRunning(String(DXStream._runningDemoId));
+        DXStream._demoCtl.select(String(DXStream._runningDemoId));
+    }
+}
+
+function _demoById(id) {
+    return (DXStream._allDemos || []).find(function (x) { return x.id === id; }) || null;
+}
+
+// Keep a handle on the box: the stage replaces its media with innerHTML, which detaches the box —
+// after that getElementById can no longer find it, so it is always re-attached from this handle.
+function _demoVideoBox() {
+    if (!DXStream._demoVideoBoxEl) DXStream._demoVideoBoxEl = DXStream.$('demo-video-section');
+    return DXStream._demoVideoBoxEl;
+}
+function _demoParkVideo() {
+    var box = _demoVideoBox(), park = DXStream.$('demo-video-park');
+    if (box && park && box.parentNode !== park) park.appendChild(box);
+}
+
+function _demoOpen(id, stage) {
+    var d = _demoById(id);
+    if (!d) return;
+    DXStream._demoCurrent = id;
+    DXStream._demoStage = stage;
+    if (!stage.opts._streamWired) {         // panel elements live as long as the stage — wire once
+        stage.opts._streamWired = true;
+        stage.opts.addEventListener('click', function (e) {
+            var b = e.target.closest('button[data-mode]');
+            if (b) DXStream.setPlaybackMode(b.getAttribute('data-mode'));
+        });
+        stage.actions.addEventListener('click', function (e) {
+            var b = e.target.closest('.dds-run');
+            if (!b || DXStream._demoCurrent == null) return;
+            if (b.classList.contains('is-stop')) DXStream._stopDemo(DXStream._runningDemoId);
+            else DXStream._startDemo(DXStream._demoCurrent);
+        });
+    }
+    var mode = DXStream._playbackMode;
+    var opts = '<p class="dds-why">' + _escHtml(_demoText(d, 'description')) + '</p>'
+        + '<div class="dds-opt" data-axis-row="playback"><span class="dds-opt-label">' + _escHtml(T('Playback')) + '</span>'
+        + '<div class="dds-seg playback-mode-seg">'
+        + '<button type="button" data-mode="local" class="' + (mode === 'local' ? 'is-on' : '') + '" title="'
+        + _escHtml(T("Viewing on the board's own PC / same LAN (low latency, no re-encode)")) + '">' + _escHtml(T('Local (WebRTC)')) + '</button>'
+        + '<button type="button" data-mode="remote" class="' + (mode === 'remote' ? 'is-on' : '') + '" title="'
+        + _escHtml(T('Remote access from another PC / SSH tunnel (MJPEG over HTTP, works anywhere)')) + '">' + _escHtml(T('Remote (MJPEG)')) + '</button>'
+        + '</div></div>';
+    if (d.pipeline_type === 'rtsp') {
+        opts += '<div class="dds-opt" data-axis-row="rtsp"><span class="dds-opt-label">RTSP</span>'
+            + '<input class="dds-input demo-rtsp-input" id="rtsp-url-' + d.id + '" type="text" placeholder="rtsp://host:port/path" title="'
+            + _escHtml(T('Enter an RTSP URL (blank = demo CCTV)')) + '"></div>';
+    }
+    stage.opts.innerHTML = opts;
+    stage.extra.innerHTML = _demoExtraHtml(d);
+    _demoPaint(id);
+}
+
+// "Terminal command ›" — the reference run script, for true (un-encoded) performance numbers.
+function _demoExtraHtml(d) {
+    return '<details><summary>' + _escHtml(T('Terminal command')) + '</summary>'
+        + '<p>' + _escHtml(T('Browser streaming (WebRTC/MJPEG) adds encoding overhead, so on-screen speed can differ from real performance. For true numbers, run in a terminal:')) + '</p>'
+        + '<pre id="demo-perf-cmd">bash dx_stream/pipelines/' + _escHtml(d.runtime_script || '<run_*.sh>') + '</pre></details>';
+}
+
+// Paint the stage for demo id: running (live video in the media) or ready (preview + Start).
+function _demoPaint(id) {
+    var st = DXStream._demoStage;
+    if (!st || DXStream._demoCurrent !== id) return;
+    var d = _demoById(id) || {};
+    var running = DXStream._runningDemoId === id;
+    var box = _demoVideoBox();
+    if (running && box) {
+        st.media.innerHTML = '';
+        st.media.appendChild(box);
+        // A media element pauses when it leaves the document — resume it after the move.
+        var v = DXStream.$('webrtc-video');
+        if (v && (v.srcObject || v.src)) { try { v.play().catch(function () {}); } catch (e) {} }
+        st.setState('running', T('Running'));
+        st.actions.innerHTML = '<button type="button" class="dds-run is-stop" id="btn-demo-stop">' + _demoIco('stop', 'dds-ico')
+            + '<span>' + _escHtml(T('Stop')) + '</span></button>';
+        st.setMetrics([
+            { value: '—', label: 'FPS', accent: true, id: 'demo-fps-info' },
+            { value: '—', label: T('Resolution'), id: 'demo-resolution-info' },
+            { value: String(d.model || '—').replace(/\.dxnn$/, ''), label: T('Model'), id: 'demo-model-info' }
+        ]);
+        _demoStartMetrics();
+    } else {
+        _demoParkVideo();
+        if (!st.media.firstElementChild) st.setMedia(d.thumbnail ? '<img class="dds-preview" src="' + _escHtml(_thumbUrl(d.thumbnail)) + '" alt="">'
+            : '<div class="dds-blank">' + _demoIco(_demoItem(d).task.icon, 'dds-ico') + '</div>');
+        st.setState('ready', T('Ready'));
+        st.setMetrics([]);
+        st.actions.innerHTML = '<button type="button" class="dds-run demo-card-go" id="start-demo-' + id + '">' + _demoIco('play', 'dds-ico')
+            + '<span>' + _escHtml(T('Start')) + '</span></button>';
+    }
+}
+
+// The panel's FPS · resolution come from the live video: FPS from the transport's own counter (the
+// text webrtc-client / the MJPEG and fMP4 pollers write into #webrtc-stats-overlay — now hidden, the
+// number moves to the panel) and the size from the decoded frame.
+var _demoMetricsTimer = null;
+function _demoStartMetrics() {
+    if (_demoMetricsTimer) clearInterval(_demoMetricsTimer);
+    _demoMetricsTimer = setInterval(function () {
+        if (DXStream._runningDemoId == null) { clearInterval(_demoMetricsTimer); _demoMetricsTimer = null; return; }
+        var fpsEl = DXStream.$('demo-fps-info'), resEl = DXStream.$('demo-resolution-info');
+        var ov = DXStream.$('webrtc-stats-overlay');
+        var m = ov && /([\d.]+)\s*FPS/.exec(ov.textContent || '');
+        if (fpsEl && m) fpsEl.textContent = m[1];
+        var v = DXStream.$('webrtc-video'), img = DXStream.$('mjpeg-stream');
+        var w = 0, h = 0;
+        if (img && img.style.display !== 'none' && img.naturalWidth) { w = img.naturalWidth; h = img.naturalHeight; }
+        else if (v && v.videoWidth) { w = v.videoWidth; h = v.videoHeight; }
+        if (resEl && w) resEl.textContent = w + '×' + h;
+    }, 1000);
 }
 
 // MJPEG mode has no WebRTC getStats. Poll the server's frame counter once a second and diff it
@@ -185,6 +333,9 @@ DXStream.setPlaybackMode = function (mode, btn) {
     document.querySelectorAll('.playback-mode-bar button[data-mode]').forEach(function (b) {
         b.classList.toggle('active', b.getAttribute('data-mode') === DXStream._playbackMode);
     });
+    document.querySelectorAll('.playback-mode-seg button[data-mode]').forEach(function (b) {
+        b.classList.toggle('is-on', b.getAttribute('data-mode') === DXStream._playbackMode);
+    });
     var localHint = DXStream.$('playback-mode-hint-local');
     var remoteHint = DXStream.$('playback-mode-hint-remote');
     if (localHint) localHint.style.display = (DXStream._playbackMode === 'local') ? '' : 'none';
@@ -208,7 +359,6 @@ function _showMjpegStream(videoSection) {
     mjpegImg.style.display = '';
     mjpegImg.src = '/api/stream/mjpeg?' + Date.now();
     _startMjpegFps(mjpegImg);
-    if (videoSection) videoSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 // ── Fragmented-MP4 (H264) over HTTP via Media Source Extensions — for remote/tunnel viewers ──
@@ -269,7 +419,6 @@ function _showFmp4Stream(videoSection) {
     if (mjpegImg) mjpegImg.style.display = 'none';
     if (!_mseSupported()) { DXStream._fallbackToMjpeg(DXStream._runningDemoId); return; }
     _fmp4PlayInto(video);
-    if (videoSection) videoSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 // Core MSE player, reusable for the demo page and the Pipeline Builder (they pass different
@@ -439,28 +588,30 @@ function _clearStoppedDemoLaunchState(resp) {
     if (!pipelineError || !playbackStopped) return false;
 
     var previousId = DXStream._runningDemoId;
-    if (previousId != null) {
-        var previousStartBtn = DXStream.$('start-demo-' + previousId);
-        var previousStopBtn = DXStream.$('stop-demo-' + previousId);
-        if (previousStartBtn) {
-            previousStartBtn.style.display = '';
-            previousStartBtn.disabled = false;
-        }
-        if (previousStopBtn) previousStopBtn.style.display = 'none';
-        var previousCard = previousStartBtn ? previousStartBtn.closest('.demo-card') : null;
-        if (previousCard) previousCard.classList.remove('demo-running');
-    }
     DXStream._runningDemoId = null;
+    if (DXStream._demoCtl) DXStream._demoCtl.setRunning(null);
+    if (previousId != null) _demoPaint(previousId);
 
-    var message = resp.message || T('Demo playback stopped.');
-    if (resp.detail) message += ' ' + resp.detail;
-    if (resp.remediation) message += ' ' + resp.remediation;
+    // The server sends fixed English sentences (_demo_launch_failure_payload); stream-i18n.js
+    // carries each one, and T() leaves anything unknown as it came.
+    var message = resp.message ? T(resp.message) : T('Demo playback stopped.');
+    if (resp.detail) message += ' ' + T(resp.detail);
+    if (resp.remediation) message += ' ' + T(resp.remediation);
     DXStream.toast(message, 'error');
     return true;
 }
 
 // WebRTC couldn't connect (remote/NAT/tunnel). Restart this demo forcing MJPEG on the server,
 // then show the MJPEG stream. Guarded so it only runs once per start.
+// A refused start: the server's sentence through translateServerError, plus the detail it sends
+// (which check failed and how), rather than resp.error raw.
+function _demoStartError(resp) {
+    var tr = (typeof window.translateServerError === 'function') ? window.translateServerError : function (m) { return m; };
+    var msg = tr(String((resp && resp.error) || T('Demo playback stopped.')));
+    if (resp && resp.detail && resp.detail !== resp.error) msg += ' — ' + tr(String(resp.detail));
+    return msg;
+}
+
 DXStream._fallbackToMjpeg = async function (id) {
     if (DXStream._mjpegFallbackFor === id) return;
     DXStream._mjpegFallbackFor = id;
@@ -471,10 +622,14 @@ DXStream._fallbackToMjpeg = async function (id) {
         try { if (DXStream.webrtc && DXStream.webrtc.disconnect) DXStream.webrtc.disconnect(); } catch (e) {}
         try { _stopFmp4(); } catch (e) {}
         DXStream.toast(T('WebRTC unavailable from here — switching to MJPEG…'), 'info');
-        var resp = await DXStream.postJ('/api/demos/' + id + '/start', { forceMjpeg: true });
+        // Same source as the first start, so an RTSP demo keeps its camera URL.
+        var first = (DXStream._demoStartBody || {})[id] || {};
+        var retry = { forceMjpeg: true };
+        if (first.video) retry.video = first.video;
+        var resp = await DXStream.postJ('/api/demos/' + id + '/start', retry);
         if (resp && resp.error) {
             if (_clearStoppedDemoLaunchState(resp)) return;
-            DXStream.toast(resp.error, 'error');
+            DXStream.toast(_demoStartError(resp), 'error');
             return;
         }
         _showMjpegStream(DXStream.$('demo-video-section'));
@@ -508,16 +663,18 @@ DXStream._startDemo = async function (id) {
         // "://" value through as the pipeline URI). Blank falls back to the demo's default CCTV.
         var _rtspEl = DXStream.$('rtsp-url-' + id);
         if (_rtspEl && _rtspEl.value.trim()) _startBody.video = _rtspEl.value.trim();
+        DXStream._demoStartBody = DXStream._demoStartBody || {};
+        DXStream._demoStartBody[id] = _startBody;
         var resp = await DXStream.postJ('/api/demos/' + id + '/start', _startBody);
         if (resp.error) {
             if (_clearStoppedDemoLaunchState(resp)) return;
-            DXStream.toast(resp.error, 'error');
+            DXStream.toast(_demoStartError(resp), 'error');
             return;
         }
         if (resp.output_mode === 'webrtc') {
             var status = await _waitDemoStarted(id, resp.pipeline_id);
             if (status && status.error) {
-                DXStream.toast(status.error, 'error');
+                DXStream.toast(_demoStartError(status), 'error');
                 return;
             }
         }
@@ -525,31 +682,16 @@ DXStream._startDemo = async function (id) {
         _setPerfCmd(id);
         DXStream.toast(T('Demo started'), 'success');
 
-        // UI 토글: 실행 → 중지 버튼
-        if (startBtn) startBtn.style.display = 'none';
-        var stopBtn = DXStream.$('stop-demo-' + id);
-        if (stopBtn) stopBtn.style.display = '';
+        // Stage: show this demo (switching back if another card was selected) and move the video box into its media
+        if (DXStream._demoCtl) {
+            DXStream._demoCtl.setRunning(String(id));
+            if (DXStream._demoCurrent !== id) DXStream._demoCtl.select(String(id));
+            else _demoPaint(id);
+        }
 
-        // 실행 중 카드 하이라이트
-        var card = startBtn ? startBtn.closest('.demo-card') : null;
-        if (card) card.classList.add('demo-running');
-
-        // 비디오 연결
+        // Connect video
         if (resp.output_mode === 'mjpeg' || resp.output_mode === 'webrtc' || resp.output_mode === 'fmp4') {
             var videoSection = DXStream.$('demo-video-section');
-            if (videoSection) {
-                videoSection.style.display = '';
-            }
-            var demo = DXStream._allDemos ? DXStream._allDemos.find(function (d) { return d.id === id; }) : null;
-            if (demo) {
-                var titleEl = DXStream.$('demo-video-title');
-                if (titleEl) titleEl.textContent = '#' + id + ' ' + _demoText(demo, 'name');
-                var modelEl = DXStream.$('demo-model-info');
-                if (modelEl) modelEl.textContent = '📦 ' + (demo.model || '--');
-                var pipeEl = DXStream.$('demo-pipeline-info');
-                if (pipeEl) pipeEl.textContent = demo.category || '';
-            }
-
             if (resp.output_mode === 'mjpeg') {
                 _showMjpegStream(videoSection);
             } else if (resp.output_mode === 'fmp4') {
@@ -591,63 +733,59 @@ async function _waitDemoStarted(id, pipelineId) {
 }
 
 DXStream._stopDemo = async function (id) {
-    DXStream.webrtc.disconnect();
     var demoId = (id != null) ? id : DXStream._runningDemoId;
-    if (demoId != null) {
-        await DXStream.postJ('/api/demos/' + demoId + '/stop', {});
-        // UI 토글: 중지 → 실행 버튼
-        var startBtn = DXStream.$('start-demo-' + demoId);
-        var stopBtn = DXStream.$('stop-demo-' + demoId);
-        if (startBtn) { startBtn.style.display = ''; startBtn.disabled = false; }
-        if (stopBtn) stopBtn.style.display = 'none';
-        // 실행 중 카드 하이라이트 해제
-        var card = startBtn ? startBtn.closest('.demo-card') : null;
-        if (card) card.classList.remove('demo-running');
-    } else {
-        await DXStream.postJ('/api/pipeline/stop', {});
+    var resp = (demoId != null)
+        ? await DXStream.postJ('/api/demos/' + demoId + '/stop', {})
+        : await DXStream.postJ('/api/pipeline/stop', {});
+    if (resp && resp.error) {
+        // Report a refused stop instead of claiming the demo stopped.
+        DXStream.toast(_demoStartError(resp), 'error');
+        return;
     }
+    _demoTearDown(demoId);
+    DXStream.toast(T('Demo stopped'), 'info');
+};
 
-    // 비디오 섹션 숨김 및 정리
+// The server no longer plays this demo (a Pipeline Builder run replaces it, or it ended): drop the
+// page's "running" state without another stop request. Called by the shared playback poll.
+DXStream._demoSyncWithServer = function (st) {
+    var id = DXStream._runningDemoId;
+    if (id == null || DXStream._startingDemo || !st) return;
+    if (st.running && (st.demo_id === id || st.demo_id == null && String(st.pipeline_id || '').indexOf('demo-' + id) >= 0)) return;
+    if (st.running && st.demo_id == null && String(st.pipeline_id || '').indexOf('demo') >= 0) return;
+    _demoTearDown(id);
+};
+
+function _demoTearDown(demoId) {
+    try { DXStream.webrtc.disconnect(); } catch (e) {}
+
+    // Clean up video
     var videoSection = DXStream.$('demo-video-section');
     if (document.fullscreenElement === videoSection && document.exitFullscreen) {
-        try { await document.exitFullscreen(); } catch (e) {}
+        try { document.exitFullscreen().catch(function () {}); } catch (e) {}
     }
-    if (videoSection) videoSection.style.display = 'none';
     _stopFmp4();  // tear down MSE stream (fetch reader + MediaSource) if remote/fMP4 was active
     var video = DXStream.$('webrtc-video');
     if (video) { video.srcObject = null; video.style.display = ''; }
     var mjpegImg = DXStream.$('mjpeg-stream');
     if (mjpegImg) { mjpegImg.src = ''; mjpegImg.style.display = 'none'; }
     _stopMjpegFps();
-    var titleEl = DXStream.$('demo-video-title');
-    if (titleEl) titleEl.textContent = '--';
     var statsOverlay = DXStream.$('webrtc-stats-overlay');
     if (statsOverlay) statsOverlay.textContent = '';
 
     DXStream._runningDemoId = null;
-    DXStream.toast(T('Demo stopped'), 'info');
-};
-
-DXStream.filterDemos = function (cat, btn) {
-    var bar = DXStream.$('demo-filter-bar');
-    if (bar) {
-        bar.querySelectorAll('.btn').forEach(function (b) { b.classList.remove('active'); });
-        // btn 이 없으면 data-cat으로 찾기
-        if (btn) {
-            btn.classList.add('active');
-        } else if (bar) {
-            var match = bar.querySelector('[data-cat="' + cat + '"]');
-            if (match) match.classList.add('active');
-        }
-    }
-    if (!DXStream._allDemos) return;
-    if (cat === 'all') {
-        _renderDemoCards(DXStream._allDemos);
+    if (DXStream._demoCtl) DXStream._demoCtl.setRunning(null);
+    if (demoId != null && DXStream._demoCurrent === demoId && DXStream._demoStage) {
+        DXStream._demoStage.media.innerHTML = '';     // back to the preview
+        _demoPaint(demoId);
     } else {
-        _renderDemoCards(DXStream._allDemos.filter(function (d) {
-            return d.category === cat;
-        }));
+        _demoParkVideo();
     }
+}
+
+// Filters live on the stage now (buttons built from the demos' own categories).
+DXStream.filterDemos = function (cat) {
+    if (DXStream._demoCtl) DXStream._demoCtl.setFilter(cat || 'all');
 };
 
 DXStream.stopDemo = function () {
@@ -671,3 +809,33 @@ if (typeof registerStreamLangRefresher === 'function') {
     }
   });
 }
+// Tutorial hooks. The tour must work on a PC with nothing installed: open a demo on the stage even
+// when none is ready (the stage otherwise shows only "Install a model in Setup"), and show it as if it
+// were running (video box in the media, sample numbers, Stop, the terminal command) — then put it back.
+DXStream._demoTutorialOpen = function () {
+    var ctl = DXStream._demoCtl;
+    if (!ctl || ctl.current() || !(DXStream._allDemos || []).length) return;
+    ctl.select(String(DXStream._allDemos[0].id));
+};
+DXStream._demoMockRunning = function (on) {
+    var ctl = DXStream._demoCtl, cur = ctl && ctl.current();
+    if (!cur || DXStream._runningDemoId != null) return;
+    var st = ctl.stage, id = +cur.id, d = _demoById(id) || {};
+    if (!on) {
+        st.media.innerHTML = '';
+        if (cur.ready) _demoPaint(id); else ctl.select(cur.id);
+        return;
+    }
+    var box = _demoVideoBox();
+    if (box && box.parentNode !== st.media) { st.media.innerHTML = ''; st.media.appendChild(box); }
+    st.setState('running', T('Running'));
+    st.actions.innerHTML = '<button type="button" class="dds-run is-stop" id="btn-demo-stop">' + _demoIco('stop', 'dds-ico')
+        + '<span>' + _escHtml(T('Stop')) + '</span></button>';
+    st.setMetrics([
+        { value: '28.4', label: 'FPS', accent: true, id: 'demo-fps-info' },
+        { value: '1920×1080', label: T('Resolution'), id: 'demo-resolution-info' },
+        { value: String(d.model || 'yolo26n').replace(/\.dxnn$/, ''), label: T('Model'), id: 'demo-model-info' }
+    ]);
+    if (!st.extra.firstElementChild) st.extra.innerHTML = _demoExtraHtml(d);
+    st.root.scrollIntoView({ behavior: 'smooth', block: 'start' });
+};

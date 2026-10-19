@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""ModelZoo 이미지 최적화 도구.
+"""ModelZoo image optimizer.
 
-thumbnails/examples 이미지를 WebP/JPG로 변환하여 optimized/ 디렉토리에 저장합니다.
-기본 동작은 dry-run(보고만 수행)이며 --write 플래그로 실제 파일 생성을 활성화합니다.
+Converts thumbnails/examples images to WebP/JPG and stores them under optimized/.
+The default is a dry run (report only); --write actually creates the files.
 
-Pillow는 오프라인 툴링 의존성입니다. 런타임 requirements.txt에 추가하지 않습니다.
+Pillow is an offline tooling dependency and is not added to the runtime requirements.txt.
 """
 
 from __future__ import annotations
@@ -13,7 +13,7 @@ import argparse
 import json
 from pathlib import Path
 
-# 서브디렉토리별 최대 너비 설정
+# Maximum width per subdirectory
 _MAX_WIDTHS = {
     "thumbnails": 420,
     "examples": 960,
@@ -40,7 +40,7 @@ def _discover_images(
     model: str | None = None,
     limit: int | None = None,
 ) -> list[tuple[str, Path]]:
-    """source_root 아래 thumbnails/, examples/ 에서 이미지 파일을 탐색합니다."""
+    """Find image files under thumbnails/ and examples/ below source_root."""
     results: list[tuple[str, Path]] = []
     for subdir in ("thumbnails", "examples"):
         dir_path = source_root / subdir
@@ -63,11 +63,11 @@ def _resize_and_save(
     out_dir: Path,
     max_width: int,
 ) -> dict:
-    """이미지를 리사이즈하고 WebP/JPG로 저장합니다. 원본 비율을 유지합니다."""
+    """Resize an image and save it as WebP/JPG, keeping the aspect ratio."""
     img = Image.open(src_path)
     orig_size = src_path.stat().st_size
 
-    # RGB 변환 (RGBA/P 모드 처리) — M-1: 알파 채널은 흰 배경 위에 합성
+    # RGB conversion (RGBA/P modes) — alpha is composited onto a white background
     if img.mode == "RGBA":
         background = Image.new("RGB", img.size, (255, 255, 255))
         background.paste(img, mask=img.split()[3])
@@ -83,7 +83,7 @@ def _resize_and_save(
 
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    # I-4: 충돌 방지 — 원본 확장자를 stem에 포함
+    # Avoid collisions — include the original extension in the stem
     safe_stem = f"{src_path.stem}-{src_path.suffix.lstrip('.').lower()}"
     webp_path = out_dir / f"{safe_stem}.webp"
     jpg_path = out_dir / f"{safe_stem}.jpg"
@@ -112,24 +112,32 @@ def optimize_images(
     limit: int | None = None,
     model: str | None = None,
 ) -> dict:
-    """이미지를 최적화하고 보고서를 반환합니다.
+    """Optimize images and return a report.
 
     Args:
-        source_root: thumbnails/, examples/ 가 있는 루트 디렉토리.
-        output_root: 최적화 결과를 저장할 디렉토리.
-        write: True면 실제 파일 생성, False면 dry-run.
-        force: True면 기존 파일도 재생성.
-        limit: 처리할 최대 이미지 수.
-        model: 필터링할 모델 이름 부분 문자열.
+        source_root: root directory holding thumbnails/ and examples/.
+        output_root: directory for the optimized output.
+        write: True creates files, False is a dry run.
+        force: True regenerates existing files too.
+        limit: maximum number of images to process.
+        model: model name substring to filter by.
 
     Returns:
-        processed, written, skipped, source_bytes, output_bytes, images 키를 포함하는 dict.
+        dict with processed, written, skipped, source_bytes, output_bytes and images.
     """
     source_root = Path(source_root)
     output_root = Path(output_root)
     Image = _load_pillow()
 
     images_found = _discover_images(source_root, model=model, limit=limit)
+    if not images_found and model is None:
+        # Fail **loudly** when there are no sources. thumbnails/ and examples/ are not tracked in
+        # git, so a fresh clone has none — "succeeded, processed 0" would hide that.
+        raise FileNotFoundError(
+            f"No source images under {source_root}. "
+            "thumbnails/ and examples/ are not tracked in git — regenerate them first "
+            "with `python -m dx_modelzoo.scripts.generate_thumbnails` "
+            "(needs the dx_app server on port 8080 and the .dxnn models installed).")
 
     report = {
         "processed": 0,
@@ -145,14 +153,20 @@ def optimize_images(
         out_subdir = output_root / subdir
         stem = img_path.stem
 
-        # I-2 & I-4: 이미 존재하면 스킵 (force가 아닌 경우, dry-run 포함)
+        # Skip only when the outputs exist **and are newer than the source**.
+        #
+        # Checking existence alone would never refresh the optimized copies after a thumbnail is
+        # regenerated, and catalog.js tries .webp → .jpg → original, so browsers would keep getting
+        # the old image. --force is a workaround, not a fix (it rebuilds every image each time).
+        # Contract: tests/dx_modelzoo/test_optimize_images_staleness.py
         safe_stem = f"{stem}-{img_path.suffix.lstrip('.').lower()}"
         if not force:
-            webp_exists = (out_subdir / f"{safe_stem}.webp").exists()
-            jpg_exists = (out_subdir / f"{safe_stem}.jpg").exists()
-            if webp_exists and jpg_exists:
-                report["skipped"] += 1
-                continue
+            outputs = [out_subdir / f"{safe_stem}.webp", out_subdir / f"{safe_stem}.jpg"]
+            if all(o.exists() for o in outputs):
+                source_mtime = img_path.stat().st_mtime
+                if all(o.stat().st_mtime >= source_mtime for o in outputs):
+                    report["skipped"] += 1
+                    continue
 
         source_size = img_path.stat().st_size
         report["processed"] += 1
@@ -174,13 +188,56 @@ def optimize_images(
         report["images"].append(entry)
 
     if write and report["written"] > 0:
-        manifest = {
-            "images": report["images"],
-            "total_source_bytes": report["source_bytes"],
-            "total_output_bytes": report["output_bytes"],
-        }
         output_root.mkdir(parents=True, exist_ok=True)
         manifest_path = output_root / "manifest.json"
+        # Writing only this run's entries would let a partial run (`--model`) erase the rest of the
+        # manifest, so **merge** into the existing records.
+        src_root = Path(source_root).resolve()
+        out_root = Path(output_root).resolve()
+
+        def _rel(value, root):
+            """Paths go in relative (sources to the source root, outputs to the output root) — an absolute path
+            records one developer's checkout and is wrong everywhere else."""
+            p = Path(value)
+            try:
+                return p.resolve().relative_to(root).as_posix() if p.is_absolute() else p.as_posix()
+            except ValueError:
+                return p.as_posix()
+
+        def _portable(entry):
+            e = dict(entry)
+            e["source"] = _rel(e["source"], src_root)
+            for key in ("webp_path", "jpg_path"):
+                if e.get(key):
+                    e[key] = _rel(e[key], out_root)
+            return e
+
+        merged: dict[str, dict] = {}
+        if manifest_path.is_file():
+            try:
+                previous = json.loads(manifest_path.read_text())
+            except (json.JSONDecodeError, OSError):
+                previous = {}
+            for entry in previous.get("images", []):
+                source = entry.get("source")
+                if not source:
+                    continue
+                absolute = Path(source) if Path(source).is_absolute() else src_root / source
+                # A record whose source is gone is dropped; keeping it would skew the totals.
+                if absolute.is_file():
+                    portable = _portable(entry)
+                    merged[portable["source"]] = portable
+        for entry in report["images"]:
+            portable = _portable(entry)
+            merged[portable["source"]] = portable
+
+        images = sorted(merged.values(), key=lambda e: e["source"])
+        manifest = {
+            "images": images,
+            "total_source_bytes": sum(e.get("source_bytes", 0) for e in images),
+            "total_output_bytes": sum(
+                e.get("webp_bytes", 0) + e.get("jpg_bytes", 0) for e in images),
+        }
         manifest_path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False))
 
     return report

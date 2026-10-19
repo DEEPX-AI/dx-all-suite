@@ -18,7 +18,7 @@ DEEPX Agent-Driven Development (dx-agent-dev) 기능은 **`.deepx/`를 canonical
 자연어 프롬프트로 DEEPX SDK 기반 AI 애플리케이션을 생성합니다. AI 에이전트가 다음을 이해합니다.
 
 - **dx_app**: IFactory · SyncRunner · AsyncRunner 기반 standalone 추론 (Python/C++)
-- **dx_stream**: 13개 GStreamer 엘리먼트 × 6개 파이프라인 카테고리
+- **dx_stream**: GStreamer 엘리먼트(`gst-dxstream-plugin/src/`) × 파이프라인 카테고리(`dx_stream/pipelines/`)
 - **dx-compiler**: ONNX → DXNN 변환 (DX-COM, PPU 자동 감지)
 - **cross-project**: 컴파일 + 앱 빌드 + 검증 연쇄
 
@@ -161,7 +161,7 @@ checkout에서, sub-repo를 canonical한 위치에 둔 채로 `bash
 API hallucination 방지용 grounding 문서. 검증된 심볼만 나열:
 - `IFactory` 5-메서드, `SyncRunner`, `AsyncRunner`
 - `dx_com.compile(...)` (`from dxcom import dxcom` 패턴 금지)
-- 13개 GStreamer 엘리먼트
+- GStreamer 엘리먼트(`gst-dxstream-plugin/src/`)
 - 모든 instruction의 API 이름은 이 문서에서 교차 검증 필수
 
 ### 3.4 templates/fragments/ — 16개 공유 규칙 조각 (EN+KO 32개)
@@ -298,7 +298,7 @@ API hallucination 방지용 grounding 문서. 검증된 심볼만 나열:
 |------|------|
 | `MEMORY.md` | 인덱스 + 업데이트 프로토콜 + 도메인 태그 |
 | `common_pitfalls.md` (32KB) | 10개 핵심 함정 (`[UNIVERSAL]`, `[DX_APP]`, `[PPU]`) |
-| `model_zoo.md` | 353개 모델 (classification 111, object_detection 97, instance_seg 23, pose 19, face 18 …) — 정확한 수는 `model_registry.json`에서 jq 쿼리 |
+| `model_zoo.md` | dx_app 모델 목록 — 개수와 task별 분포는 `config/model_registry.json`에서 산출: `jq 'length'`, `jq -r '.[].add_model_task' \| sort \| uniq -c` |
 | `platform_api.md` | DX-M1 NPU, DX-RT 3.0.x, 콜드부트 요구사항, `DXRT_DYNAMIC_CPU_THREAD=ON` |
 | `performance_patterns.md` | 7-필드 메트릭 (read/preprocess/inference/postprocess/render/save/display) + 최적화 기법 |
 
@@ -358,7 +358,7 @@ API hallucination 방지용 grounding 문서. 검증된 심볼만 나열:
 | **`dx-model-manager`** | `model_list.json` 쿼리, 다운로드, PPU/비-PPU 호환성 검증 |
 | **`dx-validator`** | preprocess-id/inference-id 매칭, 큐 배치, 모델·라이브러리 경로 존재성, 엘리먼트 등록 검사 |
 
-### 6.2 13개 GStreamer 엘리먼트 (toolsets/`dx-stream-elements.md`)
+### 6.2 GStreamer 엘리먼트 (toolsets/`dx-stream-elements.md`)
 
 | # | 엘리먼트 | 역할 |
 |---|----------|------|
@@ -378,7 +378,7 @@ API hallucination 방지용 grounding 문서. 검증된 심볼만 나열:
 
 추가 메시징 엘리먼트(`architecture.md`): `DxMsgConv`, `DxMsgBroker`.
 
-### 6.3 6개 파이프라인 카테고리
+### 6.3 파이프라인 카테고리
 
 | 카테고리 | 핵심 체인 | 도메인 스킬 |
 |----------|----------|------------|
@@ -409,13 +409,13 @@ API hallucination 방지용 grounding 문서. 검증된 심볼만 나열:
 
 ### 6.6 instructions/ (6 파일)
 
-`architecture.md`, `agent-protocols.md`, `coding-standards.md`, **`gstreamer-pipeline.md`** (13개 엘리먼트 상세, 각 15-25줄), `orchestration.md`, `testing-patterns.md`
+`architecture.md`, `agent-protocols.md`, `coding-standards.md`, **`gstreamer-pipeline.md`** (전체 엘리먼트 상세, 각 15-25줄), `orchestration.md`, `testing-patterns.md`
 
 ### 6.7 toolsets/ (4 파일)
 
 | 파일 | 범위 |
 |------|------|
-| `dx-stream-elements.md` | 13개 엘리먼트 모두 (부동산 / Pad / 예제 / 함정) |
+| `dx-stream-elements.md` | 전체 엘리먼트 (속성 / Pad / 예제 / 함정) |
 | `dx-stream-metadata.md` | `pydxs` Python 바인딩 (`DXFrameMeta`, `DXObjectMeta`, `DXTensorMeta`) |
 | `dx-engine-api.md` | dx_app과 공통 |
 | `model-registry.md` | v2.3.0 / 14개 모델 / task ↔ postprocess `.so` 매핑 <!-- kb-counts: ignore --> |

@@ -12,7 +12,7 @@ function renderModelsPage(){
   var src=(S.catalog&&S.catalog.length)?S.catalog:S.models;
   var cats=[...new Set(src.map(function(m){return m.category}))].sort();
   var html='<button class="chip active" data-cat="" onclick="chipFilter(this)">'+T('All')+'</button>';
-  cats.forEach(function(c){html+='<button class="chip" data-cat="'+c+'" onclick="chipFilter(this)">'+c.replace(/_/g,' ')+'</button>'});
+  cats.forEach(function(c){html+='<button class="chip" data-cat="'+c+'" onclick="chipFilter(this)">'+esc(catText(c))+'</button>'});
   $('cat-chips').innerHTML=html;
   filterModels();
 }
@@ -72,19 +72,20 @@ function filterModels(){
     var modes=[];
     if(dl&&(m.cpp_sync||m.py_sync))modes.push('<span class="badge b-ok">'+T('Sync')+'</span>');
     if(dl&&(m.cpp_async||m.py_async))modes.push('<span class="badge b-blue">'+T('Async')+'</span>');
-    var fileInfo=m.model_file?(m.model_exists?'\u2705':'\u274c')+'<span class="txt-dim"> '+m.model_file.split('/').pop()+'</span>':'\u2014';
+    var fileInfo=m.model_file?'<span class="m-file-row">'+(m.model_exists?DXIcon('check'):DXIcon('x'))+'<span class="txt-dim">'+esc(m.model_file.split('/').pop()).replace(/_/g,'_<wbr>').replace(/\./g,'<wbr>.')+'</span></span>':'\u2014';
     return '<tr>'
-      +'<td>'+esc(m.name)+'</td>'
-      +'<td><span class="badge b-cat">'+m.category.replace(/_/g,' ')+'</span></td>'
-      +'<td>'+(dl&&m.cpp?'<span class="badge b-ok">\u2713</span>':'<span class="badge b-no">\u2014</span>')+'</td>'
-      +'<td>'+(dl&&m.python?'<span class="badge b-ok">\u2713</span>':'<span class="badge b-no">\u2014</span>')+'</td>'
+      +'<td>'+esc(m.name).replace(/_/g,'_<wbr>')+'</td>'
+      +'<td><span class="badge b-cat">'+esc(catText(m.category))+'</span></td>'
+      +'<td>'+(dl&&m.cpp?'<span class="badge b-ok">' + DXIcon('check') + '</span>':'<span class="badge b-no">\u2014</span>')+'</td>'
+      +'<td>'+(dl&&m.python?'<span class="badge b-ok">' + DXIcon('check') + '</span>':'<span class="badge b-no">\u2014</span>')+'</td>'
       +'<td>'+modes.join(' ')+'</td>'
       +'<td>'+(meta.join(' ')||'\u2014')+'</td>'
-      +'<td style="font-size:11px;">'+fileInfo+'</td>'
-      +'<td class="m-actions"><button class="m-action-btn m-action-detail" onclick="event.stopPropagation();showDetail(\''+esc(m.name)+'\')" title="Details">🔍 '+T('Detail')+'</button>'
-      +(_onnxGraphArg(m.model_file)&&m.model_exists?'<button class="m-action-btn" onclick="event.stopPropagation();openModelGraph(\''+esc(m.model_file)+'\')" title="View Graph">📊 Graph</button>':'')
-      +(m.dxnn_url?'<button class="m-action-btn m-action-dl" data-name="'+esc(m.mz_name||m.name)+'" data-dxnn="'+esc(m.dxnn_url)+'" data-json="'+esc(m.json_url||'')+'" onclick="event.stopPropagation();mzQuickDownload(this)" title="'+(m.model_exists?T('Re-download the Q-Lite .dxnn from ModelZoo'):T('Download the Q-Lite .dxnn from ModelZoo'))+'">⬇ '+(m.model_exists?T('Re-download'):T('Download'))+'</button>':'')
-      +(runnable?'<button class="m-action-btn m-action-run" onclick="event.stopPropagation();quickRun(\''+esc(runnable.name)+'\',\''+esc(runnable.category)+'\',\''+esc(runnable.model_file||'')+'\')">▶ '+T('Run')+'</button>':'')+'</td>'
+      +'<td class="m-file">'+fileInfo+'</td>'
+      /* The button row is a div inside the cell: a flex td stops being a table cell, and two-line rows misalign cell heights and borders */
+      +'<td class="m-actions-cell"><div class="m-actions"><button class="m-action-btn m-action-detail" onclick="event.stopPropagation();showDetail(\''+esc(m.name)+'\''+(runnable?',\''+esc(runnable.name)+'\'':'')+')" title="'+esc(T('Details'))+'">' + DXIcon('search') + ' '+T('Detail')+'</button>'
+      +(_onnxGraphArg(m.model_file)&&m.model_exists?'<button class="m-action-btn" onclick="event.stopPropagation();openModelGraph(\''+esc(m.model_file)+'\')" title="'+esc(T('View Graph'))+'">' + DXIcon('dashboard') + ' '+T('Graph')+'</button>':'')
+      +(m.dxnn_url?'<button class="m-action-btn m-action-dl" data-name="'+esc(m.mz_name||m.name)+'" data-dxnn="'+esc(m.dxnn_url)+'" data-json="'+esc(m.json_url||'')+'" onclick="event.stopPropagation();mzQuickDownload(this)" title="'+(m.model_exists?T('Re-download the Q-Lite .dxnn from ModelZoo'):T('Download the Q-Lite .dxnn from ModelZoo'))+'">' + DXIcon('download') + ' '+(m.model_exists?T('Re-download'):T('Download'))+'</button>':'')
+      +(runnable?'<button class="m-action-btn m-action-run" onclick="event.stopPropagation();quickRun(\''+esc(runnable.name)+'\',\''+esc(runnable.category)+'\',\''+esc(runnable.model_file||'')+'\')">' + DXIcon('play') + ' '+T('Run')+'</button>':'')+'</div></td>'
       +'</tr>';
   }).join('');
   $('m-count').textContent=list.length+' / '+src.length+T(' models');
@@ -102,7 +103,7 @@ async function mzQuickDownload(btn){
   try{ var s=await api('/api/modelzoo/status'); if(s&&s.running){
     toast(T('A model download is already in progress.'),'warn'); return; } }catch(e){}
   var orig=btn.innerHTML; btn.disabled=true;
-  var setLbl=function(t){ btn.innerHTML='⏳ '+t; };
+  var setLbl=function(t){ btn.innerHTML=DXIcon('spinner') + ' '+t; };
   setLbl(T('Starting…'));
   var r=await postJ('/api/modelzoo/download',{items:[{name:name,chip:'qlite',dxnn_url:dxnn,json_url:json}],source:'public'});
   if(!r||!r.ok){ btn.disabled=false; btn.innerHTML=orig;
@@ -119,7 +120,7 @@ async function mzQuickDownload(btn){
     clearInterval(_mzDlPoll); _mzDlPoll=null;
     var ok=!(st.results||[]).some(function(x){return x&&x.ok===false;});
     toast(ok?T('Download complete'):T('Download finished with errors'), ok?'ok':'warn');
-    // Re-fetch so model_exists flips to ✅. The Download button STAYS (relabels to
+    // Re-fetch so model_exists flips to the check mark. The Download button STAYS (relabels to
     // "Re-download") so a customer can pull a fresh copy any time. (loadCatalog refreshes
     // S.catalog; renderModelsPage reads it.)
     if(typeof loadCatalog==='function'){ try{ await loadCatalog(); }catch(e){} }
@@ -146,9 +147,16 @@ function openModelGraph(modelFile){
   window.open('/compiler/?viewer_path='+encodeURIComponent(onnx),'_blank','noopener');
 }
 
-async function showDetail(name){
-  var info=await api('/api/model_info?name='+encodeURIComponent(name));
-  $('md-title').textContent='🔍 '+name;
+async function showDetail(name,registryName){
+  // A catalog row names the ModelZoo model; the details live under the dx_app registry name it runs as.
+  var info=await api('/api/model_info?name='+encodeURIComponent(registryName||name));
+  var cm=(S.catalog||[]).find(function(m){return m.name===name});
+  if(cm){   // a catalog model without a registry entry still shows what the table showed
+    if(!info.category)info.category=cm.category;
+    if(!info.model_file)info.model_file=cm.model_file;
+    if(info.model_exists==null)info.model_exists=cm.model_exists;
+  }
+  DXIcon.label($('md-title'),'search',name);
   var cfg=info.config||{};
   var PP_DESC={
     yolov5:T('YOLOv5-based object detection. Anchor-based with NMS post-processing.'),
@@ -194,6 +202,7 @@ async function showDetail(name){
   };
   var VIS_DESC={
     object_detection:T('Draws bounding boxes with class labels and confidence scores.'),
+    mainbody_detection:T('Draws a bounding box around each main object, with its confidence score.'),
     face_detection:T('Draws face bounding boxes and landmark points.'),
     pose_estimation:T('Draws skeleton (joint connections) and keypoints.'),
     obb_detection:T('Draws oriented (rotated) bounding boxes.'),
@@ -215,10 +224,10 @@ async function showDetail(name){
     '3d_object_detection':T('Renders 3D bounding boxes on the LiDAR bird\'s-eye-view.')
   };
   var h='';
-  h+='<div class="detail-info-card"><h3>'+T('📋 Basic Info')+'</h3><table class="detail-tbl">';
-  h+='<tr><td>'+T('Category')+'</td><td><span class="badge b-cat">'+(info.category||'').replace(/_/g,' ')+'</span></td></tr>';
-  h+='<tr><td>'+T('Model File')+'</td><td>'+(info.model_exists?'✅':'❌')+' <span class="txt-sm" style="color:var(--text-1)">'+(info.model_file||'N/A')+'</span>'
-    +(_onnxGraphArg(info.model_file)&&info.model_exists?' <button class="btn btn-ghost btn-sm" style="margin-left:8px;height:22px;font-size:11px" onclick="closeModal(\'modal-detail\');openModelGraph(\''+esc(info.model_file)+'\')">📊 View Graph</button>':'')
+  h+='<div class="detail-info-card"><h3>'+DXIcon('clipboard')+' '+T('Basic Info')+'</h3><table class="detail-tbl">';
+  h+='<tr><td>'+T('Category')+'</td><td><span class="badge b-cat">'+esc(catText(info.category||''))+'</span></td></tr>';
+  h+='<tr><td>'+T('Model File')+'</td><td>'+(info.model_exists?DXIcon('check'):DXIcon('x'))+' <span class="txt-sm" style="color:var(--text-primary)">'+(info.model_file||'N/A')+'</span>'
+    +(_onnxGraphArg(info.model_file)&&info.model_exists?' <button class="btn btn-ghost btn-sm" style="margin-left:8px;height:22px;font-size:11px" onclick="closeModal(\'modal-detail\');openModelGraph(\''+esc(info.model_file)+'\')">' + DXIcon('dashboard') + ' View Graph</button>':'')
     +'</td></tr>';
   if(cfg.npu_core||cfg.NPU_CORE)h+='<tr><td>'+T('NPU Core')+'</td><td><span class="badge b-blue">'+(cfg.npu_core||cfg.NPU_CORE)+'</span></td></tr>';
   if(cfg.dataset||cfg.DATASET)h+='<tr><td>'+T('Dataset')+'</td><td><span class="badge b-warn">'+(cfg.dataset||cfg.DATASET)+'</span></td></tr>';
@@ -231,12 +240,12 @@ async function showDetail(name){
   h+='</table></div>';
   var cat=info.category||'';
   if(VIS_DESC[cat]){
-    h+='<div class="detail-info-card"><h3>'+T('👁️ Visualization')+'</h3>';
-    h+='<p style="font-size:12px;line-height:1.5;color:var(--text-1);margin:0">'+VIS_DESC[cat]+'</p></div>';
+    h+='<div class="detail-info-card"><h3>'+DXIcon('eye')+' '+T('Visualization')+'</h3>';
+    h+='<p style="font-size:12px;line-height:1.5;color:var(--text-primary);margin:0">'+VIS_DESC[cat]+'</p></div>';
   }
   var pps=info.postprocessors||{};
   if(Object.keys(pps).length){
-    h+='<div class="detail-info-card"><h3>'+T('⚙️ Postprocessors')+'</h3>';
+    h+='<div class="detail-info-card"><h3>'+DXIcon('gear')+' '+T('Postprocessors')+'</h3>';
     h+='<div class="grid2" style="gap:10px">';
     Object.keys(pps).forEach(function(lang){
       var pp=pps[lang];
@@ -244,15 +253,15 @@ async function showDetail(name){
       var desc=PP_DESC[ppName]||T('Post-processor: ')+ppName;
       h+='<div class="pp-card">';
       h+='<div class="pp-header"><span class="badge '+(lang==='cpp'?'b-blue':'b-ok')+'">'+(lang==='cpp'?'C++':'Python')+'</span>';
-      h+='<strong style="font-size:12px;color:var(--text-1)">'+ppName+'</strong></div>';
+      h+='<strong style="font-size:12px;color:var(--text-primary)">'+ppName+'</strong></div>';
       h+='<p class="pp-desc">'+desc+'</p>';
-      if(pp.file){h+='<button class="btn btn-sm btn-ghost" onclick="viewCode(\''+pp.file+'\')" style="font-size:11px">📄 View Source</button>'}
+      if(pp.file){h+='<button class="btn btn-sm btn-ghost" onclick="viewCode(\''+pp.file+'\')" style="font-size:11px">' + DXIcon('file') + ' View Source</button>'}
       h+='</div>';
     });
     h+='</div></div>';
   }
   if(cfg.preprocess||cfg.PREPROCESS||cfg.mean||cfg.std||cfg.resize||cfg.pad||cfg.normalize!=null){
-    h+='<div class="detail-info-card"><h3>'+T('🔧 Preprocessing')+'</h3><table class="detail-tbl">';
+    h+='<div class="detail-info-card"><h3>'+DXIcon('wrench')+' '+T('Preprocessing')+'</h3><table class="detail-tbl">';
     if(cfg.mean)h+='<tr><td>Mean</td><td style="font-family:var(--mono);font-size:11px">'+JSON.stringify(cfg.mean)+'</td></tr>';
     if(cfg.std)h+='<tr><td>Std</td><td style="font-family:var(--mono);font-size:11px">'+JSON.stringify(cfg.std)+'</td></tr>';
     if(cfg.preprocess||cfg.PREPROCESS)h+='<tr><td>Pipeline</td><td style="font-family:var(--mono);font-size:11px">'+esc(JSON.stringify(cfg.preprocess||cfg.PREPROCESS))+'</td></tr>';
@@ -262,7 +271,7 @@ async function showDetail(name){
     h+='</table></div>';
   }
   if(cfg&&Object.keys(cfg).length){
-    h+='<details class="detail-info-card" style="cursor:pointer"><summary style="font-size:13px;font-weight:600;color:var(--accent)">'+T('📄 Full Config (config.json)')+'</summary>';
+    h+='<details class="detail-info-card" style="cursor:pointer"><summary style="font-size:13px;font-weight:600;color:var(--accent)">'+DXIcon('file')+' '+T('Full Config (config.json)')+'</summary>';
     h+='<div class="code mt8" style="max-height:200px;font-size:11px">'+esc(JSON.stringify(cfg,null,2))+'</div></details>';
   }
   var fls=info.files||{};
@@ -286,7 +295,7 @@ async function showDetail(name){
 async function viewCode(path){
   var res=await api('/api/file_content?path='+encodeURIComponent(path));
   if(res.content){
-    $('md-title').textContent='\ud83d\udcc4 '+path.split('/').pop();
+    DXIcon.label($('md-title'),'file',path.split('/').pop());
     $('md-body').innerHTML='<p class="txt-sm txt-dim mb8">'+path+'</p><div class="code">'+esc(res.content)+'</div>';
   }else{toast(T('File not found'),'err')}
 }

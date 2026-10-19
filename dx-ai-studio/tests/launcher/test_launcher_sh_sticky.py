@@ -56,3 +56,31 @@ def test_launcher_py_binds_before_boot_and_prints_banner():
     assert boot_idx < ready_idx, "studio_ready must flip only after boot progress"
     assert "OPEN THE STUDIO" in PY, "launcher.py must print the live URL banner"
     assert "serve_forever" in PY and "daemon=True" in PY, "serve must run in a daemon thread"
+
+
+def test_a_restart_finds_the_running_module_launcher_of_this_checkout_only(tmp_path):
+    """launcher.py re-execs as `python -m launcher.launcher`, which "launcher/launcher.py" never
+    matched: each ./launcher.sh left the old launcher running and its watchdog respawned the
+    sub-servers. The restart must find that process — and not one from another checkout."""
+    import re
+    import subprocess
+
+    fn = re.search(r"^stale_module_launchers\(\) \{.*?^\}", SH, re.S | re.M)
+    assert fn, "launcher.sh must define stale_module_launchers()"
+    here, other = tmp_path / "studio", tmp_path / "other"
+    here.mkdir(), other.mkdir()
+
+    def fake_launcher(cwd):
+        return subprocess.Popen(["bash", "-c", 'exec -a "python -m launcher.launcher" sleep 30'], cwd=cwd)
+
+    mine, theirs = fake_launcher(here), fake_launcher(other)
+    try:
+        import time
+        time.sleep(0.3)
+        out = subprocess.run(["bash", "-c", fn.group(0) + "\nstale_module_launchers"],
+                             env={"PATH": "/usr/bin:/bin", "SCRIPT_DIR": str(here)},
+                             capture_output=True, text=True, timeout=10).stdout.split()
+    finally:
+        mine.kill(), theirs.kill()
+    assert str(mine.pid) in out
+    assert str(theirs.pid) not in out

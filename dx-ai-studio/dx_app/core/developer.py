@@ -147,7 +147,89 @@ _TASK_TYPE_MAP={
 }
 
 
-def dev_add(tok,mn,tt,lang,cat,pp,sync_only=False,confirm_overwrite=False):
+# add_model.sh copies a reference example and renames it. Its built-in references are legacy folders
+# (object_detection/yolov8n …) that the per-model layout no longer has, so Studio always names the
+# reference itself with --base-model: an example of the same category that has a factory in every
+# requested language. With --category and --base-model the task type only labels the script's output,
+# but it must be one the script accepts.
+_SCRIPT_LANG={"python":"py","cpp":"cpp","both":"both"}
+_SCRIPT_TASK_TYPES={"detection","classification","semantic_segmentation","instance_segmentation","pose",
+    "face_detection","obb","depth_estimation","image_denoising","super_resolution","image_enhancement",
+    "ppu","embedding","hand_landmark","attribute_recognition","reid"}
+_ANSI_RE=re.compile(r"\x1b\[[0-9;]*m")
+
+
+def _script_task_type(cat):
+    tt=_TASK_TYPE_MAP.get(cat,cat)
+    if tt in _SCRIPT_TASK_TYPES:return tt
+    for key,val in (("classification","classification"),("segmentation","semantic_segmentation"),
+                    ("pose","pose"),("oriented","obb"),("depth","depth_estimation"),("face","face_detection"),
+                    ("hand","hand_landmark"),("reid","reid"),("attribute","attribute_recognition"),
+                    ("enhancement","image_enhancement"),("retrieval","embedding"),("recognition","embedding")):
+        if key in cat:return val
+    return "detection"
+
+
+def _has_factory(d,name,lang):
+    return bool(d) and (d/"factory"/f"{name}_factory{'.py' if lang=='python' else '.hpp'}").is_file()
+
+
+def reference_examples(root=None):
+    """{category: [{"name", "family", "langs"}]} — the examples Add Model can start from.
+
+    An example qualifies per language when it has ``factory/<name>_factory.{py,hpp}`` (add_model.sh reads the
+    class names from it). A name that appears under two tasks is left out: add_model.sh finds the base by
+    folder name alone and would pick either one.
+    """
+    from collections import Counter
+    from shared import dx_app_layout as _layout
+    root=Path(root or DX_APP_ROOT)
+    _layout.clear_cache()
+    exs=sorted(_layout.examples(root),key=lambda e:(e.task,e.name))
+    seen=Counter(e.name for e in exs)
+    out={}
+    for ex in exs:
+        if seen[ex.name]>1:continue
+        langs=[l for l in ("python","cpp") if _has_factory(ex.dir(l),ex.name,l)]
+        if langs:out.setdefault(ex.task,[]).append({"name":ex.name,"family":ex.family,"langs":langs})
+    return out
+
+
+def pick_reference(cat,lang,base_model=""):
+    """(name, None) or (None, error) — the example Add Model copies for this category and language."""
+    need=["python","cpp"] if lang=="both" else [lang]
+    cands=[r for r in reference_examples().get(cat,[]) if all(l in r["langs"] for l in need)]
+    if base_model:
+        if any(r["name"]==base_model for r in cands):return base_model,None
+        return None,{"error":f"{base_model} is not a {cat} example with {' and '.join(need)} code to start from",
+                     "error_code":"unknown_base_model","status":400}
+    if not cands:
+        return None,{"error":f"No {cat} example has {' and '.join(need)} code to start from",
+                     "error_code":"no_reference","status":400}
+    return cands[0]["name"],None
+
+
+def _rename_copied_variant(cat,mn,ref,bases):
+    """add_model.sh renames files and classes but not the variant a per-model example is pinned to —
+    without this the copy dies with "no variant config '<ref>'"."""
+    for base in bases:
+        d=base/cat/mn
+        cfg=d/"config.json"
+        if cfg.is_file():
+            try:
+                data=json.loads(cfg.read_text(encoding="utf-8"))
+                if isinstance(data,dict) and data.get("variant")==ref:
+                    data["variant"]=mn
+                    cfg.write_text(json.dumps(data,indent=2,ensure_ascii=False)+"\n",encoding="utf-8")
+            except (OSError,ValueError):pass
+        for py in d.glob("*.py"):
+            text=py.read_text(encoding="utf-8")
+            new=(text.replace(f'_FIXED_VARIANT = "{ref}"',f'_FIXED_VARIANT = "{mn}"')
+                 .replace(f'description="{ref} ',f'description="{mn} ').replace(f'"""{ref} ',f'"""{mn} '))
+            if new!=text:py.write_text(new,encoding="utf-8")
+
+
+def dev_add(tok,mn,tt,lang,cat,pp,sync_only=False,confirm_overwrite=False,base_model=""):
     err=require_lab(tok)
     if err:return err
     err=_require_lab_model_name(mn)
@@ -156,27 +238,35 @@ def dev_add(tok,mn,tt,lang,cat,pp,sync_only=False,confirm_overwrite=False):
     if err:return err
     sh=SCRIPTS_DIR/"add_model.sh"
     if not sh.exists():return{"error":"add_model.sh not found"}
-    bases={"cpp":[CPP_DIR],"python":[PY_DIR],"both":[CPP_DIR,PY_DIR]}.get(lang,[CPP_DIR,PY_DIR])
-    existing=[]
+    if lang not in _SCRIPT_LANG:lang="both"
+    bases={"cpp":[CPP_DIR],"python":[PY_DIR],"both":[CPP_DIR,PY_DIR]}[lang]
+    existing=[];absent=[]
     for base in bases:
         try:
             target=resolve_under(str(base/cat/mn),(base,))
         except ValueError as e:
             return{"error":str(e),"status":400}
-        if target.exists():
-            existing.append(str(target.relative_to(DX_APP_ROOT)) if DX_APP_ROOT in target.parents else str(target))
+        rel=str(target.relative_to(DX_APP_ROOT)) if DX_APP_ROOT in target.parents else str(target)
+        (existing if target.exists() else absent).append(rel)
     if existing and not confirm_overwrite:
         return{"error":"Overwrite confirmation required","status":400,"existing":existing}
-    # Map GUI task type (e.g. "object_detection") to add_model.sh type (e.g. "detection")
-    script_tt=_TASK_TYPE_MAP.get(tt,tt)
-    # --category uses the directory name (object_detection, pose_estimation, etc.)
-    cmd=["bash",str(sh),mn,script_tt,"--lang",lang,"--category",cat]
-    if pp:cmd+=["--postprocessor",pp]
+    ref,err=pick_reference(cat,lang,base_model)
+    if err:return err
+    cmd=["bash",str(sh),mn,_script_task_type(cat),"--lang",_SCRIPT_LANG[lang],"--category",cat,"--base-model",ref]
     if sync_only:cmd.append("--sync-only")
     try:
         r=subprocess.run(cmd,capture_output=True,text=True,cwd=str(DX_APP_ROOT),timeout=120)
-        return{"ok":r.returncode==0,"output":r.stdout+r.stderr}
     except Exception as e:return{"error":str(e)}
+    out=_ANSI_RE.sub("",r.stdout+r.stderr)
+    from shared import dx_app_layout as _layout
+    _layout.clear_cache()
+    if r.returncode!=0:
+        lines=[l.strip() for l in out.splitlines() if l.strip()]
+        reason=next((l for l in reversed(lines) if "ERROR" in l or "error" in l),lines[-1] if lines else "add_model.sh failed")
+        return{"ok":False,"error":reason,"output":out,"reference":ref}
+    _rename_copied_variant(cat,mn,ref,bases)
+    created=[rel for rel in absent if (DX_APP_ROOT/rel).is_dir()]
+    return{"ok":True,"output":out,"reference":ref,"created":created,"overwrote":existing}
 
 def dev_delete(tok,mn,lang="both",confirm=""):
     err=require_lab(tok)
@@ -187,14 +277,19 @@ def dev_delete(tok,mn,lang="both",confirm=""):
         return {"error": "Delete confirmation required", "status": 400}
     deleted=[]
     bases={"cpp":[CPP_DIR],"python":[PY_DIR],"both":[CPP_DIR,PY_DIR]}.get(lang,[CPP_DIR,PY_DIR])
+    # The resolver finds the example folder: legacy <task>/<model>, per-model <task>/<family>/<stem> (shared/dx_app_layout.py)
+    from shared import dx_app_layout as _layout
+    _layout.clear_cache()
     for base in bases:
-        for cd in base.iterdir():
-            if not cd.is_dir() or cd.name in SKIP_CAT:continue
+        lang_key="cpp" if base==CPP_DIR else "python"
+        targets=[ex.dir(lang_key) for ex in _layout.examples(base.parent.parent) if ex.name==mn and ex.dir(lang_key)]
+        for tgt in targets:
             try:
-                t=resolve_under(str(cd/mn),(base,))
+                t=resolve_under(str(tgt),(base,))
             except ValueError:
                 continue
             if t.is_dir():shutil.rmtree(t);deleted.append(str(t.relative_to(DX_APP_ROOT)))
+    _layout.clear_cache()
     return{"ok":True,"deleted":deleted}
 
 def dev_git(tok,msg,push=False,confirm_push=""):
@@ -247,17 +342,29 @@ def extract_model_package(model_path, lang="both"):
             results.append({"lang": l, "ok": r.returncode == 0, "output": (r.stdout + r.stderr)[-500:]})
         except Exception as e:
             results.append({"lang": l, "ok": False, "error": str(e)})
+    # The extractor writes to outputs/<lang>/<model_path>/; matching a folder by name directly under outputs finds
+    # nothing in the per-model layout (py/object_detection/yolo26/yolo26-n_640x640) and leaves download_url empty.
+    # For python, common/ is filled so the processors config.json names are not missing.
     download_url = None
-    model_name = model_path.split("/")[-1] if "/" in model_path else model_path
+    model_name = model_path.rstrip("/").split("/")[-1]
+    pkg_dirs = []
+    for l in langs:
+        d = OUTPUTS_DIR / l / model_path.strip("/")
+        if d.is_dir():
+            if l == "py":
+                try:
+                    from dx_app.core.package_common import complete_python_common
+                    complete_python_common(DX_APP_ROOT, d)
+                except Exception as ex:
+                    print(f"[EXTRACT] common/ completion failed: {ex}")
+            pkg_dirs.append((l, d))
     try:
         import tarfile
-        tar_name = f"pkg_{model_name}_{lang}_{int(time.time())}.tar.gz"
-        tar_path = OUTPUTS_DIR / tar_name
-        pkg_dirs = [p for p in OUTPUTS_DIR.iterdir() if p.is_dir() and model_name in p.name]
         if pkg_dirs:
-            with tarfile.open(tar_path, "w:gz") as tar:
-                for d in pkg_dirs:
-                    tar.add(d, arcname=d.name)
+            tar_name = f"pkg_{model_name}_{lang}_{int(time.time())}.tar.gz"
+            with tarfile.open(OUTPUTS_DIR / tar_name, "w:gz") as tar:
+                for l, d in pkg_dirs:
+                    tar.add(d, arcname=f"{l}/{model_name}", filter=lambda ti: None if "__pycache__" in ti.name else ti)
             download_url = f"/outputs/{tar_name}"
     except Exception as ex:
         print(f"[EXTRACT] tar.gz creation failed: {ex}")

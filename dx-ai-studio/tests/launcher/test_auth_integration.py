@@ -1,6 +1,6 @@
-"""런처 no-auth 로컬 모드 통합 테스트.
+"""Launcher integration tests in no-auth local mode.
 
-인증 게이트가 제거된 런처의 동작을 검증한다.
+Local requests pass without credentials; there is no auth gate.
 """
 import json
 import os
@@ -147,20 +147,24 @@ class TestNoAuthLocalMode:
         data = json.loads(resp.read())
 
         assert resp.status == 200
+        # Local access passes without auth and says so. Remote access uses pairing
+        # (tests/shared/test_remote_access.py); this server has no pairing state.
         assert data == {
             "ok": True,
             "auth_enabled": False,
             "locked": False,
+            "local": True,
             "authenticated": True,
+            "pairing": False,
         }
 
-    def test_unlock_is_noop_and_does_not_set_cookie(self, live_server):
-        resp = _post(live_server["base"], "/api/auth/unlock", {"pin": "anything"})
-        data = json.loads(resp.read())
-
-        assert resp.status == 200
-        assert data == {"ok": True, "auth_enabled": False, "csrf": ""}
-        assert resp.headers.get("Set-Cookie") is None
+    def test_unlock_without_pairing_sets_no_cookie(self, live_server):
+        # A launcher without pairing state (bound to loopback only) has nothing to unlock: 403, no cookie.
+        import urllib.error
+        with pytest.raises(urllib.error.HTTPError) as e:
+            _post(live_server["base"], "/api/auth/unlock", {"code": "123456"})
+        assert e.value.code == 403
+        assert e.value.headers.get("Set-Cookie") is None
 
     def test_logout_and_relock_are_noop_no_content(self, live_server):
         for path in ("/api/auth/logout", "/api/auth/relock"):

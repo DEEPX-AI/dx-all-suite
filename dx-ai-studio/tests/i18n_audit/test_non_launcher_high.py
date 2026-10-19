@@ -15,7 +15,7 @@ _REPO_ROOT = Path(__file__).resolve().parents[2]
 
 NON_LAUNCHER_MODULES = {
     "dx_app", "dx_stream", "dx_modelzoo",
-    "dx_compiler", "dx_planner", "dx_benchmark", "dx_monitor",
+    "dx_compiler", "dx_planner", "dx_benchmark", "dx_monitor", "dx_edge",
     "shared", "unknown",
 }
 

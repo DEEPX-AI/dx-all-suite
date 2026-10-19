@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """DX-APP Server — HTTP server entry point with all routes."""
 import os, sys, json, time, re, signal, threading, webbrowser, mimetypes, shlex
+import select, socket
 import shutil
 from pathlib import Path
 
@@ -8,16 +9,21 @@ from shared.dx_server import DXBaseHandler, DXServer, RequestBodyError
 from shared import debug_log
 
 from dx_app.core import config
-from dx_app.core.config import (SCRIPT_DIR, DX_APP_ROOT, STATIC_DIR, TEMPLATES_DIR, SERVER_NAME, OUTPUTS_DIR,
+from dx_app.core.config import (resolve_model_path, SCRIPT_DIR, DX_APP_ROOT, STATIC_DIR, TEMPLATES_DIR, SERVER_NAME, OUTPUTS_DIR,
                     CATEGORIES, TASK_TYPES, POSTPROCESSORS,
                     _HEARTBEAT, _HB_TIMEOUT, ASSETS_DIR, SAMPLE_DIR)
 from dx_app.core.dx_app_security import (resolve_under, sanitize_filename, safe_content_disposition,
                              resolve_existing_file, resolve_existing_path, existing_onnx)
 
 ONNX_INPUT_ROOTS = (OUTPUTS_DIR,)
-MODEL_INPUT_ROOTS = (DX_APP_ROOT, ASSETS_DIR, ASSETS_DIR / "models", OUTPUTS_DIR)
+from shared.paths import SUITE_ROOT as _SUITE_FOR_MODELS
+_WORKSPACE_MODELS = _SUITE_FOR_MODELS / "workspace" / "res" / "models"
+MODEL_INPUT_ROOTS = (DX_APP_ROOT, ASSETS_DIR, ASSETS_DIR / "models", OUTPUTS_DIR, _WORKSPACE_MODELS)
 TEST_RUN_INPUT_ROOTS = (DX_APP_ROOT, SAMPLE_DIR, ASSETS_DIR, OUTPUTS_DIR)
 _SAFE_ID_RE = re.compile(r'^[A-Za-z0-9_]+$')
+# Model name: per-model layout stems are .dxnn names and contain '-' and '.' (3ddfa-v2_mobilenet-0.5_120x120).
+# Path separators, '..' and a leading '.' are still refused.
+_MODEL_NAME_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9_.\-]*$')
 _RUN_LANGS = {"cpp", "python"}
 # *_cpp_postprocess variants run the Python app with the C++ dx_postprocess pybind
 # extension; they exist only as Python scripts (no C++ binary), so they're python-only.
@@ -39,19 +45,40 @@ def _validation_error_key(message):
     return "invalid_payload"
 
 
+def _task_defaults():
+    """task -> default input, image-only, old key, so JS uses the same table as the server instead of its own copy.
+    per-model layout task keys also find the values of their old key (shared/tasks.py)."""
+    from dx_app.core.config import CAT_IMAGE, CAT_VIDEO, IMAGE_ONLY_CATEGORIES
+    from shared.tasks import legacy
+    return {c: {"image": CAT_IMAGE.get(c, ""), "video": CAT_VIDEO.get(c, ""),
+                "image_only": c in IMAGE_ONLY_CATEGORIES, "legacy": legacy(c)} for c in CATEGORIES}
+
+
 def _require_category(category):
     """Validate category is a known value with no path traversal. Raises ValueError."""
     if not category or not isinstance(category, str):
         raise ValueError("category is required")
     if "/" in category or "\\" in category or ".." in category:
         raise ValueError(f"Invalid category: {category!r}")
-    if category not in CATEGORIES:
-        raise ValueError(f"Unknown category: {category!r}")
+    if category in CATEGORIES:
+        return category
+    # legacy <-> per-model pair names (obb_detection <-> oriented_object_detection, …): older recent runs, links and
+    # clients send the other layout's name (contract: tests/dx_app/test_category_alias.py)
+    from shared.tasks import canonical, legacy
+    for alt in (canonical(category), legacy(category)):
+        if alt != category and alt in CATEGORIES:
+            return alt
+    raise ValueError(f"Unknown category: {category!r}")
 
 
 def _require_safe_id(value, label):
     if not value or not isinstance(value, str) or not _SAFE_ID_RE.fullmatch(value):
         raise ValueError(f"Invalid {label}: {value!r}")
+
+
+def _require_model_name(value):
+    if not value or not isinstance(value, str) or not _MODEL_NAME_RE.fullmatch(value) or ".." in value:
+        raise ValueError(f"Invalid model_name: {value!r}")
 
 
 def _candidate_path(value):
@@ -74,7 +101,11 @@ def _require_model_file(model_file):
             if has_path_shape:
                 resolve_existing_file(_candidate_path(part), MODEL_INPUT_ROOTS, (".dxnn",))
         return
-    resolve_existing_file(_candidate_path(model_file), MODEL_INPUT_ROOTS, (".dxnn",))
+    # If missing from assets/models, look in the suite's workspace/res/models (config.resolve_model_path)
+    cand = _candidate_path(model_file)
+    if not Path(model_file).is_absolute() and not Path(cand).is_file():
+        cand = str(resolve_model_path(model_file, DX_APP_ROOT))
+    resolve_existing_file(cand, MODEL_INPUT_ROOTS, (".dxnn",))
 
 
 def _require_optional_input_path(value, label, allow_dir=False):
@@ -89,9 +120,14 @@ def _validate_inference_payload(data, live=False):
     if not isinstance(data, dict):
         return _error_payload("invalid_payload", "request must be an object"), 400
     try:
-        _require_category(data.get("category", ""))
-        _require_safe_id(data.get("model_name", ""), "model_name")
+        data["category"] = _require_category(data.get("category", ""))
+        _require_model_name(data.get("model_name", ""))
         _require_model_file(data.get("model_file", ""))
+        # Caller's name (a Model Zoo catalog id etc.) -> this dx_app's example name. Without one, another binary is borrowed
+        if not str(data["model_file"]).startswith("-"):
+            from shared import dx_app_layout as _layout
+            data["model_name"] = _layout.example_name(DX_APP_ROOT, data["category"], data["model_name"],
+                                                      data["model_file"])
         lang = data.get("lang", "cpp")
         if lang not in _RUN_LANGS:
             raise ValueError(f"Invalid lang: {lang!r}")
@@ -135,13 +171,15 @@ def _json_bool(value, default=False):
     return bool(value)
 
 from shared.chat import ChatEngine
+from shared.chat import module_fallbacks as _module_fallbacks
 from dx_app.core.modelzoo_gateway import ModelZooGateway
 from dx_app.core.filesystem import fs_list
 from dx_app.core.setup_steps import SETUP_STEPS, setup_status, setup_run, deep_diagnostics, setup_log, setup_input, quick_start_plan
 from dx_app.core.developer import (lab_session, lab_check, require_lab, _check_origin_local, dev_add,
                        dev_delete, dev_git, dev_extract, extract_model_package,
                        dev_new_task, bug_report, save_capture)
-from dx_app.core.lab_portal import lab_capabilities, plan_add_model, plan_add_model_response, apply_add_model, smoke_add_model, plan_task_scaffold_response, apply_task_scaffold, generated_files_for_manifest, validate_lab_manifest_id, start_experiment_run, get_experiment_run, cancel_experiment_run, active_experiment_run_for_source, list_pending_manifests, change_summary_by_root, rollback_manifest, scoped_git_plan, plan_composer_quick_start, plan_composer_template, customize_composer_workflow, plan_composer_plugin_scaffold_response, apply_composer_plugin_scaffold, run_composer_workflow, export_composer_package, export_composer_recipe, import_composer_recipe
+from dx_app.core.lab_portal import lab_capabilities, plan_add_model, plan_add_model_response, apply_add_model, smoke_add_model, plan_task_scaffold_response, apply_task_scaffold, generated_files_for_manifest, validate_lab_manifest_id, start_experiment_run, launch_experiment_run, get_experiment_run, cancel_experiment_run, active_experiment_run_for_source, list_lab_manifests, change_summary_by_root, rollback_manifest, scoped_git_plan
+from shared.shell import ShellSpec
 
 _modelzoo_gw = ModelZooGateway()
 
@@ -179,42 +217,150 @@ def _hb_touch():
 _chat_engine = ChatEngine(
     app_name="dx_app",
     context_callback=lambda: {"models": [m.get("name","") for m in get_models()[:20]]},
-    fallback_rules=[
-        (["yolo", "detection", "객체", "검출"], {
-            "ko": "Object Detection 탭에서 YOLO 모델을 실행할 수 있습니다.",
-            "en": "You can run YOLO models in the Object Detection tab.",
-        }),
-        (["sdk", "python", "c++"], {
-            "ko": "DX Runtime SDK 사용법은 Developer 탭을 참조하세요.",
-            "en": "See the Developer tab for DX Runtime SDK usage.",
-        }),
-    ]
+    fallback_rules=_module_fallbacks.rules("dx_app")
 )
+
+
+# ── Shared App Shell ──────────────────────────────────────────
+# The eleven pages sit in a top tab row (no left sidebar).
+# Labels are the English source text = i18n dictionary keys. Icon ids come from shared/static/dx-icons.svg.
+DX_APP_PAGES = (
+    ("setup", "Setup", "setup"),
+    ("models", "Models", "models"),
+    ("run", "Run Inference", "run"),
+    ("rundemo", "Run Demo", "demo"),
+    ("bench", "Benchmark", "bench"),
+    ("compare", "A/B Compare", "compare"),
+    ("modelzoo", "ModelZoo", "download"),
+    ("graph", "Graph Composer", "graph"),
+    ("lab", "Lab", "lab"),
+    ("outputs", "Outputs", "folder"),
+    ("reference", "Reference", "book"),
+)
+
+# The notification bell is a dx_app-only control, so it goes into the shared header's .toolbar slot.
+_NOTIF_BELL = (
+    '<button class="notif-bell" onclick="toggleNotifDrawer()" title="Notifications"'
+    ' data-i18n-title="Notifications">\U0001F514'
+    '<span class="notif-badge" id="notif-badge" style="display:none"></span></button>'
+)
+
+DX_APP_SHELL = ShellSpec(
+    module_key="app",
+    pages=DX_APP_PAGES,
+    active_page="models",
+    toolbar_extra=_NOTIF_BELL,
+)
+
+# The Run page's Live slots (CONT.slots in inference.js); slot 8 is the Graph Composer's Live display (graph_live.SLOT)
+RUN_SLOTS = 8
+# Viewers of one MJPEG stream at a time: each holds a server thread and grabs the display ~12 times a second
+MAX_VIEWERS = 4
+_viewers = {}
+_viewers_lock = threading.Lock()
+
+
+def _run_slot(value):
+    """A Run page Live slot, 0-7, from JSON or a query string; ValueError otherwise."""
+    if isinstance(value, str) and value.strip().isdigit():
+        value = int(value)
+    if isinstance(value, bool) or not isinstance(value, int) or not 0 <= value < RUN_SLOTS:
+        raise ValueError(f"slot must be a whole number from 0 to {RUN_SLOTS - 1}")
+    return value
+
+
+def _slot_count(value):
+    """How many Run page Live slots share one camera (n_total_slots: the camera fan-out's UDP streams), 1 to
+    RUN_SLOTS; ValueError otherwise."""
+    if isinstance(value, str) and value.strip().isdigit():
+        value = int(value)
+    if isinstance(value, bool) or not isinstance(value, int) or not 1 <= value <= RUN_SLOTS:
+        raise ValueError(f"n_total_slots must be a whole number from 1 to {RUN_SLOTS}")
+    return value
+
+
+def _take_viewer(key):
+    with _viewers_lock:
+        if _viewers.get(key, 0) >= MAX_VIEWERS:
+            return False
+        _viewers[key] = _viewers.get(key, 0) + 1
+        return True
+
+
+def _drop_viewer(key):
+    with _viewers_lock:
+        _viewers[key] = max(0, _viewers.get(key, 0) - 1)
+
 
 class Handler(DXBaseHandler):
     server_name = SERVER_NAME
     static_dir = STATIC_DIR
     templates_dir = TEMPLATES_DIR
+    shell_spec = DX_APP_SHELL
     log_filter = ["/file/", "/static/"]
+    # A graph run may carry its input images base64-encoded (graph_run allows 20 MB per image).
+    json_max_bytes_by_path = {"/api/graph/run": 24 * 1024 * 1024}
 
-    def _mjpeg_stream(self):
-        slot_idx = int(self.read_query_param("slot", "0"))
-        self.send_response(200)
-        self.send_header("Content-Type","multipart/x-mixed-replace; boundary=frame")
-        self.send_header("Cache-Control","no-cache")
-        self.send_header("Access-Control-Allow-Origin","*")
-        self.end_headers()
+    def _client_gone(self):
+        """True when the viewer closed the connection (a stream that has no frame to write would never notice)."""
+        conn = getattr(self, "connection", None)
+        if conn is None:
+            return False
         try:
-            while True:
-                frame=capture_live_frame(slot_idx)
+            readable, _, _ = select.select([conn], [], [], 0)
+            return bool(readable) and conn.recv(1, socket.MSG_PEEK) == b""
+        except (OSError, ValueError):
+            return True
+
+    def _serve_mjpeg(self, key, next_frame, alive=lambda: True):
+        """An MJPEG stream of `next_frame()` (JPEG bytes or None) while `alive()`, for at most MAX_VIEWERS viewers
+        of one stream (`key`) at a time."""
+        if not _take_viewer(key):
+            return self.send_json(_error_payload("too_many_viewers", f"this stream already has {MAX_VIEWERS} "
+                                                 "viewers; close another tab that shows it"), 429)
+        try:
+            self.send_response(200)
+            self.send_header("Content-Type", "multipart/x-mixed-replace; boundary=frame")
+            self.send_header("Cache-Control", "no-cache")
+            self.end_headers()
+            while alive():
+                frame = next_frame()
                 if frame:
                     self.wfile.write(b"--frame\r\nContent-Type: image/jpeg\r\n")
                     self.wfile.write(f"Content-Length: {len(frame)}\r\n\r\n".encode())
                     self.wfile.write(frame)
                     self.wfile.write(b"\r\n")
                     self.wfile.flush()
+                elif self._client_gone():
+                    return
                 time.sleep(0.08)  # ~12fps
-        except(BrokenPipeError,ConnectionResetError):pass
+        except (BrokenPipeError, ConnectionResetError):
+            pass
+        finally:
+            _drop_viewer(key)
+
+    def _mjpeg_stream(self):
+        """The Run page's Live display of one slot (0-7; slot 8 is the graph Live's, served by _graph_live_stream).
+        An <img> cannot send the session token, so a cross-origin page is refused by its Origin/Referer."""
+        origin_err = _check_handler_origin_local(self)
+        if origin_err:
+            return self.send_json({k: v for k, v in origin_err.items() if k != "status"}, origin_err.get("status", 403))
+        try:
+            slot_idx = _run_slot(self.read_query_param("slot", "0"))
+        except ValueError as e:
+            return self.send_json(_error_payload("invalid_slot", str(e)), 400)
+        return self._serve_mjpeg(f"live:{slot_idx}", lambda: capture_live_frame(slot_idx))
+
+    def _graph_live_stream(self):
+        """The MJPEG stream of the running graph Live (dx_app/core/graph_routes.py says why it is served here)."""
+        from dx_app.core import graph_live
+        origin_err = _check_handler_origin_local(self)
+        if origin_err:
+            return self.send_json({k: v for k, v in origin_err.items() if k != "status"}, origin_err.get("status", 403))
+        job_id = self.read_query_param("id", "")
+        if not graph_live.frame_ok(job_id):
+            return self.send_json({"error": "unknown_job", "error_key": "unknown_job"}, 404)
+        return self._serve_mjpeg("graph_live", lambda: graph_live.frame(job_id), lambda: graph_live.frame_ok(job_id))
 
     def route(self):
         path = self.url_path
@@ -249,11 +395,10 @@ class Handler(DXBaseHandler):
                 d=fp.read_bytes();self.send_response(200)
                 self.send_header("Content-Type",mimetypes.guess_type(str(fp))[0] or "image/jpeg")
                 self.send_header("Content-Length",len(d))
-                self.send_header("Cache-Control","public, max-age=86400")
-                self.send_header("Access-Control-Allow-Origin","*");self.end_headers();self.wfile.write(d)
+                self.send_header("Cache-Control","public, max-age=86400");self.end_headers();self.wfile.write(d)
                 return
             if path=="/api/asset-thumb":
-                # Downscaled preview for the composer asset grid (82x54px) — avoids
+                # Downscaled preview for small asset pickers (82x54px) — avoids
                 # downloading+decoding full-res sample images. Cached on disk by src+mtime+w.
                 from dx_app.core.assets import sample_thumbnail
                 w=self.read_query_param("w") or "160"
@@ -274,6 +419,10 @@ class Handler(DXBaseHandler):
             if path=="/api/images":return self.send_json(get_images(self.read_query_param("category") or None))
             if path=="/api/videos":return self.send_json(get_videos(self.read_query_param("category") or None))
             if path=="/api/categories":return self.send_json(CATEGORIES)
+            if path=="/api/category_labels":
+                from dx_app.core.models import category_labels
+                return self.send_json(category_labels())
+            if path=="/api/task_defaults":return self.send_json(_task_defaults())
             if path=="/api/recent_runs":
                 with config._history_lock:data=list(config._recent_runs)
                 return self.send_json(data)
@@ -314,6 +463,13 @@ class Handler(DXBaseHandler):
                 if rp.stat().st_size>5*1024*1024:return self.send_json({"error":"File too large (exceeds 5 MB)"},400)
                 try:return self.send_json({"content":rp.read_text(errors="replace")})
                 except Exception as ex:return self.send_json({"error":str(ex)})
+            if path == "/api/graph/live/frame":
+                return self._graph_live_stream()
+            if path.startswith("/api/graph/"):
+                from dx_app.core import graph_routes
+                body, code = graph_routes.handle("GET", path, self.read_query_param, None, self.headers,
+                                                 _server_host_for_origin(self))
+                return self.send_json(body, code)
             if path=="/api/lab/session":
                 origin = self.headers.get("Origin")
                 referer = self.headers.get("Referer")
@@ -339,7 +495,7 @@ class Handler(DXBaseHandler):
                 if err:
                     body = {k: v for k, v in err.items() if k != "status"}
                     return self.send_json(body, err.get("status", 403))
-                manifests = list_pending_manifests()
+                manifests = list_lab_manifests()
                 enriched = []
                 for manifest in manifests:
                     item = dict(manifest)
@@ -391,7 +547,6 @@ class Handler(DXBaseHandler):
                 self.send_header("Content-Type","application/octet-stream")
                 self.send_header("Content-Length",len(d))
                 self.send_header("Content-Disposition",safe_content_disposition("inline",op.name))
-                self.send_header("Access-Control-Allow-Origin","*")
                 self.send_header("Cache-Control","no-cache")
                 self.end_headers();self.wfile.write(d);return
             return self.route_legacy()
@@ -401,6 +556,14 @@ class Handler(DXBaseHandler):
             except RequestBodyError:raise
             except Exception:return self.send_json({"error":"Invalid JSON"},400)
 
+            if path.startswith("/api/graph/"):
+                if path == "/api/graph/run":
+                    debug_log.log_action("dx_app", "graph_run",
+                                         {"variant": data.get("variant", "sync") if isinstance(data, dict) else None})
+                from dx_app.core import graph_routes
+                body, code = graph_routes.handle("POST", path, None, data, self.headers, _server_host_for_origin(self))
+                return self.send_json(body, code)
+
             # Lab mutating routes use X-Lab-Token only (no X-Dev-Token alias)
             _LAB_ROUTES = {"/api/dev/auth", "/api/dev/add_model", "/api/dev/delete_model",
                            "/api/dev/git_commit", "/api/dev/extract", "/api/dev/new_task",
@@ -408,14 +571,7 @@ class Handler(DXBaseHandler):
                            "/api/lab/add_model/smoke",
                            "/api/lab/task/dry_run", "/api/lab/task/apply",
                            "/api/lab/experiment/start",
-                           "/api/lab/rollback", "/api/lab/git/plan",
-                           "/api/lab/composer/quick_start", "/api/lab/composer/template",
-                           "/api/lab/composer/customize",
-                           "/api/lab/composer/plugin/dry_run", "/api/lab/composer/plugin/apply",
-                           "/api/lab/composer/run", "/api/lab/composer/run_async",
-                           "/api/lab/composer/export",
-                           "/api/lab/composer/recipe/export",
-                           "/api/lab/composer/recipe/import"}
+                           "/api/lab/rollback", "/api/lab/git/plan"}
             is_lab_route = path in _LAB_ROUTES or (path.startswith('/api/lab/experiment/') and path.endswith('/cancel'))
             if is_lab_route:
                 tok = self.headers.get("X-Lab-Token", "")
@@ -489,7 +645,20 @@ class Handler(DXBaseHandler):
 
             if path=="/api/stop":return self.send_json(stop_inference())
 
+            if path in ("/api/run_live", "/api/live_stop"):
+                slot = data.get("slot_idx", 0 if path == "/api/run_live" else None)
+                try:
+                    slot = None if slot is None else _run_slot(slot)
+                except ValueError as e:
+                    return self.send_json(_error_payload("invalid_slot", str(e)), 400)
+                if path == "/api/live_stop":
+                    return self.send_json(stop_inference_live(slot))
+
             if path=="/api/run_live":
+                try:
+                    n_total = _slot_count(data.get("n_total_slots", 1))
+                except ValueError as e:
+                    return self.send_json(_error_payload("invalid_slot", str(e)), 400)
                 err, code = _validate_inference_payload(data, live=True)
                 if err:
                     return self.send_json(err, code)
@@ -499,11 +668,9 @@ class Handler(DXBaseHandler):
                     variant=data.get("variant","sync"),input_type=data.get("input_type","camera"),
                     camera_id=data.get("camera_id"),rtsp_url=data.get("rtsp_url"),
                     video_path=data.get("video_path"),
-                    device_id=data.get("device_id"),slot_idx=int(data.get("slot_idx",0)),
-                    n_total_slots=int(data.get("n_total_slots",1)))
+                    device_id=data.get("device_id"),slot_idx=slot,
+                    n_total_slots=n_total)
                 return self.send_json(r)
-
-            if path=="/api/live_stop":return self.send_json(stop_inference_live(data.get("slot_idx")))
 
             if path=="/api/extract":
                 mp=data.get("model_path","");lang=data.get("lang","both")
@@ -535,8 +702,8 @@ class Handler(DXBaseHandler):
             if path=="/api/dev/add_model":
                 res=dev_add(tok,data.get("model_name",""),data.get("task_type",""),
                  data.get("lang","both"),data.get("category","object_detection"),
-                 data.get("postprocessor","yolov8"),data.get("sync_only",False),
-                 data.get("confirm_overwrite",False))
+                 data.get("postprocessor",""),data.get("sync_only",False),
+                 data.get("confirm_overwrite",False),base_model=data.get("base_model",""))
                 code=res.pop("status",200) if isinstance(res,dict) and "status" in res else 200
                 return self.send_json(res,code)
             if path=="/api/dev/delete_model":
@@ -581,6 +748,8 @@ class Handler(DXBaseHandler):
 
             if path == "/api/lab/experiment/start":
                 res, code = start_experiment_run(data)
+                if code == 200:
+                    launch_experiment_run(res["id"])
                 return self.send_json(res, code)
 
             if path.startswith("/api/lab/experiment/") and path.endswith("/cancel"):
@@ -608,55 +777,6 @@ class Handler(DXBaseHandler):
                 res, code = scoped_git_plan(manifest_id, data)
                 return self.send_json(res, code)
 
-            if path == "/api/lab/composer/quick_start":
-                res, code = plan_composer_quick_start(tok, data)
-                return self.send_json(res, code)
-
-            if path == "/api/lab/composer/template":
-                res, code = plan_composer_template(tok, data)
-                return self.send_json(res, code)
-
-            if path == "/api/lab/composer/customize":
-                res, code = customize_composer_workflow(tok, data)
-                return self.send_json(res, code)
-
-            if path == "/api/lab/composer/plugin/dry_run":
-                res, code = plan_composer_plugin_scaffold_response(tok, data)
-                return self.send_json(res, code)
-
-            if path == "/api/lab/composer/plugin/apply":
-                res, code = apply_composer_plugin_scaffold(tok, data)
-                return self.send_json(res, code)
-
-            if path == "/api/lab/composer/run":
-                debug_log.log_action("dx_app", "composer_run", data)
-                res, code = run_composer_workflow(tok, data)
-                return self.send_json(res, code)
-
-            if path == "/api/lab/composer/run_async":
-                debug_log.log_action("dx_app", "composer_run_async", data)
-                # Non-blocking composer run — same run_progress registry as the Run page, so it
-                # shares /api/run_poll and /api/run_result. The worker unwraps the (result,code)
-                # tuple to store just the result dict (what the composer UI renders).
-                from dx_app.core.run_progress import start_run
-                def _composer_job(job_id=None, tok=None, payload=None):
-                    r = run_composer_workflow(tok, payload, job_id=job_id)
-                    return r[0] if isinstance(r, tuple) else r
-                jid = start_run(_composer_job, {"tok": tok, "payload": data})
-                return self.send_json({"job_id": jid, "status": "started"})
-
-            if path == "/api/lab/composer/export":
-                res, code = export_composer_package(tok, data)
-                return self.send_json(res, code)
-
-            if path == "/api/lab/composer/recipe/export":
-                res, code = export_composer_recipe(tok, data)
-                return self.send_json(res, code)
-
-            if path == "/api/lab/composer/recipe/import":
-                res, code = import_composer_recipe(tok, data)
-                return self.send_json(res, code)
-
             if path=="/api/setup/run":
                 debug_log.log_action("dx_app", "setup_run", data)
                 return self.send_json(setup_run(data.get("step",""),data))
@@ -681,15 +801,33 @@ class Handler(DXBaseHandler):
 
         return self.route_legacy()
 
+def _idle_shutdown_enabled():
+    """A standalone dx_app (its own browser tab) shuts down after an hour without requests. Under the launcher
+    (DX_PORT_FILE set) the launcher owns the lifecycle; stopping there would break Model Zoo inference until the
+    launcher noticed and respawned it."""
+    return not os.environ.get("DX_PORT_FILE")
+
+
+def _stop_children():
+    """Stop every child process before the server exits. The graph Live goes first: it draws on an Xvfb display that
+    shutdown_live_processes kills with the Run page's ones."""
+    from dx_app.core import graph_gallery, graph_live, graph_run
+    graph_live.stop_all()
+    stop_inference()
+    shutdown_live_processes()
+    graph_run.stop_all()
+    graph_gallery.stop_all()
+
+
 def _watchdog(srv):
     while True:
         time.sleep(5)
         if time.time()-config._HEARTBEAT>_HB_TIMEOUT:
             print("\n[AUTO] No heartbeat — shutting down.")
-            stop_inference();shutdown_live_processes();srv.shutdown();return
+            _stop_children();srv.shutdown();return
 
 def create_server(port=DEFAULT_PORT):
-    """테스트용 서버 팩토리: HTTPServer 인스턴스를 반환."""
+    """Server factory for tests: returns an HTTPServer instance."""
     from http.server import ThreadingHTTPServer
     srv = ThreadingHTTPServer(("127.0.0.1", port), Handler)
     srv.daemon_threads = True
@@ -713,7 +851,8 @@ def main():
 
     dx.register_signals()
     _hb_touch()
-    threading.Thread(target=_watchdog, args=(srv,), daemon=True).start()
+    if _idle_shutdown_enabled():
+        threading.Thread(target=_watchdog, args=(srv,), daemon=True).start()
     dx.print_banner(args.port)
 
     if not args.no_browser:

@@ -1,4 +1,5 @@
 from pathlib import Path
+from tests.i18n_markup import assert_translatable
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -130,8 +131,10 @@ def test_continuous_result_status_skips_same_value_text_writes():
     result_body = _function_body(source, "function contShowResult(")
 
     assert "function setTextIfChanged(" in source
-    assert "setTextIfChanged(statusEl,T('❌ Error'));" in result_body
-    assert "setTextIfChanged(statusEl,T('✅ Done'));" in result_body
+    # Status is icon + words; an unchanged value is not rewritten (setLabelIfChanged).
+    assert "function setLabelIfChanged(" in source
+    assert "setLabelIfChanged(statusEl,'x',T('Error'));" in result_body
+    assert "setLabelIfChanged(statusEl,'check',T('Done'));" in result_body
     assert "setTextIfChanged(fpsEl,res.fps+' FPS');" in result_body
     assert "statusEl.textContent" not in result_body
     assert "fpsEl.textContent" not in result_body
@@ -225,7 +228,7 @@ def test_continuous_processing_state_set_per_slot_not_pre_marked():
     )
 
     # Slots waiting for their turn should show 'Waiting…' not 'Processing…'
-    assert "T('⏳ Waiting…')" in grid_body or "T('▶ Press Start to begin inference')" in grid_body, (
+    assert "T('Waiting…')" in grid_body or "T('Press Start to begin inference')" in grid_body, (
         "contRenderGrid should show a non-processing placeholder for pending slots"
     )
 
@@ -349,16 +352,11 @@ def test_doRun_has_inflight_guard_before_await():
 
 
 def test_setup_run_all_button_has_exactly_one_span_per_language():
-    """setup-run-all button must have exactly one span per language."""
+    """setup-run-all button label must resolve in every supported language."""
     html = (ROOT / "dx_app/templates/index.html").read_text(encoding="utf-8")
     import re
-    # Extract the setup-run-all button element
     match = re.search(r'id="setup-run-all"[^>]*>(.*?)</button>', html, re.DOTALL)
     assert match, "setup-run-all button not found in index.html"
-    btn_content = match.group(1)
-    expected_langs = ["ko", "en", "es", "ja", "zh-CN", "zh-TW"]
-    for lang in expected_langs:
-        count = btn_content.count(f'class="{lang}"')
-        assert count == 1, (
-            f"setup-run-all button has {count} <span class=\"{lang}\"> elements, expected exactly 1"
-        )
+    assert_translatable(
+        match.group(1), "dx_app/static/js/i18n.js", "setup-run-all"
+    )

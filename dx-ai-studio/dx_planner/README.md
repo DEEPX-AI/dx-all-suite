@@ -11,34 +11,43 @@ The whole thing is one page (**DX EdgeGuide**) with a four-step strip —
 **Scenario → Pick → Evidence → Buy** — where panels open as you go.
 
 **1. Describe the workload** (Requirements panel).
-   - Optionally click a **Quick scenario** chip (**CCTV / Retail / Pose**) to prefill.
-   - **AI task**: Object Detection / Pose Estimation / Segmentation / Oriented BBox / Classification.
+   - Optionally click a **Quick scenario** chip (**4-ch CCTV OD / 8-ch retail cls / 2-ch pose 30FPS**) to prefill.
+   - **AI task**: Object Detection / Pose Estimation / Segmentation / OBB / Classification.
    - **Model size**: n (fastest) → x (most accurate).
    - **Operating requirements**: cameras/**channels**, **target FPS**, runtime
-     (ONNX Runtime vs Native), **FPS headroom**, **max latency**.
-   - Click **Next: priority**, choose a **ranking priority** — Lowest Cost / Best
-     Performance / Lowest Power — then **Get Recommendations**. (After the first run,
-     changing any input auto-refreshes the results.)
+     (ONNX Runtime vs Native), **max latency**.
+   - Click **Next — choose ranking**, choose a **ranking priority** — Most channels / Best
+     Performance (camera-pipeline FPS) / Lowest Power (NPU TDP; host power not included) —
+     then **Get Recommendations**. (After the first run,
+     changing any input auto-refreshes the results; **Start over** clears everything.)
 
 **2. Read the recommendations.** A verdict line shows the **Top pick** and whether your
-channel/FPS target is met; ranked cards carry a confidence badge (Measured →
-Interpolated → Theoretical) and flags like *Host-limited*. Click a card (or a bar in the
-throughput chart) to open details.
+channel/FPS target is met. Each card carries a **Measured** or **Estimated** badge and one line
+saying why: "12 ch held 30.4 FPS each ≥ 30 FPS target (measured) · 13 ch dropped to 28.1 FPS",
+or the estimate's division, "534 FPS ÷ 60 FPS = 8.9 → 8 ch (tested up to 18 ch)". The benchmark measured the
+stream counts around 30 FPS per channel; at other targets the channel count is estimated from
+the measured total FPS (it stays nearly flat around saturation), capped at twice the highest
+tested count (**Estimated+** = the estimate hit that cap; real capacity may be higher). Notes flag
+an NPU that throttled during the measurement, the limit — **NPU** when it was ≥ 85 % busy at the
+most loaded measured count, else **host** (CPU / decode / PCIe), with the measured NPU load —
+and a latency that was not measured. Click a
+card (or a bar in the throughput chart) to open details.
 
 **3. Explore / compare.** The Details panel shows key facts, platform specs, a
 Performance Radar, a sortable benchmark table, and a per-model-size chart. Use
 **Compare with** to line up a second platform side-by-side.
 
-**4. Buy / contact.** The Buy panel shows the system price and approximate **cost per
-channel**, with **Product info** and **Request quote** buttons to DEEPX.
+**4. Buy / contact.** Pricing is by quote — the Buy panel's **Product info** and **Request
+quote** buttons go to DEEPX.
 
 ## Key features
 
 - **Real measurements** — recommendations come from the YOLO26 benchmark matrix, not
-  spec-sheet math; every number is tagged by confidence (measured → theoretical).
+  spec-sheet math. Channel counts are measured where a tested stream count brackets the
+  target, and otherwise estimated from the measured total FPS — every card says which.
 - **Open methodology** — the **How ranking works** button shows the exact formulas and a
-  live summary; it also states the honest limits (figures are not a full spec sheet, and
-  the shown cost is NPU-board price per channel — **not** full TCO; host/power/install are extra).
+  live summary; it also states the honest limits (figures are not a full spec sheet; power
+  ranking covers the NPU only; contact DEEPX for production sizing and pricing).
 - **Multi-stream evidence** — per-channel and total FPS behind each channel estimate.
 - **Shareable** — the current selection is captured in the URL, so a link (e.g. arriving
   from DX Benchmark) reproduces the inputs and re-runs the recommendation.

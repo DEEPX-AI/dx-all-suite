@@ -1,6 +1,6 @@
 /**
- * CardRenderer — Step 2 추천 카드 렌더링.
- * GaugeChart.draw()로 각 카드에 미니 게이지 그림.
+ * CardRenderer — renders the Step 2 recommendation cards.
+ * Draws a mini gauge on each card with GaugeChart.draw().
  */
 const CardRenderer = {
   _detailCb: null,
@@ -13,7 +13,7 @@ const CardRenderer = {
     if (!container) return;
     container.innerHTML = '';
 
-    // 60fps 배너
+    // 60fps banner
     const banner = document.getElementById('fps-banner');
     if (banner) {
       banner.style.display = inputs.targetFps >= 60 ? '' : 'none';
@@ -29,7 +29,7 @@ const CardRenderer = {
       container.appendChild(this._buildCard(r, i, inputs));
     });
 
-    // 게이지 렌더링 (charts.js 로드 후)
+    // Gauge rendering (after charts.js loads)
     if (typeof GaugeChart !== 'undefined') {
       results.forEach((r, i) => {
         const cv = container.querySelectorAll('.gauge-canvas')[i];
@@ -41,19 +41,21 @@ const CardRenderer = {
 
   _confidenceBadge(flag) {
     const labels = {
-      measured: { ko: '실측', en: 'Measured', ja: '実測', 'zh-CN': '实测', 'zh-TW': '實測', es: 'Medido' },
-      '+': { ko: '실측+', en: 'Measured+', ja: '実測+', 'zh-CN': '实测+', 'zh-TW': '實測+', es: 'Medido+' },
+      measured: '<span data-i18n="Measured">Measured</span>',
+      estimated: '<span data-i18n="Estimated">Estimated</span>',
+      '+': '<span data-i18n="Estimated+">Estimated+</span>',
     };
-    const key = flag || 'measured';
-    const text = labels[key] || labels.measured;
-    const lang = typeof DXI18n !== 'undefined' ? DXI18n.lang : 'en';
-    const shown = text[lang] || text.en;
-    return '<span class="badge badge-confidence" data-confidence="' + key + '">' + shown + '</span>';
+    const key = labels[flag] ? flag : 'measured';
+    return '<span class="badge badge-confidence" data-confidence="' + key + '">' + labels[key] + '</span>';
   },
 
+  // The rank is a numbered disc — only first place is gold (medal emoji render differently on each OS).
   _rankBadge(i) {
-    const medals = ['🥇', '🥈', '🥉'];
-    return i < 3 ? medals[i] : String(i + 1);
+    return '<span class="rank-disc' + (i === 0 ? ' rank-disc--top' : '') + '">' + (i + 1) + '</span>';
+  },
+
+  _ico(name) {
+    return (typeof window.DXIcon === 'function') ? window.DXIcon(name) : '';
   },
 
   _buildCard(r, idx, inputs) {
@@ -72,11 +74,14 @@ const CardRenderer = {
 
     const chVal = this._formatChannels(r.maxChannels, r.boundaryFlag);
     const benchmarkMeta = this._benchmarkMeta(pid);
+    const meetsLabel = r.status === 'meets-estimated'
+      ? '<span data-i18n="Meets (estimate)">Meets (estimate)</span>'
+      : '<span data-i18n="Meets">Meets</span>';
     const statusBadge = meets
-      ? '<span class="badge badge-meets">✅ <span class="ko">충족</span><span class="en">Meets</span><span class="ja">充足</span><span class="zh-CN">满足</span><span class="zh-TW">滿足</span></span>'
-      : '<span class="badge badge-insufficient">⚠️ <span class="ko">부족</span><span class="en">Insufficient</span><span class="ja">不足</span><span class="zh-CN">不足</span><span class="zh-TW">不足</span></span>';
+      ? '<span class="badge badge-meets">' + this._ico('check') + ' ' + meetsLabel + '</span>'
+      : '<span class="badge badge-insufficient">' + this._ico('alert') + ' <span data-i18n="Insufficient">Insufficient</span></span>';
     const featuredBadge = idx === 0
-      ? '<span class="badge badge-featured"><span class="ko">1순위</span><span class="en">Top pick</span><span class="ja">第1推奨</span><span class="zh-CN">首选</span><span class="zh-TW">首選</span><span class="es">#1</span></span>'
+      ? '<span class="badge badge-featured" data-i18n="Top pick">Top pick</span>'
       : '';
 
 
@@ -92,20 +97,22 @@ const CardRenderer = {
         '<div class="card-badges">' + featuredBadge + confidenceBadge + statusBadge + '</div>' +
       '</div>' +
       '<div class="card-metrics">' +
-        this._metric(String(Math.round(r.throughputFps)), 'FPS') +
+        this._metric(String(Math.round(r.pipelineFps || 0)), 'FPS') +
         this._metric(chVal,
-          '<span class="ko">채널</span><span class="en">Ch</span><span class="ja">Ch</span><span class="zh-CN">通道</span><span class="zh-TW">通道</span>') +
+          '<span data-i18n="Ch">Ch</span>') +
         this._metric(r.platform.npu.tdp_w + 'W', 'TDP') +
       '</div>' +
+      '<p class="card-why txt-sm txt-dim">' + this._whyHtml(r) + '</p>' +
       benchmarkMeta +
       '<div class="card-gauge"><canvas class="gauge-canvas" width="60" height="60"></canvas></div>' +
       '<div class="card-actions">' +
         '<button class="btn-detail" data-platform-id="' + pid + '">' +
-          '<span class="ko">상세 보기</span><span class="en">Details</span><span class="ja">詳細</span><span class="zh-CN">详情</span><span class="zh-TW">詳情</span>' +
+          '<span data-i18n="Details">Details</span>' +
         '</button>' +
       '</div>';
 
-    // 이벤트
+    // Events
+    card.querySelector('.card-why')._result = r;
     card.querySelector('.btn-detail').addEventListener('click', () => {
       if (this._detailCb) this._detailCb(pid);
     });
@@ -122,15 +129,52 @@ const CardRenderer = {
       }
     });
 
-    // boundaryFlag "+" 툴팁
+    // "+" = the estimate stopped at twice the highest tested stream count
     if (r.boundaryFlag === '+') {
       const chMetric = card.querySelectorAll('.metric')[1];
-      if (chMetric) {
-        chMetric.title = ({ko:'측정 범위 내 최대값', ja:'計測範囲内の最大値', 'zh-CN':'测量范围内的最大值', 'zh-TW':'測量範圍內的最大值'}[(typeof DXI18n !== 'undefined' ? DXI18n.lang : 'en')] || 'Maximum within measured range');
-      }
+      if (chMetric) chMetric.title = this._t('At least this many — estimates stop at twice the tested stream count');
     }
 
     return card;
+  },
+
+  _t(key) {
+    return typeof T === 'function' ? T(key) : key;
+  },
+
+  _fill(key, vals) {
+    return Object.keys(vals).reduce((out, k) => out.split('{' + k + '}').join(vals[k]), this._t(key));
+  },
+
+  /** One line saying why this channel count — the measured point, or the division the estimate comes from. */
+  _whyHtml(r) {
+    const w = r.why || { kind: 'none' };
+    const fps = v => this._formatNumber(v, 1);
+    // The quotient is cut, not rounded: 8.95 shown as "9" next to "8 ch" would contradict the floor.
+    const quotient = v => this._formatNumber(Math.floor(v * 10) / 10, 1);
+    let line;
+    if (w.kind === 'measured') {
+      line = this._fill('{n} ch held {fps} FPS each ≥ {target} FPS target (measured)',
+        { n: w.n, fps: fps(w.atFps), target: w.target });
+      if (w.nextN != null) line += ' · ' + this._fill('{n} ch dropped to {fps} FPS', { n: w.nextN, fps: fps(w.nextFps) });
+    } else if (w.kind === 'estimated' && w.n > 0) {
+      const vals = { total: fps(w.tSat), target: w.target, raw: quotient(w.raw), n: w.n, max: w.maxTested };
+      line = w.capped
+        ? this._fill('{total} FPS ÷ {target} FPS = {raw} → {n} ch+ (estimates stop at 2 × {max} tested ch)', vals)
+        : this._fill('{total} FPS ÷ {target} FPS = {raw} → {n} ch (estimated from the measured total; tested up to {max} ch)', vals);
+    } else if (w.kind === 'estimated') {
+      line = this._fill('Not even one stream: {total} FPS ÷ {target} FPS = {raw} → 0 ch',
+        { total: fps(w.tSat), target: w.target, raw: quotient(w.raw) });
+    } else {
+      line = this._t('No multi-stream measurement');
+    }
+    const notes = [];
+    if (r.throttled) notes.push(this._t('NPU throttled while measured'));
+    const load = Number.isFinite(r.npuPct) ? ' · ' + this._fill('NPU {pct}%', { pct: Math.round(r.npuPct) }) : '';
+    if (r.bottleneck === 'npu') notes.push(this._t('Limit: NPU') + load);
+    else if (r.bottleneck === 'host') notes.push(this._t('Limit: host (CPU / decode)') + load);
+    if (r.meetsLatency === null) notes.push(this._t('Latency not measured'));
+    return this._escHtml(line) + notes.map(n => '<span class="card-why-note">' + this._escHtml(n) + '</span>').join('');
   },
 
   _formatChannels(val, flag) {
@@ -187,6 +231,9 @@ const CardRenderer = {
 };
 if (typeof registerPlannerLangRefresher === 'function') {
   registerPlannerLangRefresher(function() {
+    document.querySelectorAll('.card-why').forEach(el => {
+      if (el._result) el.innerHTML = CardRenderer._whyHtml(el._result);
+    });
     if (typeof DXI18n !== 'undefined' && DXI18n.applyLang) DXI18n.applyLang(document);
   });
 }

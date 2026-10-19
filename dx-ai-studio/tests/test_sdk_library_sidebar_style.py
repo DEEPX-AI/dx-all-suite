@@ -26,8 +26,11 @@ def test_sdk_list_sidebar_matches_module_sidebar_width_and_tone():
     rule = normalize(css_rule(css, ".sdk-list-sidebar"))
     assert "width:240px" in rule
     assert "min-width:min(180px,36vw)" in rule or "min-width:60px" in rule
-    assert "background:linear-gradient(180deg,var(--bg-0)0%,var(--bg-1)100%)" in rule
-    assert "border-right:1pxsolidvar(--border)" in rule
+    assert (
+        "background:linear-gradient(180deg,var(--surface-page)0%,var(--surface-panel)100%)"
+        in rule
+    )
+    assert "border-right:1pxsolidvar(--border-subtle)" in rule
     assert "display:flex" in rule
     assert "flex-direction:column" in rule
     assert "transition:width.25s" in rule
@@ -71,9 +74,9 @@ def test_sdk_sidebar_sections_match_module_nav_active_and_hover_states():
     assert "text-align:left" in base
     assert "border-radius:06px6px0" in base
     assert "margin-right:8px" in base
-    assert "border-left-color:rgba(99,140,255,.3)" in hover
+    assert "border-left-color:rgba(var(--accent-rgb),.3)" in hover
     assert "font-weight:600" in selected
-    assert "box-shadow:inset0012pxrgba(99,140,255,.06)" in selected
+    assert "box-shadow:inset0012pxrgba(var(--accent-rgb),.06)" in selected
 
 
 def test_sdk_sidebar_section_icon_and_label_match_module_nav_metrics():
@@ -92,5 +95,6 @@ def test_sdk_sidebar_count_badges_use_design_tokens():
     css = read_css()
     group_count = normalize(css_rule(css, ".sdk-sidebar-count"))
     section_count = normalize(css_rule(css, ".sdk-sidebar-sec-count"))
-    assert "color:var(--text-4)" in group_count
-    assert "color:var(--text-4)" in section_count
+    # Text color comes from tokens. The group count badge may use --text-muted for contrast in the light theme
+    assert "color:var(--text-muted)" in group_count or "color:var(--text-faint)" in group_count
+    assert "color:var(--text-faint)" in section_count

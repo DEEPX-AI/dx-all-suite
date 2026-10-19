@@ -26,7 +26,7 @@ def test_every_model_has_input_resolution():
 
 def test_known_resolutions_from_dxnn():
     ms = _models()
-    # casvit_t / deitbase384 report their real input tensor shape (staging renamed
-    # deitbase384_hug -> deitbase384; casvit_xs was removed from the staging catalog).
+    # casvit_t / deitbase384 report their real input tensor shape (staging names the
+    # latter deitbase384, not deitbase384_hug).
     assert ms["casvit_t"]["specification"]["input_resolution"] == "224x224x3"
     assert ms["deitbase384"]["specification"]["input_resolution"] == "384x384x3"

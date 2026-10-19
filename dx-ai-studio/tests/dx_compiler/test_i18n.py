@@ -306,3 +306,32 @@ def test_tutorial_advanced_card_no_checkpoint_visible_copy():
     # compile-range resume wording must be preserved
     assert "ns-resume-btn" in tutorial
     assert "Resume Compilation" in tutorial
+
+
+def test_status_bar_absorbs_long_labels_instead_of_pushing_the_viewer():
+    """The bottom status bar must not push the graph panel sideways when labels grow.
+
+    Long es / ja labels overflow by about 40px and make .viewer-panel scroll
+    horizontally, hiding "Expandir todo". Pixel widths depend on the font, so the test
+    checks that the absorbing rules are present rather than a width.
+    """
+    css = read_text(COMPILER / "static" / "css" / "style.css")
+    bar = re.search(r"\.viewer-status-bar\s*\{([^}]*)\}", css, re.S)
+    assert bar, ".viewer-status-bar rule missing"
+    body = bar.group(1).replace(" ", "")
+    assert "min-width:0" in body, "flex 자식이 줄어들 수 있어야 한다"
+    assert "overflow-x:auto" in body, "넘치면 이 띠 안에서 스크롤해야 한다"
+
+    counts = re.search(r"\.viewer-status-counts\s*\{([^}]*)\}", css, re.S)
+    assert counts, "숫자를 먼저 양보시킬 .viewer-status-counts 가 없다"
+    assert "flex:01auto" in re.sub(r"\s+", "", counts.group(1)), (
+        "숫자 묶음은 자리가 모자랄 때 줄어들 수 있어야 한다"
+    )
+
+    buttons = re.search(r"\.viewer-status-bar\s*>\s*\.btn\s*\{([^}]*)\}", css, re.S)
+    assert buttons and "flex-shrink:0" in buttons.group(1).replace(" ", ""), (
+        "버튼은 동작이라 줄어들면 안 된다"
+    )
+
+    html = read_text(COMPILER / "templates" / "index.html")
+    assert 'class="viewer-status-counts"' in html

@@ -1,0 +1,31 @@
+
+===================== Model Information ======================
+ Model File Path        : assets/models/fastdepth_224x224.dxnn
+ .dxnn Format Version   : v8
+ DX-COM Version         : v2.4.0-rc.4
+
+ Model Input Tensors:
+  - input
+
+ Model Output Tensors:
+  - output
+
+ Model Memory Usage:
+  - Total             : 112.78 MB (118,262,080 bytes)
+  - Buffers           : 111.15 MB (116,551,680 bytes)
+  - NPU Tasks Count   : 1
+  - Buffer Pool Size  : x6
+
+================== Task Graph Information ====================
+
+-------------------- Task Dependencies -----------------------
+
+  npu_0 [NPU] (model input) (model output)
+
+---------------------- Task Details --------------------------
+
+Task[0]: npu_0 [NPU] (model input) (model output)
+  +- Inputs:
+  |  +- input
+  +- Outputs:
+     +- output

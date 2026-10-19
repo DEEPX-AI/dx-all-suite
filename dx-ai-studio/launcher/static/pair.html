@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>DX AI Studio — Connect this browser</title>
+<!--
+  Pairing screen for a remote browser.
+  Before pairing no other static file is served, so this page is self-contained (inline CSS and JS, no requests).
+  The code is printed only on the board's (launcher) console — never on this page or in the URL.
+-->
+<style>
+  :root {
+    color-scheme: light dark;
+    --pair-bg: Canvas;
+    --pair-fg: CanvasText;
+    --pair-muted: GrayText;
+    --pair-line: color-mix(in srgb, CanvasText 18%, transparent);
+    --pair-accent: AccentColor;
+    --pair-danger: color-mix(in srgb, red 70%, CanvasText);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; display: grid; grid-template-columns: minmax(0, 1fr);
+         place-items: center; padding: 16px;
+         background: var(--pair-bg); color: var(--pair-fg);
+         font: 16px/1.5 system-ui, -apple-system, "Segoe UI", "Noto Sans KR", "Noto Sans JP", sans-serif; }
+  main { width: 100%; max-width: 420px; border: 1px solid var(--pair-line); border-radius: 16px; padding: 32px 24px; }
+  h1 { font-size: 24px; margin: 0 0 8px; }
+  p { margin: 0 0 16px; color: var(--pair-muted); }
+  code { font: inherit; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  form { display: flex; gap: 8px; margin-top: 24px; }
+  input { flex: 1; min-width: 0; font-size: 24px; letter-spacing: 8px; text-align: center; padding: 8px 12px;
+          border: 1px solid var(--pair-line); border-radius: 8px; background: transparent; color: inherit; }
+  button { font: inherit; padding: 8px 16px; border-radius: 8px; border: 0; cursor: pointer;
+           background: var(--pair-accent); color: AccentColorText; }
+  button:disabled { opacity: .5; cursor: default; }
+  #dx-pair-msg { min-height: 24px; margin: 16px 0 0; }
+  #dx-pair-msg.err { color: var(--pair-danger); }
+  small { display: block; margin-top: 24px; color: var(--pair-muted); }
+</style>
+</head>
+<body>
+<main id="dx-pair">
+  <h1 id="dx-pair-title" data-t="title">Connect this browser</h1>
+  <p id="dx-pair-lead" data-t="lead">This studio runs on another computer. Enter the 6-digit code shown in that computer's terminal (where <code>./launcher.sh</code> is running).</p>
+  <form id="dx-pair-form" autocomplete="off">
+    <input id="dx-pair-code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required
+           aria-labelledby="dx-pair-title" aria-describedby="dx-pair-lead" autofocus>
+    <button id="dx-pair-go" type="submit" data-t="go">Connect</button>
+  </form>
+  <p id="dx-pair-msg" role="status" aria-live="polite"></p>
+  <small data-t="note">Asked once per browser. On the studio computer itself, no code is needed.</small>
+</main>
+<script>
+(function () {
+  var L = {
+    en: { title: "Connect this browser", lead: "This studio runs on another computer. Enter the 6-digit code shown in that computer's terminal (where ./launcher.sh is running).", go: "Connect", note: "Asked once per browser. On the studio computer itself, no code is needed.", bad: "That code is not right. Check the terminal and try again.", locked: "Too many attempts. Wait a minute — a new code is on the terminal.", fail: "Could not reach the studio. Try again.", ok: "Connected." },
+    ko: { title: "이 브라우저 연결", lead: "DX AI Studio는 다른 컴퓨터에서 실행 중입니다. 그 컴퓨터의 터미널(./launcher.sh를 실행한 곳)에 나온 6자리 코드를 입력하세요.", go: "연결", note: "브라우저마다 한 번만 묻습니다. DX AI Studio가 실행 중인 컴퓨터에서는 코드가 필요 없습니다.", bad: "코드가 맞지 않습니다. 터미널을 확인하고 다시 입력하세요.", locked: "시도가 너무 많습니다. 1분 뒤 터미널에 나온 새 코드로 다시 시도하세요.", fail: "DX AI Studio에 연결하지 못했습니다. 다시 시도하세요.", ok: "연결되었습니다." },
+    ja: { title: "このブラウザを接続", lead: "この studio は別のコンピューターで動いています。そのコンピューターのターミナル(./launcher.sh を実行した場所)に表示された6桁のコードを入力してください。", go: "接続", note: "ブラウザごとに一度だけ尋ねます。studio を実行しているコンピューターではコードは不要です。", bad: "コードが正しくありません。ターミナルを確認してもう一度入力してください。", locked: "試行回数が多すぎます。1分後、ターミナルの新しいコードで再試行してください。", fail: "studio に接続できませんでした。もう一度お試しください。", ok: "接続しました。" },
+    "zh-CN": { title: "连接此浏览器", lead: "此 studio 运行在另一台计算机上。请输入该计算机终端(运行 ./launcher.sh 的位置)中显示的 6 位代码。", go: "连接", note: "每个浏览器只询问一次。在运行 studio 的计算机上无需代码。", bad: "代码不正确。请查看终端后重试。", locked: "尝试次数过多。请等待一分钟,使用终端上的新代码重试。", fail: "无法连接到 studio。请重试。", ok: "已连接。" },
+    "zh-TW": { title: "連接此瀏覽器", lead: "此 studio 執行於另一台電腦。請輸入該電腦終端機(執行 ./launcher.sh 的位置)中顯示的 6 位代碼。", go: "連接", note: "每個瀏覽器只詢問一次。在執行 studio 的電腦上不需要代碼。", bad: "代碼不正確。請查看終端機後再試一次。", locked: "嘗試次數過多。請等待一分鐘,使用終端機上的新代碼重試。", fail: "無法連接到 studio。請再試一次。", ok: "已連接。" },
+    es: { title: "Conectar este navegador", lead: "Este studio se ejecuta en otro equipo. Introduzca el código de 6 dígitos que aparece en la terminal de ese equipo (donde se ejecuta ./launcher.sh).", go: "Conectar", note: "Se pide una vez por navegador. En el equipo del studio no hace falta código.", bad: "El código no es correcto. Revise la terminal e inténtelo de nuevo.", locked: "Demasiados intentos. Espere un minuto y use el nuevo código de la terminal.", fail: "No se pudo contactar con el studio. Inténtelo de nuevo.", ok: "Conectado." }
+  };
+  var pref = "en";
+  try { pref = localStorage.getItem("dx-lang") || ""; } catch (e) { pref = ""; }
+  var lang = (pref || navigator.language || "en");
+  var key = L[lang] ? lang : (lang.indexOf("zh") === 0 ? (/tw|hk|hant/i.test(lang) ? "zh-TW" : "zh-CN") : lang.slice(0, 2));
+  var T = L[key] || L.en;
+  document.documentElement.lang = L[key] ? key : "en";
+  Array.prototype.forEach.call(document.querySelectorAll("[data-t]"), function (el) {
+    var v = T[el.getAttribute("data-t")];
+    if (v) el.textContent = v;
+  });
+  var form = document.getElementById("dx-pair-form");
+  var input = document.getElementById("dx-pair-code");
+  var btn = document.getElementById("dx-pair-go");
+  var msg = document.getElementById("dx-pair-msg");
+  input.addEventListener("input", function () { input.value = input.value.replace(/\D/g, "").slice(0, 6); });
+  form.addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    if (!/^\d{6}$/.test(input.value)) { input.focus(); return; }
+    btn.disabled = true; msg.className = ""; msg.textContent = "";
+    fetch("/api/auth/unlock", {
+      method: "POST", credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: input.value })
+    }).then(function (r) {
+      if (r.ok) { msg.textContent = T.ok; location.reload(); return; }
+      msg.className = "err";
+      msg.textContent = r.status === 429 ? T.locked : T.bad;
+      input.value = ""; input.focus();
+    }).catch(function () {
+      msg.className = "err"; msg.textContent = T.fail;
+    }).then(function () { btn.disabled = false; });
+  });
+})();
+</script>
+</body>
+</html>

@@ -23,13 +23,20 @@ CONF_SCORE_ALIASES = ("score_threshold", "confidence_threshold", "conf_threshold
 
 
 def load_model_config(category: str, model_name: str) -> Dict[str, Any]:
-    """Load config.json from cpp/python example dirs (first match wins)."""
+    """Load config.json from cpp/python example dirs (first match wins), as the flat threshold dict.
+
+    A per-model layout config.json is a nested spec with the thresholds under ``config``; the ``--config`` passed to
+    a run must be flat (the C++ reader reads flat keys only)."""
+    from shared import dx_app_layout as layout
     for base in (CPP_DIR, PY_DIR):
         cfp = base / category / model_name / "config.json"
+        if not cfp.exists():
+            d = layout.example_dir(base.parent.parent, "cpp" if base == CPP_DIR else "python", category, model_name)
+            cfp = d / "config.json"
         if cfp.exists():
             try:
                 data = json.loads(cfp.read_text(encoding="utf-8"))
-                return data if isinstance(data, dict) else {}
+                return layout.flat_config(data) if isinstance(data, dict) else {}
             except (json.JSONDecodeError, OSError):
                 return {}
     return {}

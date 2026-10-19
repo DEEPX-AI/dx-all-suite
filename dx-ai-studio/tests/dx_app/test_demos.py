@@ -132,7 +132,15 @@ class TestParseRunDemo(unittest.TestCase):
         if not r["ok"]:
             self.skipTest("list_demos() could not locate/parse the real run_demo.sh in this environment")
         self.assertTrue(r["ok"] is True)
-        self.assertEqual(len(r["demos"]), 23)
+        # The demo count belongs to dx_app and changes between versions, so no number is hard-coded:
+        # compare with the DEMO_LABELS length that bash itself counts.
+        import subprocess
+        from dx_app.core.demos import _dx_app_root
+        script = _dx_app_root() / "run_demo.sh"
+        count = subprocess.run(
+            ["bash", "-c", 'eval "$(sed -n "/^DEMO_LABELS=(/,/^)/p" "$1")"; echo ${#DEMO_LABELS[@]}', "_", str(script)],
+            capture_output=True, text=True, check=True).stdout.strip()
+        self.assertEqual(len(r["demos"]), int(count))
         self.assertTrue(len(r["groups"]) > 0)
         self.assertEqual(len(set(r["groups"])), len(r["groups"]))
         self.assertEqual(r["groups"][0], "Detection")

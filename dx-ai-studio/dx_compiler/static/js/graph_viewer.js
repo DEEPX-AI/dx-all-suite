@@ -6,6 +6,9 @@
 (function () {
     'use strict';
 
+    // Detail panel text follows the chosen language. The standalone model summary HTML has no dictionary, so it stays English.
+    function tr(k) { return typeof T === 'function' ? T(k) : k; }
+
     var CATEGORY_COLORS = {
         compute: '#4f46e5', memory: '#64748b', activation: '#059669',
         normalization: '#0d9488', pooling: '#7c3aed', elementwise: '#d97706',
@@ -110,7 +113,7 @@
         else if (isGraphInput) html += '<span class="tensor-kind-badge input-badge">IN</span>';
         else html += '<span class="tensor-kind-badge tensor-badge">T</span>';
         html += '<span class="tensor-name">' + escapeHtml(name) + '</span>';
-        if (clickAttr) html += '<span style="color:#94a3b8;font-size:10px;flex-shrink:0">\u2139</span>';
+        if (clickAttr) html += '<span style="color:#94a3b8;flex-shrink:0;display:inline-flex">' + ((typeof DXIcon === 'function') ? DXIcon('info') : '') + '</span>';
         html += '</div>';
 
         if (info && ((info.shape && info.shape.length > 0) || info.dtype)) {
@@ -154,19 +157,20 @@
         }
 
         // Operation + Category
-        html += '<div class="info-row"><span class="info-label">Operation</span>';
+        html += '<div class="info-row"><span class="info-label">' + tr('Operation') + '</span>';
         html += '<span class="info-value"><span class="op-badge" style="background:' + catColor + '">' + escapeHtml(node.op_type) + '</span></span></div>';
-        html += '<div class="info-row"><span class="info-label">Category</span>';
-        html += '<span class="info-value">' + escapeHtml(node.category || 'other') + '</span></div>';
+        html += '<div class="info-row"><span class="info-label">' + tr('Category') + '</span>';
+        var catName = node.category || 'other';
+        html += '<span class="info-value">' + escapeHtml(tr(catName.charAt(0).toUpperCase() + catName.slice(1))) + '</span></div>';
         if (node.device) {
-            html += '<div class="info-row"><span class="info-label">Device</span>';
+            html += '<div class="info-row"><span class="info-label">' + tr('Device') + '</span>';
             html += '<span class="info-value">' + escapeHtml(node.device) + '</span></div>';
 
             // CPU reason display
             if (node.device.toLowerCase().indexOf('cpu') !== -1 && graphData) {
                 var cpuReason = _findNodeCpuReason(graphData, node.id);
                 if (cpuReason) {
-                    html += '<div class="info-row"><span class="info-label">CPU Reason</span>';
+                    html += '<div class="info-row"><span class="info-label">' + tr('CPU Reason') + '</span>';
                     html += '<span class="info-value" style="color:#92400e;font-style:italic">' + escapeHtml(cpuReason) + '</span></div>';
                 }
             }
@@ -182,12 +186,12 @@
                 else tensorInputs.push(inputs[i]);
             }
             if (tensorInputs.length > 0) {
-                html += '<div class="info-section-title">Tensor Inputs</div>';
+                html += '<div class="info-section-title">' + tr('Tensor Inputs') + '</div>';
                 for (var ti2 = 0; ti2 < tensorInputs.length; ti2++)
                     html += renderTensorItem(tensorInputs[ti2], graphData, 'tensor', graphInputSet[tensorInputs[ti2]], opts);
             }
             if (paramInputs.length > 0) {
-                html += '<div class="info-section-title">Param Inputs</div>';
+                html += '<div class="info-section-title">' + tr('Param Inputs') + '</div>';
                 for (var pi2 = 0; pi2 < paramInputs.length; pi2++)
                     html += renderTensorItem(paramInputs[pi2], graphData, 'param', false, opts);
             }
@@ -196,7 +200,7 @@
         // Outputs
         var outputs = node.outputs || [];
         if (outputs.length > 0) {
-            html += '<div class="info-section-title">Outputs</div>';
+            html += '<div class="info-section-title">' + tr('Outputs') + '</div>';
             for (var j = 0; j < outputs.length; j++)
                 html += renderTensorItem(outputs[j], graphData, 'output', false, opts);
         }
@@ -205,7 +209,7 @@
         var attrs = node.attrs || {};
         var attrKeys = Object.keys(attrs);
         if (attrKeys.length > 0) {
-            html += '<div class="info-section-title">Attributes</div>';
+            html += '<div class="info-section-title">' + tr('Attributes') + '</div>';
             for (var k = 0; k < attrKeys.length; k++) {
                 html += '<div class="info-row"><span class="info-label">' + escapeHtml(attrKeys[k]) + '</span>';
                 html += '<span class="info-value">' + escapeHtml(formatValue(attrs[attrKeys[k]])) + '</span></div>';
@@ -245,11 +249,11 @@
         html += '</div>';
 
         // Device
-        html += '<div class="info-row"><span class="info-label">Device</span>';
+        html += '<div class="info-row"><span class="info-label">' + tr('Device') + '</span>';
         html += '<span class="info-value" style="color:' + deviceColor + ';font-weight:600">' + escapeHtml(sg.device || 'N/A') + '</span></div>';
 
         // Node count
-        html += '<div class="info-row"><span class="info-label">Nodes</span>';
+        html += '<div class="info-row"><span class="info-label">' + tr('Nodes') + '</span>';
         html += '<span class="info-value">' + (sg.node_count || 0) + '</span></div>';
 
         // Collect subgraph nodes
@@ -314,7 +318,7 @@
         // Input tensors
         var inKeys = Object.keys(inputTensors);
         if (inKeys.length > 0) {
-            html += '<div class="info-section-title">Input Tensors</div>';
+            html += '<div class="info-section-title">' + tr('Input Tensors') + '</div>';
             for (var ik = 0; ik < inKeys.length; ik++) {
                 html += renderTensorItem(inKeys[ik], graphData, 'tensor', true, opts);
             }
@@ -323,7 +327,7 @@
         // Output tensors
         var outKeys = Object.keys(outputTensors);
         if (outKeys.length > 0) {
-            html += '<div class="info-section-title">Output Tensors</div>';
+            html += '<div class="info-section-title">' + tr('Output Tensors') + '</div>';
             for (var ok2 = 0; ok2 < outKeys.length; ok2++) {
                 html += renderTensorItem(outKeys[ok2], graphData, 'output', false, opts);
             }
@@ -331,15 +335,15 @@
 
         // CPU reasons (detailed per-node list)
         if (isCpu && sg.cpu_reasons) {
-            html += '<div class="info-section-title">CPU Assignment Reasons</div>';
+            html += '<div class="info-section-title">' + tr('CPU Assignment Reasons') + '</div>';
 
             // Group-level reason
             var gr = sg.cpu_reasons.group_reason;
             if (gr) {
                 var grLabel = '';
-                if (gr.category === 'user_excluded') grLabel = 'User option에 의해 CPU 할당';
-                else if (gr.category === 'offload_disabled') grLabel = 'Offloading 비활성화 — 첫 번째 NPU 그래프만 NPU 유지';
-                else if (gr.category === 'lightweight_merge') grLabel = 'Matrix 연산 없음 — device overhead 경감을 위해 CPU merge';
+                if (gr.category === 'user_excluded') grLabel = tr('Assigned to CPU by user option');
+                else if (gr.category === 'offload_disabled') grLabel = tr('Offloading disabled — only the first NPU graph stays on the NPU');
+                else if (gr.category === 'lightweight_merge') grLabel = tr('No matrix ops — merged to CPU to reduce device overhead');
                 else grLabel = gr.detail || gr.category;
                 html += '<div style="font-size:12px;color:#92400e;padding:4px 0;font-style:italic">' + escapeHtml(grLabel) + '</div>';
             }
@@ -371,7 +375,7 @@
                 for (var ci = 0; ci < catKeys.length; ci++) {
                     var catKey = catKeys[ci];
                     var items = byCategory[catKey];
-                    var catLabel = catLabels[catKey] || catKey;
+                    var catLabel = catLabels[catKey] ? tr(catLabels[catKey]) : catKey;
                     var isClassifier = !!classifierCats[catKey];
 
                     html += '<div class="cpu-reason-category" data-reason-category="' + escapeHtml(catKey) + '" '
@@ -465,46 +469,46 @@
 
         // Back button — return to previous detail view
         html += '<div data-back-action="true" style="display:inline-flex;align-items:center;gap:4px;cursor:pointer;padding:4px 10px;margin-bottom:8px;border-radius:4px;background:#f1f5f9;color:#475569;font-size:12px;font-weight:500;transition:background .15s"'
-             +  ' onmouseover="this.style.background=\'#e2e8f0\'" onmouseout="this.style.background=\'#f1f5f9\'">'
+             +  ' onmouseover="this.style.background=\'#f5f5f7\'" onmouseout="this.style.background=\'#f1f5f9\'">'
              +  '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><polyline points="12 19 5 12 12 5"/></svg>'
-             +  'Back</div>';
+             +  tr('Back') + '</div>';
 
         // Type badge
-        var kindLabel = paramData ? 'Parameter' : (isGraphInput ? 'Graph Input' : (isGraphOutput ? 'Graph Output' : 'Tensor'));
+        var kindLabel = tr(paramData ? 'Parameter' : (isGraphInput ? 'Graph Input' : (isGraphOutput ? 'Graph Output' : 'Tensor')));
         var kindColor = paramData ? '#d97706' : (isGraphInput ? '#059669' : '#3b82f6');
-        html += '<div class="info-row"><span class="info-label">Type</span>';
+        html += '<div class="info-row"><span class="info-label">' + tr('Type') + '</span>';
         html += '<span class="info-value"><span class="op-badge" style="background:' + kindColor + '">' + escapeHtml(kindLabel) + '</span></span></div>';
 
         // Name
-        html += '<div class="info-row"><span class="info-label">Name</span>';
+        html += '<div class="info-row"><span class="info-label">' + tr('Name') + '</span>';
         html += '<span class="info-value" style="font-size:11px;word-break:break-all">' + escapeHtml(tensorName) + '</span></div>';
 
         // Shape
         if (info && info.shape && info.shape.length > 0) {
-            html += '<div class="info-row"><span class="info-label">Shape</span>';
+            html += '<div class="info-row"><span class="info-label">' + tr('Shape') + '</span>';
             html += '<span class="info-value" style="color:#4f46e5;font-weight:600">' + formatShape(info.shape) + '</span></div>';
             var numEl = 1;
             for (var s = 0; s < info.shape.length; s++) { if (info.shape[s] > 0) numEl *= info.shape[s]; }
-            html += '<div class="info-row"><span class="info-label">Elements</span>';
+            html += '<div class="info-row"><span class="info-label">' + tr('Elements') + '</span>';
             html += '<span class="info-value">' + numEl.toLocaleString() + '</span></div>';
         }
 
         // Dtype
         if (info && info.dtype) {
-            html += '<div class="info-row"><span class="info-label">Dtype</span>';
+            html += '<div class="info-row"><span class="info-label">' + tr('Dtype') + '</span>';
             html += '<span class="info-value">' + escapeHtml(info.dtype) + '</span></div>';
         }
 
         // Size (for params)
         if (paramData && paramData.size_bytes) {
-            html += '<div class="info-row"><span class="info-label">Size</span>';
+            html += '<div class="info-row"><span class="info-label">' + tr('Size') + '</span>';
             html += '<span class="info-value">' + formatBytes(paramData.size_bytes) + '</span></div>';
         }
 
         // Producer node
         if (producerNode) {
             var prodNode = findNodeById(producerNode, graphData);
-            html += '<div class="info-section-title">Producer</div>';
+            html += '<div class="info-section-title">' + tr('Producer') + '</div>';
             html += '<div class="info-tensor' + (opts.clickable ? ' clickable' : '') + '" data-click-action="navigate-node" data-click-target="' + escapeHtml(producerNode) + '">';
             if (prodNode) {
                 var pc = CATEGORY_COLORS[prodNode.category] || CATEGORY_COLORS.other;
@@ -519,7 +523,7 @@
 
         // Consumer nodes
         if (consumerNodes.length > 0) {
-            html += '<div class="info-section-title">Consumers (' + consumerNodes.length + ')</div>';
+            html += '<div class="info-section-title">' + tr('Consumers') + ' (' + consumerNodes.length + ')</div>';
             for (var ci = 0; ci < consumerNodes.length; ci++) {
                 var consNode = findNodeById(consumerNodes[ci], graphData);
                 html += '<div class="info-tensor' + (opts.clickable ? ' clickable' : '') + '" data-click-action="navigate-node" data-click-target="' + escapeHtml(consumerNodes[ci]) + '">';

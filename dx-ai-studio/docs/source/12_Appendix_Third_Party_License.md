@@ -7,10 +7,10 @@ studio does not grant you any rights to them.
 ## Sample models
 
 Models surfaced in **DX Model Zoo** and used by **DX App** / **DX Compiler** (as `.dxnn`
-or ONNX) are provided for **evaluation and development only** and are **not licensed for
-commercial deployment**. They are compiled from various open-source projects, each under
-its own terms (AGPL-3.0, GPL-3.0, non-commercial research licenses, etc.), which often
-require full source disclosure, forbid commercial use, or mandate attribution.  
+or ONNX) are supplied as evaluation / development examples. Availability in Studio does
+**not** itself grant commercial-deployment rights. They originate from different
+projects with different terms (including copyleft and non-commercial licenses);
+restrictions and attribution obligations must be checked for the selected model.
 Per-model license terms are shown in **DX Model Zoo's detail view** —
 check them before any commercial use. For production, obtain a proper license from the
 model's authors, or bring your own commercially licensed / proprietary model.  
@@ -25,22 +25,37 @@ permission.
 
 ## Bundled software & fonts
 
-The studio bundles the following open-source assets so it runs fully offline. Each is
-redistributed under its own license:
+The local UI includes fonts and JavaScript assets for offline rendering. External AI
+providers, downloads and AWS operations still need their own network access and terms.
 
-**Fonts** — SIL Open Font License 1.1 (https://openfontlicense.org):  
-- **Inter** — © The Inter Project Authors  
-- **JetBrains Mono** — © 2020 The JetBrains Mono Project Authors  
-- **Noto Sans**, **Noto Sans Mono**, **Noto Sans CJK** — © The Noto Project Authors
-  (Google). Noto Sans CJK is shipped as a **subset** limited to the glyphs used by the
-  studio's 6-language UI.  
+**Fonts with accompanying SIL Open Font License 1.1 notices** — paths below are relative
+to `shared/static/fonts/`:
 
-**JavaScript libraries** — MIT License:  
-- **Chart.js** (© Chart.js Contributors)  
-- **Mermaid** (© 2014–present Knut Sveidqvist)  
+| Font | Shipped notice | Copyright named in the notice |
+|------|----------------|-------------------------------|
+| Inter | `LICENSE-Inter.txt` | The Inter Project Authors |
+| Noto Sans SC / TC | `LICENSE-NotoSansSC.txt`, `LICENSE-NotoSansTC.txt` | Adobe; reserved font name “Source” |
+| Pretendard / Pretendard JP | `LICENSE-Pretendard.txt`, `LICENSE-PretendardJP.txt` | Kil Hyung-jin |
 
-These bundled components are separate from the third-party **models** and **sample data**
-above and carry no usage restriction beyond their permissive licenses.
+CJK UI fonts are supplied as subsets. Other bundled font families include JetBrains
+Mono, Noto Sans and Noto Sans Mono. Before redistribution, retain the applicable font
+notices supplied with your distribution and check the upstream terms for each family.
+
+**JavaScript assets**
+
+| Asset | Component / license information |
+|-------|---------------------------------|
+| `shared/static/vendor/chart.umd.min.js` | The header identifies **MiniChart**, a lightweight Chart.js-compatible canvas engine, not an upstream Chart.js bundle. |
+| `shared/static/vendor/mermaid.min.js` | Mermaid package metadata declares MIT; the bundle also contains dependency-specific notices, including DOMPurify's Apache-2.0 / MPL-2.0 notice. Preserve those notices. |
+| `dx_compiler/static/js/dagre.min.js` | The graph-layout bundle contains Chris Pettitt's copyright and MIT permission text, and bundled graphlib / lodash code. |
+
+MiniChart's Chart.js-compatible API does not mean that upstream Chart.js is bundled or
+that its license applies to MiniChart. For redistribution, consult your distribution's
+notices and obtain any additional component terms from its distributor.
+
+For example, before redistributing a model demo, check its Model Zoo **license / source**
+fields and upstream terms, then preserve the relevant software / font notices with
+your package. A model license is not a substitute for the bundled UI assets' licenses.
 
 ## Disclaimer
 

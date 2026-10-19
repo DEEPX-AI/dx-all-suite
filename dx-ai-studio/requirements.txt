@@ -1,4 +1,6 @@
 # DX AI Studio has ZERO third-party runtime dependencies — the entire studio,
 # including the dx_app ModelZoo tab (urllib + a stdlib html.parser DOM), runs on the
-# Python standard library alone (Python 3.12+). Air-gapped boards install with a plain
+# Python standard library alone (Python 3.8+, per pyproject). Air-gapped boards install with a plain
 # `pip install -e .` and no PyPI access. Test/CI extras live in requirements-ci.txt.
+# Live DX App runs (camera / RTSP / Continuous / Run Demo video) additionally use OS packages,
+# not pip ones: xvfb and python3-pil (the .venv sees them through --system-site-packages).
