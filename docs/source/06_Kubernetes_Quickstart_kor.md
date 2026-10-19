@@ -43,6 +43,9 @@ Pod가 deepx.ai/dx-m1: 1 요청 → containerd가 /dev/dxrtN + runtime libs 주�
     mkdir -p ~/.kube
     sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config
     sudo chown "$USER" ~/.kube/config
+    # KUBECONFIG가 없으면 k3s의 kubectl은 /etc/rancher/k3s/k3s.yaml(root 전용)을 읽음
+    echo 'export KUBECONFIG=~/.kube/config' >> ~/.bashrc
+    export KUBECONFIG=~/.kube/config
 
     # helm
     curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash

@@ -19,7 +19,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 ENV PATH="/usr/local/bin:${PATH}"
 
 ### update apt repo
-RUN if [ "${BASE_IMAGE_NAME}" = "ubuntu" ]; then \
+RUN if grep -q '^ID=ubuntu' /etc/os-release; then \
     apt-get update && apt-get install -y \
     software-properties-common && \
     add-apt-repository universe && \
@@ -89,7 +89,7 @@ RUN set -x && \
        { [ "${BASE_IMAGE_NAME}" = "debian" ] && { [ "$(lsb_release -rs)" = "13" ] || [ "$(lsb_release -rs)" = "12" ]; }; }; then \
         echo "Supported OS: ${BASE_IMAGE_NAME} $(lsb_release -rs)" && \
         apt-get update && \
-        if [ "${BASE_IMAGE_NAME}" = "ubuntu" ]; then \
+        if grep -q '^ID=ubuntu' /etc/os-release; then \
             echo "Adding deadsnakes PPA for Ubuntu..." && \
             apt-get install -y software-properties-common gnupg gpg-agent ca-certificates && \
             add-apt-repository -y ppa:deadsnakes/ppa || echo "PPA add failed, continuing..." && \
@@ -150,7 +150,7 @@ RUN set -x && \
     ${DX_PYTHON_EXEC} -m venv /venv-dxnn && \
     . /venv-dxnn/bin/activate && \
     echo "Upgrade pip wheel setuptools..." && \
-    if [ "${BASE_IMAGE_NAME}" = "ubuntu" ]; then \
+    if grep -q '^ID=ubuntu' /etc/os-release; then \
         OS_VERSION=$(lsb_release -rs) && \
         echo "*** OS_VERSION(${OS_VERSION}) ***" && \
         if [ "$OS_VERSION" = "26.04" ] || [ "$OS_VERSION" = "24.04" ]; then \
@@ -213,20 +213,57 @@ ADD ${FILE_DXMODELZOO} /deepx/dx-modelzoo/
 # second pip call cannot pull the CUDA variant. This is what kept the install
 # disabled here before.
 #
-# For GPU inference, install the gpu extra inside the running container:
-#   cd /deepx/dx-modelzoo && pip install -e ".[gpu]"
-#   # then add the nvidia library paths to LD_LIBRARY_PATH (e.g. in ~/.bashrc):
-#   # export LD_LIBRARY_PATH=$(python -c "import nvidia.cublas.lib; print(nvidia.cublas.lib.__path__[0])"):$LD_LIBRARY_PATH
-#   # export LD_LIBRARY_PATH=$(python -c "import nvidia.cudnn.lib; print(nvidia.cudnn.lib.__path__[0])"):$LD_LIBRARY_PATH
+# GPU images (--nvidia_gpu) get a CUDA-matched onnxruntime-gpu in the next step;
+# do not run `pip install -e ".[gpu]"` in them (see that step).
 ##############################
+ARG MODELZOO_EXTRA=cpu
 RUN set -x && \
     . /venv-dxnn/bin/activate && \
     echo "Install CPU-only torch/torchvision..." && \
     pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu \
         torch torchvision && \
     echo "Install dx-modelzoo..." && \
-    pip install --no-cache-dir -e ".[cpu]" && \
-    python -c "import torch; assert not torch.version.cuda, torch.version.cuda; print('torch', torch.__version__, 'cpu-only OK')"
+    pip install --no-cache-dir -e ".[${MODELZOO_EXTRA}]" && \
+    dxmz --help >/dev/null && \
+    if [ "${MODELZOO_EXTRA}" = "gpu" ]; then \
+        python -c "import onnxruntime as ort; assert 'CUDAExecutionProvider' in ort.get_available_providers()"; \
+    else \
+        python -c "import torch; assert not torch.version.cuda, torch.version.cuda; print('torch', torch.__version__, 'cpu-only OK')"; \
+    fi
+
+#### NVIDIA GPU images: CUDA-matched onnxruntime-gpu ####
+# Set only by the nvidia_gpu compose overlay. dx-modelzoo's [gpu] extra leaves
+# onnxruntime-gpu unbounded, so it resolves to the newest wheel - a CUDA 13 build
+# since 1.27.0 - which cannot load on the CUDA 12 base image and silently falls
+# back to CPU. Pick the wheel line built for the base image's CUDA major instead;
+# the CUDA/cuDNN libraries come from the nvidia/cuda cudnn-runtime base image.
+#   CUDA 12 -> onnxruntime-gpu < 1.27 (last CUDA 12 build: 1.26.0)
+#   CUDA 13 -> onnxruntime-gpu >= 1.27
+# The build fails if CUDAExecutionProvider is not compiled into the installed
+# onnxruntime (e.g. a CPU build shadowing it) or if ldd cannot resolve a library of
+# the CUDA provider (libcuda.so.1 is the driver library, mounted by the NVIDIA runtime
+# at `docker run`). A future CUDA-major switch of onnxruntime-gpu >= 1.27 shows up
+# here as unresolved libraries, so the CUDA 13 line needs no upper bound.
+ARG CUDA_VERSION=""
+RUN if [ -n "${CUDA_VERSION}" ]; then \
+        set -x && \
+        . /venv-dxnn/bin/activate && \
+        case "${CUDA_VERSION%%.*}" in \
+            12) ORT_GPU_SPEC="onnxruntime-gpu>=1.17,<1.27" ;; \
+            13) ORT_GPU_SPEC="onnxruntime-gpu>=1.27" ;; \
+            *) echo "Unsupported CUDA_VERSION for onnxruntime-gpu: ${CUDA_VERSION}" && exit 1 ;; \
+        esac && \
+        pip uninstall -y onnxruntime && \
+        pip install --no-cache-dir "${ORT_GPU_SPEC}" && \
+        ORT_CUDA_LIB=$(python -c "import os, sys, onnxruntime as ort; \
+            providers = ort.get_available_providers(); \
+            assert 'CUDAExecutionProvider' in providers, providers; \
+            print('onnxruntime-gpu', ort.__version__, providers, file=sys.stderr); \
+            print(os.path.join(os.path.dirname(ort.__file__), 'capi', 'libonnxruntime_providers_cuda.so'))") && \
+        if ldd "${ORT_CUDA_LIB}" | grep "not found" | grep -v "libcuda\.so"; then \
+            echo "onnxruntime-gpu CUDA provider has unresolved libraries for CUDA ${CUDA_VERSION}" && exit 1; \
+        fi; \
+    fi
 
 WORKDIR /deepx
 
@@ -240,9 +277,9 @@ RUN echo "source /venv-dxnn/bin/activate" >> /root/.bashrc
 
 # COPY 'scripts' and 'getting-started'
 COPY scripts /deepx/scripts
-# COPY getting-started /deepx/getting-started
-# ENV DX_CONTAINER_MODE=true
-# RUN /deepx/getting-started/modelzoo-clean.sh
+COPY getting-started /deepx/getting-started
+ENV DX_CONTAINER_MODE=true
+RUN /deepx/getting-started/modelzoo-clean.sh
 
 ENTRYPOINT [ "/usr/local/bin/dxrtd" ]
 # ENTRYPOINT ["tail", "-f", "/dev/null"]

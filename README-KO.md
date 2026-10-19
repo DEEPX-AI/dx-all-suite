@@ -37,7 +37,7 @@
 **도구 및 솔루션** — 프로젝트에 맞는 항목을 선택하십시오.
 
 - **★ [Agent-Driven Development (Beta)](./docs/source/00_Agent_Driven_Development_kor.md)**: AI coding agent(Claude Code, Cursor, GitHub Copilot, OpenCode, Codex CLI)로 자연어 프롬프트를 사용해 DEEPX 앱 만들기
-- **[DX AI Studio (Beta)](./dx-ai-studio/README.md)**: Model Zoo, Compiler, App, Stream, Benchmark, Monitor, EdgeGuide, Agent Dev를 브라우저 하나에 모은 올인원 desktop web workspace
+- **[DX AI Studio (Beta)](./dx-ai-studio/README.md)**: DEEPX NPU 기반 AI 개발 도구를 브라우저 하나에 모은 통합 작업 환경 — [설치 및 실행](./dx-ai-studio/docs/source/01_Installation_and_Launch.md)
 - **[DX-Benchmark (Beta)](./dx-benchmark/README.md)**: 재현 가능한 YOLO26 NPU 벤치마크(Model-Level + E2E Pipeline)와 interactive 성능 dashboard
 - **[DX-Edge](./dx-edge/README-KO.md)**: AWS Marketplace를 통한 DEEPX NPU 배포 — Greengrass Solution(ZTP 런타임 배포), Compiler Solution(AWS에서 ONNX → `.dxnn`), DX-AIPlayer N97 · DX-M1 Raspberry Pi 5 Dev Kit Getting Started Guide
 

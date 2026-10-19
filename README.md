@@ -37,7 +37,7 @@ If you are a first-time user, we recommend following the documentation in this o
 **Tools and solutions** — pick what fits your project:
 
 - **★ [Agent-Driven Development (Beta)](./docs/source/00_Agent_Driven_Development.md)**: Build DEEPX apps with natural-language prompts using AI coding agents (Claude Code, Cursor, GitHub Copilot, OpenCode, Codex CLI)
-- **[DX AI Studio (Beta)](./dx-ai-studio/README.md)**: All-in-one desktop web workspace — Model Zoo, Compiler, App, Stream, Benchmark, Monitor, EdgeGuide, and Agent Dev in one browser
+- **[DX AI Studio (Beta)](./dx-ai-studio/README.md)**: All-in-one browser workspace for AI development on DEEPX NPUs — [Install & launch](./dx-ai-studio/docs/source/01_Installation_and_Launch.md)
 - **[DX-Benchmark (Beta)](./dx-benchmark/README.md)**: Reproducible YOLO26 NPU benchmarks (Model-Level + E2E Pipeline) with an interactive performance dashboard
 - **[DX-Edge](./dx-edge/README.md)**: Deploying DEEPX NPUs through AWS Marketplace — Greengrass Solution (ZTP runtime deployment), Compiler Solution (ONNX → `.dxnn` on AWS), and Getting Started Guides for the DX-AIPlayer N97 and the DX-M1 Raspberry Pi 5 Dev Kit
 

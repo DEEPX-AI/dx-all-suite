@@ -107,6 +107,10 @@ sudo apt install libdxrt-bin
 - **DX-AS**: Ubuntu 18.04 support ended; minimum supported Ubuntu version is now 20.04.
 - **DX-Compiler**: DX-TRON removed. Use the DX-COM Compilation Summary Report (`--export_html`) instead.
 
+**Supported Environments**
+
+- **DX-Runtime**: The NPU driver and firmware are supported on bare-metal hosts with the NPU installed. Virtual machines with PCI passthrough are not supported; install DX-Runtime on the physical host. (DX-Compiler and DX-Modelzoo do not require the NPU and can run in a VM or container.)
+
 ---
 
 ### Migration Guide

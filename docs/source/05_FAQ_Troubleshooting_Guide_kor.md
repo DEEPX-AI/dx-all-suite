@@ -10,6 +10,9 @@
 - Q4. Device Driver Update Error  
 - Q5. Model-Runtime Version Compatibility Error  
 - Q6. Insufficient Shared Memory (shm) Error  
+- Q7. DX-ModelZoo Environment Error (`dxmz` / `dx_engine` / `dx_com` Not Found)  
+- Q8. DX-ModelZoo Model Download Timeout  
+- Q9. DX-ModelZoo Dataset Not Found  
 
 ---
 
@@ -275,5 +278,214 @@ services:
 
 !!! tip "적절한 크기 선택"  
     대부분의 경우 `256m`으로 해결됩니다. 대용량 모델이나 배치 처리 시 오류가 지속된다면 `1g` 이상으로 늘리십시오.
+
+---
+
+## Q7. DX-ModelZoo Environment Error (`dxmz` / `dx_engine` / `dx_com` Not Found)
+
+DX-ModelZoo 명령을 필요한 패키지가 모두 설치되지 않은 Python 환경에서 실행할 때 발생하는 오류입니다.  
+
+### 진단 단계
+
+터미널에서 다음 메시지 중 하나를 확인하십시오.  
+```Plaintext
+bash: dxmz: command not found
+ImportError: dx_engine is required for DxRuntimeSession. Please install the DeepX runtime package.
+ImportError: dx_com is not installed. Install it to use compile: pip install dx_com
+TypeError: compile() got an unexpected keyword argument 'calibration'
+```
+
+### 원인
+
+`dxmz`, `dx_engine`(NPU 평가용 DX-RT Python API), `dx_com`(컴파일용 DX-COM)은 **반드시** 동일한 Python 환경에 설치되어야 합니다. DX-ModelZoo는 런타임 환경(`dx-runtime/venv-dx-runtime`, Docker에서는 `/venv-dxnn`)에 설치되며, `dx_com`은 기본적으로 설치되어 있지 않습니다. `compile()` 키워드 인자에서 `TypeError`가 발생하면 설치된 `dx_com`이 DX-ModelZoo가 사용하는 API보다 오래된 것이므로, `dx-compiler/compiler.properties`의 `COM_VERSION` 버전으로 `dx_com`을 재설치하십시오.  
+
+### 해결 방법: 런타임 환경에 모든 패키지 설치
+
+**단계 1. DX-Runtime 설치 (`dx_engine` 제공)**  
+```Bash
+./getting-started/runtime-0_install_dx-runtime.sh
+```
+
+**단계 2. 동일한 환경에 DX-ModelZoo 설치**  
+```Bash
+./getting-started/modelzoo-0_install_dx-modelzoo.sh
+```
+
+**단계 3. 컴파일용 `dx_com` 제공**  
+실행 스크립트가 DX-ModelZoo의 `numpy>=1.20,<2.0` 요구 사항을 유지하면서 `pip`으로 `dx_com`을 자동 설치합니다(`dx-compiler/compiler.properties`에 고정된 버전, 실패 시 PyPI 릴리스).  
+```Bash
+./getting-started/modelzoo-2_run_first_npu_model.sh
+```
+로컬 wheel로 설치하려면 환경의 Python 버전과 일치하는 wheel을 전달하십시오 (예: Python 3.10은 `cp310`).  
+```Bash
+./getting-started/modelzoo-2_run_first_npu_model.sh --dx-com-wheel /path/to/dx_com-*.whl
+```
+NPU 평가만 필요하다면 `dx_com`은 필요하지 않습니다 — `DXMZ_MODEL_URL`에서 사전 빌드된 `.dxnn`을 다운로드합니다.  
+```Bash
+./getting-started/modelzoo-2_run_first_npu_model.sh --skip-onnx --skip-compile
+```
+
+**단계 4. 확인**  
+```Bash
+source ./dx-runtime/venv-dx-runtime/bin/activate
+dxmz --help
+python3 -c "import dx_engine, dx_com; print('OK')"
+```
+
+자세한 내용은 [**Setting Up Environment**](02_Setting_Up_Environment_kor.md)의 **DX-ModelZoo Installation** 섹션을 참조하십시오.  
+
+---
+
+## Q8. DX-ModelZoo Model Download Timeout
+
+`dxmz eval`이 누락된 모델을 다운로드하려 할 때 연결이 완료되지 않는 문제입니다.  
+
+### 진단 단계
+
+- **단계 1. 로그 확인**: 다운로드 로그가 진행 없이 대기하다가 몇 분 후(서버 주소당 60초 timeout) 실패합니다.  
+```Plaintext
+WARNING | Model file not found locally: .../models/resnet50_224x224/resnet50_224x224.onnx
+INFO    | Downloading model: https://sdk.deepx.ai/modelzoo/onnx/resnet50_224x224.onnx → ...
+SessionCreationError: Failed to download model from https://sdk.deepx.ai/modelzoo/onnx/resnet50_224x224.onnx: <urlopen error ...>
+```
+- **단계 2. 연결 확인**: DNS는 정상이지만 443 포트 TCP 연결이 timeout 됩니다.  
+```Bash
+getent ahosts sdk.deepx.ai
+timeout 15 nc -4 -vz -w 10 sdk.deepx.ai 443
+env | grep -i proxy
+```
+
+로그에 다음이 표시되면 `DXMZ_MODEL_URL`이 설정되지 않은 것입니다 (예: `dx-modelzoo/.env` 없음).  
+```Plaintext
+Model file not found: .../models/resnet50_224x224/resnet50_224x224.onnx
+To enable auto-download, set DXMZ_MODEL_URL environment variable.
+```
+
+### 원인
+
+`DXMZ_MODEL_URL`로의 outbound HTTPS(TCP 443)가 방화벽, NAT 또는 프록시 미설정으로 차단된 상태입니다. 연결이 TLS 협상 **이전**에 실패하므로 인증서 문제가 아니며, `--cacert`나 CA 업데이트로 해결되지 않습니다. `dxmz compile`은 모델을 다운로드하지 않으므로, 다운로드가 완료되지 않으면 `ONNX file not found`로 실패합니다.  
+
+### 해결 방법: 네트워크 허용 또는 모델 수동 배치
+
+**방법 1: Outbound 허용 또는 프록시 설정 (권장)**  
+`sdk.deepx.ai`로의 outbound TCP 443을 허용하거나, 스크립트 실행 전에 프록시를 설정합니다.  
+```Bash
+export HTTPS_PROXY=http://<proxy_host>:<port>
+export HTTP_PROXY=http://<proxy_host>:<port>
+```
+네트워크에서 모델 미러를 제공하는 경우 `dx-modelzoo/.env`의 `DXMZ_MODEL_URL`을 설정하십시오.  
+
+**방법 2: 모델 파일 수동 배치 (오프라인)**  
+인터넷이 가능한 호스트에서 파일을 다운로드한 뒤 다음 경로로 복사합니다.  
+```Plaintext
+getting-started/modelzoo/models/<model>/<model>.onnx
+getting-started/modelzoo/models/<model>/<model>_<profile>.dxnn
+```
+
+---
+
+## Q9. DX-ModelZoo Dataset Not Found
+
+모델 YAML에 정의된 데이터셋이 없거나 불완전할 때 평가 또는 컴파일(캘리브레이션) 중 발생하는 오류입니다.  
+
+### 진단 단계
+
+터미널에서 다음과 같은 메시지를 확인하십시오 (`resnet50_224x224`).  
+```Plaintext
+DatasetValidationError:
+  Dataset not found: ILSVRC2012
+  Expected path: .../ILSVRC2012/val
+DatasetValidationError: Dataset validation failed for ILSVRC2012: Expected 50000 images in .../ILSVRC2012/val, but found 0.
+```
+
+### 원인
+
+DX-ModelZoo는 데이터셋을 다운로드하지 않습니다. 각 모델은 평가와 캘리브레이션 모두 `dataset.eval_path`(예: `${DATA_ROOT}/ILSVRC2012/val`)를 사용하며, 데이터셋 로더가 구조를 검증합니다.  
+
+### 해결 방법: `DATA_ROOT` 아래에 데이터셋 준비
+
+**단계 1. 필요한 경로 확인**  
+`modelzoo-2_run_first_npu_model.sh`의 `[1] Model info` 단계가 `Dataset` 경로를 보여 주고, `PATH INFO` 헤더가 `DATA_ROOT`(기본값: `getting-started/modelzoo/datasets`)를 보여 줍니다. `dxmz`를 직접 실행하면 `DATA_ROOT`는 `--data-root` 또는 `dx-modelzoo/.env`에서 결정됩니다.  
+
+**단계 2. 데이터셋 배치**  
+`resnet50_224x224`의 경우 전체 ImageNet 검증 세트(클래스 디렉토리 1,000개, JPEG 이미지 50,000장)를 `getting-started/modelzoo/datasets/ILSVRC2012/val` 아래에 배치합니다. 실행 스크립트는 항상 `--data-root getting-started/modelzoo/datasets`를 전달하므로, 기존 데이터셋을 재사용하려면 `.env`를 수정하는 대신 링크를 만드십시오.  
+```Bash
+ln -s /path/to/ILSVRC2012 getting-started/modelzoo/datasets/ILSVRC2012
+```
+`dxmz`를 직접 실행할 때는 `dx-modelzoo/.env`의 `DATA_ROOT`를 설정하거나 `--data-root`를 전달할 수도 있습니다.  
+
+---
+
+## Q10. 호스트 경로 재생성 후 Docker 마운트 오류
+
+실행 중인 컨테이너에 bind mount된 호스트 경로를 삭제했다가 다시 만들었을 때 발생합니다.  
+
+### 증상
+
+컨테이너가 실행 중인데도 `docker exec`가 실패합니다.  
+```Plaintext
+Error response from daemon: mount /home/user/dx-all-suite/dummy_xauthority:/var/lib/docker/rootfs/.../dummy_xauthority, flags: 0x5000: not a directory
+```
+
+### 원인
+
+bind mount는 컨테이너 시작 시점의 inode에 바인딩됩니다. 호스트 경로를 삭제하고 다시 생성하면(예: `workspace/` 또는 `dummy_xauthority` 삭제) 컨테이너는 이전 inode에 연결된 상태로 남아 마운트가 일치하지 않습니다. 또한 소스 경로가 없으면 Docker 데몬이 그 자리에 **디렉토리**를 생성하므로, 파일을 기대하는 경우 실패합니다(`dummy_xauthority`는 `docker_run.sh`가 생성하는 파일입니다).  
+
+### 해결: 경로 타입 복구 후 컨테이너 재시작
+
+**단계 1. 디렉토리로 바뀐 파일 소스 복구**  
+```Bash
+rmdir dummy_xauthority && touch dummy_xauthority
+```
+
+**단계 2. 마운트를 다시 생성하도록 컨테이너 재시작**  
+```Bash
+./docker_run.sh --target=dx-modelzoo --ubuntu_version=24.04
+```
+
+!!! note "Stale 워크스페이스 마운트"  
+    `workspace/`도 동일합니다. 컨테이너 시작 이후에 재생성된 경우 호스트에서 추가한 파일이 컨테이너 내부에서 보이지 않습니다. 컨테이너를 재시작하여 마운트를 다시 연결하십시오.  
+
+---
+
+## Q11. NPU 디바이스 드라이버 버전이 낮은 경우
+
+### 증상
+
+모델 로드 직후 NPU 평가가 실패합니다.
+```Plaintext
+RuntimeError: Failed to create InferenceEngine for model '.../resnet50_224x224_q-lite.dxnn':
+[dxrt-exception] Invalid operation exception {"The current device driver version is 2.6.0.
+Please update your device driver to version 2.7.0 or higher.":lib/device_version.cpp:217:CheckVersion}
+```
+
+### 원인
+
+컨테이너 내부의 DX-RT와 **호스트**의 NPU 디바이스 드라이버는 서로 별개의 구성 요소입니다. 드라이버는 호스트 커널 모듈이므로 Docker 이미지를 재빌드해도 DX-RT만 갱신되고 드라이버는 그대로 남습니다. 재빌드된 이미지의 DX-RT가 설치된 드라이버보다 최신이면 DX-RT가 inference engine 생성을 거부합니다.
+
+호스트에 설치된 버전을 확인합니다.
+```Bash
+dxrt-cli --status | grep -A2 Version
+```
+
+### 해결 방법: 호스트 NPU 드라이버 업데이트
+
+**Step 1. DX-AllSuite가 지정한 드라이버 버전 확인**
+```Bash
+git submodule status dx-runtime/dx_rt_npu_linux_driver
+```
+
+**Step 2. 지정된 드라이버를 호스트에 설치**
+```Bash
+./getting-started/runtime-0_install_dx-runtime.sh
+```
+
+**Step 3. 드라이버 버전 확인 후 평가 재실행**
+```Bash
+dxrt-cli --status | grep "RT Driver version"
+```
+
+!!! note "호스트와 컨테이너는 함께 업그레이드"
+    런타임 또는 DX-ModelZoo 이미지를 재빌드할 때는 호스트 드라이버도 반드시 함께 업데이트하십시오. 컨테이너는 `/dev`를 통해 호스트 드라이버를 그대로 사용하므로, 드라이버가 오래되면 이미지 내용과 무관하게 모든 NPU 작업이 차단됩니다.
 
 ---

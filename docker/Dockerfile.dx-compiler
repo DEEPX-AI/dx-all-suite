@@ -128,12 +128,15 @@ ARG UV_VERSION=0.12.2
 # Default is /root/.local/share/uv (mode 700) - unreachable for the non-root
 # runtime user that later activates /venv-dxnn. Keep interpreters world-readable.
 ENV UV_PYTHON_INSTALL_DIR=/opt/uv/python
+# el9 images ship curl-minimal, which conflicts with the full curl package; only
+# install curl when it is missing.
 RUN OS_FAM=$(cat /tmp/.os_family) && \
     if [ "$OS_FAM" = "debian" ]; then \
         export DEBIAN_FRONTEND=noninteractive && \
         apt-get update && apt-get install -y --no-install-recommends curl ca-certificates; \
     elif [ "$OS_FAM" = "rhel" ]; then \
-        dnf install -y curl ca-certificates; \
+        command -v curl >/dev/null 2>&1 || dnf install -y curl; \
+        dnf install -y ca-certificates; \
     fi && \
     curl -LsSf "https://astral.sh/uv/${UV_VERSION}/install.sh" -o /tmp/uv-install.sh && \
     env UV_INSTALL_DIR=/usr/local/bin UV_NO_MODIFY_PATH=1 sh /tmp/uv-install.sh && \
@@ -450,6 +453,9 @@ USER $TARGET_USER
 WORKDIR $TARGET_HOME
 
 RUN echo "source /venv-dxnn/bin/activate" >> $TARGET_HOME/.bashrc
+# .bashrc only covers interactive shells; `docker run ... bash -c` needs the venv on PATH too
+ENV VIRTUAL_ENV=/venv-dxnn
+ENV PATH="/venv-dxnn/bin:${PATH}"
 
 ENTRYPOINT ["/usr/local/bin/init-workspace.sh"]
 CMD ["tail", "-f", "/dev/null"]

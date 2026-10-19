@@ -66,7 +66,7 @@ def test_s3_nfd_enabled_renders_rule_matching_m1():
     assert len(rules) == 1
     expr = rules[0]["spec"]["rules"][0]["matchFeatures"][0]["matchExpressions"]
     assert expr["vendor"]["value"] == ["1ff4"], expr
-    assert expr["device"]["value"] == ["0100"], expr
+    assert expr["device"]["value"] == ["0000", "0100", "0110"], expr
 
 
 def test_s4_rule_renders_when_cluster_serves_nfd_api():
