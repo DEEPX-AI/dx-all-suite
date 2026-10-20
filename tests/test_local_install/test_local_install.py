@@ -35,6 +35,7 @@ from conftest import (
     is_container_running,
     run_command,
     get_base_image,
+    apparmor_profile,
 )
 
 # Test configuration
@@ -318,6 +319,7 @@ class TestLocalInstallDockerRun:
         env["VERSION"] = version
         env["VERSION_DASH"] = version.replace(".", "-")
         env["COMPONENT"] = component
+        env["DX_APPARMOR_PROFILE"] = apparmor_profile(os_type)
         env["LOCAL_VOLUME_PATH"] = os.getenv("LOCAL_VOLUME_PATH", str(PROJECT_ROOT))
         env["DOCKER_VOLUME_PATH"] = os.getenv("DOCKER_VOLUME_PATH", "/deepx/workspace")
         env["BASE_IMAGE"] = get_base_image(os_type, version)
