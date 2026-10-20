@@ -267,9 +267,10 @@ docker run --rm -it \
 `dx_modelzoo` is pip-installed into `/venv-dxnn`, so `import dx_modelzoo` works out of
 the box (activate the venv first in a non-interactive shell). `torch` is the CPU build:
 the `[cpu]` extra alone does not prevent the CUDA wheels, so the image installs torch
-from the PyTorch CPU index first. For GPU inference install the `gpu` extra in the
-running container — `cd /deepx/dx-modelzoo && pip install -e ".[gpu]"` — which pulls the
-nvidia runtime wheels on demand instead of baking several GB into every pull.
+from the PyTorch CPU index first. The published image is CPU-only. For GPU inference,
+build the GPU image locally — `./docker_build.sh --target=dx-modelzoo --ubuntu_version=24.04 --nvidia_gpu`
+— which uses the `nvidia/cuda` cuDNN runtime base and installs an `onnxruntime-gpu` build
+matching its CUDA version.
 
 ## Build locally instead
 

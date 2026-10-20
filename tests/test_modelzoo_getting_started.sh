@@ -37,14 +37,16 @@ grep -q '^COPY getting-started /deepx/getting-started' "$DF" || fail "COPY getti
 grep -q '^RUN /deepx/getting-started/modelzoo-clean.sh' "$DF" || fail "modelzoo-clean in image"
 
 # --- GPU support (dx-modelzoo only) ---
-grep -q '^ARG MODELZOO_EXTRA=cpu' "$DF" || fail "MODELZOO_EXTRA arg"
-grep -q 'pip install .* -e ".\[${MODELZOO_EXTRA}\]"' "$DF" || fail "extra-driven install"
+grep -q 'pip install .* -e ".\[cpu\]"' "$DF" || fail "cpu extra install"
+grep -q '^ARG CUDA_VERSION=' "$DF" || fail "CUDA_VERSION arg"
+! grep -q 'MODELZOO_EXTRA' "$DF" || fail "MODELZOO_EXTRA removed"
 ! grep -q 'ld.so.conf.d\|ldconfig' "$DF" || fail "gpu libs come from nvidia/cuda base; no ldconfig"
 grep -q 'CUDAExecutionProvider' "$DF" || fail "gpu provider check"
 grep -q '^ARG FROM_IMAGE=${BASE_IMAGE_NAME}' "$DF" || fail "GPU base must preserve distro detection"
-python3 - "$ROOT/docker/docker-compose.nvidia_gpu.yml" <<'PYEOF' || fail "nvidia overlay MODELZOO_EXTRA"
+python3 - "$ROOT/docker/docker-compose.nvidia_gpu.yml" <<'PYEOF' || fail "nvidia overlay CUDA_VERSION"
 import sys, yaml
-assert yaml.safe_load(open(sys.argv[1]))["services"]["dx-modelzoo"]["build"]["args"]["MODELZOO_EXTRA"] == "gpu"
+args = yaml.safe_load(open(sys.argv[1]))["services"]["dx-modelzoo"]["build"]["args"]
+assert args["CUDA_VERSION"] and "MODELZOO_EXTRA" not in args, args
 PYEOF
 ! grep -rq 'all\]' "$DF" "$GS"/modelzoo-*.sh || fail "all extra conflicts with gpu"
 grep -q 'onnxruntime-gpu' "$GS/modelzoo-0_install_dx-modelzoo.sh" || fail "cpu/gpu runtime conflict handling"
