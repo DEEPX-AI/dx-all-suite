@@ -19,7 +19,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 ENV PATH="/usr/local/bin:${PATH}"
 
 ### update apt repo
-RUN if grep -q '^ID=ubuntu' /etc/os-release; then \
+RUN if [ "${BASE_IMAGE_NAME}" = "ubuntu" ]; then \
     apt-get update && apt-get install -y \
     software-properties-common && \
     add-apt-repository universe && \
@@ -89,7 +89,7 @@ RUN set -x && \
        { [ "${BASE_IMAGE_NAME}" = "debian" ] && { [ "$(lsb_release -rs)" = "13" ] || [ "$(lsb_release -rs)" = "12" ]; }; }; then \
         echo "Supported OS: ${BASE_IMAGE_NAME} $(lsb_release -rs)" && \
         apt-get update && \
-        if grep -q '^ID=ubuntu' /etc/os-release; then \
+        if [ "${BASE_IMAGE_NAME}" = "ubuntu" ]; then \
             echo "Adding deadsnakes PPA for Ubuntu..." && \
             apt-get install -y software-properties-common gnupg gpg-agent ca-certificates && \
             add-apt-repository -y ppa:deadsnakes/ppa || echo "PPA add failed, continuing..." && \
@@ -150,7 +150,7 @@ RUN set -x && \
     ${DX_PYTHON_EXEC} -m venv /venv-dxnn && \
     . /venv-dxnn/bin/activate && \
     echo "Upgrade pip wheel setuptools..." && \
-    if grep -q '^ID=ubuntu' /etc/os-release; then \
+    if [ "${BASE_IMAGE_NAME}" = "ubuntu" ]; then \
         OS_VERSION=$(lsb_release -rs) && \
         echo "*** OS_VERSION(${OS_VERSION}) ***" && \
         if [ "$OS_VERSION" = "26.04" ] || [ "$OS_VERSION" = "24.04" ]; then \
@@ -213,23 +213,19 @@ ADD ${FILE_DXMODELZOO} /deepx/dx-modelzoo/
 # second pip call cannot pull the CUDA variant. This is what kept the install
 # disabled here before.
 #
-# GPU images (--nvidia_gpu) get a CUDA-matched onnxruntime-gpu in the next step;
-# do not run `pip install -e ".[gpu]"` in them (see that step).
+# GPU images (--nvidia_gpu) also install `.[cpu]` here; the next step swaps
+# onnxruntime for the CUDA-matched onnxruntime-gpu. The [gpu] extra is not used:
+# its pip nvidia-*-cu12 libraries would duplicate the base image's CUDA/cuDNN.
 ##############################
-ARG MODELZOO_EXTRA=cpu
 RUN set -x && \
     . /venv-dxnn/bin/activate && \
     echo "Install CPU-only torch/torchvision..." && \
     pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu \
         torch torchvision && \
     echo "Install dx-modelzoo..." && \
-    pip install --no-cache-dir -e ".[${MODELZOO_EXTRA}]" && \
+    pip install --no-cache-dir -e ".[cpu]" && \
     dxmz --help >/dev/null && \
-    if [ "${MODELZOO_EXTRA}" = "gpu" ]; then \
-        python -c "import onnxruntime as ort; assert 'CUDAExecutionProvider' in ort.get_available_providers()"; \
-    else \
-        python -c "import torch; assert not torch.version.cuda, torch.version.cuda; print('torch', torch.__version__, 'cpu-only OK')"; \
-    fi
+    python -c "import torch; assert not torch.version.cuda, torch.version.cuda; print('torch', torch.__version__, 'cpu-only OK')"
 
 #### NVIDIA GPU images: CUDA-matched onnxruntime-gpu ####
 # Set only by the nvidia_gpu compose overlay. dx-modelzoo's [gpu] extra leaves

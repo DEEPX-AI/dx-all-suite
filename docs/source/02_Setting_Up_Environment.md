@@ -483,9 +483,10 @@ Host requirements: NVIDIA driver and [nvidia-container-toolkit](https://docs.nvi
 
 The dx-modelzoo GPU image already includes an `onnxruntime-gpu` build that matches the image's CUDA version, so ONNX evaluation runs on the GPU without extra setup.
 
-- CUDA 12 images: `onnxruntime-gpu<1.27`; CUDA 13 images: `onnxruntime-gpu>=1.27`.
-- **Do not run `pip install -e ".[gpu]"` inside the container.** It upgrades `onnxruntime-gpu` to the newest release, which may target a different CUDA major version, and evaluation then falls back to the CPU.
+- CUDA 12 images: `onnxruntime-gpu<1.27`; CUDA 13 images: `onnxruntime-gpu>=1.27`. CUDA/cuDNN come from the `nvidia/cuda` base image.
+- **Do not upgrade `onnxruntime-gpu` inside the container** (e.g. `pip install -U onnxruntime-gpu`): the newest release may target a different CUDA major version, and evaluation then falls back to the CPU. The `[gpu]` extra is not needed either; it only adds pip CUDA 12 libraries that duplicate the base image.
 - To check: `python -c "import onnxruntime as ort; print(ort.__version__)"`, and watch `nvidia-smi` during evaluation.
+
 For dx-compiler, `q-pro` calibration uses the GPU automatically (`quantization_device` auto-detection).
 
 **B. Intel GPU (VA-API Media Acceleration) — dx-runtime (dx_stream)**
@@ -618,7 +619,7 @@ dxmz --help
     The `dx-modelzoo` container does not start its own `dxrtd`. It uses the DX-RT service running in the `dx-runtime` container (or on the host). Start the `dx-runtime` container before NPU (`dxnn`) evaluation.  
 
 !!! note "GPU Image (ONNX Runtime GPU)"  
-    The default image installs `.[cpu]`. To evaluate ONNX models on an NVIDIA GPU, build and run with `--nvidia_gpu`. It uses the `nvidia/cuda` cuDNN runtime base image (CUDA/cuDNN included) and installs `.[gpu]`, so no `LD_LIBRARY_PATH` setup is needed. The host requires the NVIDIA driver and NVIDIA Container Toolkit.  
+    The default image installs `.[cpu]`. To evaluate ONNX models on an NVIDIA GPU, build and run with `--nvidia_gpu`. It uses the `nvidia/cuda` cuDNN runtime base image (CUDA/cuDNN included) and installs an `onnxruntime-gpu` build matching the image's CUDA version (see GPU Acceleration Options above), so no `LD_LIBRARY_PATH` setup is needed. The host requires the NVIDIA driver and NVIDIA Container Toolkit.  
     ```Bash
     ./docker_build.sh --target=dx-modelzoo --ubuntu_version=24.04 --nvidia_gpu
     ./docker_run.sh --target=dx-modelzoo --ubuntu_version=24.04 --nvidia_gpu

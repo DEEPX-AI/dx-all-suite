@@ -31,4 +31,3 @@ services:
         FROM_IMAGE: "nvidia/cuda"
         TAG_NAME: "${CUDA_VERSION:-12.8.1}-cudnn-runtime-ubuntu${OS_VERSION}"
         CUDA_VERSION: "${CUDA_VERSION:-12.8.1}"
-        MODELZOO_EXTRA: "gpu"
