@@ -94,7 +94,7 @@ The NPU needs device access plus host IPC. Minimal working command:
 
 ```bash
 docker run --rm -it \
-    --privileged --ipc=host --pid=host \
+    --privileged --ipc=host --pid=host --network=host \
     -v /dev:/dev \
     --entrypoint bash \
     ghcr.io/deepx-ai/dx-runtime:rt-app-stream
@@ -104,7 +104,7 @@ Verify the NPU is visible from inside the container in one shot:
 
 ```bash
 docker run --rm \
-    --privileged --ipc=host --pid=host \
+    --privileged --ipc=host --pid=host --network=host \
     -v /dev:/dev \
     --entrypoint dxrt-cli \
     ghcr.io/deepx-ai/dx-runtime:rt --status
@@ -123,7 +123,10 @@ it. Use `--entrypoint bash` (as above) when you want a shell instead.
 
 **`dxrtd` must run in exactly one place** — the host *or* one container, not both. If your
 host already runs `dxrtd` (`pgrep -a dxrtd`), start the container with `--entrypoint bash`
-and let it use the host service through `--ipc=host --pid=host`.
+and let it use the host service through `--ipc=host --pid=host --network=host`. The
+container reaches the host `dxrtd` over an abstract Unix socket (`@dxrt_dynamic_ipc.sock`),
+and abstract sockets are per network namespace: without `--network=host` the apps fail with
+`IPC_CONNECT_FAILED`.
 
 ### Full option set
 
@@ -141,7 +144,7 @@ hosts.
 | `--ipc=host` | NPU IPC |
 | `--pid=host` | PID sharing for the DX-RT service |
 | `-it` (`tty` + `stdin_open`) | NPU |
-| `--network=host` | `network_mode: "host"` |
+| `--network=host` | `network_mode: "host"` — reach the host `dxrtd` IPC socket |
 | `-v /etc/machine-id:/etc/machine-id:ro`<br>`-v /var/run/dbus/system_bus_socket:/var/run/dbus/system_bus_socket`<br>`-v /run/dbus:/run/dbus`<br>`-v /var/lib/dbus:/var/lib/dbus` | NPU D-Bus |
 | `-v /lib/modules:/lib/modules` | GPU |
 | `-v /lib/udev/rules.d:/lib/udev/rules.d` | Auto-detect devices (USB camera) |
@@ -186,7 +189,7 @@ Inside the container, `dx_app` lives at `/deepx/dx-runtime/dx_app` (prebuilt bin
 > comes from the venv), and `bash -c 'python3 …'` reaches `/usr/bin/python3` and gives
 > `ModuleNotFoundError: No module named 'dx_engine'`. Activate it explicitly in that case:
 > ```bash
-> docker run --rm --privileged --ipc=host --pid=host -v /dev:/dev \
+> docker run --rm --privileged --ipc=host --pid=host --network=host -v /dev:/dev \
 >     --entrypoint bash ghcr.io/deepx-ai/dx-runtime:rt-app-stream \
 >     -c 'source /venv-dxnn/bin/activate && python -c "import dx_engine; print(dx_engine.__name__)"'
 > ```

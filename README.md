@@ -164,7 +164,7 @@ Prefer containers over a local install? Official Ubuntu 24.04 images are publish
 
 ```bash
 docker pull ghcr.io/deepx-ai/dx-runtime:latest
-docker run --rm -it --privileged --ipc=host --pid=host -v /dev:/dev \
+docker run --rm -it --privileged --ipc=host --pid=host --network=host -v /dev:/dev \
     --entrypoint bash ghcr.io/deepx-ai/dx-runtime:latest
 ```
 
