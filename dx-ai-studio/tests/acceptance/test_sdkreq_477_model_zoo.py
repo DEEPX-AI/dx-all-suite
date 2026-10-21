@@ -6,6 +6,8 @@ from __future__ import annotations
 
 import json
 
+import pytest
+
 from tests.acceptance.conftest import http_get, module_frame, wait_home
 from tests.acceptance.hardware import need
 
@@ -143,9 +145,36 @@ def test_without_dx_app_run_inference_is_disabled_with_a_reason(pages, studio):
     assert "DX App is not running" in frame.locator("#inferencePanel").inner_text()
 
 
+_CARD_PROBE = """async (id) => {
+  const r = await fetch(modelzooApiUrl('/api/model_card/' + encodeURIComponent(id)), {
+    method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({lang: 'en'})});
+  let body = {};
+  if (!r.ok) { try { body = await r.json(); } catch (e) {} }
+  return {status: r.status, error: body.error || '', code: body.code || ''};
+}"""
+
+
+def _card_model(frame, studio) -> dict:
+    """A downloaded model whose card the server can render. The card is rendered from the
+    installed dx_app example; an SDK whose dx_app has none for the downloaded models cannot
+    produce one (NOT RUN), while any other refusal is a failure."""
+    models = [m for m in _catalog(studio) if m.get("downloaded_qlite") or m.get("downloaded")]
+    models.sort(key=lambda m: (m.get("category") != "object_detection", m.get("id") or ""))
+    refused = []
+    for model in models[:12]:
+        got = frame.evaluate(_CARD_PROBE, model["id"])
+        if got["status"] == 200:
+            return model
+        refused.append(f"{model['id']}: {got['status']} {got['error']}")
+        assert got["error"] == "No dx_app example for this model", "; ".join(refused)
+    pytest.skip("NOT RUN: the installed dx_app has no example for any downloaded model, and the card is "
+                "rendered from it (" + "; ".join(refused[:3]) + ")")
+
+
 def test_save_as_html_downloads_the_model_card(pages, studio):
-    model = _downloaded_detector(studio)
-    page, frame = _zoo(pages, f"#model={model['id']}")
+    page, frame = _zoo(pages)
+    model = _card_model(frame, studio)
+    frame.evaluate("(h) => { location.hash = h; }", f"#model={model['id']}")
     btn = frame.locator('button[onclick^="exportModelCardHtml"]')
     btn.wait_for(timeout=30000)
     with page.expect_download(timeout=60000) as dl:

@@ -63,11 +63,18 @@ def _becomes_opaque(page, sel):
     return _opacity(page, sel)
 
 
-def test_icons_are_72_and_48_in_the_dock(page):
-    assert _box(page, '#studioGrid .orbital-card[data-app="app"] .mod-tile') == [72, 72]
+_APP_ICON = '#studioGrid .orbital-card[data-app="app"] .mod-tile'
+
+
+@pytest.mark.parametrize(("w", "h", "size"), [(1920, 1080, 72), (1440, 900, 64), (1280, 800, 56)])
+def test_icons_shrink_on_a_short_window_and_are_48_in_the_dock(page, w, h, size):
+    """Three module rows fit one screen down to 1280×800 because the icons follow the window height."""
+    page.set_viewport_size({"width": w, "height": h})
+    page.wait_for_timeout(100)
+    assert _box(page, _APP_ICON) == [size, size]
     page.evaluate("() => { document.getElementById('homeAnswer').hidden = false; }")
     page.wait_for_timeout(100)
-    assert _box(page, '#studioGrid .orbital-card[data-app="app"] .mod-tile') == [48, 48]
+    assert _box(page, _APP_ICON) == [48, 48]
 
 
 def test_the_name_shows_and_the_description_waits(page):
@@ -96,29 +103,41 @@ def test_only_a_module_that_is_down_is_dimmed(page):
         h[k] = { alive: c.dataset.app !== 'benchmark' }; });
       Object.defineProperty(L, '_healthStatus', { configurable: true, get: () => h, set: () => {} });
       L.refreshModuleState(); }""")
-    page.wait_for_timeout(50)
+    # Dimming is a transition (near zero under reduced motion); wait for it rather than read after a fixed 50 ms.
+    page.wait_for_function("(s) => parseFloat(getComputedStyle(document.querySelector(s)).opacity) < 1",
+                           arg='#studioGrid .orbital-card[data-app="benchmark"] .mod-tile', timeout=2000)
     down = _opacity(page, '#studioGrid .orbital-card[data-app="benchmark"] .mod-tile')
     up = _opacity(page, '#studioGrid .orbital-card[data-app="app"] .mod-tile')
     assert up == 1 and down < 1, (up, down)
 
 
-def test_books_are_covers(page):
-    assert _box(page, "#studioGrid .about-book-card .orbital-icon") == [56, 72]
-    assert _box(page, "#studioGrid .about-book-card.sdk-card .orbital-icon") == [56, 72]
+def test_books_are_covers_as_tall_as_an_icon(page):
+    icon = _box(page, _APP_ICON)[1]
+    for sel in ("#studioGrid .about-book-card:not(.sdk-card) .orbital-icon",
+                "#studioGrid .about-book-card.sdk-card .orbital-icon"):
+        w, h = _box(page, sel)
+        assert h == icon and abs(w - icon * 7 / 9) <= 1, (sel, w, h, icon)
 
 
-def test_icons_and_covers_share_one_baseline(page):
-    """The bottom edges of the icon (72) and the cover (72) must line up so the names sit on one line."""
-    bottoms = page.evaluate("""() => [...document.querySelectorAll('#studioGrid > *')].slice(0, 5)
-      .map(t => Math.round((t.querySelector('.mod-tile') || t.querySelector('.orbital-icon')).getBoundingClientRect().bottom))""")
-    assert len(set(bottoms)) == 1, bottoms
+def _icons(page):
+    """[left, centre x, bottom] of each cell's icon or cover, in grid order."""
+    return page.evaluate("""() => [...document.querySelectorAll('#studioGrid > *')].map(t => {
+      const r = (t.querySelector('.mod-tile') || t.querySelector('.orbital-icon')).getBoundingClientRect();
+      return [Math.round(r.left), Math.round(r.left + r.width / 2), Math.round(r.bottom)]; })""")
 
 
-def test_the_two_rows_stand_in_the_same_columns(page):
+def test_icons_in_a_row_share_one_baseline(page):
+    """The bottom edges of a row's three icons line up so their names sit on one line; the two covers share theirs."""
+    icons = _icons(page)
+    for row in (icons[0:3], icons[3:6], icons[6:9]):
+        assert len({b for _, _, b in row}) == 1, row
+    assert icons[9][1] == icons[10][1], icons[9:]
+
+
+def test_the_three_rows_stand_in_the_same_columns(page):
     """A tooltip must not widen its cell's column; otherwise cells with long descriptions push their icons and
-    the two rows misalign."""
-    centres = page.evaluate("""() => [...document.querySelectorAll('#studioGrid > *')].map(t => {
-      const i = t.querySelector('.mod-tile') || t.querySelector('.orbital-icon');
-      const r = i.getBoundingClientRect(); return Math.round(r.left + r.width / 2); })""")
-    top, bottom = centres[:5], centres[5:]
-    assert all(abs(a - b) <= 1 for a, b in zip(top, bottom)), (top, bottom)
+    the rows misalign."""
+    centres = [c for _, c, _ in _icons(page)[:9]]
+    for col in range(3):
+        column = centres[col::3]
+        assert max(column) - min(column) <= 1, (col, column)

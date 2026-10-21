@@ -228,7 +228,9 @@ def test_continuous_live_start_errors_use_translated_error_key():
     source = _read(JS_DIR / "inference.js")
     body = _extract_braced_body(source, "async function contStartLive")
 
-    assert "translatedError(res)" in body, (
+    assert "contLiveStartupError(" in body
+    diagnostic = _extract_braced_body(source, "function contLiveStartupError")
+    assert "translatedError(response)" in diagnostic, (
         "continuous live start errors must use translated error_key before raw error"
     )
     assert "+res.error" not in body

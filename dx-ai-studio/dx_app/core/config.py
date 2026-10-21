@@ -212,28 +212,6 @@ _comp_done=False; _comp_exit_code=-1
 _comp_dxnn_path=""; _comp_output_dir=""
 _comp_stdin_proc=None  # process whose stdin we can write to
 
-_DS=None; _dx_ok=False
-def _load_dx():
-    global _DS,_dx_ok
-    def _imp():
-        from dx_engine.device_status import DeviceStatus; return DeviceStatus
-    # Try an already-built dx_engine (studio venv) BEFORE injecting fallback paths — the
-    # uncompiled dx_rt/python_package/src tree (no _pydxrt.so) would otherwise shadow it
-    # and force mock NPU data.
-    try:
-        _DS=_imp();_dx_ok=True;print("[OK] dx_engine loaded");return
-    except Exception:pass
-    for sp in _runtime.dx_engine_search_paths():
-        if str(sp) not in sys.path:sys.path.insert(0,str(sp))
-    try:
-        _DS=_imp();_dx_ok=True;print("[OK] dx_engine loaded (via fallback path)")
-    except Exception:_dx_ok=False;print("[INFO] dx_engine unavailable — mock NPU data")
-_load_dx()
-
-# Initialise shared/hardware.py so inference/developer in DX App can use get_hw()
-from shared.hardware import init_hw as _init_hw
-_init_hw(ds=_DS, dx_ok=_dx_ok, npu_stats_bin=_NPU_STATS_BIN, app_root=DX_APP_ROOT)
-
 # python_example scripts hard-depend on numpy+cv2. venv-dx-runtime is frequently an empty
 # venv (dx_engine is injected via PYTHONPATH, not pip-installed), so shared.runtime probes
 # each candidate and skips any interpreter missing numpy/cv2 — otherwise every python-variant
@@ -241,9 +219,7 @@ _init_hw(ds=_DS, dx_ok=_dx_ok, npu_stats_bin=_NPU_STATS_BIN, app_root=DX_APP_ROO
 _RUNTIME_PYTHON=_runtime.runtime_python()
 print(f"[INFO] runtime python: {_RUNTIME_PYTHON}")
 
-# dx_engine is NOT pip-installed — it lives under dx_rt/python_package/src and must be on
-# PYTHONPATH for example subprocesses. The gui server injects it into its OWN sys.path at
-# import (_load_dx), but that does not propagate to children, so export it explicitly.
+# Native package paths belong only to inference children, never Studio's sys.path.
 _DX_POSTPROCESS_DIRS=[
     DX_APP_ROOT/"build"/"dx_postprocess",
     DX_APP_ROOT/"build_x86_64"/"dx_postprocess",

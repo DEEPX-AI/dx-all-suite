@@ -55,8 +55,9 @@ spec:
           dxcli -s
 
           # dx_rt talks to its own daemon over /tmp/dxrt_dynamic_ipc.sock, so each
-          # pod runs one. The card is allocated to this pod alone, so there is no
-          # contention with other dxrtd instances.
+          # pod runs one. The card is allocated to this pod alone, but the node's
+          # dxrt.service must be stopped (Quickstart prerequisite 1): a host dxrtd
+          # on the same card leaves dxrun hanging after it loads the model.
           echo "=== starting dxrtd ==="
           dxrtd >/tmp/dxrtd.log 2>&1 &
           for _ in $(seq 1 30); do
@@ -69,7 +70,12 @@ spec:
           # instead of hardcoding a name.
           MODEL=$(ls /models/*.dxnn | head -1)
           echo "=== inference ($(basename "$MODEL"), single run) ==="
-          dxrun -m "$MODEL" -s -v
+          # A single run takes seconds; fail instead of hanging forever.
+          timeout 120 dxrun -m "$MODEL" -s -v || {
+            rc=$?
+            [ "$rc" -eq 124 ] && echo "dxrun timed out -- is dxrt.service running on the node? (sudo systemctl disable --now dxrt.service)"
+            exit "$rc"
+          }
       volumeMounts:
         - { name: models, mountPath: /models }
       resources:

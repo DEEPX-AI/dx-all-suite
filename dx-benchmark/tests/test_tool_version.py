@@ -21,7 +21,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 def test_version_is_semver_and_pinned():
     assert re.fullmatch(r"\d+\.\d+\.\d+", benchmark.__version__), benchmark.__version__
-    assert benchmark.__version__ == "0.1.0"
+    assert benchmark.__version__ == "0.2.0"
 
 
 def test_cli_version_flag_prints_version():
@@ -57,7 +57,7 @@ def test_release_ver_file_is_source_of_truth():
     # source of truth for its version. __version__ derives from it (v stripped).
     root = Path(benchmark.__file__).resolve().parent.parent  # dx-benchmark/
     rv = (root / "release.ver").read_text().strip()
-    assert rv == "v0.1.0", rv
+    assert rv == "v0.2.0", rv
     assert rv.lstrip("v") == benchmark.__version__
 
 
@@ -66,7 +66,7 @@ def test_suite_version_not_shadowed_by_own_release_ver():
     # measured dx-all-suite version when resolving with the default (in-package) start.
     from benchmark.env_fingerprint import resolve_dx_all_suite_version
     v = resolve_dx_all_suite_version(None)
-    assert v not in ("0.1.0", "v0.1.0"), f"suite version shadowed by tool release.ver: {v!r}"
+    assert v not in ("0.2.0", "v0.2.0"), f"suite version shadowed by tool release.ver: {v!r}"
 
 
 def test_report_environment_section_shows_tool_version():

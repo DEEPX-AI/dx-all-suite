@@ -11,6 +11,7 @@ import pytest
 
 pytest.importorskip("playwright.sync_api")
 
+from tests.installed_sdk import require  # noqa: E402
 from tests.server_helpers import start_module_server  # noqa: E402
 
 CAM = "rtsp://admin:pw@192.168.0.64:554/cam/realmonitor?channel=1&subtype=0"
@@ -57,6 +58,8 @@ def test_an_empty_address_stops_the_benchmark_before_running(page):
     runs = []
     page.route("**/api/run", lambda r: (runs.append(r.request.post_data), r.fulfill(status=200, body="{}")))
     try:
+        models = page.evaluate("() => fetch('/api/models').then(r => r.json())")
+        require(bool(models), "dx_app has no runnable model to tick in Benchmark")
         page.evaluate("nav('bench')")
         page.select_option("#b-input-type", "rtsp")
         page.fill("#b-rtsp-ip", "")

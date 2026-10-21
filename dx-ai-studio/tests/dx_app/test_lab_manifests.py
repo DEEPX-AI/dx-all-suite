@@ -6,6 +6,8 @@ from unittest.mock import patch
 
 import pytest
 
+from tests.installed_sdk import require_dx_app
+
 _STUDIO_DIR = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(_STUDIO_DIR / "shared"))
 
@@ -16,6 +18,11 @@ def _reset_lab_portal_state():
     import lab_portal
     lab_portal._manifests.clear()
     lab_portal._apply_locks.clear()
+
+
+def _require_start_from_examples():
+    """The add-model dry run starts from an example of the installed dx_app, whichever tree it then plans into."""
+    require_dx_app("src/python_example/object_detection", "src/cpp_example/object_detection")
 
 
 def test_lab_capabilities_shape_has_expected_keys():
@@ -215,6 +222,7 @@ def test_capabilities_route_does_not_trust_host_header_with_real_server():
 
 
 def test_add_model_dry_run_returns_manifest_without_writing(tmp_path, monkeypatch):
+    _require_start_from_examples()
     import lab_portal
     from developer import lab_session
     dx_app_root = tmp_path / "runtime" / "dx_app"
@@ -246,6 +254,7 @@ def test_add_model_dry_run_returns_manifest_without_writing(tmp_path, monkeypatc
 
 
 def test_add_model_dry_run_reports_overwrite_confirmation(tmp_path, monkeypatch):
+    _require_start_from_examples()
     import lab_portal
     from developer import lab_session
     dx_app_root = tmp_path / "runtime" / "dx_app"
@@ -294,6 +303,7 @@ def test_add_model_dry_run_rejects_source_path_traversal():
 
 
 def test_add_model_dry_run_route_preserves_manifest_status(tmp_path, monkeypatch):
+    _require_start_from_examples()
     import types
     import server
     import lab_portal

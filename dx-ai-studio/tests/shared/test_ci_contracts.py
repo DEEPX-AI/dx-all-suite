@@ -57,12 +57,15 @@ BROWSER_SUITE_PATHS = {
     "tests/launcher/test_home_posters_keyboard_browser.py",
     "tests/shared/test_chat_settings_browser.py",
     "tests/dx_app/test_setup_steps_browser.py",
+    "tests/dx_app/test_live_startup_errors_browser.py",
     "tests/dx_stream/test_setup_steps_browser.py",
     "tests/dx_compiler/test_setup_steps_browser.py",
+    "tests/dx_compiler/test_config_wizard_server_error_ko_browser.py",
     "tests/shared/test_task_icons_browser.py",
     "tests/dx_app/test_rundemo_cards_browser.py",
     "tests/dx_app/test_outputs_lang_browser.py",
     "tests/dx_app/test_modelzoo_load_error_browser.py",
+    "tests/dx_app/test_modelzoo_unverified_browser.py",
     "tests/dx_app/test_compare_browser.py",
     "tests/shared/test_toolbar_lang_a11y_browser.py",
     "tests/shared/test_chat_widget_lang_browser.py",
@@ -74,6 +77,7 @@ BROWSER_SUITE_PATHS = {
     "tests/dx_stream/test_dashboard_live_browser.py",
     "tests/test_tutorial_placement_browser.py",
     "tests/dx_stream/test_demo_cards_browser.py",
+    "tests/dx_stream/test_demo_errors_browser.py",
     "tests/shared/test_icon_label_browser.py",
     "tests/launcher/test_sdk_library_module_nav_browser.py",
     "tests/launcher/test_connected_browsers_browser.py",
@@ -138,6 +142,36 @@ def test_ci_workflow_uses_self_hosted_runner():
     assert "run_ci.sh" in workflow
     assert "ubuntu-latest" not in workflow
     assert "ci-browser-smoke" not in workflow
+
+
+def _workflow_job_condition(filename, job_id):
+    import re
+
+    workflow = (ROOT.parent / ".github" / "workflows" / filename).read_text(encoding="utf-8")
+    job = workflow.split("\n  {}:\n".format(job_id), 1)[1]
+    job = re.split(r"\n  [\w-]+:\n", job, maxsplit=1)[0]
+    match = re.search(r"(?ms)^    if:\s*(?:>-\n)?(.*?)^    runs-on:", job)
+    assert match, "{} must decide whether to run before allocating a runner".format(job_id)
+    return " ".join(match.group(1).split())
+
+
+def test_studio_pr_gate_accepts_explicit_skip_without_disabling_manual_runs():
+    condition = _workflow_job_condition("dx-ai-studio-pytest.yml", "pytest-gate")
+    assert condition == (
+        "github.event_name != 'pull_request' || "
+        "!contains(github.event.pull_request.labels.*.name, 'skip-self-hosted-ci')"
+    )
+
+
+def test_harness_pr_skip_preserves_host_fork_and_non_pr_guards():
+    condition = _workflow_job_condition("dx-agent-dev-gate-ghes.yml", "harness-gate")
+    assert condition == (
+        "github.server_url != 'https://github.com' && "
+        "(github.event_name != 'pull_request' || "
+        "github.event.pull_request.head.repo.full_name == github.repository) && "
+        "(github.event_name != 'pull_request' || "
+        "!contains(github.event.pull_request.labels.*.name, 'skip-self-hosted-ci'))"
+    )
 
 
 def test_i18n_smoke_workflow_is_manual_dispatch_only():
@@ -230,6 +264,24 @@ def test_ci_dependency_manifest_covers_collection_dependencies():
         "pytest", "numpy", "onnx", "pillow", "playwright", "jinja2", "cffi",
         "fonttools", "brotli",
     } <= package_names
+
+
+def test_numpy_requirements_preserve_system_opencv_and_new_python_support():
+    from packaging.requirements import Requirement
+
+    requirements = [
+        Requirement(line) for line in (ROOT / "requirements-ci.txt").read_text().splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    ]
+    for python in ("3.8", "3.10", "3.12", "3.13", "3.14"):
+        active = [
+            r for r in requirements if r.name.lower() == "numpy"
+            and (r.marker is None or r.marker.evaluate({"python_version": python}))
+        ]
+        assert active, f"no NumPy requirement for Python {python}"
+        legacy = python in ("3.8", "3.10", "3.12")
+        assert all(r.specifier.contains("2.5.2") for r in active) == (not legacy), python
+        assert all(r.specifier.contains("1.26.4") for r in active) == legacy, python
 
 
 def test_run_ci_runs_inference_e2e_gate_isolated():
@@ -524,22 +576,17 @@ def test_npu_workflow_runs_on_hardware_runner():
     assert "ubuntu-latest" not in workflow
 
 
-def test_npu_workflow_is_scheduled_and_opt_in_not_a_blocking_pr_gate():
-    """The hardware tier must never gate every PR.
+def test_npu_workflow_has_no_automatic_triggers_while_ci_is_unconfigured():
+    import re
 
-    One DX-M1 backs it, so making every merge depend on that board's health is
-    exactly the fragility the mock tier exists to avoid. It may run on a schedule,
-    on demand, and on a PR that explicitly opts in with the `run-npu` label.
-    """
     workflow = _npu_workflow()
-    assert "schedule:" in workflow, "the hardware tier must run on a schedule"
-    assert "workflow_dispatch:" in workflow
-    assert "types: [labeled]" in workflow, (
-        "pull_request must be limited to `labeled`, otherwise every PR waits on the NPU"
-    )
-    assert "github.event.label.name == 'run-npu'" in workflow, (
-        "the PR path must be gated on the opt-in label"
-    )
+    triggers = workflow.split("\non:\n", 1)[1].split("\npermissions:", 1)[0]
+    assert re.findall(r"^  ([\w-]+):", triggers, re.M) == ["workflow_dispatch"]
+
+
+def test_npu_workflow_stays_paused_before_allocating_a_runner():
+    condition = _workflow_job_condition("dx-ai-studio-npu.yml", "npu-tier")
+    assert condition == "${{ false }}"
 
 
 def test_npu_workflow_serialises_on_the_single_board():

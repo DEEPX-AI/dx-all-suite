@@ -21,6 +21,7 @@ from dx_app.core.config import (DX_APP_ROOT, CPP_DIR, PY_DIR, BUILD_DIR, ASSETS_
 from shared.runtime import ld_library_path
 from shared import dxrt
 from shared import debug_log
+from shared.media import MediaError, run_media
 from dx_app.core.dx_app_security import resolve_existing_file
 from dx_app.core.performance import _parse_perf, _cvt_video, runner_errors
 from shared.hardware import get_hw
@@ -206,11 +207,14 @@ def run_inference(model_name, category, model_file, lang="cpp", variant="sync",
         env.pop("DISPLAY", None)
     if input_type == "image":
         inf = "-i"
+    elif input_type == "camera":
+        inf = "-c"
     elif input_type == "rtsp":
         inf = "-r"  # -v only takes files on disk; a URL goes through rtsp_url
     else:
-        inf = "-v"  # video, camera (/dev/videoN)
-    _inp_str = rtsp_url if input_type == "rtsp" else str(inp)
+        inf = "-v"
+    _inp_str = (str(_cam_idx) if input_type == "camera" else
+                rtsp_url if input_type == "rtsp" else str(inp))
     _loop = loop or (100 if _is_live else 1)
     # embedding/reid: pair-folder demo needs 2+ images (1st = reference, 2nd+ = compare canvas)
     if not _is_live and input_type == "image" and category in _PAIR_COMPARE_CATS and inp.is_dir():
@@ -283,7 +287,7 @@ def run_inference(model_name, category, model_file, lang="cpp", variant="sync",
         elif _loop != 1:
             py_extra += ["-l", str(_loop)]
         # Python's video source opens only files on disk: RTSP passed as --video ends with "Input file not found:
-        # rtsp://…". Use the runner's --rtsp / --camera. (C++ works with -v because OpenCV opens it.)
+        # rtsp://…". Use the runner's --rtsp / --camera.
         if input_type == "rtsp":
             py_input = ["--rtsp", _inp_str]
         elif input_type == "camera":
@@ -310,13 +314,12 @@ def run_inference(model_name, category, model_file, lang="cpp", variant="sync",
                     _total = None
                     try:
                         if input_type == "video" and not _is_live and inp.exists():
-                            import cv2 as _cv2t
-                            _vc = _cv2t.VideoCapture(str(inp))
-                            _fc = int(_vc.get(_cv2t.CAP_PROP_FRAME_COUNT)); _vc.release()
+                            _fc = run_media("frame_count", source=str(inp))["count"]
                             _total = _fc * _loop if _fc > 0 else None
                         else:
                             _total = _loop  # image/pair: one tag line per loop iteration
-                    except Exception:
+                    except (MediaError, OSError, ValueError) as error:
+                        print(f"[MEDIA] Video progress unavailable: {error}")
                         _total = None
                     _rp.register(job_id, _stdout_file, _loop, _total, proc, t0)
                 except Exception:
@@ -377,31 +380,15 @@ def run_inference(model_name, category, model_file, lang="cpp", variant="sync",
                     os.unlink(output_only)
                 except OSError:
                     has_output_only = False
-            try:
-                import cv2 as _cv2
-                _inp_img = _cv2.imread(str(inp))
-                _res_img = _cv2.imread(res_img)
-                if _inp_img is not None and _res_img is not None:
-                    _ih, _iw = _inp_img.shape[:2]
-                    _rh, _rw = _res_img.shape[:2]
-                    # Side-by-side canvas (e.g. SR = Bicubic|model output): the result is
-                    # two panels laid horizontally, so its aspect ratio is ~2x the input's
-                    # (holds whether or not the model upscales — the old abs(rh-ih) check
-                    # broke for SR because the panels are also 4x taller). Crop to the right
-                    # panel (model output). Skip embedding/reid, which use their own layout.
-                    _inp_ar = _iw / _ih if _ih else 0
-                    _res_ar = _rw / _rh if _rh else 0
-                    if (not has_output_only and category not in _PAIR_COMPARE_CATS and _inp_ar
-                            and abs(_res_ar - _inp_ar * 2) < _inp_ar * 0.3):
-                        _res_img = _res_img[:, _rw // 2 + 2:]
-                        _rh, _rw = _res_img.shape[:2]
-                    # Only resize-back if result is SMALLER than original (denoising/etc.)
-                    # For SR, keep the high-res result — CMP slider handles it via object-fit:contain
-                    if (_rw, _rh) != (_iw, _ih) and not (_rw > _iw and _rh > _ih):
-                        _res_img = _cv2.resize(_res_img, (_iw, _ih), interpolation=_cv2.INTER_LANCZOS4)
-                    _cv2.imwrite(res_img, _res_img)
-            except Exception:
-                pass
+            if input_type == "image":
+                try:
+                    run_media(
+                        "normalize", source=str(inp), output=res_img,
+                        crop_panel=not has_output_only and category not in _PAIR_COMPARE_CATS,
+                    )
+                except MediaError as error:
+                    print(f"[MEDIA] Preview normalization unavailable: {error}")
+                    res["preview_warning"] = str(error)
             # For video input, skip returning result_image (video is the real result)
             if input_type == "video":
                 res["result_image"] = None
@@ -566,38 +553,44 @@ def run_pipeline(steps, input_path, input_type="image", mode="chain"):
             for di, det in enumerate(dets):
                 bbox = det["bbox"]  # x1,y1,x2,y2 in display coords
                 dw, dh = det.get("disp_w", 1), det.get("disp_h", 1)
+                tmp = None
                 try:
-                    import cv2
-                    orig_img = cv2.imread(str(DX_APP_ROOT / orig_path) if not os.path.isabs(str(orig_path)) else str(orig_path))
-                    if orig_img is None: continue
-                    oh, ow = orig_img.shape[:2]
-                except Exception: continue
-                # Scale bbox from display coords to original coords
-                sx, sy = ow / dw, oh / dh
-                x1 = max(0, int(bbox[0] * sx)); y1 = max(0, int(bbox[1] * sy))
-                x2 = min(ow, int(bbox[2] * sx)); y2 = min(oh, int(bbox[3] * sy))
-                if x2 <= x1 or y2 <= y1: continue
-                crop = orig_img[y1:y2, x1:x2]
-                if crop.size == 0: continue
-                tmp = tempfile.mktemp(suffix=".jpg", dir=_TMP)
-                cv2.imwrite(tmp, crop)
-                cr = run_inference(step.get("model_name", ""), step.get("category", ""), step.get("model_file", ""),
-                 step.get("lang", "cpp"), step.get("variant", "sync"), "image", image_path=tmp)
-                cr.update({"step_index": si, "step_model": step.get("model_name", ""),
-                           "crop_index": di, "crop_class": det.get("class", ""),
-                           "crop_conf": det.get("conf", 0),
-                           "crop_bbox": [x1, y1, x2, y2]})
-                crop_results.append(cr)
-                try: os.unlink(tmp)
-                except Exception: pass
+                    fd, tmp = tempfile.mkstemp(suffix=".jpg", dir=_TMP)
+                    os.close(fd)
+                    source = str(DX_APP_ROOT / orig_path) if not os.path.isabs(str(orig_path)) else str(orig_path)
+                    crop = run_media(
+                        "crop", source=source, output=tmp, bbox=bbox,
+                        display_width=dw, display_height=dh,
+                    )
+                    if not crop["written"]:
+                        continue
+                    cr = run_inference(step.get("model_name", ""), step.get("category", ""), step.get("model_file", ""),
+                     step.get("lang", "cpp"), step.get("variant", "sync"), "image", image_path=tmp)
+                    cr.update({"step_index": si, "step_model": step.get("model_name", ""),
+                               "crop_index": di, "crop_class": det.get("class", ""),
+                               "crop_conf": det.get("conf", 0),
+                               "crop_bbox": crop["bbox"]})
+                    crop_results.append(cr)
+                except (MediaError, OSError) as error:
+                    results.append({"step_index": si, "step_model": step.get("model_name", ""),
+                                    "error": str(error), "error_key": "media_failed",
+                                    "cascade_crops": crop_results, "crop_count": len(crop_results)})
+                    return results
+                finally:
+                    if tmp is not None:
+                        Path(tmp).unlink(missing_ok=True)
             results.append({"step_index": si, "step_model": step.get("model_name", ""),
                            "cascade_crops": crop_results, "crop_count": len(crop_results)})
         return results
     for i, step in enumerate(steps):
         actual = cur
         if step.get("crop_bbox") and input_type == "image" and os.path.exists(str(cur)):
-            c = _crop_roi(Path(cur), step["crop_bbox"])
-            if c: actual = c
+            try:
+                actual = _crop_roi(Path(cur), step["crop_bbox"])
+            except (MediaError, OSError) as error:
+                results.append({"step_index": i, "step_model": step.get("model_name", ""),
+                                "error": str(error), "error_key": "media_failed"})
+                return results
         r = run_inference(step.get("model_name", ""), step.get("category", ""), step.get("model_file", ""),
          step.get("lang", "cpp"), step.get("variant", "sync"), input_type,
          image_path=str(actual) if input_type == "image" else None,

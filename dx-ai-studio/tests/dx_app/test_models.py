@@ -3,6 +3,8 @@
 import json
 from pathlib import Path
 
+from tests.installed_sdk import require, require_dx_app
+
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -167,9 +169,10 @@ def test_get_catalog_keeps_uninstalled_modelzoo_entry(tmp_path, monkeypatch):
 
     # The file name comes from dx_app's registry, the source the catalog follows; the hand-written
     # model_catalog.json may still name an older build of the same model.
-    from shared.paths import DX_APP_ROOT
-    registry = json.loads((DX_APP_ROOT / "config" / "model_registry.json").read_text(encoding="utf-8"))
-    dxnn_file = next(r["dxnn_file"] for r in registry if r.get("model_name") == "efficientnet_lite0")
+    registry = json.loads((require_dx_app("config/model_registry.json") / "config" / "model_registry.json")
+                          .read_text(encoding="utf-8"))
+    dxnn_file = next((r["dxnn_file"] for r in registry if r.get("model_name") == "efficientnet_lite0"), None)
+    require(dxnn_file is not None, "dx_app's model_registry.json has no efficientnet_lite0")
     catalog_model = {"model_file": f"assets/models/{dxnn_file}"}
     fake_root = tmp_path / "dx_app_root"
     source_dir = fake_root / "src" / "cpp_example" / "classification" / "efficientnet"
@@ -184,11 +187,8 @@ def test_get_catalog_keeps_uninstalled_modelzoo_entry(tmp_path, monkeypatch):
     monkeypatch.setattr(models, "_REG", models._load_reg())
     monkeypatch.setattr(models, "_download_index", lambda: {})
 
-    entry = next(
-        model
-        for model in models.get_catalog()
-        if model["model_file"] == catalog_model["model_file"]
-    )
+    entry = next((model for model in models.get_catalog() if model["model_file"] == catalog_model["model_file"]), None)
+    require(entry is not None, f"the Model Zoo catalog has no {dxnn_file}, this dx_app's file (another release)")
 
     assert entry["model_exists"] is False
     assert entry["dxnn_url"]
@@ -199,9 +199,10 @@ def test_a_zoo_entry_is_installed_only_where_the_models_dir_says(tmp_path, monke
     install state follows resolve_model_path, as the rest of the page does."""
     import models
 
-    from shared.paths import DX_APP_ROOT
-    registry = json.loads((DX_APP_ROOT / "config" / "model_registry.json").read_text(encoding="utf-8"))
-    dxnn_file = next(r["dxnn_file"] for r in registry if r.get("model_name") == "efficientnet_lite0")
+    registry = json.loads((require_dx_app("config/model_registry.json") / "config" / "model_registry.json")
+                          .read_text(encoding="utf-8"))
+    dxnn_file = next((r["dxnn_file"] for r in registry if r.get("model_name") == "efficientnet_lite0"), None)
+    require(dxnn_file is not None, "dx_app's model_registry.json has no efficientnet_lite0")
     fake_root = tmp_path / "dx_app_root"
     (fake_root / "assets" / "models").mkdir(parents=True)
     (fake_root / "assets" / "models" / dxnn_file).write_bytes(b"DXNN")
@@ -217,7 +218,8 @@ def test_a_zoo_entry_is_installed_only_where_the_models_dir_says(tmp_path, monke
     monkeypatch.setattr(models, "_download_index", lambda: {})
     monkeypatch.setattr(models, "resolve_model_path", lambda mf, root=None: empty / mf.rsplit("/", 1)[-1])
 
-    entry = next(m for m in models.get_catalog() if m["model_file"] == f"assets/models/{dxnn_file}")
+    entry = next((m for m in models.get_catalog() if m["model_file"] == f"assets/models/{dxnn_file}"), None)
+    require(entry is not None, f"the Model Zoo catalog has no {dxnn_file}, this dx_app's file (another release)")
     assert entry["model_exists"] is False
 
 

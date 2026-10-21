@@ -760,6 +760,9 @@ def start_sub_server(name, directory, port=0, server_id=None):
         env["DX_APP_PORT"] = str(_LAUNCHER_PROXY_PORTS["dx_app"])
     # dx_app gets a new port when it restarts — pass the file holding it so the Zoo reads it per request
     env["DX_APP_PORT_FILE"] = str(PORTS_DIR / "dx_app.port")
+    # DX Monitor runs the suite's one NPU telemetry worker; DX App reads it from here per request
+    # (shared/telemetry_client.py) instead of polling the device with a second worker.
+    env["DX_MONITOR_PORT_FILE"] = str(PORTS_DIR / "dx_monitor.port")
 
     # stdout is dropped: some modules print a line per request. stderr (tracebacks, warnings, faulthandler dumps
     # of native crashes) goes to a size-capped log per module, so a module that dies leaves a reason behind.
@@ -1365,7 +1368,10 @@ class LauncherHandler(DXBaseHandler):
         "/static/shared/",
         "/static/sdk-library-data",
         "/static/about-data",
-        "/static/img/",
+        # launcher/static/img's own entries only: a module keeps its /static/img/... (DX App's graph thumbnails)
+        "/static/img/about/",
+        "/static/img/intro/",
+        "/static/img/deepx-logo.svg",
         "/static/fonts/",
         "/static/pdfs/",
         "/assets/",

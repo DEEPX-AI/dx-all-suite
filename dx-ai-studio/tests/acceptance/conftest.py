@@ -36,6 +36,27 @@ NO_LAUNCHER_TOUR = "localStorage.setItem('dx-tutorial-launcher-autostarted','1')
 BOOT_TIMEOUT = 240
 
 
+def _requires_by_test() -> dict:
+    """{test node id: what the manifest's ACs that list it require}: the manifest is the one place that says it."""
+    manifest = json.loads((Path(__file__).with_name("manifest.json")).read_text(encoding="utf-8"))
+    need_by = {}
+    for ticket in manifest["tickets"]:
+        for ac in ticket["ac"]:
+            for node in ac["tests"]:
+                need_by.setdefault(node, set()).update(ac["requires"])
+    return need_by
+
+
+_REQUIRES = _requires_by_test()
+
+
+@pytest.hookimpl(tryfirst=True)
+def pytest_runtest_setup(item):
+    """NOT RUN before any fixture boots a studio, for what this machine lacks, as the runner reports it."""
+    rel = Path(str(item.fspath)).resolve().relative_to(ROOT).as_posix()
+    need(*sorted(_REQUIRES.get(f"{rel}::{item.originalname}", ())))
+
+
 def _free_port() -> int:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.bind(("127.0.0.1", 0))
@@ -155,6 +176,8 @@ def studio(request):
     env = {**os.environ, **extra,
            "DX_LAUNCHER_RUN_DIR": str(run_dir), "XDG_STATE_HOME": str(work / "state"),
            "DX_BIND_LOCAL": "1", "PYTHONUNBUFFERED": "1", "DX_NO_BROWSER": "1"}
+    env["DX_COMPILER_ALLOWED_ROOTS"] = os.pathsep.join(
+        p for p in (env.get("DX_COMPILER_ALLOWED_ROOTS", ""), str(work)) if p)
     log = work / "launcher.out"
     with open(log, "wb") as out:
         proc = subprocess.Popen(["bash", str(ROOT / "launcher.sh"), "--no-kill", "--port", str(port), "--fast",

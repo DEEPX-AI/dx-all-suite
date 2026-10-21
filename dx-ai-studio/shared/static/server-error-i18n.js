@@ -40,6 +40,31 @@
       'zh-CN': 'Studio 运行时配置未激活或未验证。',
       'zh-TW': 'Studio 執行階段設定未啟用或未驗證。',
     },
+    // shared/runtime_context.py — the observed half of a profile.context refusal (SR-843)
+    {
+      re: /^Active runtime profile has no complete inference Python\.$/,
+      ko: '활성 런타임 profile에 사용할 수 있는 추론용 Python이 없습니다.',
+      ja: '有効なランタイムプロファイルに、使用できる推論用 Python がありません。',
+      es: 'El perfil de runtime activo no tiene un Python de inferencia completo.',
+      'zh-CN': '当前运行时配置中没有完整的推理 Python。',
+      'zh-TW': '目前的執行階段設定中沒有完整的推論 Python。',
+    },
+    {
+      re: /^Active runtime Python executable is missing: (.+)$/,
+      ko: '활성 런타임의 Python 실행 파일이 없습니다: $1',
+      ja: '有効なランタイムの Python 実行ファイルがありません: $1',
+      es: 'Falta el ejecutable de Python del runtime activo: $1',
+      'zh-CN': '当前运行时的 Python 可执行文件不存在: $1',
+      'zh-TW': '目前執行階段的 Python 執行檔不存在: $1',
+    },
+    {
+      re: /^Active runtime profile has no native library directories\.$/,
+      ko: '활성 런타임 profile에 네이티브 라이브러리 폴더가 없습니다.',
+      ja: '有効なランタイムプロファイルにネイティブライブラリのフォルダーがありません。',
+      es: 'El perfil de runtime activo no tiene carpetas de bibliotecas nativas.',
+      'zh-CN': '当前运行时配置中没有原生库目录。',
+      'zh-TW': '目前的執行階段設定中沒有原生函式庫目錄。',
+    },
     {
       re: /^Run the DX-Runtime Dependencies step in (?:DX Stream )?Setup, then try again\.$/,
       ko: 'Setup에서 DX-Runtime 종속성 설치 단계를 실행한 뒤 다시 시도하세요.',
@@ -247,6 +272,23 @@
       es: '$1 debe ser una cadena de ruta (se recibió $2)',
       'zh-CN': '$1 必须是路径字符串（收到 $2）',
       'zh-TW': '$1 必須是路徑字串（收到 $2）',
+    },
+    // Arithmetic transforms (add/sub/mul/div .x) — dx_compiler/core/validation.py
+    {
+      re: /^Invalid (.+?): (.+?) — expected a finite number or a non-empty list of finite numbers$/,
+      ko: '$1의 $2을(를) 쓸 수 없습니다 — 유한한 숫자 또는 비어 있지 않은 유한 숫자 목록이어야 합니다',
+      ja: '$1 の $2 は使用できません — 有限の数値、または空でない有限の数値のリストである必要があります',
+      es: '$2 no es válido en $1: debe ser un número finito o una lista no vacía de números finitos',
+      'zh-CN': '$1 中的 $2 无效 — 必须是有限数字或非空的有限数字列表',
+      'zh-TW': '$1 中的 $2 無效 — 必須是有限數字或非空的有限數字列表',
+    },
+    {
+      re: /^Invalid (.+?): contains 0 — division by zero$/,
+      ko: '$1에 0이 있습니다 — 0으로 나눌 수 없습니다',
+      ja: '$1 に 0 が含まれています — 0 で割ることはできません',
+      es: '$1 contiene 0: no se puede dividir entre cero',
+      'zh-CN': '$1 包含 0 — 不能除以零',
+      'zh-TW': '$1 包含 0 — 不能除以零',
     },
     {
       re: /^Invalid (.+?): (.+?) — must be a positive number$/,

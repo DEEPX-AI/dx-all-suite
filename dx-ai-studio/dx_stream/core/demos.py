@@ -6,6 +6,7 @@ videoconvert ! encoder ! rtph264pay ! webrtcbin so the browser can show the stre
 from __future__ import annotations
 
 import math
+from collections.abc import Callable
 from pathlib import Path
 from dx_stream.core.config import DX_STREAM_SRC, MODELS_DIR, CONFIGS_DIR, PIPELINES_DIR, VIDEOS_DIR
 from dx_stream.core.pipeline import payloader_with_payload_type
@@ -712,13 +713,14 @@ def check_demo_available(demo_id: int) -> dict:
     }
 
 
-def list_demo_entries() -> list[dict]:
-    """Return demo metadata enriched for the web UI."""
+def list_demo_entries(availability_check: Callable[[dict], dict] | None = None) -> list[dict]:
+    """Return demo metadata, optionally using the server's launch admission facts."""
     demo_list = []
     for demo in DEMOS:
         entry = dict(demo)
         entry["default_video"] = demo_video_uri(demo)
-        entry["availability"] = check_demo_available(demo["id"])
+        entry["availability"] = (availability_check(demo) if availability_check
+                                 else check_demo_available(demo["id"]))
         entry["available"] = entry["availability"].get("available", False)
         # Resolved on-disk model filename(s) — the logical demo["model"] (e.g. "yolo26n.dxnn")
         # is alias-mapped to the real file (e.g. "yolo26-n_640x640.dxnn") for the actual run.

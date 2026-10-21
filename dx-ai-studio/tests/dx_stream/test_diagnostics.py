@@ -146,8 +146,8 @@ class TestDiagnostics(unittest.TestCase):
         with (
             patch.object(diagnostics, "_run", new=fake_run),
             patch.object(
-                diagnostics, "resolve_active_runtime_context",
-                return_value=SimpleNamespace(), create=True,
+                diagnostics, "resolve_launch_context",
+                return_value=SimpleNamespace(),
             ),
             patch.object(
                 diagnostics, "build_child_environment",
@@ -182,9 +182,8 @@ class TestDiagnostics(unittest.TestCase):
         with (
             patch.object(
                 diagnostics,
-                "resolve_active_runtime_context",
+                "resolve_launch_context",
                 return_value=context,
-                create=True,
             ),
             patch.object(
                 diagnostics,

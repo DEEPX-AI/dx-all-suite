@@ -68,7 +68,7 @@ def test_every_role_is_in_the_fold(browser, server):
           .map(s => [s, document.querySelector(s).getBoundingClientRect().bottom])""")
         for sel, bottom in bottoms:
             assert bottom <= 800, (sel, bottom)
-        assert page.locator("#studioGrid .orbital-card[data-app]").count() == 8
+        assert page.locator("#studioGrid .orbital-card[data-app]").count() == 9
         assert page.locator("#studioGrid .about-book-card").count() == 2
     finally:
         ctx.close()
@@ -76,16 +76,20 @@ def test_every_role_is_in_the_fold(browser, server):
 
 
 
-def _rows(page):
-    return page.evaluate("""() => {
-      const tops = [...document.querySelectorAll('#studioGrid > *')].map(e => Math.round(e.getBoundingClientRect().top));
-      return [...new Set(tops)].length; }""")
+def _rows(page, cells="#studioGrid > *"):
+    return page.evaluate("""(sel) => {
+      const tops = [...document.querySelectorAll(sel)].map(e => Math.round(e.getBoundingClientRect().top));
+      return [...new Set(tops)].length; }""", cells)
 
 
-def test_the_grid_is_five_by_two_when_wide(browser, server):
+_MODULES = "#studioGrid > .orbital-card"
+
+
+def test_the_modules_are_three_by_three_when_wide(browser, server):
+    """Nine modules in three rows; the two books sit beside them, centred across the rows (not a row of their own)."""
     ctx, page = _open(browser, server, 1440, 900)
     try:
-        assert _rows(page) == 2
+        assert _rows(page, _MODULES) == 3
     finally:
         ctx.close()
 
@@ -173,7 +177,7 @@ def test_escape_closes_the_answer_and_undocks(browser, server):
         page.keyboard.press("Escape")
         page.wait_for_timeout(100)
         assert page.evaluate("() => document.getElementById('homeAnswer').hidden")
-        assert _rows(page) == 2 or page.viewport_size["width"] < 1200
+        assert _rows(page, _MODULES) == 3 or page.viewport_size["width"] < 1200
     finally:
         ctx.close()
 

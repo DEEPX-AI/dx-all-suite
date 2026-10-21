@@ -23,8 +23,11 @@ def install(tmp_path: Path, monkeypatch, body: str, variants=("sync", "async")) 
     """Write `body` as every graph binary and make graph_cli find only these. Returns the bin dir.
 
     The script sees FIX (fixtures dir) and CALLS (a file each call appends its arguments to)."""
-    from dx_app.core import graph_cli
+    from dx_app.core import config, graph_cli
 
+    if not Path(config.DX_APP_ROOT).is_dir():   # every call runs in dx_app's root; a checkout without dx_app has none
+        monkeypatch.setattr(config, "DX_APP_ROOT", tmp_path / "dx_app")
+        (tmp_path / "dx_app").mkdir(exist_ok=True)
     d = tmp_path / "bin"
     d.mkdir(exist_ok=True)
     calls = tmp_path / "calls.log"

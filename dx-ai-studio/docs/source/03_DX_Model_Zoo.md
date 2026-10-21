@@ -28,6 +28,10 @@ Step 2. **Open a model** to see its detail view: task, input shape, accuracy met
 
 Step 3. **Download** an available artifact — a Q-Lite / Q-Pro `.dxnn` (with progress /
    cancel), ONNX or JSON. Not every model provides every artifact or quantization tier.
+   In **DX App → ModelZoo**, an **Unverified** badge means the local file has no
+   current Studio completion record, not that it is absent. Add it to the cart and
+   run the download to verify it; matching content is kept. This checks transfer
+   completeness, not whether the model has successfully run on this NPU.
 
 Step 4. **Try it in-browser** — run inference right from the detail view (upload or sample
    image) against your local DX App: see the result image, predictions, FPS, and a

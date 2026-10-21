@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
 
+from tests.installed_sdk import require
+
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA_PATH = ROOT / "launcher" / "static" / "sdk-library-data.json"
@@ -74,6 +76,18 @@ def _suggest_relocation(suite_root, rel):
     return hits
 
 
+def _deepest_existing(suite_root, rel):
+    p = suite_root / rel
+    while not p.exists():
+        p = p.parent
+    return p
+
+
+def _in_an_empty_checkout(suite_root, rel):
+    d = _deepest_existing(suite_root, rel)
+    return d != suite_root and d.is_dir() and not any(d.iterdir())
+
+
 def test_registered_sdk_library_markdown_paths_exist_on_disk():
     data = load_data()
     suite_root = ROOT.parent
@@ -86,6 +100,9 @@ def test_registered_sdk_library_markdown_paths_exist_on_disk():
                     continue
                 if not (suite_root / path).is_file():
                     missing.append(path)
+    # A submodule that is not checked out is an empty directory: its docs are absent, not moved.
+    unchecked = [rel for rel in missing if _in_an_empty_checkout(suite_root, rel)]
+    missing = [rel for rel in missing if rel not in unchecked]
     if missing:
         # Submodule doc reorganizations (e.g. docs/ -> docs/source/, file renumbering)
         # break these hardcoded registry paths. Point at the likely new location so the
@@ -101,3 +118,5 @@ def test_registered_sdk_library_markdown_paths_exist_on_disk():
             "sdk-library-data.json registers %d markdown path(s) that no longer exist on "
             "disk (likely a submodule doc move/rename):\n%s" % (len(missing), "\n".join(lines))
         )
+    roots = sorted({str(_deepest_existing(suite_root, rel).relative_to(suite_root)) for rel in unchecked})
+    require(not unchecked, f"{len(unchecked)} registered doc(s) are in submodules that are not checked out: {roots}")

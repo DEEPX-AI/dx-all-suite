@@ -54,6 +54,19 @@ Run module suites **separately** — do not run `tests/launcher/` and
 `requires_node`, `requires_pillow`, `requires_dx_runtime`, `external`, `smoke`, `e2e`,
 `help_audit`. Skip environment-dependent tests, e.g. `-m "not requires_dx_runtime"`.
 
+### Without the SDK
+
+Studio is often checked out without what a test reads from the installed SDK: a clone whose
+submodules (dx-runtime, dx-compiler, dx-modelzoo) are not checked out, or a board with an older
+dx_app. Such a test calls `tests/installed_sdk.py` (`require`, `require_dx_app`,
+`require_graph_examples`) and is **skipped with the reason** (`not installed here: …`) instead of
+failing. Everything else is hermetic: a test of Studio's own logic replaces the host's Xvfb, dx_com,
+categories and runtime context rather than reading them. So `bash scripts/run_ci.sh` passes on such a
+clone (2026-10-20, a clone with empty submodules on a DX-M1 board: EXIT 0).
+
+`DX_TESTS_REQUIRE_SDK=1` turns those skips into failures. Use it on a board with the release SDK,
+where every one of these tests must actually run.
+
 ## Gates
 
 There is no `.github/workflows/` in this repo — the real gate is `scripts/run_ci.sh`.
@@ -617,6 +630,62 @@ bash scripts/run_ci.sh --acceptance=all --strict       # NOT RUN also fails the 
   Playwright) and Google Chrome or Chromium (or `./.venv/bin/python -m playwright install chromium`). The run
   checks them first and stops with the install command when one is missing, rather than reporting nearly
   every AC as NOT RUN.
+- **OpenCV compatibility and isolation (SR-839)**: Studio's server **never imports cv2** — its
+  `.venv` need not have it, and a cv2 that is there (system site-packages) is not used. Studio never
+  imports SDK native packages into its server interpreter or puts SDK `site-packages` on its
+  `sys.path`. Camera discovery, previews and Setup's OpenCV diagnostic run in an isolated media
+  child (`shared/media.py`): the first of the Studio inference venv, the runtime venvs, the Studio
+  interpreter and `/usr/bin/python3` that imports NumPy + OpenCV (`dx_engine` not needed). The issue's
+  old step 1 (`./.venv/bin/python -c 'import cv2'`) therefore no longer applies. Verify the new design
+  from the Studio root, after installing `requirements-ci.txt`:
+
+  ```bash
+  ./.venv/bin/python -c "from shared.media import media_python, run_media; print(media_python(), run_media('probe'))"
+  ./.venv/bin/python -c "from dx_app.core.camera import list_cameras; print(list_cameras())"
+  ```
+
+  The first prints the media interpreter and `{'opencv': …, 'numpy': …}`; the second lists the
+  cameras with `available: True`. A failed probe is an actionable Setup diagnostic and `/api/cameras`
+  HTTP 503 (`media_runtime_unavailable`), never an empty camera list; it is cached for the process
+  (no repeated 15 s probes) until a Setup step finishes. `pip check` cannot diagnose an
+  OpenCV/NumPy ABI mismatch. Python 3.13+ needs NumPy 2.x with an ABI-compatible OpenCV.
+- **App preparation (SR-842 / SR-845)**: DX-APP Build runs `build.sh --all --type Release --arch x86_64`.
+  Its readiness is what Studio needs from it: the run_demo C++ runners (`build.sh --minimal`'s set,
+  read from the SDK's `run_demo.sh`) and both Graph runners. Every other per-model target is reported
+  (`all C++ n/m`) but does not gate — a target that does not build on a board must not make Run All
+  rebuild forever. For Graph-only repair, in the SDK's `dx_app`:
+  `./build.sh --target multi_model_graph_sync multi_model_graph_async`.
+  **Xvfb is optional** and not a step: dx_app `install.sh --all` never installs it, so it does not gate
+  DX-APP Dependencies (that made Run All / Quick Start re-run sudo `install.sh` forever). Setup shows it
+  beside the list as "Optional — Live display capture" with `sudo apt install xvfb`; Live and Graph
+  Live start fail with that hint beside Start when it is missing.
+- **Sample assets (SR-848 follow-up)**: Sample Assets Setup runs `python -m shared.asset_setup app`
+  from the Studio root, never the SDK's `setup.sh` / `setup_sample_models.sh` / `download_models.py`
+  (SR-847 / SR-848; `tests/shared/test_no_sdk_download_scripts.py` pins every path). Readiness is
+  local only. A file that is present but has no Studio completion record is **unverified**, not
+  missing: it counts as installed, is shown as unverified (Setup facts, Model Zoo badge), and running
+  the step again (Setup "Verify", or downloading it again in Model Zoo) checks its size against the
+  server and keeps a matching file in place. **Demo Quick Start** runs the demo form of the steps:
+  `build.sh --minimal` and `asset_setup app --demo` (only the models `run_demo.sh` launches, plus the
+  sample videos), and judges them by that demo set. Status checks never start an installer.
+- **GStreamer environment (SR-846)**: dx_stream's installer exports `GST_PLUGIN_PATH` /
+  `LD_LIBRARY_PATH` in `~/.bashrc` below Ubuntu's non-interactive `return`, so `ssh host '…'`,
+  services and desktop launchers never see them. Studio does not depend on it: `dx_stream/core/gst_env.py`
+  finds `libgstdxstream.so` in the installed locations, sets `GST_PLUGIN_PATH` in the Stream server
+  before GStreamer initialises, and every pipeline child gets the profile's plugin and library
+  directories (`shared/runtime_environment.build_child_environment`); the status probe passes the
+  same environment. `libgstdxstream.so`'s own dependencies resolve through the system loader
+  (checked on the validation board with `ldd` in an empty environment). Verify over a
+  non-interactive shell: `ssh host 'cd <studio> && ./.venv/bin/python -c "from dx_stream.core import status; print(status._check_gst())"'`
+  → `plugin: True`. A bare `ssh host 'gst-inspect-1.0 dxstream'` still fails — that is the SDK issue.
+- **Source identity (report header)**: each report and `results.json` record the commit of the
+  repository that tracks the Studio tree, a dirty flag (tracked edits or untracked files), the Studio
+  tree hash and a sha256 **source fingerprint** over every source file (`.gitignore`'d run artifacts
+  such as `var/` excluded). A copy the enclosing repository does not track (a validation workspace
+  under `var/`) reports commit `none` rather than that repository's HEAD; its fingerprint equals the
+  checkout's. Print it without running anything: `python scripts/acceptance.py --source-identity`.
+  Status/diagnostic acceptance checks never click Run All or Quick Start and do not start
+  installations, builds, or asset downloads.
 - **Selection**: `all`, a ticket key (`SDKREQ-474`) or its number (`474`), or an alias:
   `launcher app stream agent zoo compiler edgeguide monitor benchmark boot i18n sdklib toolbar tutorial
   cloud`. DX Cloud is `SDKREQ-710` (alias `cloud`).
@@ -626,13 +695,25 @@ bash scripts/run_ci.sh --acceptance=all --strict       # NOT RUN also fails the 
   run state in a temp `DX_LAUNCHER_RUN_DIR`, so a studio already running is left alone) and drives it with
   Playwright. A few AC reuse developer tests that check the same thing. Each test file runs in its own
   pytest process; one launcher and one browser serve all AC of a file.
-- **Hardware**: each AC lists what it needs — `npu`, `camera`, `dx_com`, `llm`, `aws`, `browser`.
+- **Hardware and SDK**: each AC lists what it needs — `npu`, `camera`, `dx_com`, `llm`, `aws`, `browser`,
+  and the SDK pieces of a prepared board: `dx_app`, `dx_rt`, `dx_compiler`.
   `tests/acceptance/hardware.py` detects them (`/dev/dxrt*` + `dxrt-cli -s`; a V4L2 capture
   `/dev/video*`; dx_com installed **and** 8 GB free disk; an LLM endpoint in Studio chat settings;
-  boto3 + an AWS profile; Playwright + chromium). Present → the AC runs for real (NPU inference, demo,
-  graph run). Missing → the AC is **NOT RUN** with the reason, never a pass.
+  boto3 + an AWS profile; Playwright + chromium; dx_app checked out, built (`bin/`) and with models;
+  a Python that imports dx_engine; dx-compiler's sample models and dx_com). Present → the AC runs for
+  real (NPU inference, demo, graph run). Missing → the AC is **NOT RUN** with the reason, never a pass.
+  `tests/acceptance/conftest.py` applies the same `requires` before each test, so a test run directly
+  with pytest is NOT RUN for the same reason. A clone whose submodules are not checked out runs every
+  AC that needs none of them (2026-10-20, such a clone on a DX-M1 board: 81 PASS, 0 FAIL, 22 NOT RUN).
 - **NOT RUN** means "this machine cannot check it", e.g. `NOT RUN: no camera (/dev/video* missing)`. It is
   not a failure unless `--strict` is given; QA reruns those AC on a machine that has the hardware.
+  App benchmark selection comes from the rendered list for the chosen language and executable
+  variant, not the first downloaded preferred model. Camera checks require that executable
+  variant, choose Category before Model and use a V4L2 capture node (not a metadata node). Graph
+  checks choose an installed, runnable SDK example. Missing genuine build/model/hardware
+  prerequisites are explicitly NOT RUN; once ready, request/start/validation errors fail
+  immediately rather than timing out or being converted into skips. Real camera/Graph acceptance
+  is not mocked; fixture-based browser regressions separately exercise failure/retry states.
 - **Report**: `var/acceptance/<timestamp>/` — `report.md` and `report.html` (ticket → AC → PASS / FAIL /
   NOT RUN, time per ticket and per AC, test ids, a short failure reason, detected hardware and versions),
   `junit.xml` (one `testsuite` per ticket with property `testrail_case_id`; each AC is a `testcase`

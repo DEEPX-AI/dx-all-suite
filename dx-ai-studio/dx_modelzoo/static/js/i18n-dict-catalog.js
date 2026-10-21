@@ -243,7 +243,7 @@ window._DX_MODELZOO_I18N_REGISTER({
   },
   'Retry': {
     en: 'Retry',
-    ko: '다시 시도',
+    ko: '재시도',
     ja: '再試行',
     'zh-CN': '重试',
     'zh-TW': '重試',

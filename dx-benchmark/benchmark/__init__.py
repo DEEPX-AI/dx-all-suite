@@ -18,7 +18,7 @@ def _read_version() -> str:
     try:
         raw = (Path(__file__).resolve().parent.parent / "release.ver").read_text().strip()
     except OSError:
-        return "0.1.0"  # fallback if release.ver is missing
+        return "0.2.0"  # fallback if release.ver is missing
     return raw[1:] if raw[:1].lower() == "v" else raw
 
 

@@ -33,7 +33,7 @@ from xml.etree import ElementTree as ET
 
 ROOT = Path(__file__).resolve().parent.parent
 MANIFEST = ROOT / "tests" / "acceptance" / "manifest.json"
-REQUIREMENTS = ("npu", "camera", "dx_com", "llm", "aws", "browser")
+REQUIREMENTS = ("npu", "camera", "dx_com", "llm", "aws", "browser", "dx_app", "dx_rt", "dx_compiler")
 PASS, FAIL, NOT_RUN = "PASS", "FAIL", "NOT RUN"
 MIN_FREE_MB = 450           # stop before the board's disk fills up
 PROCESS_TIMEOUT = 1800
@@ -149,7 +149,8 @@ def ac_status(ac: dict, hw: dict, records: dict, stopped: str = "") -> dict:
     """PASS / FAIL / NOT RUN for one AC. ``stopped``: why the run ended early; tests it never reached are NOT RUN."""
     missing = [r for r in ac["requires"] if not hw.get(r, (False, ""))[0]]
     if missing:
-        return {"status": NOT_RUN, "reason": "; ".join(hw[r][1] for r in missing), "duration": 0.0, "tests": []}
+        reason = "; ".join(hw.get(r, (False, f"{r} not probed"))[1] for r in missing)
+        return {"status": NOT_RUN, "reason": reason, "duration": 0.0, "tests": []}
     tests, status, reasons, duration = [], PASS, [], 0.0
     for node in ac["tests"]:
         recs = _match(records, node)
@@ -237,19 +238,99 @@ def _fmt_s(sec: float) -> str:
     return f"{sec // 60}m{sec % 60:02d}s" if sec >= 60 else f"{sec}s"
 
 
+# Never source: version control, environments, caches. The rest of the walk follows the Studio
+# .gitignore (var/ and outputs/ are run artifacts), so a git checkout and an rsync copy of it agree.
+_ALWAYS_SKIPPED = {".git", "node_modules", "__pycache__", ".venv"}
+
+
+def _ignore_rules(root: Path) -> list[tuple[str, bool, bool]]:
+    rules = []
+    try:
+        lines = (root / ".gitignore").read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return rules
+    for line in lines:
+        line = line.strip()
+        if not line or line.startswith(("#", "!")):
+            continue
+        directory = line.endswith("/")
+        line = line.strip("/") if directory else line.lstrip("/")
+        rules.append((line, directory, "/" in line))
+    return rules
+
+
+def _ignored(rel: str, is_dir: bool, rules) -> bool:
+    import fnmatch
+    name = rel.rsplit("/", 1)[-1]
+    for pattern, directory, anchored in rules:
+        if directory and not is_dir:
+            continue
+        if fnmatch.fnmatchcase(rel if anchored else name, pattern):
+            return True
+    return False
+
+
+def _source_files(root: Path) -> list[str]:
+    rules = _ignore_rules(root)
+    found = []
+    for current, dirs, files in os.walk(root):
+        base = Path(current).relative_to(root).as_posix()
+        prefix = "" if base == "." else base + "/"
+        dirs[:] = sorted(d for d in dirs if d not in _ALWAYS_SKIPPED
+                         and not _ignored(prefix + d, True, rules))
+        found += [prefix + f for f in files if not _ignored(prefix + f, False, rules)]
+    return sorted(found)
+
+
+def _git_out(root: Path, *args) -> str | None:
+    try:
+        result = subprocess.run(["git", "-C", str(root), *args], capture_output=True, text=True, timeout=30)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    return result.stdout.strip() if result.returncode == 0 else None
+
+
+def source_identity(root: Path = ROOT) -> dict:
+    """What source this run tested: the commit of the repository that tracks the Studio tree, whether
+    the tree differs from it (tracked edits or untracked files), and a sha256 fingerprint of every
+    source file's path and content (.gitignore'd run artifacts such as var/ excluded).
+
+    The fingerprint does not need git, so an rsync copy of a checkout (a remote validation
+    workspace) reports the same fingerprint as the checkout; a copy that the enclosing
+    repository does not track reports commit "none" instead of that repository's HEAD."""
+    import hashlib
+    root = Path(root)
+    digest = hashlib.sha256()
+    files = _source_files(root)
+    for rel in files:
+        path = root / rel
+        try:
+            body = os.readlink(path).encode() if path.is_symlink() else path.read_bytes()
+        except OSError as exc:
+            body = "unreadable: {}".format(exc).encode()
+        digest.update(rel.encode() + b"\0" + hashlib.sha256(body).hexdigest().encode() + b"\n")
+    identity = {"commit": "none", "tree": None, "dirty": None, "fingerprint": digest.hexdigest(),
+                "files": len(files), "method": "walk"}
+    tracked = _git_out(root, "ls-files", "--", ".")
+    ignored = _git_out(root, "check-ignore", "-q", ".") is not None
+    if tracked and not ignored:
+        status = _git_out(root, "status", "--porcelain", "--untracked-files=normal", "--", ".")
+        identity.update(commit=_git_out(root, "rev-parse", "--short", "HEAD") or "?",
+                        tree=_git_out(root, "rev-parse", "--short", "HEAD:./"),
+                        dirty=bool(status) if status is not None else None, method="git")
+    return identity
+
+
 def environment(hw: dict) -> dict:
     def ver(path):
         try:
             return (ROOT / path).read_text(encoding="utf-8").strip()
         except OSError:
             return "?"
-    try:
-        head = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=str(ROOT), capture_output=True,
-                              text=True, timeout=10).stdout.strip()
-    except (OSError, subprocess.TimeoutExpired):
-        head = "?"
+    source = source_identity(ROOT)
+    label = source["commit"] + ("+dirty" if source["dirty"] else "")
     return {"host": platform.node(), "os": platform.platform(), "python": platform.python_version(),
-            "studio": ver("release.ver"), "suite": ver("../release.ver"), "git": head,
+            "studio": ver("release.ver"), "suite": ver("../release.ver"), "git": label, "source": source,
             "hardware": {k: {"available": v[0], "detail": v[1]} for k, v in hw.items()}}
 
 
@@ -267,6 +348,9 @@ def write_markdown(path: Path, results: list[dict], env: dict, wall: float) -> N
              f"- When: {env['when']}  ·  wall time {_fmt_s(wall)}",
              f"- Studio {env['studio']} · suite {env['suite']} · git {env['git']} · {env['host']} · "
              f"Python {env['python']}",
+             *([f"- Source: fingerprint `{env['source']['fingerprint'][:12]}` "
+                f"({env['source']['files']} files, {env['source']['method']}) · tree {env['source'].get('tree') or '-'}"]
+               if env.get("source") else []),
              f"- Result: **{tot[PASS]} PASS · {tot[FAIL]} FAIL · {tot[NOT_RUN]} NOT RUN**",
              *([f"- **INCOMPLETE**: {env['stopped']}"] if env.get("stopped") else []), "",
              "## Environment", "", "| Needs | Available | Detail |", "|---|---|---|"]
@@ -322,7 +406,7 @@ white-space:pre-wrap;word-break:break-all;margin:0}}.pass{{color:var(--pass);fon
 </style>
 <h1>DX AI Studio acceptance report</h1>
 <p>{e(env['when'])} · wall time {_fmt_s(wall)} · Studio {e(env['studio'])} · suite {e(env['suite'])} ·
-git {e(env['git'])} · {e(env['host'])}</p>
+git {e(env['git'])} · source {e((env.get('source') or {}).get('fingerprint', '?')[:12])} · {e(env['host'])}</p>
 <p><span class="pass">{tot[PASS]} PASS</span> · <span class="fail">{tot[FAIL]} FAIL</span> ·
 <span class="notrun">{tot[NOT_RUN]} NOT RUN</span></p>
 <h2>Environment</h2><table><tr><th>Needs</th><th>Available</th><th>Detail</th></tr>{hw}</table>
@@ -419,7 +503,12 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--list", action="store_true", help="print tickets, AC and mapped tests, run nothing")
     ap.add_argument("--strict", action="store_true", help="NOT RUN also fails the run")
     ap.add_argument("--out", help="report directory (default var/acceptance/<timestamp>)")
+    ap.add_argument("--source-identity", action="store_true",
+                    help="print the Studio commit, dirty flag and source fingerprint as JSON, run nothing")
     args = ap.parse_args(argv)
+    if args.source_identity:
+        print(json.dumps(source_identity(ROOT), indent=1))
+        return 0
 
     manifest = load_manifest()
     problems = validate_manifest(manifest)
@@ -451,7 +540,12 @@ def main(argv: list[str] | None = None) -> int:
     for k, (ok, detail) in hw.items():
         print(f"   {k:<8} {'yes' if ok else 'no ':<4} {detail}")
 
-    tmp_root = Path(tempfile.mkdtemp(prefix="dx-acceptance-", dir="/dev/shm" if Path("/dev/shm").is_dir() else None))
+    tmp_parent = os.environ.get("DX_ACCEPT_TMP") or ("/dev/shm" if Path("/dev/shm").is_dir() else None)
+    try:
+        tmp_root = Path(tempfile.mkdtemp(prefix="dx-acceptance-", dir=tmp_parent))
+    except OSError as exc:
+        print(f"--acceptance cannot create its temporary workspace: {exc}", file=sys.stderr)
+        return 2
     outcomes = tmp_root / "outcomes.jsonl"
     logs = out / "logs"
     walls: dict[str, float] = {}

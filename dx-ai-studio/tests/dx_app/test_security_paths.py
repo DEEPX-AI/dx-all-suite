@@ -899,3 +899,27 @@ class TestHostileRefererLabMutating(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_a_root_reached_through_a_symlink_accepts_paths_written_under_it(tmp_path):
+    """A suite whose dx_app is a symlink (an SDK checkout elsewhere) builds paths under the
+    symlink, while the root resolves to its target; comparing a lexical path with a resolved
+    root refused every model, sample and camera run (path_outside_allowed_roots)."""
+    from dx_app.core.dx_app_security import resolve_under
+
+    real = tmp_path / "elsewhere" / "dx_app"
+    (real / "assets" / "models").mkdir(parents=True)
+    model = real / "assets" / "models" / "m.dxnn"
+    model.write_bytes(b"m")
+    suite = tmp_path / "suite" / "dx-runtime"
+    suite.mkdir(parents=True)
+    (suite / "dx_app").symlink_to(real, target_is_directory=True)
+    root = suite / "dx_app"
+    lexical = root / "assets" / "models" / "m.dxnn"
+    assert resolve_under(str(lexical), (root,)) == lexical
+    assert resolve_under(str(model), (root,)) == model
+    assert resolve_under("assets/models/m.dxnn", (root,)).name == "m.dxnn"
+    import pytest
+    for outside in (str(tmp_path / "elsewhere" / "other.dxnn"), str(root / ".." / "x.dxnn")):
+        with pytest.raises(ValueError, match="outside allowed roots"):
+            resolve_under(outside, (root,))

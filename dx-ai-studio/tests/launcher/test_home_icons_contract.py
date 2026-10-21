@@ -93,4 +93,5 @@ def test_books_have_a_cover():
     cover = re.search(r"\.stage-deck \.about-book-card \.orbital-icon\s*\{([^}]*)\}", css)
     assert cover, "책 표지 규칙이 없다"
     body = cover.group(1)
-    assert "56px" in body and "72px" in body
+    # 56×72 beside a 72px icon: the cover follows --icon, so it shrinks with the icons on a short window.
+    assert "height: var(--icon)" in body and "calc(var(--icon) * 7 / 9)" in body

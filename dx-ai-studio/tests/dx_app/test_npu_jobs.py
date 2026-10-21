@@ -139,6 +139,7 @@ def studio(tmp_path, monkeypatch):
     monkeypatch.setattr(live, "BUILD_DIR", build)
     monkeypatch.setattr(live, "resolve_model_path", lambda f, r: model)
     monkeypatch.setattr(live, "_ensure_xvfb", lambda s: None)
+    monkeypatch.setattr(live, "_deps_missing", lambda: [])
     monkeypatch.setattr(live, "_video_frame_count", lambda p: None)
     monkeypatch.setattr(live, "subprocess", types.SimpleNamespace(Popen=_PageProc, STDOUT=subprocess.STDOUT))
     graph_fakes.install(tmp_path, monkeypatch, RUNNER)

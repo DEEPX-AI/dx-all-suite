@@ -1,6 +1,6 @@
 {
  "schema": 1,
- "about": "DX AI Studio acceptance (SQA) suite: Jira ticket -> TestRail case -> AC (current product wording) -> pytest node ids. Run with: bash scripts/run_ci.sh --acceptance=<all|ticket|alias,...>. requires: npu, camera, dx_com, llm, aws, browser.",
+ "about": "DX AI Studio acceptance (SQA) suite: Jira ticket -> TestRail case -> AC (current product wording) -> pytest node ids. Run with: bash scripts/run_ci.sh --acceptance=<all|ticket|alias,...>. requires: npu, camera, dx_com, llm, aws, browser, dx_app (built, with models), dx_rt (dx-runtime), dx_compiler (sample models + dx_com).",
  "tickets": [
   {
    "key": "SDKREQ-473",
@@ -119,6 +119,7 @@
      "id": "474-AC3",
      "title": "모델: 카탈로그 검색과 카테고리 필터, Detail 창(카테고리·.dxnn 파일), Run 버튼으로 추론 실행 페이지에 그 모델이 선택된다.",
      "requires": [
+      "dx_app",
       "browser"
      ],
      "tests": [
@@ -140,6 +141,8 @@
      "title": "NPU 추론: 샘플 이미지로 추론을 실행하면 Result 패널에 결과 이미지와 FPS가 표시된다.",
      "requires": [
       "npu",
+      "dx_app",
+      "dx_rt",
       "browser"
      ],
      "tests": [
@@ -152,6 +155,8 @@
      "requires": [
       "camera",
       "npu",
+      "dx_app",
+      "dx_rt",
       "browser"
      ],
      "tests": [
@@ -163,6 +168,8 @@
      "title": "데모 실행: 준비된 데모 카드를 실행하면 stage에 결과 이미지와 지표가 표시된다(NPU).",
      "requires": [
       "npu",
+      "dx_app",
+      "dx_rt",
       "browser"
      ],
      "tests": [
@@ -173,6 +180,7 @@
      "id": "474-AC8",
      "title": "벤치마크: 모델을 골라 시작하면 결과 표(PASS/FPS/Latency)와 FPS 차트가 표시된다.",
      "requires": [
+      "dx_app",
       "browser"
      ],
      "tests": [
@@ -183,6 +191,7 @@
      "id": "474-AC9",
      "title": "A/B 비교: slot 2/4/6/8을 고르고 slot별 모델로 '전체 실행'하면 slot별 결과와 비교표가 표시되며, 실패한 slot은 이유를 표시한다.",
      "requires": [
+      "dx_app",
       "browser"
      ],
      "tests": [
@@ -228,6 +237,8 @@
      "title": "그래프 Composer NPU 실행: 예제 그래프를 '한 번 실행'하면 결과와 노드별 시간이 표시된다.",
      "requires": [
       "npu",
+      "dx_app",
+      "dx_rt",
       "browser"
      ],
      "tests": [
@@ -296,6 +307,7 @@
      "title": "데모 라이브 실행(NPU): Start로 stage에 WebRTC(안 되면 MJPEG) 영상과 FPS가 표시되고 Stop으로 멈춘다.",
      "requires": [
       "npu",
+      "dx_rt",
       "browser"
      ],
      "tests": [
@@ -423,6 +435,7 @@
      "id": "477-AC3",
      "title": "모델 상세 7개 섹션: Key Facts, Specification(Accuracy Matrix·Runtime Performance), How to Compile DXNN, Use Case & Description, Example, Demo Usage(C++·Python·CLI 탭), Legal Information.",
      "requires": [
+      "dx_app",
       "browser"
      ],
      "tests": [
@@ -433,6 +446,7 @@
      "id": "477-AC4",
      "title": "다운로드: ONNX·Q-Lite·Q-Pro badge, Artifacts 표(ONNX, Q-Lite DXNN/JSON, Q-Pro DXNN/JSON) 링크, DX App이 켜져 있으면 'Download Q-Lite/Q-Pro' 버튼.",
      "requires": [
+      "dx_app",
       "browser"
      ],
      "tests": [
@@ -444,6 +458,8 @@
      "title": "Run Inference(NPU): 다운로드된 모델을 기본 이미지로 실행하면 DX App을 거쳐 결과 이미지가 표시된다.",
      "requires": [
       "npu",
+      "dx_app",
+      "dx_rt",
       "browser"
      ],
      "tests": [
@@ -454,6 +470,7 @@
      "id": "477-AC6",
      "title": "DX App이 꺼져 있으면 Run Inference 버튼이 비활성화되고 'DX App is not running' 안내가 보인다.",
      "requires": [
+      "dx_app",
       "browser"
      ],
      "tests": [
@@ -464,6 +481,7 @@
      "id": "477-AC7",
      "title": "'Save as HTML'로 모델 정보를 HTML 파일로 저장한다.",
      "requires": [
+      "dx_app",
       "browser"
      ],
      "tests": [
@@ -483,6 +501,7 @@
      "id": "478-AC1",
      "title": "그래프 뷰어 탭 6개(Input·Prepared·Surgery·Partition·Quant Diagnosis·DXNN). 컴파일 전에는 Input만 열린다.",
      "requires": [
+      "dx_compiler",
       "browser"
      ],
      "tests": [
@@ -493,6 +512,7 @@
      "id": "478-AC2",
      "title": "패널 4개: Explorer(카테고리별 node tree)·Search(node/tensor)·Node Details·Legend.",
      "requires": [
+      "dx_compiler",
       "browser"
      ],
      "tests": [
@@ -503,6 +523,7 @@
      "id": "478-AC3",
      "title": "Zoom In/Out/Fit으로 보기가 바뀌고, Collapse/Expand All 버튼이 있다(subgraph가 있을 때 활성).",
      "requires": [
+      "dx_compiler",
       "browser"
      ],
      "tests": [
@@ -513,6 +534,7 @@
      "id": "478-AC4",
      "title": "컴파일: 진행률·현재 단계·로그가 표시되고 끝나면 'Compilation Complete'와 함께 Summary 저장·.dxnn 다운로드 버튼이 켜진다(실패 시 'Compilation Failed').",
      "requires": [
+      "dx_compiler",
       "browser"
      ],
      "tests": [
@@ -521,7 +543,7 @@
     },
     {
      "id": "478-AC5",
-     "title": "dx_com이 없으면 Compile 버튼이 잠기고 'Compile unavailable: dx_com not installed on server.' 안내와 설치 단계가 표시된다.",
+     "title": "dx_com이 없으면 Compile 버튼이 잠기고 이유가 표시된다: SDK가 설치되지 않았으면 'Install the SDK first'와 설치 단계, SDK는 있는데 server가 dx_com을 쓸 수 없으면 'Compile unavailable: dx_com not installed on server.'",
      "requires": [
       "browser"
      ],
@@ -535,6 +557,7 @@
      "title": "실제 dx_com 컴파일로 .dxnn이 만들어지고 Summary(HTML)를 저장할 수 있다.",
      "requires": [
       "dx_com",
+      "dx_compiler",
       "browser"
      ],
      "tests": [
@@ -632,6 +655,7 @@
      "id": "480-AC2",
      "title": "차트 모드: NPU(Temp·Voltage·Clock·DRAM·Util·Core Temp), CPU(Load·Memory·Cores), View All. 값이 실시간으로 쌓인다.",
      "requires": [
+      "dx_rt",
       "browser"
      ],
      "tests": [
@@ -653,6 +677,7 @@
      "title": "NPU가 있으면 실제 측정값이 SSE로 들어오고 Mock 배너·연결 경고가 없다.",
      "requires": [
       "npu",
+      "dx_rt",
       "browser"
      ],
      "tests": [

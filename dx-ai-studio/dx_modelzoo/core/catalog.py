@@ -784,17 +784,15 @@ def get_catalog():
 _MEDIA_ALIAS = {"beit_l_p16_384x384": "beit_large_patch16"}
 
 
-def _media_exists(path):
-    source = DATA_DIR / path
-    if source.is_file():
+def _image_on_disk(rel):
+    """The image or its optimized copy, which is what a release ships: data/optimized/<dir>/<stem>-<ext>.webp|.jpg
+    is tracked, the originals in data/thumbnails and data/examples are not. The page asks for the optimized copy
+    first (catalog.js optimizedImageCandidates), so either one is an image the card shows."""
+    if (DATA_DIR / rel).is_file():
         return True
-    relative = Path(path)
-    extension = relative.suffix[1:].lower() or "img"
-    stem = relative.with_suffix("") if relative.suffix else relative
-    return any(
-        (DATA_DIR / "optimized" / f"{stem}-{extension}.{kind}").is_file()
-        for kind in ("webp", "jpg")
-    )
+    source = Path(rel)
+    stem = f"{source.stem}-{source.suffix[1:].lower() or 'img'}"
+    return any((DATA_DIR / "optimized" / source.parent / (stem + ext)).is_file() for ext in (".webp", ".jpg"))
 
 
 def _settle_media(model):
@@ -802,16 +800,16 @@ def _settle_media(model):
     Without an image the card shows the task icon and the detail page shows the 'Run inference' hint."""
     alias = _MEDIA_ALIAS.get(model.get("id"))
     thumb = model.get("thumbnail")
-    if thumb and not _media_exists(thumb):
+    if thumb and not _image_on_disk(thumb):
         alt = f"thumbnails/{alias}.jpg" if alias else None
-        model["thumbnail"] = alt if alt and _media_exists(alt) else None
+        model["thumbnail"] = alt if alt and _image_on_disk(alt) else None
     ex = model.get("example_images")
     if isinstance(ex, dict):
         for key in ("result", "original"):
             path = ex.get(key)
-            if path and not _media_exists(path):
+            if path and not _image_on_disk(path):
                 alt = f"examples/{alias}_{key}.jpg" if alias else None
-                if alt and _media_exists(alt):
+                if alt and _image_on_disk(alt):
                     ex[key] = alt
                 else:
                     ex.pop(key, None)

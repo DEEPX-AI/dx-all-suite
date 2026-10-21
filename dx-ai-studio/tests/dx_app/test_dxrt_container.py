@@ -53,6 +53,7 @@ class _Resp(io.BytesIO):
     def __init__(self, status, body=b""):
         super().__init__(body)
         self.status = status
+        self.headers = {"Content-Length": str(len(body))}
 
     def __enter__(self):
         return self

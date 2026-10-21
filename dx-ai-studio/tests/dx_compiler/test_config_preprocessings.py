@@ -43,8 +43,9 @@ REAL_CHAIN = [
 
 
 @pytest.fixture()
-def compiler():
+def compiler(monkeypatch, tmp_path):
     server, port = start_module_server("dx_compiler")
+    monkeypatch.setitem(server.RequestHandlerClass._config_generate.__globals__, "UPLOAD_DIR", tmp_path)
     try:
         yield f"http://127.0.0.1:{port}"
     finally:
@@ -126,6 +127,36 @@ class TestUnusableSizesAreRefused:
         Checking only resize would miss centercrop."""
         code, body = _generate(compiler, [{"centercrop": {"width": 0, "height": 224}}])
         assert code == 400, f"centercrop.width=0 이 통과했다 — {body}"
+
+
+class TestArithmeticMustBeNumeric:
+    @pytest.mark.parametrize("name", ["div", "mul", "subtract", "add"])
+    @pytest.mark.parametrize("value", [
+        "not-a-number", "255", True, None, [], [1, "bad"], [[1]],
+        {"channel": 1}, float("nan"), float("inf"), -float("inf"),
+    ])
+    def test_invalid_operands_are_rejected_before_saving(self, compiler, tmp_path, name, value):
+        code, body = _generate(compiler, [{name: {"x": value}}])
+        assert code == 400, body
+        assert f"{name}.x" in body["error"]
+        assert not list(tmp_path.rglob("*.json"))
+
+    @pytest.mark.parametrize("value", [0, 0.0, [1, 0, 1]])
+    def test_division_by_zero_is_rejected(self, compiler, value):
+        code, body = _generate(compiler, [{"div": {"x": value}}])
+        assert code == 400, body
+        assert "div.x" in body["error"]
+
+    @pytest.mark.parametrize("entry", [
+        {"div": {"x": -255.0}}, {"div": {"x": [-1, 255, 0.5]}},
+        {"mul": {"x": 0}}, {"mul": {"x": [0, -1, 2]}},
+        {"subtract": {"x": [-1, 0, 1]}}, {"add": {"x": -1}},
+        {"custom": {"x": "vendor-defined"}},
+    ])
+    def test_valid_variants_and_unknown_transforms_remain_compatible(self, compiler, entry):
+        code, body = _generate(compiler, [entry])
+        assert code == 200, body
+        assert body["config"]["default_loader"]["preprocessings"] == [entry]
 
 
 class TestNormalizeMustBeUsable:

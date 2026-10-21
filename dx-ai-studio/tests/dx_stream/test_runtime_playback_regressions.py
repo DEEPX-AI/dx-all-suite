@@ -1097,4 +1097,5 @@ def test_demo_launch_failure_sentences_are_translated_in_the_toast():
             assert entry, f"stream-i18n.js has no entry for {sentence!r}"
             for lang in ("ko", "ja", "es", "'zh-CN'", "'zh-TW'"):
                 assert lang + ":" in entry.group(1), (sentence, lang)
-    assert "T(resp.detail)" in demo_js and "T(resp.remediation)" in demo_js
+    assert "resp && resp.detail" in demo_js and "resp && resp.remediation" in demo_js
+    assert "tr(T(String(value)))" in demo_js

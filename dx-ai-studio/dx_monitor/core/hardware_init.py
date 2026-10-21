@@ -21,8 +21,11 @@ def _explicit_mock_enabled():
     return os.environ.get("DX_MONITOR_EXPLICIT_MOCK") == "1"
 
 
-def init():
-    """Start one telemetry worker and connect Monitor cache consumers to it."""
+def init(explicit_mock=None):
+    """Start one telemetry worker and connect Monitor cache consumers to it.
+
+    ``explicit_mock`` None reads DX_MONITOR_EXPLICIT_MOCK (DX Monitor's demo mode); other
+    modules pass False — they never show demo values."""
     global _STOPPING, _SUPERVISOR
     from dx_monitor.core import events
     from shared import hardware as shared_hardware
@@ -39,7 +42,7 @@ def init():
             supervisor.start()
             shared_hardware.init_hw(
                 telemetry=supervisor,
-                explicit_mock=_explicit_mock_enabled(),
+                explicit_mock=_explicit_mock_enabled() if explicit_mock is None else bool(explicit_mock),
                 app_root=DX_APP_ROOT,
             )
             events.set_provider(supervisor)

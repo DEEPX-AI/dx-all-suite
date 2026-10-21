@@ -9,6 +9,7 @@ import pytest
 
 from dx_app.core import config, graph_catalog
 from tests.dx_app import graph_fakes
+from tests.installed_sdk import require_graph_examples
 
 
 @pytest.fixture(autouse=True)
@@ -110,9 +111,7 @@ def test_examples_are_the_sample_graphs(tmp_path, monkeypatch):
 
 
 def test_the_installed_dx_app_ships_twenty_two_examples():
-    d = config.DX_APP_ROOT / "src" / "cpp_example" / "multi_model_graph"
-    if not d.is_dir():
-        pytest.skip("dx_app is not checked out next to the studio")
+    require_graph_examples()
     ex = {e["id"]: e for e in graph_catalog.examples()}
     assert len(ex) == 22 and ex["cascade_od_attr"]["name"] == "person-attributes"
     assert sum(e["logic"] for e in ex.values()) == 9

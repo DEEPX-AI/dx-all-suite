@@ -7,6 +7,7 @@ so results from different machines are traceable and comparable.
 from __future__ import annotations
 
 import glob
+import hashlib
 import json
 import os
 import platform
@@ -60,6 +61,38 @@ def _run(cmd: list[str], default: str = "unknown") -> str:
         return r.stdout.strip() or default
     except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
         return default
+
+
+def file_sha256(path: str | Path) -> str:
+    """Streaming SHA-256 of a (possibly large) model file."""
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def read_model_source(model_dir: str | Path) -> str | None:
+    """Model download source stamped by setup_data.sh (``<base-url>/<version>``)."""
+    try:
+        text = (Path(model_dir) / ".model_source").read_text().strip()
+    except OSError:
+        return None
+    return text or None
+
+
+def get_tool_commit(repo_dir: str | Path | None = None) -> str | None:
+    """Git short SHA of the benchmark tool checkout; ``-dirty`` when tracked files
+    under it changed (untracked files and ``results/`` are ignored). None outside git."""
+    if repo_dir is None:
+        from .config import APP_DIR
+        repo_dir = APP_DIR.parent
+    sha = _run(["git", "-C", str(repo_dir), "rev-parse", "--short", "HEAD"], default="")
+    if not sha:
+        return None
+    changed = _run(["git", "-C", str(repo_dir), "status", "--porcelain", "--untracked-files=no",
+                    "--", ".", ":(exclude)results"], default="")
+    return f"{sha}-dirty" if changed else sha
 
 
 def _read_release_ver(start: Path) -> str | None:
@@ -135,6 +168,23 @@ OPTIONAL_TOOLS = ["dxtop"]
 #              an old dxrt-cli on PATH) passed preflight and then labelled the
 #              whole campaign with the older runtime.
 MIN_TOOL_VERSIONS = {"run_model": (3, 5, 0), "dxrt-cli": (3, 5, 0)}
+
+
+# run_model options the sweep needs. A v3.5.0 rc build reports the same version as
+# the final one but lacks --sweep-tolerance.
+RUN_MODEL_REQUIRED_OPTIONS = ("--max-throughput", "--probe-time", "--sweep-tolerance")
+
+
+def _run_model_missing_options() -> list[str]:
+    """Sweep options absent from ``run_model --help`` (all of them if unreadable)."""
+    help_text = _run(["run_model", "--help"])
+    return [o for o in RUN_MODEL_REQUIRED_OPTIONS if o not in help_text]
+
+
+def _probe_npu_monitor() -> dict:
+    """Indirection so test suites can stub the (2 s, host-dependent) real probe."""
+    from .npu_monitor import probe_npu_monitor
+    return probe_npu_monitor()
 
 
 def _parse_dxrt_version(ver: str | None) -> tuple[int, int, int] | None:
@@ -269,6 +319,7 @@ def collect_fingerprint() -> dict[str, Any]:
         "software": {
             "dx_stream": _get_dx_stream_version(),
         },
+        "tool_commit": get_tool_commit(),
         "tools": {},
     }
 
@@ -288,6 +339,14 @@ def collect_fingerprint() -> dict[str, Any]:
             # not be allowed to start a campaign (see D5).
             if found is None or found < need:
                 outdated.append((tool, info.get("version") or "unknown", _fmt_ver(need)))
+            elif tool == "run_model":
+                absent = _run_model_missing_options()
+                if absent:
+                    outdated.append((
+                        tool,
+                        f"{info.get('version')} (lacks {', '.join(absent)}: pre-final build)",
+                        f"{_fmt_ver(need)} final build",
+                    ))
 
     # E2E-tier tools (record availability; gate only the E2E/multi families)
     for tool in E2E_REQUIRED_TOOLS:
@@ -299,6 +358,9 @@ def collect_fingerprint() -> dict[str, Any]:
 
     fp["missing_required"] = missing
     fp["outdated_required"] = outdated
+    # Verify dxtop starts; otherwise every NPU clock/utilization column is empty.
+    if shutil.which("dxtop"):
+        fp["npu_monitor"] = _probe_npu_monitor()
     fp["missing_e2e"] = collect_e2e_missing()
     return fp
 
@@ -617,6 +679,13 @@ def check_preflight(fingerprint: dict) -> tuple[bool, list[str]]:
             f"Required tool too old: {tool} (found {found}, need >= {need})"
             + (f"  → {hint}" if hint else "")
         )
+    mon = fingerprint.get("npu_monitor")
+    if mon and not mon.get("ok", True):
+        errors.append(
+            f"NPU monitor (dxtop) is not working: {mon.get('reason', 'no data')}"
+            "  → run from a terminal or export TERM=xterm; without it every NPU clock/"
+            "utilization column is empty and throttling goes unnoticed"
+        )
     return len(errors) == 0, errors
 
 
@@ -691,17 +760,22 @@ def collect_model_metadata(model_path: str | Path) -> dict[str, Any]:
     """Run ``parse_model -m <model_path>`` and extract key metadata.
 
     Returns a dict with ``format_version``, ``dxcom_version``, and
-    ``total_memory_mb`` (or empty dict on failure).
+    ``total_memory_mb`` plus the file ``sha256`` (parse_model fields are
+    omitted when it fails).
     """
+    result: dict[str, Any] = {}
+    try:
+        result["sha256"] = file_sha256(model_path)
+    except OSError:
+        pass
+
     raw = _run(["parse_model", "-m", str(model_path)], default="")
     if not raw:
-        return {}
+        return result
 
     # parse_model always emits ANSI colour codes regardless of TTY; strip them
     # before applying regex patterns so captured values are clean strings.
     raw = _strip_ansi(raw)
-
-    result: dict[str, Any] = {}
 
     # .dxnn Format Version
     m = re.search(r"\.dxnn Format Version\s*:\s*(\S+)", raw)

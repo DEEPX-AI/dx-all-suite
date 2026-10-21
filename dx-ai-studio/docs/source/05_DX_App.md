@@ -57,6 +57,18 @@ The module opens on a set of pages (top tabs):
    If a model, binary or runtime is missing, return to the named Setup step or download
    the model and retry. An error is not a completed inference.
 
+Quick Start prepares the demo runners, their models and sample videos, not every
+per-model build target. The full Setup checks the declared model set and the runners
+needed by the demo and Graph workflows. Xvfb is an optional Live requirement, not a
+reason to repeat the base dependency installation.
+
+A local asset without a current Studio completion record is **unverified**, not
+missing. Use **Verify** or rerun the corresponding setup step to check existing
+content and finish preparation; matching files are kept. Video folders without a
+completed Studio archive inventory remain unverified even if individual files have
+completion records. An installed file or a ready demo set is not proof of a complete,
+verified archive or a successful inference.
+
 !!! note "Live runs"
     Continuous, Run Demo video and Graph Live draw the example's window on a virtual
     display and stream it to the browser. Their optional display requirements are listed

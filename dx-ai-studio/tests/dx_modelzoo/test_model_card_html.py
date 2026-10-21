@@ -1,11 +1,13 @@
 """Self-contained HTML card (spec §4 layout rules, theme, labels)."""
 import re
+from pathlib import Path
 
+import pytest
 from PIL import Image
 
 from dx_modelzoo.core import model_card as mc
 from dx_modelzoo.core.model_card_html import render_html
-from dx_modelzoo.core.model_card_image import webp_bytes
+from dx_modelzoo.core.model_card_image import example_image, webp_bytes
 from tests.dx_modelzoo.test_model_card import MODEL, ROW, app  # noqa: F401  (fixture)
 
 
@@ -123,6 +125,48 @@ def test_webp_is_encoded_once_per_file_version(tmp_path, monkeypatch):
     Image.new("RGB", (64, 48), (30, 200, 30)).save(src)
     os.utime(src, ns=(1, os.stat(src).st_mtime_ns + 1_000_000))
     assert webp_bytes(src) != first and len(opened) == 3                             # the file changed
+
+
+@pytest.mark.parametrize("filename, optimized_stem", [
+    ("result.jpg", "result-jpg"), ("result.jpeg", "result-jpeg"),
+    ("result.png", "result-png"), ("result.JPG", "result-jpg"),
+    ("result.v2.jpg", "result.v2-jpg"), ("result", "result-img"),
+])
+@pytest.mark.parametrize("extension", ["webp", "jpg"])
+def test_example_image_uses_optimized_assets_without_an_original(tmp_path, filename, optimized_stem, extension):
+    source = Path("examples") / filename
+    optimized = tmp_path / "optimized" / source.parent / f"{optimized_stem}.{extension}"
+    optimized.parent.mkdir(parents=True)
+    Image.new("RGB", (32, 24), "red").save(optimized)
+    assert not (tmp_path / source).exists()
+    assert example_image({"example_images": {"result": str(source)}}, tmp_path) == optimized
+
+
+def test_example_image_keeps_an_existing_original(tmp_path):
+    original = tmp_path / "examples/result.jpg"
+    original.parent.mkdir()
+    Image.new("RGB", (32, 24), "red").save(original)
+    optimized = tmp_path / "optimized/examples/result-jpg.webp"
+    optimized.parent.mkdir(parents=True)
+    Image.new("RGB", (32, 24), "blue").save(optimized)
+    assert example_image({"example_images": {"result": "examples/result.jpg"}}, tmp_path) == original
+
+
+def test_example_image_prefers_optimized_webp_to_jpeg(tmp_path):
+    directory = tmp_path / "optimized/examples"
+    directory.mkdir(parents=True)
+    webp = directory / "result-jpg.webp"
+    Image.new("RGB", (32, 24), "red").save(webp)
+    Image.new("RGB", (32, 24), "blue").save(directory / "result-jpg.jpg")
+    assert example_image({"example_images": {"result": "examples/result.jpg"}}, tmp_path) == webp
+
+
+@pytest.mark.parametrize("model", [
+    {}, {"example_images": {}}, {"example_images": {"result": None}},
+    {"example_images": {"result": "examples/missing.jpg"}},
+])
+def test_example_image_without_any_available_image_is_none(tmp_path, model):
+    assert example_image(model, tmp_path) is None
 
 
 def test_unpublished_card_lists_the_manifest_download_and_its_own_footer(app):

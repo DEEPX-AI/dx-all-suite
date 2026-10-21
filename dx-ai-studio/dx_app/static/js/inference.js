@@ -433,6 +433,17 @@ function toggleRInput(){
 
 function loadCameras(){
   api('/api/cameras').then(function(cams){
+    if(cams&&cams.error){
+      _cameraDiscoveryError=cams;
+      var message=translatedError(cams);
+      var failed='<option value="" disabled selected>'+esc(message)+'</option>';
+      ['c-camera','b-cam-sel','ab-camera'].forEach(function(id){var el=$(id);if(el)el.innerHTML=failed});
+      contRenderStartupErrors();
+      toast(message,'err');
+      return;
+    }
+    _cameraDiscoveryError=null;
+    contRenderStartupErrors();
     if(!Array.isArray(cams)||!cams.length){
       var nocam='<option value="" disabled>'+T('No cameras found')+'</option>';
       ['c-camera','b-cam-sel','ab-camera'].forEach(function(id){var el=$(id);if(el)el.innerHTML=nocam});
@@ -797,7 +808,31 @@ async function doExportFromRun(){
   }
 }
 
-var CONT={slots:[{cat:'',model:''}],running:false,timerInt:null,startTime:0};
+var CONT={slots:[{cat:'',model:''}],running:false,timerInt:null,startTime:0,startupErrors:[]};
+var _cameraDiscoveryError=null;
+
+function contRenderStartupErrors(){
+  var box=$('c-live-errors');if(!box)return;
+  var errors=CONT.startupErrors||[];
+  var h=errors.map(function(entry){
+    return '<p><strong>'+esc(T('Slot ')+(entry.slotIdx+1)+' · '+entry.model)+'</strong><br>'+
+      esc(translatedError(entry.response))+'</p>';
+  }).join('');
+  if(_cameraDiscoveryError)h+='<p>'+esc(translatedError(_cameraDiscoveryError))+'</p>';
+  if(h)h='<strong>'+esc(T('Error'))+'</strong>'+h+
+    '<button class="btn btn-ghost btn-sm" onclick="nav(\'setup\')">'+esc(T('Setup'))+'</button>';
+  box.innerHTML=h;
+  box.classList.toggle('hidden',!h);
+}
+
+function contLiveStartupError(slotIdx,response){
+  var sl=CONT.slots[slotIdx]||{};
+  CONT.startupErrors.push({slotIdx:slotIdx,model:sl.model||'',response:response});
+  contRenderStartupErrors();
+  var slot=$('c-ls-img-'+slotIdx);
+  if(slot&&slot.parentElement)slot.parentElement.textContent=translatedError(response);
+  toast(T('Slot ')+(slotIdx+1)+': '+translatedError(response),'err');
+}
 
 function toggleRunTab(tab){
   $('run-single-tab').classList.toggle('hidden',tab!=='single');
@@ -899,6 +934,8 @@ async function contStart(){
     if(!m.model_file){toast(T('Model file not configured: ')+CONT.slots[i].model,'err');return}
     if(m.model_exists===false){toast(T('Model file not found: ')+CONT.slots[i].model,'err');return}
   }
+  CONT.startupErrors=[];
+  contRenderStartupErrors();
   CONT.running=true;
   CONT.stopped=false;
   $('c-start-btn').classList.add('hidden');
@@ -1098,7 +1135,7 @@ async function contStartLive(cInputType){
   for(var i=0;i<n;i++){
     var sl=CONT.slots[i];
     var m=findModel(sl.model);
-    if(!m){toast(T('Slot ')+(i+1)+T(': Model not found'),'err');continue;}
+    if(!m){contLiveStartupError(i,{error:T('Model not found')});continue;}
     var el=_makeLiveSlotEl(i,sl.model);
     grid.appendChild(el);
     var body={
@@ -1110,8 +1147,13 @@ async function contStartLive(cInputType){
     };
     if(cInputType==='camera')body.camera_id=parseInt($('c-camera').value)||0;
     if(cInputType==='rtsp')body.rtsp_url=buildRTSPUrl('c-rtsp-ip','c-rtsp-stream');
-    var res=await postJ('/api/run_live',body);
-    if(res.error){toast(T('Slot ')+(i+1)+': '+translatedError(res),'err');continue;}
+    var res;
+    try{res=await postJ('/api/run_live',body);}
+    catch(e){res={error:e.message||String(e)};}
+    if(!res||res.error||!res.job_id){
+      contLiveStartupError(i,res&&res.error?res:{error:T('No result data.')+' (job_id)'});
+      continue;
+    }
     var lslot={slotIdx:i,jobId:res.job_id,pollInt:null,lastFrames:0,lastPollTime:0,confHistory:[],result:null,done:false,finishing:false};
     LIVE.slots.push(lslot);
     document.getElementById('c-ls-img-'+i).src='/api/live_frame?slot='+i+'&t='+Date.now();
@@ -1363,6 +1405,7 @@ function contResetUI(){
 
 if (typeof registerLangRefresher === 'function') {
   registerLangRefresher(function refreshInferenceLanguage() {
+    contRenderStartupErrors();
     if (!document.querySelector('#page-run.active')) return;
     if (typeof refreshRunLanguage === 'function') refreshRunLanguage();
     var catSel = typeof $ === 'function' ? $('r-cat') : null;

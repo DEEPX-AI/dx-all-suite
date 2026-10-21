@@ -82,6 +82,8 @@ def test_each_sample_image_actually_exists():
 
     from shared import dx_app_layout as layout
     from shared.tasks import NEW_TASKS
+    from tests.installed_sdk import require_dx_app
+    require_dx_app("sample")
     legacy_root = layout.detect(DX_APP_ROOT) == layout.LEGACY
 
     missing = []

@@ -95,7 +95,7 @@ Trigger: 위와 동일한 event (입력 없음).
 | Step | 명령 (cwd = `$GITHUB_WORKSPACE`) |
 |---|---|
 | 이 repo checkout | `actions/checkout@v4`를 `self/`로, `fetch-depth: 1`, `persist-credentials: false` |
-| suite clone | `URL=https://<host>/<owner>/dx-all-suite.git`; `git -c http.extraheader=… ls-remote --heads "$URL" "<branch>"` → 같은 이름 branch가 있으면 그것(sync 도구가 dx-all-suite를 sub-repo 뒤에 push하므로 최대 `SUITE_BRANCH_WAIT` = 180초 polling), 없으면 default branch; `git -c http.extraheader=… clone -q --depth 1 --no-recurse-submodules --branch <use> "$URL" suite`; `subrepo_check.sh`가 없는 suite는 `::error::`로 거부(suite 먼저 sync 후 re-run) |
+| suite clone | `URL=https://<host>/<owner>/dx-all-suite.git`; `git -c http.extraheader=… ls-remote --heads "$URL" "<branch>"` → 같은 이름 branch가 있으면 그것(sync 도구가 dx-all-suite를 sub-repo 뒤에 push하므로 `SUITE_BRANCH_RETRIES` = 2회 재시도, 간격 `SUITE_BRANCH_RETRY_DELAY` = 15초 → 최대 30초 — 끝내 나타나지 않는 브랜치가 몇 분을 잡아먹지 않도록), 없으면 default branch; `git -c http.extraheader=… clone -q --depth 1 --no-recurse-submodules --branch <use> "$URL" suite`; `subrepo_check.sh`가 없는 suite는 `::error::`로 거부(suite 먼저 sync 후 re-run) |
 | Python deps | ghes: 시스템 `python3`가 **3.8 이상**이어야 하고(fail-fast) `jinja2`와 `yaml`을 import할 수 있어야 하며, 아니면 `.gate-venv` fallback. cloud: `actions/setup-python@v5` (3.12) → `python -m pip install "jinja2>=3.1" "pyyaml>=6.0"` |
 | Drift check | `bash suite/.deepx/tools/scripts/subrepo_check.sh --subrepo-path <dx-compiler \| dx-runtime \| dx-runtime/dx_app \| dx-runtime/dx_stream> --repo-dir "$GITHUB_WORKSPACE/self" --suite-dir "$GITHUB_WORKSPACE/suite"` |
 | Cleanup (`if: always()`) | `rm -rf "$GITHUB_WORKSPACE/suite"` (ghes는 `.gate-venv`도 함께) |

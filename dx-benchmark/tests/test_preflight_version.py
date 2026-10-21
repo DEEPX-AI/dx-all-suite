@@ -120,6 +120,7 @@ def test_version_gate_decision_table(monkeypatch, banner, blocked):
         return real(name)
 
     monkeypatch.setattr(ef, "_tool_version", fake)
+    monkeypatch.setattr(ef, "_run_model_missing_options", lambda: [])
     fp = ef.collect_fingerprint()
     flagged = [t for t, _f, _n in fp["outdated_required"]]
     assert ("run_model" in flagged) is blocked, \
@@ -192,6 +193,10 @@ _REAL_DXRT_CLI_V340 = (
 _V350_RUN_MODEL = "DXRT v3.5.0 run_model"
 
 
+# Stubbed help lists the sweep options so these tests exercise only the version gate.
+_STUB_HELP_OPTIONS = "\n  --max-throughput\n  --probe-time\n  --sweep-tolerance\n"
+
+
 def _stub_dxrt_banners(monkeypatch, run_model_help, dxrt_cli_version):
     """Make `run_model --help` / `dxrt-cli --version` report the given banners.
 
@@ -210,7 +215,7 @@ def _stub_dxrt_banners(monkeypatch, run_model_help, dxrt_cli_version):
 
     def run(cmd, default="unknown"):
         if cmd[:2] == ["run_model", "--help"]:
-            return run_model_help
+            return run_model_help + _STUB_HELP_OPTIONS
         if cmd[:2] == ["dxrt-cli", "--version"]:
             return dxrt_cli_version
         return real_run(cmd, default)
@@ -388,3 +393,50 @@ def test_dxrt_hint_arch_agrees_with_dpkg_on_this_host():
                           capture_output=True, text=True).stdout.strip()
     assert arch, "dpkg --print-architecture produced no output"
     assert f"_{arch}.deb" in ef._remediation("run_model")
+
+
+# ── capability gate (v3.5.0 rc and final report the same version) ─────────
+
+_HELP_FINAL = """DXRT v3.5.0 run_model
+      --max-throughput       Search buffer counts for peak throughput
+      --probe-time arg       Seconds to measure each candidate buffer count
+      --sweep-tolerance arg  FPS difference (%) treated as noise
+"""
+_HELP_RC = """DXRT v3.5.0 run_model
+      --max-throughput       Search buffer counts for peak throughput
+      --probe-time arg       Seconds to measure each candidate buffer count
+"""
+
+
+def test_missing_options_tells_final_from_pre_final_rc(monkeypatch):
+    """The rc banner is indistinguishable from the final one by version alone."""
+    monkeypatch.setattr(ef, "_run", lambda cmd, default="unknown": _HELP_FINAL)
+    assert ef._run_model_missing_options() == []
+    monkeypatch.setattr(ef, "_run", lambda cmd, default="unknown": _HELP_RC)
+    assert ef._run_model_missing_options() == ["--sweep-tolerance"]
+
+
+def test_missing_options_fails_closed_when_help_is_unreadable(monkeypatch):
+    monkeypatch.setattr(ef, "_run", lambda cmd, default="unknown": default)
+    assert set(ef._run_model_missing_options()) == {
+        "--max-throughput", "--probe-time", "--sweep-tolerance"}
+
+
+def test_rc_build_with_right_version_is_blocked_by_capability(monkeypatch):
+    real = ef._tool_version
+
+    def fake(name):
+        if name == "run_model":
+            return {"path": "/stub/run_model", "version": "DXRT v3.5.0 run_model",
+                    "available": True}
+        return real(name)
+
+    monkeypatch.setattr(ef, "_tool_version", fake)
+    monkeypatch.setattr(ef, "_run_model_missing_options", lambda: ["--sweep-tolerance"])
+    fp = ef.collect_fingerprint()
+    flagged = {t: (f, n) for t, f, n in fp["outdated_required"]}
+    assert "run_model" in flagged
+    assert "--sweep-tolerance" in flagged["run_model"][0]
+    ok, errors = check_preflight(fp)
+    assert ok is False
+    assert any("run_model" in e and "--sweep-tolerance" in e for e in errors)

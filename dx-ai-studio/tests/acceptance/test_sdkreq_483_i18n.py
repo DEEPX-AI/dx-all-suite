@@ -23,8 +23,13 @@ def test_the_language_menu_offers_six_languages(pages):
         "English", "日本語", "한국어", "Español", "简体中文", "繁體中文"]
 
 
-def test_a_choice_in_one_module_switches_the_launcher_and_every_open_module_and_survives_reload(pages):
-    page = pages.new("/", lang=None)            # no forced language: the choice itself must persist
+@pytest.mark.parametrize("browser_locale", ["en-US", "ko-KR"])
+def test_a_choice_in_one_module_switches_the_launcher_and_every_open_module_and_survives_reload(
+    pages, monkeypatch, browser_locale,
+):
+    new_context = pages.browser.new_context
+    monkeypatch.setattr(pages.browser, "new_context", lambda **kw: new_context(locale=browser_locale, **kw))
+    page = pages.new("/", lang="en")            # seeded once; later choices survive reload
     wait_home(page)
     page.evaluate("() => DXLauncher.launch('app')")
     app = module_frame(page, "app")

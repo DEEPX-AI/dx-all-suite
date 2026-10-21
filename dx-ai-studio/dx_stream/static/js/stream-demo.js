@@ -4,6 +4,7 @@
  */
 DXStream._runningDemoId = null;
 DXStream._startingDemo = false;
+DXStream._demoErrors = {};
 
 /* The server's /static/img/demo/… paths are module-relative; inside the launcher (/stream/) they would resolve
    to the launcher's /static and 404, so add the module prefix. */
@@ -90,6 +91,7 @@ var _demoReasonI18n = {
 
 function _demoReasonItemText(item) {
     if (!item || !item.code) return '';
+    if (item.message) return _demoStartError(item);
     var labels = _demoReasonI18n[item.code];
     if (!labels) return item.path ? (item.code + ': ' + item.path) : item.code;
     var label = labels[DXStream.S.lang] || labels.en || item.code;
@@ -133,7 +135,7 @@ function _demoItem(d) {
     if (first && _demoReasonI18n[first.code]) {
         var lab = _demoReasonI18n[first.code];
         shortReason = String(lab[DXStream.S.lang] || lab.en || '').replace(/:\s*$/, '');
-    } else if (first) {
+    } else if (first && !first.message) {
         shortReason = first.code;
     }
     var full = _demoUnavailableReason(availability) || d.reason || '';
@@ -154,6 +156,7 @@ function _demoItem(d) {
 function _mountDemoStage(demos) {
     var root = DXStream.$('demo-root');
     if (!root || !window.DXDemoStage) return;
+    var selected = DXStream._demoCtl && DXStream._demoCtl.current();
     _demoParkVideo();
     if (!demos || demos.length === 0) {
         DXStream._demoCtl = null;
@@ -165,16 +168,34 @@ function _mountDemoStage(demos) {
     DXStream._demoCtl = window.DXDemoStage.mount(root, {
         items: demos.map(_demoItem),
         filters: [{ key: 'all', label: T('All') }].concat(cats.map(function (c) { return { key: c, label: _demoCatLabel(c) }; })),
-        labels: { setup: T('Set up'), none: T('Install a model in Setup to run a demo.'), ready: T('Ready'),
+        labels: { setup: T('Set up'),
+                  none: _demoUnavailableReason(demos[0].availability || {}) || T('Install a model in Setup to run a demo.'),
+                  ready: T('Ready'),
                   running: T('Running'), unready: T('Needs setup') },
         onSelect: function (item, stage) { _demoOpen(+item.id, stage); },
+        // The shared stage calls onSelect only for ready items. Reconcile unready selections
+        // after mount returns too, so a refreshed contract cannot erase a launch diagnostic.
+        onRender: function () { queueMicrotask(_demoSyncStageSelection); },
         onSetup: function () { DXStream.nav('setup'); }
     });
+    _demoWireStage(DXStream._demoCtl.stage);
     // On a re-render (language switch etc.), put the running demo back on the stage
     if (DXStream._runningDemoId != null) {
         DXStream._demoCtl.setRunning(String(DXStream._runningDemoId));
         DXStream._demoCtl.select(String(DXStream._runningDemoId));
+    } else if (selected && demos.some(function (d) { return String(d.id) === selected.id; })) {
+        DXStream._demoCtl.select(selected.id);
     }
+}
+
+function _demoSyncStageSelection() {
+    var ctl = DXStream._demoCtl;
+    if (!ctl) return;
+    var selected = ctl.current();
+    if (selected && selected.ready) return;
+    DXStream._demoCurrent = selected ? +selected.id : null;
+    DXStream._demoStage = ctl.stage;
+    if (selected) _demoPaint(+selected.id);
 }
 
 function _demoById(id) {
@@ -192,11 +213,7 @@ function _demoParkVideo() {
     if (box && park && box.parentNode !== park) park.appendChild(box);
 }
 
-function _demoOpen(id, stage) {
-    var d = _demoById(id);
-    if (!d) return;
-    DXStream._demoCurrent = id;
-    DXStream._demoStage = stage;
+function _demoWireStage(stage) {
     if (!stage.opts._streamWired) {         // panel elements live as long as the stage — wire once
         stage.opts._streamWired = true;
         stage.opts.addEventListener('click', function (e) {
@@ -207,9 +224,16 @@ function _demoOpen(id, stage) {
             var b = e.target.closest('.dds-run');
             if (!b || DXStream._demoCurrent == null) return;
             if (b.classList.contains('is-stop')) DXStream._stopDemo(DXStream._runningDemoId);
-            else DXStream._startDemo(DXStream._demoCurrent);
+            else if ((_demoById(DXStream._demoCurrent) || {}).available) DXStream._startDemo(DXStream._demoCurrent);
         });
     }
+}
+
+function _demoOpen(id, stage) {
+    var d = _demoById(id);
+    if (!d) return;
+    DXStream._demoCurrent = id;
+    DXStream._demoStage = stage;
     var mode = DXStream._playbackMode;
     var opts = '<p class="dds-why">' + _escHtml(_demoText(d, 'description')) + '</p>'
         + '<div class="dds-opt" data-axis-row="playback"><span class="dds-opt-label">' + _escHtml(T('Playback')) + '</span>'
@@ -243,6 +267,12 @@ function _demoPaint(id) {
     var d = _demoById(id) || {};
     var running = DXStream._runningDemoId === id;
     var box = _demoVideoBox();
+    if (!running && !d.available) {
+        _demoParkVideo();
+        st.setState('unready', T('Needs setup'));
+        _demoRenderError(id, st);
+        return;
+    }
     if (running && box) {
         st.media.innerHTML = '';
         st.media.appendChild(box);
@@ -265,8 +295,51 @@ function _demoPaint(id) {
         st.setState('ready', T('Ready'));
         st.setMetrics([]);
         st.actions.innerHTML = '<button type="button" class="dds-run demo-card-go" id="start-demo-' + id + '">' + _demoIco('play', 'dds-ico')
-            + '<span>' + _escHtml(T('Start')) + '</span></button>';
+            + '<span>' + _escHtml(T(DXStream._demoErrors[id] ? 'Retry' : 'Start')) + '</span></button>';
     }
+    _demoRenderError(id, st);
+}
+
+function _demoRenderError(id, stage) {
+    var old = stage.extra.querySelector('.stream-demo-error');
+    if (old) old.remove();
+    var error = DXStream._demoErrors[id];
+    if (!error) return;
+    stage.setState('failed', T('Failed'));
+    var panel = document.createElement('div');
+    panel.className = 'stream-demo-error';
+    panel.setAttribute('role', 'alert');
+    var code = error.error_code || error.code || error.error;
+    if (code) {
+        var codeEl = document.createElement('code');
+        codeEl.textContent = code;
+        panel.appendChild(codeEl);
+    }
+    var message = document.createElement('p');
+    message.textContent = _demoStartError(error);
+    panel.appendChild(message);
+    var setup = document.createElement('button');
+    setup.type = 'button';
+    setup.className = 'dds-setup';
+    setup.textContent = T('Set up');
+    setup.addEventListener('click', function () { DXStream.nav('setup'); });
+    panel.appendChild(setup);
+    stage.extra.prepend(panel);
+    if (DXStream._runningDemoId === id && (_demoById(id) || {}).available) {
+        stage.actions.insertAdjacentHTML('beforeend', '<button type="button" class="dds-run" id="start-demo-' + id + '">'
+            + _escHtml(T('Retry')) + '</button>');
+    }
+}
+
+function _demoSetError(id, response) {
+    DXStream._demoErrors[id] = Object.assign({}, response);
+    _demoPaint(id);
+    DXStream.toast(_demoStartError(response), 'error');
+}
+
+function _demoClearError(id) {
+    delete DXStream._demoErrors[id];
+    _demoPaint(id);
 }
 
 // The panel's FPS · resolution come from the live video: FPS from the transport's own counter (the
@@ -581,23 +654,15 @@ DXStream._mseSupported = _mseSupported;
 DXStream._fmp4PlayInto = _fmp4PlayInto;
 DXStream._fmp4Stop = _stopFmp4;
 
-function _clearStoppedDemoLaunchState(resp) {
+function _clearStoppedDemoLaunchState(resp, id) {
     if (!resp) return false;
     var pipelineError = resp.error_code === 'pipeline_error' || resp.error === 'pipeline_error';
     var playbackStopped = resp.playback_active === false;
     if (!pipelineError || !playbackStopped) return false;
 
     var previousId = DXStream._runningDemoId;
-    DXStream._runningDemoId = null;
-    if (DXStream._demoCtl) DXStream._demoCtl.setRunning(null);
-    if (previousId != null) _demoPaint(previousId);
-
-    // The server sends fixed English sentences (_demo_launch_failure_payload); stream-i18n.js
-    // carries each one, and T() leaves anything unknown as it came.
-    var message = resp.message ? T(resp.message) : T('Demo playback stopped.');
-    if (resp.detail) message += ' ' + T(resp.detail);
-    if (resp.remediation) message += ' ' + T(resp.remediation);
-    DXStream.toast(message, 'error');
+    _demoTearDown(previousId);
+    _demoSetError(id, resp);
     return true;
 }
 
@@ -607,9 +672,15 @@ function _clearStoppedDemoLaunchState(resp) {
 // (which check failed and how), rather than resp.error raw.
 function _demoStartError(resp) {
     var tr = (typeof window.translateServerError === 'function') ? window.translateServerError : function (m) { return m; };
-    var msg = tr(String((resp && resp.error) || T('Demo playback stopped.')));
-    if (resp && resp.detail && resp.detail !== resp.error) msg += ' — ' + tr(String(resp.detail));
-    return msg;
+    return [resp && (resp.message || resp.error), resp && resp.detail, resp && resp.remediation]
+        .filter(function (value, index, values) { return value && values.indexOf(value) === index; })
+        .map(function (value) { return tr(T(String(value))); }).join(' — ') || T('Demo playback stopped.');
+}
+
+function _demoLaunchResponse(resp) {
+    if (resp && typeof resp === 'object' && !Array.isArray(resp)
+            && (resp.error || resp.output_mode || resp.started === true || resp.ok === true)) return resp;
+    return { error: T('Invalid demo start response. Retry or check the runtime.'), error_code: 'invalid_response' };
 }
 
 DXStream._fallbackToMjpeg = async function (id) {
@@ -626,15 +697,17 @@ DXStream._fallbackToMjpeg = async function (id) {
         var first = (DXStream._demoStartBody || {})[id] || {};
         var retry = { forceMjpeg: true };
         if (first.video) retry.video = first.video;
-        var resp = await DXStream.postJ('/api/demos/' + id + '/start', retry);
+        var resp = _demoLaunchResponse(await DXStream.postJ('/api/demos/' + id + '/start', retry));
         if (resp && resp.error) {
-            if (_clearStoppedDemoLaunchState(resp)) return;
-            DXStream.toast(_demoStartError(resp), 'error');
+            if (_clearStoppedDemoLaunchState(resp, id)) return;
+            _demoSetError(id, resp);
             return;
         }
+        _demoClearError(id);
         _showMjpegStream(DXStream.$('demo-video-section'));
     } catch (e) {
-        DXStream.toast(T('MJPEG fallback failed: ') + (e && e.message ? e.message : e), 'error');
+        _demoSetError(id, { error_code: 'fallback_failed',
+            message: T('MJPEG fallback failed: ') + (e && e.message ? e.message : e) });
     }
 };
 
@@ -644,6 +717,7 @@ DXStream._startDemo = async function (id) {
         return;
     }
     DXStream._startingDemo = true;
+    _demoClearError(id);
     DXStream._mjpegFallbackFor = null; // allow WebRTC→MJPEG fallback for this fresh start
     var startBtn = DXStream.$('start-demo-' + id);
     if (startBtn) startBtn.disabled = true;
@@ -665,16 +739,16 @@ DXStream._startDemo = async function (id) {
         if (_rtspEl && _rtspEl.value.trim()) _startBody.video = _rtspEl.value.trim();
         DXStream._demoStartBody = DXStream._demoStartBody || {};
         DXStream._demoStartBody[id] = _startBody;
-        var resp = await DXStream.postJ('/api/demos/' + id + '/start', _startBody);
+        var resp = _demoLaunchResponse(await DXStream.postJ('/api/demos/' + id + '/start', _startBody));
         if (resp.error) {
-            if (_clearStoppedDemoLaunchState(resp)) return;
-            DXStream.toast(_demoStartError(resp), 'error');
+            if (_clearStoppedDemoLaunchState(resp, id)) return;
+            _demoSetError(id, resp);
             return;
         }
         if (resp.output_mode === 'webrtc') {
             var status = await _waitDemoStarted(id, resp.pipeline_id);
             if (status && status.error) {
-                DXStream.toast(_demoStartError(status), 'error');
+                _demoSetError(id, status);
                 return;
             }
         }
@@ -707,6 +781,8 @@ DXStream._startDemo = async function (id) {
         } else {
             DXStream.toast(T('Native display mode (fpsdisplaysink)'), 'info');
         }
+    } catch (e) {
+        _demoSetError(id, { error_code: 'launch_failed', message: e && e.message ? e.message : String(e) });
     } finally {
         DXStream._startingDemo = false;
         if (startBtn && DXStream._runningDemoId == null) startBtn.disabled = false;
@@ -777,6 +853,9 @@ function _demoTearDown(demoId) {
     if (DXStream._demoCtl) DXStream._demoCtl.setRunning(null);
     if (demoId != null && DXStream._demoCurrent === demoId && DXStream._demoStage) {
         DXStream._demoStage.media.innerHTML = '';     // back to the preview
+        if (DXStream._demoCtl && !(_demoById(demoId) || {}).available) {
+            DXStream._demoCtl.select(String(demoId));
+        }
         _demoPaint(demoId);
     } else {
         _demoParkVideo();

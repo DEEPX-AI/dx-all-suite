@@ -2059,6 +2059,13 @@ window._DX_I18N_DICT = {
     'zh-CN': '缺少实时运行所需的软件包', 'zh-TW': '缺少即時執行所需的套件',
     es: 'Faltan paquetes necesarios para la ejecución en vivo',
   },
+  'media_runtime_unavailable': {
+    ko: 'OpenCV 환경을 사용할 수 없습니다. Setup에서 Python Inference Deps를 확인하세요',
+    ja: 'OpenCV 環境を利用できません。Setup で Python Inference Deps を確認してください',
+    'zh-CN': 'OpenCV 环境不可用。请在 Setup 中检查 Python Inference Deps',
+    'zh-TW': 'OpenCV 環境無法使用。請在 Setup 中檢查 Python Inference Deps',
+    es: 'El entorno OpenCV no está disponible. Revise Python Inference Deps en Setup',
+  },
   'live_runner_failed': {
     ko: '예제가 스스로 끝났습니다', ja: 'サンプルが自ら終了しました',
     'zh-CN': '示例自行退出', 'zh-TW': '範例自行結束',
@@ -2783,12 +2790,40 @@ window._DX_I18N_DICT = {
     'zh-TW': '檢查變更計畫和復原指引',
     es: 'Inspeccione planes de cambio y guía de reversión',
   },
-  'Install only what the demo needs, in one go — downloads only the required models and skips steps already done': {
-    ko: '데모에 필요한 것만 한 번에 설치 — 필요한 모델만 다운로드, 이미 된 단계는 건너뜀',
-    ja: 'デモに必要なものだけを一度にインストール — 必要なモデルのみダウンロードし、完了済みの手順はスキップします',
-    'zh-CN': '一次性只安装演示所需内容 — 仅下载所需模型，跳过已完成的步骤',
-    'zh-TW': '一次只安裝示範所需內容 — 僅下載所需模型，略過已完成的步驟',
-    es: 'Instale solo lo que la demo necesita, de una vez — descarga solo los modelos necesarios y omite los pasos ya completados',
+  'Prepare demos in one go — demo C++ runners and demo models with sample videos; skips ready steps': {
+    ko: '데모를 한 번에 준비 — 데모용 C++ 실행 파일과 데모 모델·샘플 영상, 완료된 단계는 건너뜀',
+    ja: 'デモを一括準備 — デモ用 C++ 実行ファイルとデモモデル・サンプル動画、準備済みの手順はスキップします',
+    'zh-CN': '一次性准备演示 — 演示用 C++ 可执行文件、演示模型和示例视频，跳过已就绪的步骤',
+    'zh-TW': '一次準備示範 — 示範用 C++ 執行檔、示範模型和範例影片，略過已就緒的步驟',
+    es: 'Prepare las demos de una vez — ejecutables C++ y modelos de demo con videos de ejemplo; omite los pasos listos',
+  },
+  'Optional — Live display capture': {
+    ko: '선택 사항 — Live 화면 캡처',
+    ja: '任意 — ライブ画面キャプチャ',
+    'zh-CN': '可选 — 实时画面捕获',
+    'zh-TW': '選用 — 即時畫面擷取',
+    es: 'Opcional — Captura de pantalla en vivo',
+  },
+  'Camera / Continuous runs and Graph Live draw on an Xvfb virtual display. No setup step installs it; install it yourself:': {
+    ko: '카메라 · Continuous 실행과 Graph Live는 Xvfb 가상 디스플레이에 그립니다. 설치 단계에는 포함되지 않으니 직접 설치하세요:',
+    ja: 'カメラ・Continuous 実行と Graph Live は Xvfb 仮想ディスプレイに描画します。セットアップ手順には含まれないため、手動でインストールしてください:',
+    'zh-CN': '摄像头 / Continuous 运行和 Graph Live 在 Xvfb 虚拟显示器上绘制。安装步骤不包含它，请自行安装：',
+    'zh-TW': '攝影機 / Continuous 執行與 Graph Live 會繪製在 Xvfb 虛擬顯示器上。安裝步驟不包含它，請自行安裝：',
+    es: 'Las ejecuciones con cámara / Continuous y Graph Live dibujan en una pantalla virtual Xvfb. Ningún paso de instalación la instala; instálela usted mismo:',
+  },
+  'Verify': {
+    ko: '확인',
+    ja: '確認',
+    'zh-CN': '验证',
+    'zh-TW': '驗證',
+    es: 'Verificar',
+  },
+  'Unverified — no download record. Add it to the cart to verify it.': {
+    ko: '검증 안 됨 — 다운로드 기록이 없습니다. 장바구니에 넣으면 검증합니다.',
+    ja: '未検証 — ダウンロード記録がありません。カートに追加すると検証します。',
+    'zh-CN': '未验证 — 没有下载记录。加入购物车即可验证。',
+    'zh-TW': '未驗證 — 沒有下載紀錄。加入購物車即可驗證。',
+    es: 'Sin verificar: no hay registro de descarga. Añádalo al carrito para verificarlo.',
   },
   'Lab': {
     ko: '실험실',
@@ -2992,9 +3027,12 @@ window._DX_I18N_DICT = {
     es: 'Comprobando el grafo…',
   },
   'The graph runner is not built. Build dx_app (./build.sh) to use the Graph Composer.': {
-    ko: '그래프 실행 파일이 빌드되지 않았습니다. Graph Composer를 쓰려면 dx_app을 빌드하세요 (./build.sh).', ja: 'グラフ実行ファイルがビルドされていません。Graph Composer を使うには dx_app をビルドしてください (./build.sh)。',
-    'zh-CN': '图运行程序尚未构建。要使用图编排器，请构建 dx_app (./build.sh)。', 'zh-TW': '圖執行程式尚未建置。要使用圖編排器，請建置 dx_app (./build.sh)。',
-    es: 'El ejecutor de grafos no está compilado. Compile dx_app (./build.sh) para usar el compositor de grafos.',
+    en: 'The graph runner is not built. Run ./build.sh --all in dx_app to use the Graph Composer.',
+    ko: '그래프 실행 파일이 빌드되지 않았습니다. Graph Composer를 쓰려면 dx_app에서 ./build.sh --all 을 실행하세요.',
+    ja: 'グラフ実行ファイルがビルドされていません。Graph Composer を使うには dx_app で ./build.sh --all を実行してください。',
+    'zh-CN': '图运行程序尚未构建。要使用图编排器，请在 dx_app 中运行 ./build.sh --all。',
+    'zh-TW': '圖執行程式尚未建置。要使用圖編排器，請在 dx_app 中執行 ./build.sh --all。',
+    es: 'El ejecutor de grafos no está compilado. Ejecute ./build.sh --all en dx_app para usar el compositor de grafos.',
   },
   'Empty graph': {
     ko: '빈 그래프', ja: '空のグラフ',
@@ -5179,6 +5217,7 @@ function _i18nOptions() {
   var dict = window._DX_I18N_DICT || {};
   var lang = (window.DXI18n && window.DXI18n.lang) || 'en';
   document.querySelectorAll('select option').forEach(function(opt) {
+    if (opt.hasAttribute('data-chat-t')) return;   // the chat widget translates its own options
     var txt = opt.textContent.trim();
     var orig = opt.getAttribute('data-i18n-orig') || txt;
     if (lang === 'en') {

@@ -147,3 +147,31 @@ def test_refresh_plugin_environment_accepts_pre_registered_dxinfer(monkeypatch, 
         assert gst_env.refresh_plugin_environment(FakeGst) == str(plugin_dir)
 
     assert not any("found no plugin" in message for message in caplog.messages)
+
+
+def test_the_status_probe_finds_the_plugin_without_the_shells_gst_plugin_path(monkeypatch, tmp_path):
+    """SR-846: dx_stream's installer exports GST_PLUGIN_PATH in ~/.bashrc below the
+    non-interactive return, so a Studio started over ssh / a service / a desktop launcher has no
+    such variable. Studio must find the installed plugin itself for every probe it runs."""
+    from dx_stream.core import gst_env, status
+
+    installed = tmp_path / "gstreamer-1.0"
+    installed.mkdir()
+    (installed / gst_env.PLUGIN_SO).write_bytes(b"plugin")
+    monkeypatch.setattr(gst_env, "_KNOWN_DIRS", (str(installed),))
+    monkeypatch.setattr(gst_env, "_SEARCH_ROOTS", ())
+    monkeypatch.delenv("GST_PLUGIN_PATH", raising=False)
+    monkeypatch.setattr(status.shutil, "which", lambda name: "/usr/bin/" + name)
+    seen = {}
+
+    class Done:
+        returncode = 0
+
+    def run(argv, **kwargs):
+        seen["argv"], seen["env"] = argv, kwargs.get("env")
+        return Done()
+
+    monkeypatch.setattr(status.subprocess, "run", run)
+    assert status._check_gst()["plugin"] is True
+    assert seen["argv"][:2] == ["gst-inspect-1.0", "dxstream"]
+    assert seen["env"] and seen["env"]["GST_PLUGIN_PATH"].split(os.pathsep)[0] == str(installed)

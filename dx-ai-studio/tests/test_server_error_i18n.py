@@ -151,6 +151,11 @@ class TestThePatternsActuallyMatchWhatTheServerSends:
         "Runtime contract failed: profile.context",
         "Studio runtime profile is not active and validated.",
         "Run the DX-Runtime Dependencies step in Setup, then try again.",
+        "Run the DX-Runtime Dependencies step in DX Stream Setup, then try again.",
+        # shared/runtime_context.py — the observed half of a profile.context refusal (SR-843)
+        "Active runtime profile has no complete inference Python.",
+        "Active runtime Python executable is missing: /opt/venv/bin/python3",
+        "Active runtime profile has no native library directories.",
         "Invalid opt_level: 'abc' — must be one of [0, 1]",
         "Invalid opt_level: empty — must be one of [0, 1]",
         "Invalid calibration_num: -5 — must be a positive number of samples",
@@ -164,6 +169,12 @@ class TestThePatternsActuallyMatchWhatTheServerSends:
         "Invalid preprocessings: expected an array of operations, got dict",
         "Invalid preprocessings[0].normalize.std: contains 0 — normalization divides by std",
         "Invalid preprocessings[0].resize.width: -640 — must be a positive number",
+        # dx_compiler/core/validation.py arithmetic transforms (SR-758)
+        "Invalid preprocessings[0].div.x: 'not-a-number' — expected a finite number "
+        "or a non-empty list of finite numbers",
+        "Invalid preprocessings[1].mul.x: [] — expected a finite number "
+        "or a non-empty list of finite numbers",
+        "Invalid preprocessings[0].div.x: contains 0 — division by zero",
         "Invalid file_extensions: expected a list, got a string. Use ['jpg'], not 'jpg'.",
         "Invalid file_extensions: expected a list, got int",
         "Invalid input_nodes: expected a list of node names, got a string. "

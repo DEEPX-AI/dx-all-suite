@@ -215,21 +215,26 @@ def test_the_fold_summary_says_what_is_selected(home):
 # ── rhythm and rail ───────────────────────────────────────────
 
 
-def test_the_grid_is_ten_tiles_in_two_rows(home):
-    """The stage has no group labels: tools are cells and a cell's position is its order. Row 1 App · Stream ·
-    Model Zoo · Compiler · SDK Library, row 2 Benchmark · EdgeGuide · Monitor · Agent Dev · About DEEPX.
+def test_the_grid_is_nine_modules_in_three_rows_and_two_books(home):
+    """The stage has no group labels: tools are cells and a cell's position is its order. The modules fill a 3×3
+    block — App · Stream · Model Zoo / Compiler · Benchmark · EdgeGuide / Monitor · Agent Dev · Cloud, so Cloud
+    closes it as Alt+9 — and SDK Library and About DEEPX share the last column (SR-679).
     The tutorial targets #studioGrid and .orbital-card, so both stay.
     """
     assert home.evaluate("() => document.querySelectorAll('#studioGrid .studio-group').length") == 0
     tiles = home.evaluate(
         "() => [...document.querySelectorAll('#studioGrid > *')].map(e =>"
         " e.dataset.app || (e.classList.contains('sdk-card') ? 'sdk' : 'about'))")
-    assert tiles == ["app", "stream", "zoo", "compiler", "sdk",
-                     "benchmark", "planner", "dx_monitor", "agent", "about"], tiles
-    rows = home.evaluate(
-        "() => new Set([...document.querySelectorAll('#studioGrid > *')]"
-        ".map(e => Math.round(e.getBoundingClientRect().top))).size")
-    assert rows == 2, f"1512 폭에서 {rows}줄이다"
+    assert tiles == ["app", "stream", "zoo", "compiler", "benchmark", "planner",
+                     "dx_monitor", "agent", "edge", "sdk", "about"], tiles
+    cells = home.evaluate(
+        "() => [...document.querySelectorAll('#studioGrid > *')].map(e => {"
+        " const r = e.getBoundingClientRect(); return [Math.round(r.left), Math.round(r.top)]; })")
+    modules, books = cells[:9], cells[9:]
+    assert len({top for _, top in modules}) == 3, f"1512 폭에서 모듈이 3줄이 아니다: {modules}"
+    assert len({left for left, _ in modules}) == 3, modules
+    assert books[0][0] == books[1][0] > max(left for left, _ in modules), books
+
 
 def test_the_device_card_carries_what_the_device_is_doing(browser):
     """The cards fill the rail with their own subjects.

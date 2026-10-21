@@ -5,6 +5,7 @@ import pytest
 
 pytest.importorskip("playwright.sync_api")
 
+from tests import installed_sdk  # noqa: E402
 from tests.server_helpers import start_module_server  # noqa: E402
 from tests.tutorial_e2e_runner import mock_left_over, run_ui_journey, summarize  # noqa: E402
 
@@ -152,6 +153,9 @@ def test_tutorial_ui_journey_no_visual_defects(page, mod, lang):
             ready_timeout=mod.get("ready_timeout", 20000),
         )
         failures = summarize(results)
+        if not installed_sdk.dx_app_root().is_dir() and not installed_sdk.strict():
+            # Without dx_app, Run Demo has no demos and Model Zoo no example code: those steps float by design.
+            failures = [f for f in failures if "|FLOATING_FALLBACK|" not in f]
         assert results, f"{mod['id']}[{lang}]: journey produced no step checks"
         assert not failures, (
             f"{mod['id']} UI journey defects [{lang}]:\n" + "\n".join(failures[:30]))

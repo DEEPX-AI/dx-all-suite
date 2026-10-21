@@ -9,6 +9,8 @@ server.py turns that into a 400 in one place.
 """
 from __future__ import annotations
 
+import math
+
 
 class ValidationError(ValueError):
     """User input rejected at the boundary. Callers turn it into a 400.
@@ -199,14 +201,15 @@ def _bad_scheme(message: str):
 # keyed on the transform name it would miss centercrop and need updating for every
 # new transform.
 _POSITIVE_PARAMS = ("width", "height", "size", "scale")
+_ARITHMETIC_TRANSFORMS = ("div", "mul", "subtract", "add")
 
 # Anything not listed is deliberately unchecked. Real configs in the repo use the same
 # parameter both as a scalar and as a list:
 #     {"transpose": {"axis": [2, 0, 1]}}   {"expandDim": {"axis": 0}}
 #     {"div": {"x": 255.0}}                {"div": {"x": [255, 255, 255]}}
 #     {"resize": {"pad_value": [114, 114, 114]}}   the UI default is the scalar 0
-# Signs are free too (axis may be negative, as in numpy). A rule here would block configs
-# that work today, so only parameters with a clear meaning are checked.
+# Signs are free too (axis may be negative, as in numpy). Arithmetic operands retain
+# both numeric forms, with zero excluded only when used as a divisor.
 
 
 def _is_number(v) -> bool:
@@ -263,6 +266,20 @@ def _validate_one(entry, index: int) -> None:
             if not _is_number(value) or value <= 0:
                 raise ValidationError(
                     f"Invalid {where}.{name}.{key}: {value!r} — must be a positive number")
+
+    if name in _ARITHMETIC_TRANSFORMS and "x" in params:
+        value = params["x"]
+        values = value if isinstance(value, list) else [value]
+        if not values or any(
+            not _is_number(v) or (isinstance(v, float) and not math.isfinite(v))
+            for v in values
+        ):
+            raise ValidationError(
+                f"Invalid {where}.{name}.x: {value!r} — expected a finite number "
+                "or a non-empty list of finite numbers")
+        if name == "div" and any(v == 0 for v in values):
+            raise ValidationError(
+                f"Invalid {where}.{name}.x: contains 0 — division by zero")
 
     _validate_normalization(params, f"{where}.{name}")
 

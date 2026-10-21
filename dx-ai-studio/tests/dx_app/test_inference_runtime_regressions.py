@@ -1,6 +1,8 @@
 import sys
 from pathlib import Path
 
+import pytest
+
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -104,6 +106,8 @@ def _prepare_dx_app_runtime(tmp_path, monkeypatch):
     monkeypatch.setattr(inference, "PY_DIR", py_dir)
     monkeypatch.setattr(inference, "get_hw", lambda: {})
     monkeypatch.setattr(inference, "_parse_perf", lambda stdout: {"overall_fps": "30"})
+    # The fake inference process replaces subprocess.Popen globally; media has its own tests.
+    monkeypatch.setattr(inference, "run_media", lambda operation, **params: {"count": 0})
 
     return inference, app_root
 
@@ -601,3 +605,27 @@ def test_cpp_rtsp_run_passes_the_url_as_rtsp(tmp_path, monkeypatch):
                             input_type="rtsp", rtsp_url=url, loop=30)
     cmd = captured["cmd"]
     assert cmd[cmd.index(url) - 1] == "-r"
+
+
+@pytest.mark.parametrize("camera_id", [None, 2])
+def test_cpp_camera_run_uses_the_camera_source(tmp_path, monkeypatch, camera_id):
+    inference, _ = _prepare_dx_app_runtime(tmp_path, monkeypatch)
+    exists = Path.exists
+    monkeypatch.setattr(Path, "exists", lambda p: str(p) == f"/dev/video{camera_id or 0}" or exists(p))
+    captured = {}
+
+    class FakeProc:
+        returncode = 0
+
+        def __init__(self, cmd, **kwargs):
+            captured["cmd"] = cmd
+
+        def wait(self, timeout=None):
+            return 0
+
+    monkeypatch.setattr(inference.subprocess, "Popen", FakeProc)
+    inference.run_inference("demo", "object_detection", "model.dxnn", lang="cpp", timeout=1,
+                            input_type="camera", camera_id=camera_id, save_output=False)
+    cmd = captured["cmd"]
+    assert cmd[cmd.index("-c") + 1] == str(camera_id or 0)
+    assert "-v" not in cmd and "-r" not in cmd

@@ -14,6 +14,7 @@ import pytest
 
 from tests.browser_support import resolve_node_executable
 from tests.dx_app.test_i18n import TARGET_LANGS, dict_entry, dict_keys
+from tests.installed_sdk import require_graph_examples
 
 ROOT = Path(__file__).resolve().parents[2]
 SOURCES = [ROOT / "shared/static/dx-graph-core.js", ROOT / "shared/static/dx-graph-canvas.js",
@@ -263,9 +264,7 @@ def test_every_dx_app_example_has_a_name_in_the_palette():
     """TEMPLATE_TEXT (graph-palette.js) names exactly the sample graphs dx_app ships."""
     import re
     from dx_app.core import config
-    d = config.DX_APP_ROOT / "src" / "cpp_example" / "multi_model_graph"
-    if not d.is_dir():
-        pytest.skip("dx_app is not checked out next to the studio")
+    d = require_graph_examples()
     src = (ROOT / "dx_app/static/js/graph-palette.js").read_text(encoding="utf-8")
     block = src[src.index("var TEMPLATE_TEXT"):src.index("};", src.index("var TEMPLATE_TEXT"))]
     assert set(re.findall(r"^\s+(\w+): \[", block, re.M)) == {p.stem for p in d.glob("*.json")}

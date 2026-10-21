@@ -8,9 +8,12 @@ from __future__ import annotations
 
 import json
 import re
+import shutil
+
+import pytest
 
 from tests.acceptance.conftest import http_get, module_frame, wait_home
-from tests.acceptance.hardware import need
+from tests.acceptance.hardware import _is_capture_device, need
 
 PAGES = ["setup", "models", "run", "rundemo", "bench", "compare", "modelzoo", "graph", "lab", "outputs", "reference"]
 PAGES_KO = ["설치", "모델", "추론 실행", "데모 실행", "벤치마크", "A/B 비교", "모델 저장소", "그래프 Composer", "실험실",
@@ -31,16 +34,62 @@ def _nav(frame, page_id):
     frame.locator(f"#page-{page_id}.active").wait_for(timeout=15000)
 
 
-def _runnable_model(frame) -> dict:
-    models = frame.evaluate("async () => { const r = await (await fetch('api/models')).json();"
+def _runnable_model(frame, lang="cpp", variant="sync", live=False) -> dict:
+    models = frame.evaluate("async () => { const response = await fetch('api/models');"
+                            " const r = await response.json();"
+                            " if (!response.ok || r.error) throw new Error(r.error || 'models request failed');"
                             " return Array.isArray(r) ? r : (r.models || []); }")
-    by_name = {m["name"]: m for m in models if m.get("model_exists")}
+    key = ("cpp_" if lang == "cpp" else "py_") + variant
+    by_name = {m["name"]: m for m in models if m.get("model_exists") and m.get(key)
+               and m.get("category") == "object_detection" and not m.get("needs_dxrt")
+               and not (live and m.get("image_only"))}
     for name in PREFERRED_MODELS:
         if name in by_name:
             return by_name[name]
-    det = [m for m in by_name.values() if m.get("category") == "object_detection"]
-    assert det, "no object detection model with a .dxnn on disk"
-    return det[0]
+    if not by_name:
+        pytest.skip(f"NOT RUN: no installed runnable {lang} {variant} object detection model"
+                    " (prepare DX-APP Build, model assets and matching DX-RT in Setup)")
+    return next(iter(by_name.values()))
+
+
+def _benchmark_model(frame) -> dict:
+    """Select from what this language/variant can run AND what the user can actually check."""
+    state = frame.evaluate("""async () => {
+        const response = await fetch('api/models');
+        const payload = await response.json();
+        if (!response.ok || payload.error) throw new Error(payload.error || 'models request failed');
+        const models = Array.isArray(payload) ? payload : (payload.models || []);
+        const lang = document.getElementById('b-lang').value;
+        const variant = document.getElementById('b-mode').value;
+        const key = (lang === 'cpp' ? 'cpp_' : 'py_') + variant;
+        return {lang, variant, models: models.filter(m => m.model_exists && m[key] && !m.needs_dxrt)};
+    }""")
+    if not state["models"]:
+        pytest.skip(f"NOT RUN: no installed runnable {state['lang']} {state['variant']} benchmark model")
+    frame.locator(".b-chk").first.wait_for(state="attached", timeout=30000)
+    shown = frame.locator(".b-chk:not(:disabled)").evaluate_all("els => els.map(e => e.value)")
+    offered = {m["name"]: m for m in state["models"] if m["name"] in shown}
+    assert offered, f"runnable {state['lang']} {state['variant']} models are missing from the rendered benchmark list"
+    return next((offered[name] for name in PREFERRED_MODELS if name in offered), next(iter(offered.values())))
+
+
+def _graph_example(catalog) -> dict:
+    if catalog.get("available") is False and catalog.get("error") == "graph_binary_missing":
+        pytest.skip("NOT RUN: Graph binaries not built; in dx_app run "
+                    "./build.sh --target multi_model_graph_sync multi_model_graph_async or ./build.sh --all")
+    assert not catalog.get("error"), catalog
+    examples = [example for example in catalog.get("examples", []) if not example.get("logic")]
+    if not examples:
+        pytest.skip("NOT RUN: SDK Graph example files are not installed")
+    ready = {m["name"] for m in catalog.get("models", [])
+             if m.get("installed") and m.get("ready") and m.get("state") == "installed"}
+    for alias in catalog.get("aliases", []):
+        if alias.get("alias_of") in ready:
+            ready.add(alias["name"])
+    example = next((e for e in examples if e.get("models") and set(e["models"]) <= ready), None)
+    if example is None:
+        pytest.skip("NOT RUN: no Graph example has all required runnable model assets; prepare assets/DX-RT in Setup")
+    return example
 
 
 def test_eleven_top_tabs_switch_pages_and_developer_tools_live_in_lab(pages):
@@ -138,23 +187,42 @@ def test_run_inference_on_the_npu_shows_the_result_image_and_fps(pages):
 
 
 def test_continuous_camera_inference_on_the_npu_shows_live_frames(pages):
-    """Not exercised on a board without a camera: the AC is NOT RUN there (hardware.need)."""
+    """Not exercised on a board without a camera: the AC is NOT RUN there (hardware.need).
+
+    Live frames are captured from an Xvfb display, an optional host package no Setup step
+    installs; without it Live start refuses with the install hint (SR-845), so the AC cannot
+    be checked on that machine."""
     need("camera", "npu")
+    if not shutil.which("Xvfb"):
+        pytest.skip("NOT RUN: Live display capture needs Xvfb (sudo apt install xvfb), not installed here")
     page, frame = _app(pages)
-    model = _runnable_model(frame)
     _nav(frame, "run")
     frame.locator('.run-tab[data-rtab="continuous"]').click()
-    frame.select_option("#c-input-type", "camera")
-    frame.wait_for_function("() => [...document.getElementById('c-camera').options].some(o => o.value !== '')",
+    model = _runnable_model(frame, frame.locator("#c-lang").input_value(),
+                            frame.locator("#c-mode").input_value(), live=True)
+    with page.expect_response(lambda r: r.url.endswith("/api/cameras")) as discovered:
+        frame.select_option("#c-input-type", "camera")
+    assert discovered.value.ok, discovered.value.text()
+    frame.wait_for_function("() => [...document.getElementById('c-camera').options]"
+                            ".some(o => !o.disabled && o.textContent.startsWith('/dev/video'))",
                             timeout=30000)
-    slot_model = frame.locator("#c-slots select").first
-    slot_model.wait_for(timeout=15000)
-    if model["name"] in slot_model.locator("option").evaluate_all("els => els.map(e => e.value)"):
-        slot_model.select_option(model["name"])
-    frame.locator("#c-start-btn").click()
-    frame.wait_for_function("() => { const i = document.getElementById('c-ls-img-0');"
-                            " return i && i.complete && i.naturalWidth > 0; }", timeout=120000)
-    frame.locator("#c-stop-btn").click()
+    cameras = frame.locator("#c-camera option:not(:disabled)").evaluate_all("els => els.map(e => e.value)")
+    camera = next((c for c in cameras if c and _is_capture_device(f"/dev/video{c}")), None)
+    assert camera is not None, "no enabled V4L2 capture camera (metadata nodes are not video inputs)"
+    frame.select_option("#c-camera", camera)
+    slot = frame.locator("#c-slots .cont-slot-cfg").first
+    slot.locator("select").nth(0).select_option(model["category"])
+    slot.locator("select").nth(1).select_option(model["name"])
+    try:
+        with page.expect_response(lambda r: r.url.endswith("/api/run_live") and r.request.method == "POST") as started:
+            frame.locator("#c-start-btn").click()
+        assert started.value.ok, started.value.text()
+        assert started.value.json().get("job_id"), started.value.json()
+        frame.wait_for_function("() => { const i = document.getElementById('c-ls-img-0');"
+                                " return i && i.complete && i.naturalWidth > 0; }", timeout=120000)
+    finally:
+        if frame.locator("#c-stop-btn").is_visible():
+            frame.locator("#c-stop-btn").click()
 
 
 def test_run_demo_on_the_npu_puts_the_result_on_the_stage(pages):
@@ -174,7 +242,6 @@ def test_run_demo_on_the_npu_puts_the_result_on_the_stage(pages):
 
 def test_benchmark_runs_the_checked_models_and_shows_results_and_a_chart(pages):
     page, frame = _app(pages)
-    model = _runnable_model(frame)
 
     def run(route):
         route.fulfill(status=200, content_type="application/json", body=json.dumps({
@@ -183,10 +250,23 @@ def test_benchmark_runs_the_checked_models_and_shows_results_and_a_chart(pages):
     # DX App calls /api/... from inside its iframe; the launcher routes it to DX App by the frame it came from.
     page.route("**/api/run", run)
     _nav(frame, "bench")
+    frame.wait_for_function("() => document.getElementById('bench-sel')?.querySelector('tbody')"
+                            " && Array.isArray(S.models)", timeout=30000)
+    model = _benchmark_model(frame)
     chk = frame.locator(f'.b-chk[value="{model["name"]}"]')
     chk.wait_for(state="attached", timeout=30000)
     chk.check()
-    frame.locator("#b-run-btn").click()
+    assert chk.is_checked(), f"{model['name']} was not selected"
+    with page.expect_response(lambda r: r.url.endswith("/api/run") and r.request.method == "POST") as started:
+        frame.locator("#b-run-btn").click()
+    response = started.value
+    assert response.ok, response.text()
+    payload = response.json()
+    assert not payload.get("error") and payload.get("exit_code") == 0, payload
+    request = response.request.post_data_json
+    assert request["model_name"] == model["name"], request
+    assert request["lang"] == frame.locator("#b-lang").input_value(), request
+    assert request["variant"] == frame.locator("#b-mode").input_value(), request
     frame.locator("#bench-res tbody tr").first.wait_for(timeout=60000)
     assert model["name"] in frame.locator("#bench-res").inner_text()
     frame.locator("#bench-chart").wait_for(state="attached", timeout=15000)
@@ -272,9 +352,20 @@ def test_graph_composer_runs_an_example_once_on_the_npu(pages):
     need("npu")
     page, frame = _app(pages)
     _nav(frame, "graph")
-    frame.locator("#gc-palette-list .gc-example button").first.click()
-    frame.wait_for_function("() => GraphComposer.state().check && GraphComposer.state().check.ok", timeout=30000)
-    frame.locator("#gc-run").click()
+    frame.wait_for_function("() => GraphComposer.state().catalog !== null", timeout=60000)
+    example = _graph_example(frame.evaluate("() => GraphComposer.state().catalog"))
+    with page.expect_response(lambda r: r.url.endswith("/api/graph/validate")
+                              and r.request.method == "POST") as checked:
+        frame.locator(f'#gc-palette-list .gc-example[data-id="{example["id"]}"] button').click()
+    assert checked.value.ok, checked.value.text()
+    check = checked.value.json()
+    assert check.get("ok") and not check.get("errors"), check
+    assert not check.get("missing") and not check.get("unusable"), check
+    with page.expect_response(lambda r: r.url.endswith("/api/graph/run")
+                              and r.request.method == "POST") as started:
+        frame.locator("#gc-run").click()
+    assert started.value.ok, started.value.text()
+    assert started.value.json().get("job_id") and not started.value.json().get("error"), started.value.json()
     frame.locator(".gc-run-table tbody tr").first.wait_for(timeout=300000)
     result = frame.locator(".gc-run-result", has_text="Done").first
     result.wait_for(timeout=60000)

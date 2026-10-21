@@ -10,8 +10,27 @@ from shared.chromium import resolve_chromium_executable  # noqa: E402
 from shared.paths import DX_APP_ROOT  # noqa: E402
 from tests.server_helpers import start_module_server  # noqa: E402
 
-pytestmark = pytest.mark.skipif(not (DX_APP_ROOT / "config" / "model_registry.json").is_file(),
-                                reason="needs the dx_app checkout")
+def _has_dx_app_example(model_id="yolo26n"):
+    """The card is rendered from the installed dx_app example (model_card_studio.studio_card); an
+    older dx_app without this model's example cannot produce it."""
+    from pathlib import PurePosixPath
+
+    from dx_modelzoo.core.catalog import get_catalog, get_model
+    from dx_modelzoo.core.model_card import load_registry
+    try:
+        model = get_model(get_catalog()["models"], model_id) or {}
+        variant = PurePosixPath(((model.get("demo") or {}).get("python_example") or "").rstrip("/")).name
+        return variant in load_registry(DX_APP_ROOT)
+    except (OSError, ValueError, KeyError):
+        return False
+
+
+pytestmark = [
+    pytest.mark.skipif(not (DX_APP_ROOT / "config" / "model_registry.json").is_file(),
+                       reason="needs the dx_app checkout"),
+    pytest.mark.skipif(not _has_dx_app_example(),
+                       reason="NOT RUN: the installed dx_app has no yolo26n example to render the card from"),
+]
 
 BUTTON = 'button[onclick^="exportModelCardHtml"]'
 # Records the button's disabled state at each fetch the export makes.

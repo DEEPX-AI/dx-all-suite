@@ -50,6 +50,10 @@ def port():
     # The launcher here proxies /cloud to an in-process dx_edge server; both see PATH without an agent CLI.
     saved = {k: os.environ.get(k) for k in ("PATH", "DX_EDGE_PORT")}
     os.environ["PATH"] = NO_AGENT_PATH
+    # PATH alone is not enough where an agent CLI sits in /usr/local/bin (copilot on the QA board): Studio then
+    # connects Chat to it. Both servers run in this process, so its CLI lookup finds none.
+    no_agent = pytest.MonkeyPatch()
+    no_agent.setattr("shared.agent_cli.find_cli", lambda binary: None)
     edge, edge_port = start_module_server("dx_edge")
     os.environ["DX_EDGE_PORT"] = str(edge_port)
     _purge_launcher_modules()
@@ -59,6 +63,7 @@ def port():
     finally:
         launcher.shutdown()
         edge.shutdown()
+        no_agent.undo()
         for k, v in saved.items():
             if v is None:
                 os.environ.pop(k, None)

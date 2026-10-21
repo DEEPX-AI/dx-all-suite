@@ -36,6 +36,12 @@
     If `dx_engine` is missing, **DX Monitor** shows *NPU telemetry
     unavailable* and live inference is unavailable; if `gi` is missing, **DX Stream** can build but not run pipelines.
 
+Camera discovery and preview decoding use a separate media Python with compatible
+NumPy and OpenCV; the Studio web server does not import `cv2`. If no compatible
+interpreter is available, Setup diagnostics and camera selection report the missing
+media runtime rather than treating it as an empty camera list. These are
+feature-specific requirements, not base Studio dependencies.
+
 !!! note "Check your NPU"
     Once the DEEPX runtime is installed, `dxrt-cli --status` lists each NPU device with its
     driver and firmware versions. **DX Monitor** shows the same info live in the browser.

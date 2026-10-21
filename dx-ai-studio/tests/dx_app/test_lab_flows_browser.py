@@ -15,6 +15,7 @@ import pytest
 
 pytest.importorskip("playwright.sync_api")
 
+from tests.installed_sdk import require_dx_app  # noqa: E402
 from tests.server_helpers import start_module_server  # noqa: E402
 
 
@@ -40,6 +41,7 @@ def page():
 
 
 def test_start_from_follows_category_and_language(page):
+    require_dx_app("src/python_example", "src/cpp_example")   # "Start from" lists the installed examples
     page.click('[data-lab-flow="add-model"]')
     page.wait_for_selector("#wiz-base-model")
     refs = page.evaluate("LabPortal.capabilities().reference_examples")
@@ -130,6 +132,7 @@ def test_safety_center_rolls_back_only_after_the_typed_confirmation(page):
 
 def test_change_preview_paths_wrap_inside_the_card_at_phone_width(page):
     """At 390 px the dry-run paths (src/python_example/<category>/<name>) ran out of the card, clipped."""
+    require_dx_app("src/python_example", "src/cpp_example")   # the dry run starts from an installed example
     page.set_viewport_size({"width": 390, "height": 900})
     try:
         page.click('[data-lab-flow="add-model"]')

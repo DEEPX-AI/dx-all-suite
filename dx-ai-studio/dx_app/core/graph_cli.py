@@ -73,7 +73,7 @@ def run(args: list[str], variant: str | None = None, timeout: float = 30.0) -> s
         variant = found[0] if found else "sync"
     b = binary(variant)
     if b is None:
-        raise GraphCliMissing(f"{NAMES[variant]} not found: build dx_app (./build.sh)")
+        raise GraphCliMissing(f"{NAMES[variant]} not found: build dx_app (./build.sh --target multi_model_graph_sync multi_model_graph_async)")
     return subprocess.run([str(b), *args], capture_output=True, text=True, cwd=str(config.DX_APP_ROOT),
                           env=env(), timeout=timeout)
 

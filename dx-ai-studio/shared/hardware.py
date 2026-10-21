@@ -500,8 +500,12 @@ def get_sysinfo():
     i = {"os": platform.platform(), "hostname": platform.node(),
          "arch": platform.machine(), "python": sys.version.split()[0],
          "dx_engine_available": False}
-    try: import cv2; i["opencv"] = cv2.__version__
-    except Exception: i["opencv"] = "N/A"
+    from shared.media import MediaError, run_media
+    try:
+        i["opencv"] = run_media("probe")["opencv"]
+    except MediaError as error:
+        i["opencv"] = "N/A"
+        i["opencv_error"] = str(error)
     # release.ver lives in the runtime repo, not the studio tree. _APP_ROOT is
     # <suite>/dx-ai-studio/dx_app, so the suite root is two levels up and the real files
     # are <suite>/dx-runtime/{dx_rt,dx_app}/release.ver.

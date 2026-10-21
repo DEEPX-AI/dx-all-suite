@@ -60,6 +60,10 @@ with live playback — WebRTC on the board or LAN, MJPEG from another computer o
   status. For a black or stalled remote view, check **Playback**, connectivity and the
   error message before restarting the pipeline; browser connectivity alone does not
   prove inference is running.
+- Existing model or video files without Studio completion evidence are **unverified**,
+  not automatically missing. Run **Model & Video Download** to verify or complete the
+  asset set. Without a completed video archive inventory, individual file records do
+  not establish that the whole archive is verified.
 
 !!! note "Related"
     DX Stream pipelines run the same `.dxnn` models compiled in

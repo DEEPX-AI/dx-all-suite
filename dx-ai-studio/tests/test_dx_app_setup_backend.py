@@ -49,6 +49,8 @@ class TestSetupDriverEntrypoint(unittest.TestCase):
 
         step = SETUP_STEPS['dx-driver']
         script = step['script']()
+        from tests.installed_sdk import require
+        require(script.parent.is_dir() and any(script.parent.iterdir()), f"{script.parent} is not checked out")
         self.assertTrue(script.exists(), f"{script} does not exist")
         self.assertEqual(script.name, 'install.sh')
         self.assertIn('--target=dx_rt_npu_linux_driver', step.get('args', []))
