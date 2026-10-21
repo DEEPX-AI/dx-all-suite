@@ -334,4 +334,11 @@
 .dx-steps-quick-text { flex: 1; min-width: 220px; }
 .dx-steps-quick-text b { display: block; font-size: var(--fs-md); }
 .dx-steps-quick-text p { margin: var(--sp-1) 0 0; color: var(--text-secondary); font-size: var(--fs-sm); }
+/* An optional requirement below the list — reported, never part of Run All (e.g. Xvfb for Live). */
+.dx-steps-optional { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-4); margin-top: var(--sp-4);
+  padding: var(--sp-3) var(--sp-4); border-radius: var(--radius-xl); border: 1px dashed var(--border-subtle); }
+.dx-steps-optional > .dx-ico { width: 20px; height: 20px; color: var(--text-secondary); }
+.dx-steps-optional-text { flex: 1; min-width: 220px; }
+.dx-steps-optional-text b { display: block; font-size: var(--fs-sm); }
+.dx-steps-optional-text p { margin: var(--sp-1) 0 0; color: var(--text-secondary); font-size: var(--fs-sm); }
 .dx-steps-run { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--sp-2); }

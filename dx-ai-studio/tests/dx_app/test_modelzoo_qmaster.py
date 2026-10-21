@@ -7,6 +7,7 @@ Following the Q-Pro convention, it installs into assets/models/q-master/.
 """
 from __future__ import annotations
 
+import io
 from pathlib import Path
 
 import pytest
@@ -79,7 +80,14 @@ def test_refresh_exists_checks_the_qmaster_dir(tmp_path, monkeypatch):
     mz = _mz()
     qm = tmp_path / "q-master"
     qm.mkdir()
-    (qm / "repvgga0_224x224.dxnn").write_bytes(b"x")
+    from shared.atomic_download import download_file
+
+    class Response(io.BytesIO):
+        status = 200
+        headers = {"Content-Length": "4"}
+
+    download_file("https://sdk.deepx.ai/x/repvgga0_224x224.dxnn",
+                  qm / "repvgga0_224x224.dxnn", open_url=lambda u: Response(b"DXNN"))
     monkeypatch.setattr(mz, "QMASTER_DIR", qm)
     monkeypatch.setitem(mz._CHIP_DIRS, "qmaster", (qm, "assets/models/q-master"))
 

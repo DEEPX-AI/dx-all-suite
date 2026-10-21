@@ -266,18 +266,36 @@ def test_clone_step_waits_for_same_name_suite_branch_and_refuses_an_old_suite(ga
     later). A sub-repo gate that starts in between used to fall back to the suite's
     default branch — an OLD suite without subrepo_check.sh — and die with
     `bash: suite/.deepx/tools/scripts/subrepo_check.sh: No such file` (3 of 4 gates
-    red on the first GHES sync, 2026-09-10). The clone step must (1) wait, bounded by
-    SUITE_BRANCH_WAIT, for the same-name suite branch to appear and (2) if it still has
+    red on the first GHES sync, 2026-09-10). The clone step must (1) retry, a bounded
+    number of times, for the same-name suite branch to appear and (2) if it still has
     to fall back, refuse a suite that lacks the script with an explicit ::error:: telling
-    the user to sync the suite first and re-run."""
+    the user to sync the suite first and re-run.
+
+    The bound is a RETRY COUNT, not a duration: the original 180 s / 10 s budget meant a
+    branch that does not exist on the suite at all (the common case for a sub-repo-only
+    change) burnt 19 ls-remote calls and three minutes of runner time before falling
+    back (2026-10-20). Job set-up plus checkout already absorb 20-30 s of the push gap."""
     label, root, subrepo_path, variant, path, doc = gate
     steps = _job(doc)["steps"]
     clone = next(s for s in steps if str(s.get("name", "")).startswith("Clone dx-all-suite"))
     run = clone.get("run", "")
     env = clone.get("env", {})
-    assert "SUITE_BRANCH_WAIT" in env, f"{label}/{variant}: clone step must expose SUITE_BRANCH_WAIT" + _stale_hint(label, root)
-    assert "SUITE_BRANCH_WAIT" in run and "sleep" in run and "ls-remote --heads" in run, (
+    assert "SUITE_BRANCH_RETRIES" in env, (
+        f"{label}/{variant}: clone step must expose SUITE_BRANCH_RETRIES" + _stale_hint(label, root)
+    )
+    assert str(env["SUITE_BRANCH_RETRIES"]) == "2", (
+        f"{label}/{variant}: a suite branch that never appears must cost 2 retries, not minutes "
+        f"(got {env['SUITE_BRANCH_RETRIES']!r})" + _stale_hint(label, root)
+    )
+    assert "SUITE_BRANCH_RETRY_DELAY" in env, (
+        f"{label}/{variant}: the delay between retries must be a named input" + _stale_hint(label, root)
+    )
+    assert "SUITE_BRANCH_RETRIES" in run and "sleep" in run and "ls-remote --heads" in run, (
         f"{label}/{variant}: clone step must poll ls-remote for the same-name suite branch"
+    )
+    assert "SUITE_BRANCH_WAIT" not in run and "SUITE_BRANCH_WAIT" not in env, (
+        f"{label}/{variant}: the time-bounded SUITE_BRANCH_WAIT was replaced by SUITE_BRANCH_RETRIES"
+        + _stale_hint(label, root)
     )
     assert 'suite/.deepx/tools/scripts/subrepo_check.sh' in run and "::error::" in run and "re-run" in run, (
         f"{label}/{variant}: clone step must refuse an old suite (no subrepo_check.sh) with an explicit error"

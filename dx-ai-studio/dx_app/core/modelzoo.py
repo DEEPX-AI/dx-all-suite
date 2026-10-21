@@ -11,6 +11,7 @@ from dx_app.core import config
 from dx_app.core.config import DX_APP_ROOT, ASSETS_DIR, SCRIPTS_DIR, CONFIG_FILE, MODELS_DIR as _CFG_MODELS_DIR
 from dx_app.core._html_dom import parse_html
 from shared.catalog_sources import parse_test_models_conf as _shared_parse_test_models_conf
+from shared.atomic_download import DownloadCancelled, asset_file_status, download_file
 
 DEVELOPER_PORTAL = "https://developer.deepx.ai"
 SDK_BASE = "https://sdk.deepx.ai"
@@ -54,6 +55,19 @@ _dl_state = {
 }
 
 
+def _installed_status(directory, dxnn_url, json_url=None):
+    """A tier is downloaded when all its files are present. Without a Studio completion record
+    it is ``unverified`` (still downloaded — never shown as "not downloaded"); downloading it
+    again verifies it by Content-Length and keeps a size-matching file in place."""
+    urls = [url for url in (dxnn_url, json_url) if url]
+    checks = [asset_file_status(directory / Path(urlparse(url).path).name) for url in urls]
+    present = bool(checks) and all(check["state"] != "missing" for check in checks)
+    verified = bool(checks) and all(check["ok"] for check in checks)
+    state = "verified" if verified else ("unverified" if present else "missing")
+    return {"exists": present, "install_state": state,
+            "install_detail": "; ".join(check["detail"] for check in checks)}
+
+
 def _reset_dl_state():
     _dl_state.update({
         "running": False, "total": 0, "done": 0, "current": "",
@@ -73,7 +87,8 @@ def _make_opener(source):
 
 
 def _open(opener, url, timeout):
-    req = urllib.request.Request(url, headers={"User-Agent": "DX-APP-ModelZoo/2.0"})
+    req = urllib.request.Request(url, headers={
+        "User-Agent": "DX-APP-ModelZoo/2.0", "Accept-Encoding": "identity"})
     return opener.open(req, timeout=timeout)
 
 
@@ -201,10 +216,8 @@ def _parse_models(html):
                 fps = cells[cstart + 16].get_text(strip=True) if len(cells) > cstart + 16 else ""
                 fps_watt = cells[cstart + 17].get_text(strip=True) if len(cells) > cstart + 17 else ""
 
-                ql_fname = Path(urlparse(ql_dxnn).path).name if ql_dxnn else None
-                qp_fname = Path(urlparse(qp_dxnn).path).name if qp_dxnn else None
-                ql_exists = bool(ql_fname and (MODELS_DIR / ql_fname).exists())
-                qp_exists = bool(qp_fname and (QPRO_DIR / qp_fname).exists())
+                ql_exists = _installed_status(MODELS_DIR, ql_dxnn, ql_json)["exists"]
+                qp_exists = _installed_status(QPRO_DIR, qp_dxnn, qp_json)["exists"]
 
                 uid = f"{task}|{name}"
                 if uid in seen:
@@ -286,7 +299,6 @@ def _parse_models(html):
                 if uid in seen:
                     continue
                 seen.add(uid)
-                fname = Path(urlparse(dxnn_url).path).name
                 models.append({
                     "name": mname, "class_name": "", "task": task,
                     "dataset": "", "input_resolution": "", "ops": "", "params": "",
@@ -296,7 +308,7 @@ def _parse_models(html):
                         "accuracy": "",
                         "dxnn_url": dxnn_url,
                         "json_url": json_url,
-                        "exists": (MODELS_DIR / fname).exists(),
+                        "exists": _installed_status(MODELS_DIR, dxnn_url, json_url)["exists"],
                     },
                     "qpro": {
                         "accuracy": "", "dxnn_url": None,
@@ -318,14 +330,11 @@ def _tier_block(row, tier):
     artifacts = row.get("artifacts") or {}
     dxnn_url = artifacts.get(f"{tier}_dxnn")
     dest_dir = _CHIP_DIRS[tier][0]
-    exists = False
-    if dxnn_url:
-        exists = (dest_dir / Path(urlparse(dxnn_url).path).name).exists()
     return {
         "accuracy": (row.get("accuracy") or {}).get(tier),
         "dxnn_url": dxnn_url,
         "json_url": artifacts.get(f"{tier}_json"),
-        "exists": exists,
+        **_installed_status(dest_dir, dxnn_url, artifacts.get(f"{tier}_json")),
     }
 
 
@@ -388,6 +397,7 @@ def modelzoo_list(source="internal"):
     if not models:
         return {"ok": False, "error": "No models found — page structure may have changed", "models": []}
 
+    _refresh_exists(models)
     with _cache_lock:
         _cache.update({"models": models, "source": source, "ts": time.time()})
 
@@ -401,8 +411,7 @@ def _refresh_exists(models):
             tier = m.get(chip)
             if not tier or not tier.get("dxnn_url"):
                 continue
-            fname = Path(urlparse(tier["dxnn_url"]).path).name
-            tier["exists"] = (dest_dir / fname).exists()
+            tier.update(_installed_status(dest_dir, tier["dxnn_url"], tier.get("json_url")))
 
 
 def _build_tasks(items):
@@ -473,7 +482,7 @@ def _ensure_dir(path):
 
 def _download_worker(tasks, source):
     """Background worker — download files sequentially (with thread pool for speed)."""
-    opener = _make_opener(source)
+    opener = None
 
     def _dl_one(task):
         if _dl_state["cancel"]:
@@ -488,50 +497,40 @@ def _download_worker(tasks, source):
         # is not downloaded and ends with "DX-RT 3.5 required": a download would fail to run anyway.
         urls = _dxrt.download_urls(task["url"])
         last_err = None
+
+        def validate(path):
+            if task["type"] == "dxnn" and _dxrt.needs_for_file(path):
+                raise ValueError("needs_dxrt")
+
         for url in urls:
-            tmp = dest.with_name(dest.name + ".part")
             try:
-                with _open(opener, url, 120) as r:
-                    if r.status != 200:
-                        last_err = f"HTTP {r.status}"
-                        continue
-                    downloaded = 0
-                    with open(tmp, "wb") as f:
-                        while True:
-                            chunk = r.read(256 * 1024)
-                            if not chunk:
-                                break
-                            if _dl_state["cancel"]:
-                                f.close()
-                                tmp.unlink(missing_ok=True)
-                                return {"file": dest.name, "status": "cancelled"}
-                            f.write(chunk)
-                            downloaded += len(chunk)
-                if task["type"] == "dxnn" and _dxrt.needs_for_file(tmp):
-                    tmp.unlink(missing_ok=True)
-                    last_err = "needs_dxrt"
-                    continue
-                os.replace(tmp, dest)
-                return {"file": dest.name, "status": "ok", "size": downloaded,
+                result = download_file(
+                    url, dest, open_url=lambda value: _open(opener, value, 120),
+                    cancel=lambda: _dl_state["cancel"], validate=validate,
+                    skip_existing=not (task["type"] == "dxnn" and _dxrt.needs_for_file(dest)),
+                )
+                return {"file": dest.name, "status": "ok", "size": result.size,
+                        "verification": result.verification,
                         "chip": task["chip"], "name": task["name"]}
+            except DownloadCancelled:
+                return {"file": dest.name, "status": "cancelled"}
             except Exception as e:
-                try:
-                    tmp.unlink(missing_ok=True)
-                except OSError:
-                    pass
-                last_err = str(e)
-        if task["type"] == "dxnn" and (last_err == "needs_dxrt" or (urls != [task["url"]] and _dxrt.is_v9_only(task["url"]))):
+                last_err = ("needs_dxrt" if getattr(e, "code", None) == 404
+                            and urls != [task["url"]] and _dxrt.is_v9_only(task["url"])
+                            else str(e))
+        if task["type"] == "dxnn" and last_err == "needs_dxrt":
             return {"file": dest.name, "status": "needs_dxrt", "needs_dxrt": _dxrt.NEEDS_FOR_V9,
                     "error": f"DX-RT {_dxrt.NEEDS_FOR_V9} required (this .dxnn is container v9)",
                     "chip": task["chip"], "name": task["name"]}
         return {"file": dest.name, "status": "error", "error": last_err or "download failed"}
 
     try:
+        opener = _make_opener(source)
         # Create the model dirs up front. Do it here (not at module import) so a
         # failure surfaces as a download error and, via the finally below, never
         # leaves the state stuck "running" (which would block every later download
         # with "Download already in progress").
-        for _dest_dir, _rel in _CHIP_DIRS.values():
+        for _dest_dir in {task["dest"].parent for task in tasks}:
             _ensure_dir(_dest_dir)
 
         with ThreadPoolExecutor(max_workers=4) as pool:

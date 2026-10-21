@@ -12,8 +12,11 @@ import os
 import shutil
 import tempfile
 import shlex
+import sys
 from pathlib import Path
 from dx_stream.core.config import DX_STREAM_ROOT
+from shared.paths import STUDIO_ROOT
+from shared.asset_setup import sample_assets_status, validate_stream_model
 from shared.runtime_host import RuntimeHost
 
 SETUP_STEPS = {
@@ -36,8 +39,8 @@ SETUP_STEPS = {
     "download-models": {
         "label_ko": "모델 & 비디오 다운로드",
         "label_en": "Model & Video Download",
-        "script": lambda: DX_STREAM_ROOT / "setup.sh",
-        "cwd": lambda: DX_STREAM_ROOT,
+        "cmd": [sys.executable, "-m", "shared.asset_setup", "stream"],
+        "cwd": lambda: STUDIO_ROOT,
     },
     "runtime-deps": {
         "label_ko": "DX-Runtime 종속성 설치",
@@ -171,7 +174,8 @@ def build_command_args(step_id: str, opts: dict = None) -> list[str]:
 
 
 def single_model_command_args(model_name: str) -> list[str]:
-    return ["bash", str(DX_STREAM_ROOT / "setup.sh"), f"--model={model_name}"]
+    validate_stream_model(DX_STREAM_ROOT, model_name)
+    return [sys.executable, "-m", "shared.asset_setup", "stream", "--model", model_name]
 
 
 def reconcile_managed_runtime() -> tuple[int, str]:
@@ -200,13 +204,13 @@ def reconcile_managed_runtime() -> tuple[int, str]:
 
 def install_model(model_name: str):
     """Download one model, reusing run_step().
-    Runs setup.sh --model=<name> in a background thread."""
+    Runs Studio's safe asset CLI in a background thread."""
     step_id = f"model-{model_name}"
     SETUP_STEPS[step_id] = {
         "label_ko": f"{model_name} 다운로드",
         "label_en": f"Download {model_name}",
         "cmd": single_model_command_args(model_name),
-        "cwd": lambda: DX_STREAM_ROOT,
+        "cwd": lambda: STUDIO_ROOT,
         "_temporary": True,
     }
     try:
@@ -391,8 +395,14 @@ def running_step() -> str | None:
 def get_setup_status() -> dict:
     """Completion state per step — build: .so exists, models: files exist, running: the step in progress."""
     from dx_stream.core import status as _status
+    assets = sample_assets_status("stream", sdk_root=DX_STREAM_ROOT)
+    model_counts = assets.get("models", {})
+    # Installed = present on disk; files without a Studio record are counted (and shown) as unverified.
+    assets.update(total=model_counts.get("total", 0),
+                  installed=model_counts.get("verified", 0) + model_counts.get("unverified", 0),
+                  unverified=model_counts.get("unverified", 0))
     return {
         "build": _status._check_build(),
-        "download-models": _status._check_models(),
+        "download-models": assets,
         "running": running_step(),
     }

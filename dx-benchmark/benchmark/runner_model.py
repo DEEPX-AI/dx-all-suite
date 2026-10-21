@@ -19,7 +19,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
-from .config import BenchmarkConfig, effective_sweep_timeout_sec
+from .config import BC_SWEEP_REPEATS, BenchmarkConfig, effective_sweep_timeout_sec
 from .model_catalog import ModelEntry
 from .npu_monitor import NpuMonitor, NpuStats
 from .npu_stats_util import merge_npu_stats as _merge_npu_stats
@@ -161,9 +161,11 @@ def _parse_input_tensor_shape(log: str) -> Optional[dict]:
 
 
 # Parser for `dxrun --max-throughput` output.
-#   round line:  [max-throughput] buffer-count=4 fps=115.55 loops=236 improvement=...
+#   round line:  [max-throughput] buffer-count=4 avg-fps=115.55 total-loops=236 improvement=...
+#                (avg-fps is the mean of the repeats; rc builds print `fps=`)
+#   repeat line: [max-throughput] buffer-count=4 repeat=1/3 fps=...   (raw sample, NOT matched)
 #   winner line: => Recommended buffer-count : 6
-_SWEEP_ROUND_RE = re.compile(r"\[max-throughput\] buffer-count=(\d+) fps=(\d+(?:\.\d+)?)")
+_SWEEP_ROUND_RE = re.compile(r"\[max-throughput\] buffer-count=(\d+) (?:avg-)?fps=(\d+(?:\.\d+)?)")
 _SWEEP_WINNER_RE = re.compile(r"=>\s*Recommended buffer-count\s*:\s*(\d+)")
 
 
@@ -277,9 +279,10 @@ def run_throughput(
     ort_tag = "ort_on" if use_ort else "ort_off"
 
     # -- buffer-count sweep: dxrun searches, we only read the result --
+    # No --buffer-count: an explicit range disables dxrun's early stop.
     scmd = ["run_model", "-m", str(model.path), "--max-throughput",
-            "--buffer-count", f"{cfg.bc_range_lo}-{cfg.bc_range_hi}",
-            "--probe-time", str(cfg.bc_probe_sec)]
+            "--probe-time", str(cfg.bc_probe_sec),
+            "--sweep-tolerance", str(cfg.bc_sweep_tolerance_pct)]
     if use_ort:
         scmd.append("--use-ort")
     sweep_timeout = effective_sweep_timeout_sec(cfg)
@@ -318,6 +321,12 @@ def run_throughput(
             why = f"sweep produced no round (rc={sweep_rc}); model load or launch failed"
         elif max(measured) <= 0.0:
             why = "every sweep round measured 0 fps (device unresponsive)"
+        elif "CRITICAL runtime event" in sweep_log:
+            # dxrun discards the sweep on a CRITICAL event, typically THROTTLING_EMERGENCY.
+            code = ("THROTTLING_EMERGENCY" if "THROTTLING_EMERGENCY" in sweep_log
+                    else "see raw sweep log")
+            why = (f"dxrun invalidated the sweep after a CRITICAL runtime event "
+                   f"({code}); no buffer count recommended (rc={sweep_rc})")
         else:
             why = (f"sweep ran but gave no recommendation (rc={sweep_rc}); "
                    "dxrun output format may have changed")
@@ -336,7 +345,7 @@ def run_throughput(
             reason=why,
         )
     print(f"    [buffer-count] winner={buffer_count} "
-          f"(sweep {cfg.bc_range_lo}-{cfg.bc_range_hi} @ {cfg.bc_probe_sec}s: "
+          f"(auto-stop sweep @ {cfg.bc_probe_sec}s x {BC_SWEEP_REPEATS}: "
           + ", ".join(f"{k}:{v:.1f}" for k, v in sorted(bc_curve.items())) + ")", flush=True)
     # Keep the raw sweep output on success too. Only the derived curve reaches the
     # result file, so dxrun's own decision signals -- improvement/peak-drop/stall/

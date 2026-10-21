@@ -7,9 +7,11 @@ the layered DAG): imports inference_exec only. No dependency on live.py or
 inference.py — this keeps the DAG acyclic.
 """
 
+import logging
 import os, time, threading, tempfile, subprocess, io
 from pathlib import Path
 from dx_app.core.inference_exec import _TMP
+from shared.media import MediaError, run_media
 
 _xvfb_procs = {}             # slot_idx -> Xvfb proc
 _xvfb_lock = threading.Lock()
@@ -104,51 +106,37 @@ def _get_capture_lock(slot_idx):
 
 
 def _crop_roi(imgp, roi):
+    tmp = None
     try:
-        import cv2; img = cv2.imread(str(imgp))
-        if img is None:
-            print(f"[ROI] Failed to read image: {imgp}")
-            return None
-        ih, iw = img.shape[:2]
-        x = max(0, min(int(roi["x"]), iw - 1))
-        y = max(0, min(int(roi["y"]), ih - 1))
-        w = max(1, min(int(roi["w"]), iw - x))
-        h = max(1, min(int(roi["h"]), ih - y))
-        print(f"[ROI] Crop: x={x},y={y},w={w},h={h} from image {iw}x{ih}")
-        cropped = img[y:y+h, x:x+w]
-        if cropped.size == 0:
-            print("[ROI] Empty crop result")
-            return None
-        tmp = tempfile.mktemp(suffix=".jpg", dir=_TMP)
-        cv2.imwrite(tmp, cropped)
-        print(f"[ROI] Saved crop to {tmp} ({w}x{h})")
+        fd, tmp = tempfile.mkstemp(suffix=".jpg", dir=_TMP)
+        os.close(fd)
+        run_media("crop", source=str(imgp), output=tmp, roi=roi)
+        print(f"[ROI] Saved crop to {tmp}")
         return tmp
-    except Exception as e:
-        print(f"[ROI] Error: {e}")
-        return None
+    except (MediaError, OSError) as error:
+        if tmp is not None:
+            try:
+                Path(tmp).unlink(missing_ok=True)
+            except OSError as cleanup_error:
+                logging.warning("ROI staging cleanup failed for %s: %s", tmp, cleanup_error)
+        print(f"[ROI] Error: {error}")
+        raise
 
 
 def list_cameras():
     """Scan /dev/video* and return available camera devices."""
-    cams = []
     import glob
+    devices = []
     for dev in sorted(glob.glob("/dev/video*")):
         idx = dev.replace("/dev/video", "")
         try:
-            idx_int = int(idx)
+            int(idx)
         except ValueError:
             continue
-        try:
-            import cv2
-            cap = cv2.VideoCapture(idx_int)
-            ok = cap.isOpened()
-            w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)) if ok else 0
-            h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)) if ok else 0
-            cap.release()
-            cams.append({"index": idx_int, "device": dev, "available": ok, "width": w, "height": h})
-        except Exception:
-            cams.append({"index": idx_int, "device": dev, "available": False, "width": 0, "height": 0})
-    return cams
+        devices.append(dev)
+    if not devices:
+        return []
+    return run_media("cameras", devices=devices)["cameras"]
 
 
 def _ensure_xvfb(slot_idx=0):

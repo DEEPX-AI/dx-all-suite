@@ -151,10 +151,16 @@ function mzRenderTable() {
 
       var dl = '–';
       if (has) {
-        if (tier.exists && !inCart) {
+        // Downloaded without a Studio record: still downloaded (a check, never "not downloaded") but
+        // selectable — downloading it again verifies the file by size and keeps a matching one in place.
+        var unverified = !!(tier.exists && tier.install_state === 'unverified');
+        if (tier.exists && !unverified && !inCart) {
           dl = '<span class="badge b-ok txt-xs" title="' + T('Downloaded') + '">' + DXIcon('check') + '</span>';
         } else {
-          dl = '<label class="mz-chk-wrap" title="' + T('Add to cart') + ' — ' + chip.label + '">'
+          dl = (unverified ? '<span class="badge b-warn txt-xs mz-unverified" title="'
+                + esc(T('Unverified — no download record. Add it to the cart to verify it.')) + '">'
+                + DXIcon('check') + '</span> ' : '')
+             + '<label class="mz-chk-wrap" title="' + T('Add to cart') + ' — ' + chip.label + '">'
              + '<input type="checkbox" aria-label="' + esc(T('Add to cart') + ' — ' + m.name + ' ' + chip.label) + '" onchange="mzToggleChip(\'' + esc(m.name) + '\',\'' + chip.key + '\')"'
              + (inCart ? ' checked' : '') + '>'
              + '<span class="mz-chk ' + chip.chk + '"></span></label>';
@@ -226,7 +232,7 @@ function mzToggleCart(name) {
       var entry = {};
       for (var i = 0; i < MZ_CHIPS.length; i++) {
         var t = m[MZ_CHIPS[i].key];
-        entry[MZ_CHIPS[i].key] = !!(t && t.dxnn_url && !t.exists);
+        entry[MZ_CHIPS[i].key] = !!(t && t.dxnn_url && (!t.exists || t.install_state === 'unverified'));
       }
       // If everything is already downloaded the cart looks empty, so turn on the first tier that can be downloaded.
       if (mzCartIsEmpty(entry)) {
@@ -284,7 +290,7 @@ function mzSelectAllNew() {
     var e = {};
     for (var i = 0; i < MZ_CHIPS.length; i++) {
       var t = m[MZ_CHIPS[i].key];
-      e[MZ_CHIPS[i].key] = !!(t && t.dxnn_url && !t.exists);
+      e[MZ_CHIPS[i].key] = !!(t && t.dxnn_url && (!t.exists || t.install_state === 'unverified'));
     }
     if (!mzCartIsEmpty(e)) {
       MZ.cart[m.name] = e;

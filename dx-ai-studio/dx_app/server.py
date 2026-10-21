@@ -7,6 +7,7 @@ from pathlib import Path
 
 from shared.dx_server import DXBaseHandler, DXServer, RequestBodyError
 from shared import debug_log
+from shared.media import MediaError
 
 from dx_app.core import config
 from dx_app.core.config import (resolve_model_path, SCRIPT_DIR, DX_APP_ROOT, STATIC_DIR, TEMPLATES_DIR, SERVER_NAME, OUTPUTS_DIR,
@@ -429,7 +430,12 @@ class Handler(DXBaseHandler):
             if path=="/api/outputs":return self.send_json(list_outputs())
             if path=="/api/postprocessors":return self.send_json(POSTPROCESSORS)
             if path=="/api/task_types":return self.send_json(TASK_TYPES)
-            if path=="/api/cameras":return self.send_json(list_cameras())
+            if path=="/api/cameras":
+                try:
+                    return self.send_json(list_cameras())
+                except MediaError as error:
+                    return self.send_json(
+                        {"error_key": "media_runtime_unavailable", "error": str(error)}, 503)
             if path=="/api/live_poll":return self.send_json(poll_inference(self.read_query_param("id")))
             if path=="/api/live_result":return self.send_json(get_inference_result(self.read_query_param("id")))
             if path=="/api/run_poll":
@@ -834,6 +840,31 @@ def create_server(port=DEFAULT_PORT):
     return srv
 
 
+def _start_telemetry():
+    """Bind NPU telemetry for get_hw() without ever stopping the server.
+
+    Under the launcher DX Monitor already runs the one NPU telemetry worker, so DX App reads
+    it over loopback (shared.telemetry_client) instead of polling the device a second time.
+    Standalone, DX App starts its own supervisor. Any failure leaves telemetry unavailable with
+    the error (shown in run records and reports) — never mock values.
+    Returns the hardware_init module when DX App owns a supervisor to stop, else None."""
+    from shared import hardware as shared_hardware
+    from shared.telemetry_client import FailedTelemetry, MonitorTelemetry, monitor_port_file
+
+    port_file = monitor_port_file()
+    if port_file is not None:
+        shared_hardware.init_hw(telemetry=MonitorTelemetry(port_file), explicit_mock=False)
+        return None
+    try:
+        from dx_monitor.core import hardware_init
+        hardware_init.init(explicit_mock=False)
+        return hardware_init
+    except Exception as error:  # noqa: BLE001 — telemetry must never take the server down
+        print(f"[DX App] NPU telemetry unavailable: {error}", file=sys.stderr)
+        shared_hardware.init_hw(telemetry=FailedTelemetry(error), explicit_mock=False)
+        return None
+
+
 def main():
     global _gui_port
     import argparse
@@ -849,16 +880,27 @@ def main():
     if srv is None:
         sys.exit(1)
 
-    dx.register_signals()
-    _hb_touch()
-    if _idle_shutdown_enabled():
-        threading.Thread(target=_watchdog, args=(srv,), daemon=True).start()
-    dx.print_banner(args.port)
+    telemetry_owner = _start_telemetry()
+    try:
+        dx.register_signals()
+        _hb_touch()
+        if _idle_shutdown_enabled():
+            threading.Thread(target=_watchdog, args=(srv,), daemon=True).start()
+        dx.print_banner(args.port)
 
-    if not args.no_browser:
-        threading.Timer(0.5, lambda: webbrowser.open(f"http://localhost:{args.port}")).start()
+        if not args.no_browser:
+            threading.Timer(0.5, lambda: webbrowser.open(f"http://localhost:{args.port}")).start()
 
-    srv.serve_forever()
+        srv.serve_forever()
+    finally:
+        try:
+            _stop_children()
+        finally:
+            try:
+                if telemetry_owner is not None:
+                    telemetry_owner.shutdown()
+            finally:
+                srv.server_close()
     print("Server stopped.")
 
 if __name__=="__main__":main()

@@ -314,10 +314,11 @@ def test_sweep_is_given_the_effective_timeout_not_the_floor(monkeypatch):
     regression to ``cfg.bc_sweep_timeout_sec`` if the reason text ever changes.
     The reason is checked too: it is the operator-facing copy of the same value.
     """
-    cfg = _cfg(0)
+    cfg = BenchmarkConfig(model_throughput_runs=3, model_warmup=1, model_warmup_retries=1,
+                          model_run_retries=0, bc_probe_sec=30)
     floor, effective = cfg.bc_sweep_timeout_sec, effective_sweep_timeout_sec(cfg)
     # Guard the fixture: with equal values this test could not tell them apart.
-    assert (floor, effective) == (300, 340)
+    assert (floor, effective) == (900, 2325)
 
     seen = {}
 
@@ -403,3 +404,42 @@ def test_successful_sweep_log_is_persisted(monkeypatch, tmp_path):
     text = saved.read_text()
     for signal in ("improvement=", "peak-drop=", "stall=", "loops=", "Max FPS"):
         assert signal in text, f"{signal!r} missing from the saved sweep log"
+
+
+def test_sweep_command_lets_dxrun_stop_early_and_pins_the_tolerance(monkeypatch):
+    """The sweep command carries no --buffer-count range (it disables early stop) and pins --sweep-tolerance."""
+    seen = {}
+
+    def _capture(cmd, *a, **kw):
+        seen.setdefault("cmd", cmd)
+        raise runner_model.subprocess.TimeoutExpired(cmd="run_model", timeout=kw.get("timeout"))
+
+    monkeypatch.setattr(runner_model.subprocess, "run", _capture)
+    monkeypatch.setattr(runner_model, "NpuMonitor", _FakeMonitor)
+    monkeypatch.setattr(runner_model, "_cleanup_run_model", lambda *a, **kw: None)
+    monkeypatch.setattr(runner_model, "_maybe_collect_dxrt_incident", lambda *a, **kw: None)
+    runner_model.run_throughput(_model(), use_ort=True, cfg=_cfg(0), save_dir=None)
+
+    cmd = seen["cmd"]
+    assert "--max-throughput" in cmd
+    assert "--buffer-count" not in cmd
+    assert cmd[cmd.index("--probe-time") + 1] == "10"
+    assert cmd[cmd.index("--sweep-tolerance") + 1] == "1.0"
+    assert "--use-ort" in cmd
+
+
+CRITICAL_SWEEP_LOG = """\
+[max-throughput] buffer-count=5 avg-fps=67.26 total-loops=2033 improvement=3.88% peak-drop=0.00% stall=0
+[RuntimeEventDispatcher] level=CRITICAL type=DEVICE_STATUS code=THROTTLING_EMERGENCY message="Throttling emergency occurred: Device-ID=0 NPU-ID=2. EMERGENCY_BLOCK"
+[ERR] Max-throughput sweep invalidated: a CRITICAL runtime event fired during buffer-count 7 repeat 2. No buffer count is recommended from this sweep.
+"""
+
+
+def test_sweep_invalidated_by_a_critical_event_is_not_blamed_on_format_drift(monkeypatch):
+    """A sweep discarded by dxrun after a CRITICAL event must not be reported as an output-format change."""
+    r = _run_with_sweep(monkeypatch, returncode=255, sweep_result=(None, {3: 53.6, 4: 64.7}),
+                        stdout=CRITICAL_SWEEP_LOG)
+    assert r.status == "no_fps"
+    assert "CRITICAL runtime event" in r.reason
+    assert "THROTTLING_EMERGENCY" in r.reason
+    assert "output format may have changed" not in r.reason

@@ -87,14 +87,22 @@ def test_our_orphaned_sub_server_is_killed(launcher_mod, procs):
     assert not _alive(ours)
 
 
-def test_group_kill_only_when_the_pid_leads_its_own_group(launcher_mod, procs):
+@pytest.mark.parametrize("legacy_popen", [False, True])
+def test_group_kill_only_when_the_pid_leads_its_own_group(launcher_mod, procs, monkeypatch, legacy_popen):
     """Even our own server is not signalled as a group unless it leads its group: one started without setsid
     shares the group of the shell that started the launcher."""
     L = launcher_mod
     server_py = L.STUDIO_DIR / "dx_fake" / "server.py"
+    if legacy_popen:
+        popen = subprocess.Popen
+        def pre311_popen(*args, **kwargs):
+            if "process_group" in kwargs:
+                raise TypeError("Popen.__init__() got an unexpected keyword argument 'process_group'")
+            return popen(*args, **kwargs)
+        monkeypatch.setattr(subprocess, "Popen", pre311_popen)
     # A separate group in the same session: a setsid child is in another session and cannot join via setpgid.
     leader = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"],
-                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, process_group=0)
+                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, preexec_fn=os.setpgrp)
     procs.append(leader)
     # Put our server.py into the leader's group, without setsid.
     member = subprocess.Popen([sys.executable, str(server_py), "--port", "0", "--no-browser"],

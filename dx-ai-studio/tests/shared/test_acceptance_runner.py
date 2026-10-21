@@ -5,6 +5,7 @@ import importlib.util
 import json
 import subprocess
 import sys
+from types import SimpleNamespace
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
@@ -98,7 +99,8 @@ def test_every_mapped_test_exists_and_is_collected():
 # --- statuses, plan and reports ---------------------------------------------------------------
 
 HW = {"npu": (True, "DXRT v3.5.0"), "camera": (False, "no camera (/dev/video* missing)"), "dx_com": (True, "dx_com"),
-      "llm": (False, "no LLM configured"), "aws": (False, "no AWS credentials"), "browser": (True, "chromium")}
+      "llm": (False, "no LLM configured"), "aws": (False, "no AWS credentials"), "browser": (True, "chromium"),
+      "dx_app": (True, "dx_app · 300 models"), "dx_rt": (True, "dx_engine"), "dx_compiler": (True, "dx_com")}
 
 
 def _ac(tests, requires=()):
@@ -202,3 +204,145 @@ def test_preflight_stops_a_browser_run_without_playwright_or_chromium():
 def test_preflight_lets_a_run_without_browser_ac_through():
     tickets = [{"key": "X", "ac": [{"id": "X-AC1", "requires": [], "tests": ["t::a"]}]}]
     assert acc.preflight(tickets, {"browser": (False, "playwright not installed")}) == []
+
+
+def test_acceptance_uses_isolated_workspaces_below_the_callers_temp_root(monkeypatch, tmp_path):
+    monkeypatch.setenv("DX_ACCEPT_TMP", str(tmp_path))
+    monkeypatch.setenv("DX_ACCEPT_HW", "")
+    monkeypatch.setattr(acc, "_load_hardware_probe", lambda: lambda: HW)
+    monkeypatch.setattr(acc, "plan", lambda *args: [])
+    created = []
+    mkdtemp = acc.tempfile.mkdtemp
+
+    def record_workspace(**kwargs):
+        path = Path(mkdtemp(**kwargs))
+        created.append(path)
+        return str(path)
+
+    monkeypatch.setattr(acc.tempfile, "mkdtemp", record_workspace)
+    for n in range(2):
+        assert acc.main(["478", "--out", str(tmp_path / f"report-{n}")]) == 1
+    assert all(p.parent == tmp_path for p in created)
+    assert len(set(created)) == 2
+    assert all(not p.exists() for p in created)
+
+
+def test_acceptance_compiler_allows_only_its_workspace_and_preserves_extra_roots(monkeypatch, tmp_path):
+    from tests.acceptance import conftest
+
+    root = tmp_path / "studio"
+    root.mkdir()
+    monkeypatch.setattr(conftest, "ROOT", root)
+    monkeypatch.setenv("DX_ACCEPT_TMP", str(tmp_path))
+    monkeypatch.setenv("DX_COMPILER_ALLOWED_ROOTS", "/existing/root")
+    monkeypatch.setattr(conftest, "_wait_ready", lambda studio: None)
+    captured = {}
+
+    def launch(*args, **kwargs):
+        captured.update(kwargs["env"])
+        return SimpleNamespace(poll=lambda: 0)
+
+    monkeypatch.setattr(conftest.subprocess, "Popen", launch)
+    request = SimpleNamespace(module=SimpleNamespace(LAUNCHER_ENV={}))
+    studio = conftest.studio.__wrapped__(request)
+    try:
+        running = next(studio)
+        allowed = captured["DX_COMPILER_ALLOWED_ROOTS"].split(conftest.os.pathsep)
+        assert allowed == ["/existing/root", str(running.run_dir.parent)]
+        assert "/dev/shm" not in allowed
+        from dx_compiler.core.path_policy import PathPolicyError, check_output_dir
+
+        monkeypatch.setenv("DX_COMPILER_ALLOWED_ROOTS", captured["DX_COMPILER_ALLOWED_ROOTS"])
+        output = running.run_dir.parent / "compile-out"
+        assert check_output_dir(str(output)) == output.resolve()
+        with pytest.raises(PathPolicyError, match="outside the allowed folders"):
+            check_output_dir(str(tmp_path / "unrelated-output"))
+    finally:
+        studio.close()
+
+
+# --- source identity (S6) --------------------------------------------------------------------
+# HEAD alone misreports a dirty tree, and a Studio copy inside another checkout (the remote
+# validation workspace under var/) reported the enclosing repository's commit.
+
+def _tree(root: Path) -> Path:
+    (root / "dx_app").mkdir(parents=True)
+    (root / "dx_app" / "server.py").write_text("print('a')\n")
+    (root / ".gitignore").write_text("var/\n__pycache__/\n*.py[cod]\n.venv/\n")
+    (root / "var" / "acceptance").mkdir(parents=True)
+    (root / "var" / "acceptance" / "report.md").write_text("run output\n")
+    return root
+
+
+def _git(root: Path, *args):
+    subprocess.run(["git", "-C", str(root), "-c", "user.name=t", "-c", "user.email=t@t", *args],
+                   check=True, capture_output=True)
+
+
+def test_identity_records_commit_dirty_flag_and_a_source_fingerprint(tmp_path):
+    root = _tree(tmp_path / "studio")
+    _git(root, "init", "-q")
+    _git(root, "add", "-A")
+    _git(root, "commit", "-qm", "init")
+    clean = acc.source_identity(root)
+    assert clean["commit"] and clean["commit"] != "none" and clean["dirty"] is False
+    assert len(clean["fingerprint"]) == 64 and clean["files"] == 2
+
+    (root / "var" / "acceptance" / "report.md").write_text("another run\n")
+    (root / "dx_app" / "__pycache__").mkdir()
+    (root / "dx_app" / "__pycache__" / "server.cpython-312.pyc").write_bytes(b"x")
+    assert acc.source_identity(root)["fingerprint"] == clean["fingerprint"], "run outputs are not source"
+
+    (root / "dx_app" / "server.py").write_text("print('b')\n")
+    edited = acc.source_identity(root)
+    assert edited["dirty"] is True and edited["fingerprint"] != clean["fingerprint"]
+    assert edited["commit"] == clean["commit"]
+
+    (root / "dx_app" / "server.py").write_text("print('a')\n")
+    (root / "dx_app" / "new.py").write_text("x = 1\n")
+    untracked = acc.source_identity(root)
+    assert untracked["dirty"] is True and untracked["fingerprint"] != clean["fingerprint"]
+
+
+def test_a_copy_inside_another_checkout_reports_no_commit_but_the_same_fingerprint(tmp_path):
+    outer = tmp_path / "outer"
+    outer.mkdir()
+    (outer / ".gitignore").write_text("studio/var/\n")
+    (outer / "README").write_text("x\n")
+    _git(outer, "init", "-q")
+    _git(outer, "add", "-A")
+    _git(outer, "commit", "-qm", "outer")
+    (outer / ".gitignore").write_text("studio/\n")
+    copy = _tree(outer / "studio")
+    plain = _tree(tmp_path / "plain")
+    identity = acc.source_identity(copy)
+    assert identity["commit"] == "none" and identity["dirty"] is None
+    assert identity["fingerprint"] == acc.source_identity(plain)["fingerprint"]
+
+
+def test_the_report_shows_commit_dirty_and_fingerprint(tmp_path, monkeypatch):
+    monkeypatch.setattr(acc, "source_identity", lambda root: {
+        "commit": "abc1234", "tree": "def5678", "dirty": True, "fingerprint": "f" * 64, "files": 3,
+        "method": "git"})
+    env = {**acc.environment({"npu": (False, "none")}), "when": "2026-10-20T12:00:00", "stopped": ""}
+    assert env["source"]["dirty"] is True and env["git"] == "abc1234+dirty"
+    acc.write_markdown(tmp_path / "report.md", [], env, 1.0)
+    text = (tmp_path / "report.md").read_text()
+    assert "abc1234+dirty" in text and "f" * 12 in text
+
+
+def test_the_source_identity_is_printable_without_running_anything(capsys):
+    assert acc.main(["--source-identity"]) == 0
+    printed = json.loads(capsys.readouterr().out)
+    assert set(printed) >= {"commit", "dirty", "fingerprint", "files"}
+
+
+def test_the_no_ai_chat_check_is_not_run_where_an_agent_cli_is_installed(tmp_path):
+    """485-AC4 needs Chat with no AI connected; a system-wide agent CLI connects it."""
+    from tests.acceptance import test_sdkreq_485_toolbar_chat as chat
+
+    assert chat._system_agent_clis(str(tmp_path)) == []
+    cli = tmp_path / "copilot"
+    cli.write_text("#!/bin/sh\n")
+    cli.chmod(0o755)
+    assert chat._system_agent_clis(str(tmp_path)) == [str(cli)]

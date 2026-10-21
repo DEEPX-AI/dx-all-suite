@@ -70,8 +70,10 @@ def test_about_and_sdk_library_cards_open_their_views(pages):
         ".join('|') === want", arg="Developer|Company|Technology|Products|Partners|Awards|News", timeout=15000)
     tabs.nth(3).click()
     # The tab scrolls its section into view (About is one page with scroll-spy anchors).
-    page.wait_for_function("() => { const r = document.getElementById('aboutProducts').getBoundingClientRect();"
-                           " return r.top >= 0 && r.top < innerHeight * 0.6; }", timeout=10000)
+    # The section is rendered from about-data.json, so it may not exist yet: wait for it rather than throw.
+    page.wait_for_function("() => { const s = document.getElementById('aboutProducts'); if (!s) return false;"
+                           " const r = s.getBoundingClientRect(); return r.top >= 0 && r.top < innerHeight * 0.6; }",
+                           timeout=10000)
     _go_home(page)
     page.locator("#studioGrid .sdk-card").click()
     page.locator("#sdk-library-view.visible").wait_for()

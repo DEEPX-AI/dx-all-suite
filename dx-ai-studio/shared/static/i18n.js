@@ -291,6 +291,8 @@
 
   function _translateEl(el) {
     if (!el.childNodes.length) return;
+    // The chat widget translates its own labels (data-chat-t); a key missing here would put them back in English.
+    if (el.hasAttribute('data-chat-t')) return;
     if (el.querySelector('.ko, .en, .ja, .es, .zh-CN, .zh-TW')) return;
     // Below, el.textContent is replaced wholesale, which wipes child elements.
     // A child that carries its own key owns the translation.

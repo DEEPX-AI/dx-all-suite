@@ -237,6 +237,7 @@ def test_live_refuses_an_image_only_model(tmp_path, monkeypatch):
     """Some runners refuse -v (arcface, CLIP, ReID, VPR, DOPE, SFA3D, DeepMAR, CAS-ViT) and exit at once, leaving a
     black screen. The UI does not block camera or RTSP for continuous runs, so the server refuses them with a reason."""
     from dx_app.core import live
+    monkeypatch.setattr(live, "_deps_missing", lambda: [])   # the host's Xvfb is not what this test is about
     monkeypatch.setattr(live.config, "model_image_only", lambda cat, name: True)
     r = live.run_inference_live("arcface_mobilefacenet_112x112", "face_recognition", "m.dxnn",
                                 input_type="camera", slot_idx=5)
@@ -453,6 +454,7 @@ def _live_cmd(tmp_path, monkeypatch, **kw):
     monkeypatch.setattr(live, "resolve_model_path", lambda f, r: model)
     monkeypatch.setattr(live, "_ensure_xvfb", lambda s: None)
     monkeypatch.setattr(live, "_start_cam_mux", lambda idx, n: True)
+    monkeypatch.setattr(live, "_deps_missing", lambda: [])
     monkeypatch.setattr(live.subprocess, "Popen", FakeProc)
     monkeypatch.setattr(live, "_video_frame_count", lambda p: None)
     slot = kw.pop("slot_idx", 6)
@@ -468,6 +470,15 @@ def test_live_rtsp_goes_in_as_rtsp(tmp_path, monkeypatch):
     url = "rtsp://127.0.0.1:8554/cam"
     cmd = _live_cmd(tmp_path, monkeypatch, input_type="rtsp", rtsp_url=url)
     assert cmd[cmd.index(url) - 1] == "-r"
+
+
+@pytest.mark.parametrize("camera_id", [None, 2])
+def test_single_slot_camera_uses_the_camera_source(tmp_path, monkeypatch, camera_id):
+    exists = Path.exists
+    monkeypatch.setattr(Path, "exists", lambda p: str(p) == f"/dev/video{camera_id or 0}" or exists(p))
+    cmd = _live_cmd(tmp_path, monkeypatch, input_type="camera", camera_id=camera_id)
+    assert cmd[cmd.index("-c") + 1] == str(camera_id or 0)
+    assert "-v" not in cmd and "-r" not in cmd
 
 
 def test_multi_slot_camera_streams_go_in_as_urls(tmp_path, monkeypatch):

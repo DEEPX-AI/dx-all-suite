@@ -12,6 +12,7 @@ import time
 import pytest
 
 from dx_app.core import config, graph_catalog, graph_cli, graph_memory, graph_run, graph_validate
+from tests.installed_sdk import require
 
 pytestmark = pytest.mark.requires_dx_runtime
 
@@ -26,9 +27,9 @@ CASCADE = {"version": 1, "name": "person-attributes",
 
 @pytest.fixture(autouse=True)
 def _real_binary():
-    if graph_cli.available() is None:
-        pytest.skip("dx_app's multi_model_graph_{sync,async} is not built")
+    require(graph_cli.available() is not None, "dx_app's multi_model_graph_{sync,async} is not built")
     graph_cli._caps_cache.clear()
+    require(graph_cli.capabilities()["json"], "dx_app's graph binary predates --json (a dx_app before the release)")
     graph_catalog._cache.update(key=None, value=None)
 
 

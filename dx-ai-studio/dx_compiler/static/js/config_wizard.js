@@ -246,9 +246,19 @@ function _srvErr(msg) {
     /* Immediate feedback on preprocessing values, in the same style and place as validateInputShapes.
        Rules must match the server (validation.validate_preprocessings):
        sizes (width/height/size/scale) are positive, std may not be 0.
-       axis, x and pad_value are **not** checked: real configs use both scalars
-       and lists there, and axis can be negative. Blocking them would reject valid values. */
+       Arithmetic x accepts numeric scalars/lists of either sign, but div excludes 0.
+       axis and pad_value remain unrestricted. */
     var PREP_POSITIVE = ['width', 'height', 'size', 'scale'];
+    var PREP_ARITHMETIC = ['div', 'mul', 'subtract', 'add'];
+
+    function parseArithmeticOperand(raw) {
+        const parse = part => {
+            const text = part.trim();
+            const n = Number(text);
+            return text !== '' && Number.isFinite(n) ? n : text;
+        };
+        return raw.includes(',') ? raw.split(',').map(parse) : parse(raw);
+    }
 
     function validatePreprocessings() {
         const el = document.getElementById('wiz-prep-warning');
@@ -259,6 +269,14 @@ function _srvErr(msg) {
             item.querySelectorAll('.prep-input').forEach(inp => {
                 const key = inp.dataset.param;
                 const raw = (inp.value || '').trim();
+                if (key === 'x' && PREP_ARITHMETIC.indexOf(tName) !== -1) {
+                    const value = parseArithmeticOperand(raw);
+                    const values = Array.isArray(value) ? value : [value];
+                    if (values.some(n => typeof n !== 'number' || (tName === 'div' && n === 0))) {
+                        problems.push(tName + '.x = ' + raw);
+                    }
+                    return;
+                }
                 if (raw === '') return;
                 if (PREP_POSITIVE.indexOf(key) !== -1) {
                     const n = Number(raw);
@@ -491,7 +509,9 @@ function _srvErr(msg) {
                 item.querySelectorAll('.prep-input').forEach(inp => {
                     const key = inp.dataset.param;
                     const raw = inp.value.trim();
-                    if (raw.includes(',')) {
+                    if (key === 'x' && PREP_ARITHMETIC.indexOf(tName) !== -1) {
+                        params[key] = parseArithmeticOperand(raw);
+                    } else if (raw.includes(',')) {
                         params[key] = raw.split(',').map(v => parseFloat(v.trim()));
                     } else {
                         const num = parseFloat(raw);

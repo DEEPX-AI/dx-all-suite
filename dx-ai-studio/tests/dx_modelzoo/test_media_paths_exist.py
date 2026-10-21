@@ -35,6 +35,9 @@ def test_every_media_path_in_the_catalog_exists():
         if res and not _available(DATA_DIR, res):
             missing.append(("result", m["id"], res))
     assert missing == [], missing[:8]
+    from tests.installed_sdk import require
+    require(_available(DATA_DIR, "thumbnails/beit_large_patch16.jpg"),
+            "the Model Zoo thumbnails are not generated (dx_modelzoo/scripts/generate_thumbnails.py)")
     beit = next(m for m in models if m["id"] == "beit_l_p16_384x384")
     assert beit["thumbnail"] == "thumbnails/beit_large_patch16.jpg"
 
@@ -120,3 +123,19 @@ def test_missing_media_does_not_borrow_another_models_image(tmp_path, monkeypatc
 
     assert model["thumbnail"] is None
     assert model["example_images"] == {}
+
+
+def test_a_release_with_only_the_optimized_copies_keeps_its_images(tmp_path, monkeypatch):
+    """A clone ships data/optimized (tracked), not data/thumbnails or data/examples (ignored). The catalog keeps a
+    path whose optimized copy exists — the page loads that copy — and drops one with neither."""
+    cat = importlib.import_module("dx_modelzoo.core.catalog")
+    (tmp_path / "optimized" / "thumbnails").mkdir(parents=True)
+    (tmp_path / "optimized" / "thumbnails" / "m1-jpg.webp").write_bytes(b"RIFF")
+    (tmp_path / "optimized" / "examples").mkdir(parents=True)
+    (tmp_path / "optimized" / "examples" / "m1_result-png.jpg").write_bytes(b"\xff\xd8")
+    monkeypatch.setattr(cat, "DATA_DIR", tmp_path)
+    model = {"id": "m1", "thumbnail": "thumbnails/m1.jpg",
+             "example_images": {"result": "examples/m1_result.png", "original": "examples/m1_original.jpg"}}
+    cat._settle_media(model)
+    assert model["thumbnail"] == "thumbnails/m1.jpg"
+    assert model["example_images"] == {"result": "examples/m1_result.png"}

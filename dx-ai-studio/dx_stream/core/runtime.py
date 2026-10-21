@@ -79,11 +79,3 @@ def build_step_command(runtime_root: Path, *, clean: bool = False, debug: bool =
         cmd.append("--clean")
     cmd.append("--type=Debug" if debug else "--type=Release")
     return cmd
-
-
-def setup_assets_command(runtime_root: Path) -> list[str]:
-    return ["bash", str(runtime_root / "setup.sh")]
-
-
-def setup_single_model_command(runtime_root: Path, model_name: str) -> list[str]:
-    return ["bash", str(runtime_root / "setup.sh"), f"--model={model_name}"]

@@ -134,8 +134,10 @@ def test_affected_text_meets_aa(browser, module_server, theme, os_theme):
                    (module, theme, os_theme))
         if module == "dx_app":
             page.evaluate("nav('graph')")
-            page.wait_for_selector("#gc-palette-list .gc-group-head")
-            _assert_aa(page, "#gc-toolbar .btn-ghost, #gc-toolbar .btn-neutral, #gc-palette-list .gc-group-title,"
+            # Without dx_app's sample graphs the Templates and Examples groups are empty and not shown.
+            page.wait_for_selector("#gc-palette-list .gc-group:not(.is-empty) .gc-group-head")
+            _assert_aa(page, "#gc-toolbar .btn-ghost, #gc-toolbar .btn-neutral,"
+                       " #gc-palette-list .gc-group:not(.is-empty) .gc-group-title,"
                        " [data-group='sources'] .gc-item-sub, .dxg-toolbar .dxg-zoom", (module, theme, os_theme))
         elif module == "dx_stream":
             page.evaluate("DXStream.nav('pipeline')")

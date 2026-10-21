@@ -5,6 +5,8 @@ State is pinned by fixtures (routes /setup/status and /feature-check), whether o
 from __future__ import annotations
 
 import json
+from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -45,7 +47,7 @@ def browser():
 
 def _open(browser, port, status, compile_ok=True):
     ctx = browser.new_context(viewport={"width": 1440, "height": 900}, reduced_motion="reduce")
-    ctx.add_init_script("localStorage.setItem('dx-tutorial-mode','off');")
+    ctx.add_init_script("localStorage.setItem('dx-tutorial-mode','off');localStorage.setItem('dx-lang','en');")
     page = ctx.new_page()
     page.route("**/setup/status", lambda route, *_: route.fulfill(
         status=200, content_type="application/json", body=json.dumps(status)))
@@ -87,7 +89,10 @@ def test_the_one_line_opens_and_folds_back(browser, server):
         ctx.close()
 
 
-def test_without_the_sdk_the_next_step_is_open_and_compile_says_why(browser, server):
+@pytest.mark.parametrize("browser_locale", ["en-US", "ko-KR"])
+def test_without_the_sdk_the_next_step_is_open_and_compile_says_why(browser, server, monkeypatch, browser_locale):
+    new_context = browser.new_context
+    monkeypatch.setattr(browser, "new_context", lambda **kw: new_context(locale=browser_locale, **kw))
     ctx, page = _open(browser, server, _status(sdk=False, samples=False))
     try:
         assert page.is_hidden("#setup-summary")
@@ -117,5 +122,71 @@ def test_the_tour_can_point_into_the_folded_panel(browser, server):
         page.evaluate("() => setupPanel.revealForTour()")
         assert page.is_visible("#setup-toggle") and page.is_visible("#setup-install-btn")
         assert page.is_visible("#setup-download-btn")
+    finally:
+        ctx.close()
+
+
+@pytest.mark.parametrize("transform,value,invalid", [
+    ("div", "not-a-number", True), ("div", "255,bad", True),
+    ("div", "0", True), ("div", "255,0,255", True), ("div", "255bad", True),
+    ("mul", "bad", True), ("subtract", "NaN", True), ("add", "true", True),
+    ("mul", "0", False), ("subtract", "-1,0,1", False), ("add", "-1", False),
+])
+def test_arithmetic_operands_get_immediate_wizard_feedback(browser, server, transform, value, invalid):
+    ctx, page = _open(browser, server, _status())
+    try:
+        page.evaluate("openWizard()")
+        page.click("#wiz-next")
+        page.check('input[name="loader_mode"][value="default"]')
+        page.click("#wiz-next")
+        page.select_option("#prep-select", transform)
+        page.click("#btn-add-prep")
+        page.locator('.prep-item .prep-input[data-param="x"]').fill(value)
+        assert page.locator("#wiz-prep-warning").is_visible() == invalid
+        if invalid:
+            assert f"{transform}.x" in page.locator("#wiz-prep-warning").inner_text()
+            page.locator("#wiz-dataset-path").fill(str(Path.home()))
+            page.on("dialog", lambda dialog: dialog.dismiss())
+            page.click("#wiz-next")
+            with page.expect_response(lambda r: r.url.endswith("/config/generate")) as generated:
+                page.click("#wiz-next")
+            assert generated.value.status == 400
+            assert f"{transform}.x" in generated.value.json()["error"]
+    finally:
+        ctx.close()
+
+
+def test_compile_http_rejection_is_not_a_progress_timeout(browser):
+    from tests.acceptance.test_sdkreq_478_compiler import _wait_for_compile
+
+    ctx = browser.new_context()
+    try:
+        page = ctx.new_page()
+        response = SimpleNamespace(ok=False, status=400, text=lambda: "output_dir is outside the allowed folders")
+        with pytest.raises(AssertionError, match="400.*output_dir"):
+            _wait_for_compile(page, response, timeout=1000)
+    finally:
+        ctx.close()
+
+
+@pytest.mark.parametrize("markup,error", [
+    ('<div id="result"><div class="result error">output_dir rejected</div></div>', "output_dir rejected"),
+    ('<div class="progress-container"><h3>Compilation Failed</h3></div>'
+     '<div id="log-content">compiler failed while parsing</div>', "compiler failed while parsing"),
+    ('<div class="progress-container"><h3>Compilation Complete</h3></div>', None),
+])
+def test_compile_wait_handles_errors_and_completion(browser, markup, error):
+    from tests.acceptance.test_sdkreq_478_compiler import _wait_for_compile
+
+    ctx = browser.new_context()
+    try:
+        page = ctx.new_page()
+        page.set_content(markup)
+        response = SimpleNamespace(ok=True)
+        if error:
+            with pytest.raises(AssertionError, match=error):
+                _wait_for_compile(page, response, timeout=1000)
+        else:
+            _wait_for_compile(page, response, timeout=1000)
     finally:
         ctx.close()

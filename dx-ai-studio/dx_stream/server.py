@@ -63,14 +63,29 @@ def _active_stream_context() -> tuple[ContractResult, object | None]:
         ),)), None
 
 
-def _contract_failure_detail(failure: ContractCheck) -> str:
-    # check_id is already part of the message, so it is not repeated here
-    return " — ".join(p for p in (failure.observed, failure.remediation) if p)
+def _contract_failure_payload(failure: ContractCheck) -> dict:
+    """A refused launch as separate fields: what was observed and what to do.
+
+    The front end translates each field on its own (shared/static/server-error-i18n.js
+    anchors every pattern to a whole sentence), so they are never joined into one string
+    here (SR-843). check_id is already part of the message, so it is not repeated.
+    """
+    payload = {
+        "error": "contract_failed",
+        "message": "Runtime contract failed: {}".format(failure.check_id),
+    }
+    if failure.observed:
+        payload["detail"] = failure.observed
+    if failure.remediation:
+        payload["remediation"] = failure.remediation
+    return payload
 
 
-def _stream_launch_contract(demo: dict) -> tuple[ContractResult, object | None]:
-    """Return the active-profile contract and launch context for one selected demo."""
-    activation, context = _active_stream_context()
+def _stream_launch_contract(
+    demo: dict, *, active_context: tuple[ContractResult, object | None] | None = None,
+) -> tuple[ContractResult, object | None]:
+    """Return launch admission, sharing read-only context facts within one listing."""
+    activation, context = active_context if active_context is not None else _active_stream_context()
     if not activation.passed:
         return activation, None
     assert context is not None
@@ -89,6 +104,34 @@ def _stream_launch_contract(demo: dict) -> tuple[ContractResult, object | None]:
         pipelines_dir=config.PIPELINES_DIR,
     )
     return ContractResult(activation.checks + contract.checks), context
+
+
+def _stream_demo_entries() -> list[dict]:
+    """Use the launch contract without activating or repairing the runtime from GET."""
+    active_context = _active_stream_context()
+
+    def availability(demo: dict) -> dict:
+        contract, _ = _stream_launch_contract(demo, active_context=active_context)
+        reasons = []
+        for check in contract.checks:
+            if check.passed:
+                continue
+            item = _contract_failure_payload(check)
+            item["code"] = item.pop("error")
+            item["check_id"] = check.check_id
+            reasons.append(item)
+        return {
+            "available": contract.passed,
+            # Plain-text summary for callers without the structured items (English).
+            "reason": "; ".join(
+                " — ".join(item[key] for key in ("message", "detail", "remediation") if item.get(key))
+                for item in reasons
+            ) if reasons else "Ready to run",
+            "reason_items": reasons,
+            "demo_id": demo["id"],
+        }
+
+    return demos.list_demo_entries(availability_check=availability)
 
 
 def _deepx_element_types(body: object) -> set[str]:
@@ -358,7 +401,7 @@ class DXStreamHandler(DXBaseHandler):
             if path == "/api/status":
                 return self.send_json(status.check_system(pipeline_mgr=_pipeline_mgr))
             if path == "/api/demos":
-                return self.send_json(demos.list_demo_entries())
+                return self.send_json(_stream_demo_entries())
             if path == "/api/models":
                 catalog_source = models.get_catalog_source()
                 model_list = models.get_models()
@@ -597,12 +640,7 @@ class DXStreamHandler(DXBaseHandler):
         if not contract.passed:
             failure = contract.first_failure
             assert failure is not None
-            self._error(
-                424,
-                "contract_failed",
-                "Runtime contract failed: {}".format(failure.check_id),
-                _contract_failure_detail(failure),
-            )
+            self.send_json(_contract_failure_payload(failure), 424)
             return
 
         try:
@@ -642,12 +680,7 @@ class DXStreamHandler(DXBaseHandler):
             if not pipeline_contract.passed:
                 failure = pipeline_contract.first_failure
                 assert failure is not None
-                return self._error(
-                    424,
-                    "contract_failed",
-                    "Runtime contract failed: {}".format(failure.check_id),
-                    _contract_failure_detail(failure),
-                )
+                return self.send_json(_contract_failure_payload(failure), 424)
 
             with _playback_lock:
                 _stop_all_playback()
@@ -876,12 +909,7 @@ class DXStreamHandler(DXBaseHandler):
         if not activation.passed:
             failure = activation.first_failure
             assert failure is not None
-            return self._error(
-                424,
-                "contract_failed",
-                "Runtime contract failed: {}".format(failure.check_id),
-                _contract_failure_detail(failure),
-            )
+            return self.send_json(_contract_failure_payload(failure), 424)
         try:
             from dx_stream.core import mjpeg
 
@@ -961,12 +989,7 @@ class DXStreamHandler(DXBaseHandler):
             if not pipeline_contract.passed:
                 failure = pipeline_contract.first_failure
                 assert failure is not None
-                return self._error(
-                    424,
-                    "contract_failed",
-                    "Runtime contract failed: {}".format(failure.check_id),
-                    _contract_failure_detail(failure),
-                )
+                return self.send_json(_contract_failure_payload(failure), 424)
 
             with _playback_lock:
                 _stop_all_playback()

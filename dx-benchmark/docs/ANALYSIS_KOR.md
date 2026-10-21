@@ -848,7 +848,7 @@ dashboard([`results/dashboard/index.html`](../results/dashboard/index.html))에�
 |------|------|
 | **Backpressure** | GStreamer pipeline에서 하류 element의 처리 지연이 non-leaky queue를 통해 상류로 전파되어 전체 처리량과 NPU 공급을 함께 제한하는 현상. 본 측정 pipeline의 모든 queue는 `leaky=no`다 |
 | **Coefficient of variation** | 표준편차 ÷ 평균을 백분율로 표시한 값 — 환경 간 편차를 정량화하는 데 사용 |
-| **CPU 구간 (CPU offload)** | 컴파일된 model graph 중 NPU가 실행할 수 없는 부분. YOLO26에서는 NMS와 keypoint/mask decode에 해당한다. ORT ON일 때만 host CPU에서 실행되며, pipeline의 post-processing 단계와는 구분된다. |
+| **CPU 구간 (CPU offload)** | 컴파일된 model graph 중 NPU가 실행할 수 없는 부분. ORT ON일 때만 host CPU에서 실행되며, pipeline의 post-processing 단계와는 구분된다. |
 | **NPU · ORT · Throughput · Latency · End-to-end FPS · 최대 채널 수** | [§3](#3-무엇을-측정했는가--용어와-방법)에서 정의 |
 | **NPU 활용률** | 측정 구간 동안 dxtop이 sampling한 NPU core 평균 사용률(`npu_total_avg_pct`). 값이 낮으면 NPU가 입력을 기다리는 host-bound 상태를 의미한다 |
 | **Thermal throttling** | 고온에서의 NPU clock 하강 (NPU가 1000 MHz에서 clock을 낮춤) |

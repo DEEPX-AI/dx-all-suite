@@ -1,8 +1,9 @@
 """DX-APP Asset access — files, images, videos, outputs."""
 
-import os, hashlib
+import os, hashlib, tempfile
 from pathlib import Path
 from dx_app.core.config import DX_APP_ROOT, SAMPLE_DIR, OUTPUTS_DIR, ASSETS_DIR
+from shared.media import MediaError, run_media
 
 _THUMB_CACHE_DIR = OUTPUTS_DIR.parent / ".thumb_cache"
 _THUMB_EXT = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
@@ -30,33 +31,21 @@ def sample_thumbnail(rel, width=160):
     out = _THUMB_CACHE_DIR / (key + ".jpg")
     if out.is_file():
         return out
+    tmp = None
     try:
-        import cv2
-        img = cv2.imread(str(src))
-        if img is None:
-            return None
-        h, w = img.shape[:2]
-        if w > width:
-            nh = max(1, int(round(h * width / w)))
-            img = cv2.resize(img, (width, nh), interpolation=cv2.INTER_AREA)
-        # imencode (not imwrite): pick the JPEG encoder explicitly so the temp filename's
-        # extension is irrelevant — imwrite chooses its writer by file extension and fails
-        # on a ".tmp" name.
-        ok, buf = cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, 82])
-        if not ok:
-            return None
         _THUMB_CACHE_DIR.mkdir(parents=True, exist_ok=True)
-        # atomic publish so a concurrent reader never sees a half-written file
-        tmp = out.with_name(out.name + f".{os.getpid()}.tmp")
-        tmp.write_bytes(buf.tobytes())
-        try:
-            os.replace(str(tmp), str(out))
-        except Exception:
-            tmp.unlink(missing_ok=True)
-            return None
+        fd, name = tempfile.mkstemp(prefix=out.name + ".", suffix=".tmp", dir=_THUMB_CACHE_DIR)
+        os.close(fd)
+        tmp = Path(name)
+        run_media("thumbnail", source=str(src), output=str(tmp), width=width)
+        os.replace(str(tmp), str(out))
         return out
-    except Exception:
+    except (MediaError, OSError) as error:
+        print(f"[ASSET] Thumbnail failed for {src}: {error}")
         return None
+    finally:
+        if tmp is not None:
+            tmp.unlink(missing_ok=True)
 
 
 def get_file_content(rel):

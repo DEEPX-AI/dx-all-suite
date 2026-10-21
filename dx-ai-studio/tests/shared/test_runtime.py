@@ -34,6 +34,8 @@ def test_installed_runtime_lib_dirs_exclude_checkout_runtime():
 
 def test_runtime_python_is_str():
     import shared.runtime as r
+    from tests.installed_sdk import require
+    require(r.runtime_python() is not None, "dx-runtime has no Python environment (install.sh not run)")
     assert isinstance(r.runtime_python(), str) and r.runtime_python()
 
 

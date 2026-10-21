@@ -13,16 +13,22 @@ def _absolute_under_root(candidate: Path, root: Path) -> Path | None:
     Path traversal via ``..`` is rejected.
     """
     root_abs = root.expanduser().resolve()
+    # The root as written, too: when the root itself is reached through a symlink (a suite whose
+    # dx_app links to an SDK checkout elsewhere) callers build paths under the link, which are
+    # not lexically under the resolved target.
+    root_lexical = Path(os.path.abspath(root.expanduser()))
     full = candidate.expanduser()
     if not full.is_absolute():
         full = root_abs / full
     if ".." in full.parts:
         return None
-    try:
-        full.relative_to(root_abs)
-    except ValueError:
-        return None
-    return full
+    for base in (root_abs, root_lexical):
+        try:
+            full.relative_to(base)
+        except ValueError:
+            continue
+        return full
+    return None
 
 
 def resolve_under(path: str, roots: tuple[Path, ...]) -> Path:

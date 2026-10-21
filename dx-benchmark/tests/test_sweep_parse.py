@@ -140,3 +140,73 @@ def test_parse_fps_does_not_crash_on_malformed_token():
 def test_parse_fps_returns_none_for_sweep_peak_only():
     """Sweep peak without a result block yields nothing -- proves the exclusion works."""
     assert _parse_fps_from_log("     Max FPS                  : 141.66  (loops=290)\n") is None
+
+
+# dxrun v3.5.0 final output: each round repeats 3x; only the `avg-fps=` round line is a curve point.
+AUTO_STOP_LOG = """\
+Searching I/O Buffer Count range=3-100
+
+[max-throughput] Measuring buffer-count=3 for 10s x 3 repeats ...
+[max-throughput] buffer-count=3 repeat=1/3 fps=904.88 loops=9061
+[max-throughput] buffer-count=3 repeat=2/3 fps=903.25 loops=9045
+[max-throughput] buffer-count=3 repeat=3/3 fps=913.33 loops=9145
+[max-throughput] buffer-count=3 avg-fps=907.15 total-loops=27251
+
+[max-throughput] Measuring buffer-count=4 for 10s x 3 repeats ...
+[max-throughput] buffer-count=4 repeat=1/3 fps=1082.14 loops=10837
+[max-throughput] buffer-count=4 repeat=2/3 fps=1073.95 loops=10754
+[max-throughput] buffer-count=4 repeat=3/3 fps=1086.07 loops=10877
+[max-throughput] buffer-count=4 avg-fps=1080.72 total-loops=32468 improvement=19.13% peak-drop=0.00% stall=0
+
+[max-throughput] Measuring buffer-count=5 for 10s x 3 repeats ...
+[max-throughput] buffer-count=5 repeat=1/3 fps=1071.23 loops=10731
+[max-throughput] buffer-count=5 repeat=2/3 fps=1053.81 loops=10556
+[max-throughput] buffer-count=5 repeat=3/3 fps=1088.65 loops=10905
+[max-throughput] buffer-count=5 avg-fps=1071.23 total-loops=32192 improvement=-0.88% peak-drop=0.88% stall=1
+
+[max-throughput] Measuring buffer-count=6 for 10s x 3 repeats ...
+[max-throughput] buffer-count=6 repeat=1/3 fps=1074.87 loops=10770
+[max-throughput] buffer-count=6 repeat=2/3 fps=1101.95 loops=11041
+[max-throughput] buffer-count=6 repeat=3/3 fps=1097.05 loops=10992
+[max-throughput] buffer-count=6 avg-fps=1091.29 total-loops=32803 improvement=1.87% peak-drop=0.00% stall=2
+
+[max-throughput] Measuring buffer-count=7 for 10s x 3 repeats ...
+[max-throughput] buffer-count=7 repeat=1/3 fps=1069.84 loops=10723
+[max-throughput] buffer-count=7 repeat=2/3 fps=1086.08 loops=10886
+[max-throughput] buffer-count=7 repeat=3/3 fps=1062.95 loops=10653
+[max-throughput] buffer-count=7 avg-fps=1072.95 total-loops=32262 improvement=-1.68% peak-drop=1.68% stall=3
+
+==================================================
+* Max-Throughput Sweep Result
+  Stop reason : no gain above 1.00% for 3 consecutive rounds (peak 1091.29 fps at buffer-count 6)
+
+  => Recommended buffer-count : 4
+     Recommended FPS          : 1080.72
+     Max FPS                  : 1091.29  (buffer-count=6, loops=32803)
+==================================================
+"""
+
+# Killed mid-round: the half-measured round must not appear in the curve.
+AUTO_STOP_PARTIAL_LOG = """\
+[max-throughput] Measuring buffer-count=3 for 10s x 3 repeats ...
+[max-throughput] buffer-count=3 repeat=1/3 fps=904.88 loops=9061
+[max-throughput] buffer-count=3 repeat=2/3 fps=903.25 loops=9045
+[max-throughput] buffer-count=3 repeat=3/3 fps=913.33 loops=9145
+[max-throughput] buffer-count=3 avg-fps=907.15 total-loops=27251
+[max-throughput] Measuring buffer-count=4 for 10s x 3 repeats ...
+[max-throughput] buffer-count=4 repeat=1/3 fps=1082.14 loops=10837
+"""
+
+
+def test_parse_sweep_reads_round_average_from_final_v350_format(capsys):
+    """The final build prints avg-fps per round; the curve is built from it."""
+    winner, curve = _parse_sweep(AUTO_STOP_LOG)
+    assert winner == 4  # smallest buffer count within tolerance of the peak, not the peak (6)
+    assert curve == {3: 907.15, 4: 1080.72, 5: 1071.23, 6: 1091.29, 7: 1072.95}
+    assert "[WARN]" not in capsys.readouterr().out
+
+
+def test_parse_sweep_partial_final_format_keeps_only_completed_rounds():
+    winner, curve = _parse_sweep(AUTO_STOP_PARTIAL_LOG)
+    assert winner is None
+    assert curve == {3: 907.15}

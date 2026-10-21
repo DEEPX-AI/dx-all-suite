@@ -17,8 +17,19 @@ FLOOR = 60
 
 def example_image(model, data_dir):
     rel = (model.get("example_images") or {}).get("result") or ""
+    if not rel:
+        return None
     path = Path(data_dir) / rel
-    return path if rel and path.is_file() else None
+    if path.is_file():
+        return path
+    source = Path(rel)
+    stem = f"{source.stem}-{source.suffix[1:].lower() or 'img'}"
+    directory = Path(data_dir) / "optimized" / source.parent
+    for extension in (".webp", ".jpg"):
+        candidate = directory / (stem + extension)
+        if candidate.is_file():
+            return candidate
+    return None
 
 
 def webp_bytes(path, max_side=MAX_SIDE, budget=BUDGET, floor=FLOOR):

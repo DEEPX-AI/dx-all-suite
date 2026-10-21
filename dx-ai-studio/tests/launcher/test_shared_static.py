@@ -280,6 +280,32 @@ def test_launcher_subapp_referer_static_stays_proxied(monkeypatch):
         server.server_close()
 
 
+@pytest.mark.parametrize("path", ["/static/img/graph-examples/cascade_od_attr.jpg",
+                                  "/static/img/graph-tutorial/preview.json"])
+def test_launcher_subapp_referer_module_images_stay_proxied(monkeypatch, path):
+    """DX App's own images (Graph Composer thumbnails, the graph tutorial preview) sit under /static/img/ as the
+    launcher's do: only the launcher's own folders there are the launcher's, the rest go to the module."""
+    module = _load_launcher_module()
+    calls = _install_proxy_spy(monkeypatch, module)
+    server, base_url = _start_launcher_server(module.LauncherHandler)
+    try:
+        resp = urlopen(Request(f"{base_url}{path}", headers={"Referer": f"{base_url}/app/"}), timeout=5)
+        assert '"proxied": true' in resp.read().decode()
+        assert [(c["target_port"], c["path"]) for c in calls] == [(module.APP_PORT, path)]
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
+def test_every_launcher_image_folder_stays_the_launchers():
+    """The launcher keeps each entry of launcher/static/img for itself, from a module page too."""
+    module = _load_launcher_module()
+    owned = module.LauncherHandler._LAUNCHER_OWNED_STATIC_PREFIXES
+    for entry in (ROOT / "launcher" / "static" / "img").iterdir():
+        path = f"/static/img/{entry.name}" + ("/x" if entry.is_dir() else "")
+        assert any(path.startswith(p) for p in owned), path
+
+
 def _read_all_launcher_js():
     """Read concatenated launcher JS source (all split modules + bootstrap)."""
     parts = []

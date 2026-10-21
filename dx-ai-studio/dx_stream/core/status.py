@@ -7,6 +7,7 @@ from __future__ import annotations
 import json, os, shutil, subprocess, platform, sys
 from pathlib import Path
 from dx_stream.core.config import DX_STREAM_ROOT, MODELS_DIR, VIDEOS_DIR, MODEL_LIST_JSON
+from dx_stream.core import gst_env
 
 
 def _all_model_files() -> list[str]:
@@ -26,9 +27,12 @@ def _check_gst() -> dict:
     if not gst_bin:
         return {"ok": False, "installed": False, "plugin": False}
     try:
+        # The installed plugin directory, not the caller's shell: dx_stream's installer exports
+        # GST_PLUGIN_PATH only in ~/.bashrc, which non-interactive launches never read (SR-846).
         r = subprocess.run(
             ["gst-inspect-1.0", "dxstream"],
-            capture_output=True, timeout=5
+            capture_output=True, timeout=5,
+            env=gst_env.augmented_env(prefer_environment=False),
         )
         plugin_ok = r.returncode == 0
     except (subprocess.TimeoutExpired, FileNotFoundError):

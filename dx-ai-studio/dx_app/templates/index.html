@@ -49,12 +49,12 @@
       </div>
       <div class="dx-steps-progress"><span class="dx-steps-count" data-steps-count></span><div class="dx-steps-bar"></div></div>
     </header>
-    <!-- When only the demos are wanted: just what Run Demo needs, in one go -->
+    <!-- Explicit demo preparation; status checks never execute these steps. -->
     <div class="dx-steps-quick" id="setup-quickstart">
       <svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#demo"></use></svg>
       <div class="dx-steps-quick-text">
         <b data-i18n="Demo Quick Start">Demo Quick Start</b>
-        <p data-i18n="Install only what the demo needs, in one go — downloads only the required models and skips steps already done">Install only what the demo needs, in one go — downloads only the required models and skips steps already done</p>
+        <p data-i18n="Prepare demos in one go — demo C++ runners and demo models with sample videos; skips ready steps">Prepare demos in one go — demo C++ runners and demo models with sample videos; skips ready steps</p>
       </div>
       <span id="setup-quickstart-progress" class="txt-dim txt-sm" style="display:none"></span>
       <button class="btn btn-ghost" id="setup-quickstart-btn" onclick="setupDemoQuickStart()"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#play"></use></svg> <span data-i18n="Start Demo Setup">Start Demo Setup</span></button>
@@ -115,7 +115,7 @@
         <div class="dx-step-row"><h3 class="dx-step-title"><span data-i18n="DX-APP Build">DX-APP Build</span></h3><span class="dx-step-facts"></span><span class="dx-step-state" id="setup-badge-dx-app-build"></span></div>
         <div class="dx-step-more">
           <p class="dx-step-desc"><span data-i18n="Compile C++ demo binaries (cmake)">Compile C++ demo binaries (cmake)</span></p>
-          <div class="dx-step-cmd"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#dev"></use></svg><code>build.sh --type Release</code></div>
+          <div class="dx-step-cmd"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#dev"></use></svg><code>build.sh --all --type Release --arch x86_64</code></div>
           <div class="dx-step-detail" id="setup-detail-dx-app-build"></div>
           <div class="dx-step-actions"><button class="btn btn-primary btn-sm" onclick="setupRun('dx-app-build')"><span data-i18n="Build">Build</span></button></div>
         </div>
@@ -127,13 +127,22 @@
         <div class="dx-step-row"><h3 class="dx-step-title"><span data-i18n="Sample Assets Setup">Sample Assets Setup</span></h3><span class="dx-step-facts"></span><span class="dx-step-state" id="setup-badge-dx-app-setup"></span></div>
         <div class="dx-step-more">
           <p class="dx-step-desc"><span data-i18n="Download sample models &amp; videos for Run / Benchmark demos">Download sample models &amp; videos for Run / Benchmark demos</span></p>
-          <div class="dx-step-cmd"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#dev"></use></svg><code>setup.sh</code></div>
+          <div class="dx-step-cmd"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#dev"></use></svg><code>python -m shared.asset_setup app</code></div>
           <div class="dx-step-detail" id="setup-detail-dx-app-setup"></div>
-          <div class="dx-step-actions"><button class="btn btn-primary btn-sm" onclick="setupRun('dx-app-setup')"><span data-i18n="Setup">Setup</span></button></div>
+          <div class="dx-step-actions"><button class="btn btn-primary btn-sm" onclick="setupRun('dx-app-setup')"><span data-i18n="Setup">Setup</span></button><button class="btn btn-ghost btn-sm" id="setup-verify-dx-app-setup" onclick="setupRun('dx-app-setup')" style="display:none"><span data-i18n="Verify">Verify</span></button></div>
         </div>
       </div>
     </li>
     </ol>
+    <!-- Optional, not a step: no installer here installs Xvfb (setup_steps.live_display_status). -->
+    <div class="dx-steps-optional" id="setup-live-display">
+      <svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#info"></use></svg>
+      <div class="dx-steps-optional-text">
+        <b data-i18n="Optional — Live display capture">Optional — Live display capture</b>
+        <p><span data-i18n="Camera / Continuous runs and Graph Live draw on an Xvfb virtual display. No setup step installs it; install it yourself:">Camera / Continuous runs and Graph Live draw on an Xvfb virtual display. No setup step installs it; install it yourself:</span> <code>sudo apt install xvfb</code></p>
+      </div>
+      <span class="dx-step-state" id="setup-live-display-state"></span>
+    </div>
   </section>
   <!-- Version Info -->
   <div class="card mt16" id="setup-version-card" style="display:none">
@@ -340,6 +349,7 @@
           <button class="btn btn-acc" id="c-start-btn" onclick="contStart()"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#play"></use></svg> <span data-i18n="Start Continuous">Start Continuous</span></button>
           <button class="btn btn-red hidden" id="c-stop-btn" onclick="contStop()"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#stop"></use></svg> <span data-i18n="Stop">Stop</span></button>
         </div>
+        <div id="c-live-errors" class="cont-startup-errors hidden" role="alert" aria-live="polite"></div>
       </div>
       <!-- Right: Live Display -->
       <div class="card rel">

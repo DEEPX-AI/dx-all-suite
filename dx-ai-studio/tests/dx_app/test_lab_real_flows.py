@@ -86,6 +86,8 @@ def app_root(tmp_path):
         patch("lab_portal.DX_APP_ROOT", root),
         patch("lab_portal.CPP_DIR", root / "src" / "cpp_example"),
         patch("lab_portal.PY_DIR", root / "src" / "python_example"),
+        # config scans the installed dx_app once at import; this tree's categories are what the lab sees here
+        patch("dx_app.core.config.CATEGORIES", ["image_classification", "object_detection"]),
     ]
     for p in patches:
         p.start()

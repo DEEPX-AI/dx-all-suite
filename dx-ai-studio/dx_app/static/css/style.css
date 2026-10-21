@@ -409,6 +409,8 @@ tbody tr:hover td{background:var(--surface-hover)}
 .run-tab.active{color:var(--accent-ink);border-bottom-color:var(--accent)}
 
 /*═══ Continuous Mode ═══*/
+.cont-startup-errors{margin-top:var(--sp-3);padding:var(--sp-3);border:1px solid var(--status-error);border-radius:var(--radius);color:var(--status-error-ink);font-size:var(--fs-sm);overflow-wrap:anywhere}
+.cont-startup-errors p{margin:var(--sp-2) 0;white-space:pre-wrap}
 .cont-grid{display:grid;gap:var(--sp-3)}
 .cont-grid.g1{grid-template-columns:1fr}
 .cont-grid.g2{grid-template-columns:1fr 1fr}

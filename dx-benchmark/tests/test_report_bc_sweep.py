@@ -62,7 +62,7 @@ def test_sweep_subtable_has_winner_policy_footnote():
     _add_model_throughput_section(lines, rows)
     out = "\n".join(lines)
     # footnote clarifies that ★ is decided on full precision and shown rounded
-    assert "highest measured throughput" in out
+    assert "smallest buffer-count" in out and "within the sweep tolerance" in out
     assert "1 decimal" in out
 
 
@@ -83,13 +83,48 @@ def test_effective_sweep_timeout_is_a_floor_not_a_cap():
     """Raising probe time must widen the timeout, never starve the sweep."""
     from benchmark.config import BenchmarkConfig, effective_sweep_timeout_sec, get_protocol_metadata
 
-    # Default: the derived need (14 rounds x 10s x 2 + 60 = 340) exceeds the floor.
-    assert effective_sweep_timeout_sec(BenchmarkConfig()) == 340
-    # A long probe time scales the timeout instead of timing out unconditionally.
-    assert effective_sweep_timeout_sec(BenchmarkConfig(bc_probe_sec=30)) == 900
-    # A narrow range falls back to the configured floor.
-    assert effective_sweep_timeout_sec(BenchmarkConfig(bc_range_hi=4)) == 300
+    # Default: dxrun's auto-stop sweep (no fixed range) is bounded by the floor.
+    assert effective_sweep_timeout_sec(BenchmarkConfig()) == 900
+    # A long probe time scales the timeout: 25 rounds x (30s x 3 repeats + 3s).
+    assert effective_sweep_timeout_sec(BenchmarkConfig(bc_probe_sec=30)) == 25 * (30 * 3 + 3)
+    # A short probe time falls back to the configured floor.
+    assert effective_sweep_timeout_sec(BenchmarkConfig(bc_probe_sec=2)) == 900
     # Both the floor and what is actually enforced are recorded.
     md = get_protocol_metadata(BenchmarkConfig())
-    assert md["bc_sweep_timeout_sec"] == 300
-    assert md["bc_sweep_timeout_effective_sec"] == 340
+    assert md["bc_sweep_timeout_sec"] == 900
+    assert md["bc_sweep_timeout_effective_sec"] == 900
+
+
+def test_protocol_metadata_describes_the_auto_stop_sweep():
+    """The v2 sweep definition is carried by explicit protocol fields."""
+    from benchmark.config import BenchmarkConfig, get_protocol_metadata
+    md = get_protocol_metadata(BenchmarkConfig())
+    assert md["version"] == "v2"
+    assert md["bc_sweep_mode"] == "auto-stop"
+    assert md["bc_sweep_repeats"] == 3
+    assert md["bc_sweep_tolerance_pct"] == 1.0
+    assert md["bc_probe_sec"] == 10
+    # A fixed range would silently turn dxrun's early stop off, so none is recorded.
+    assert "bc_range_lo" not in md and "bc_range_hi" not in md
+
+
+def test_report_protocol_table_documents_the_sweep():
+    """REPORT.md states how the buffer count was chosen."""
+    from benchmark.config import BenchmarkConfig, get_protocol_metadata
+    from benchmark.reporter import _add_protocol_section
+    lines = []
+    _add_protocol_section(lines, {"protocol": get_protocol_metadata(BenchmarkConfig())})
+    out = "\n".join(lines)
+    assert "| Buffer-count Sweep | auto-stop |" in out
+    assert "| Sweep Probe | 10 s x 3 repeats |" in out
+    assert "| Sweep Tolerance | 1.0 % |" in out
+    assert "| Sweep Timeout | 900 s |" in out
+
+
+def test_report_protocol_table_omits_sweep_rows_for_v1_runs():
+    """v1 metadata has no sweep fields; the table must not invent them."""
+    from benchmark.reporter import _add_protocol_section
+    lines = []
+    _add_protocol_section(lines, {"protocol": {"version": "v1", "thermal_mode": "steady"}})
+    assert "Buffer-count Sweep" not in "\n".join(lines)
+

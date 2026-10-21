@@ -117,7 +117,7 @@ def _size_char_from_name(name: str) -> str:
     LAST RESORT — callers should prefer the stamped ``size`` field, which is
     version-proof; naming rules keep changing and must not drive ordering.
     """
-    m = re.search(r"yolo26-?([nslmx])(?:[-_.]|$)", name or "")
+    m = re.search(r"yolo26-?(?:cls-)?([nslmx])(?:[-_.]|$)", name or "")
     return m.group(1).lower() if m else ""
 
 
@@ -166,7 +166,9 @@ def generate_markdown_report(
 
     lines.append("# YOLO26 Benchmark Report")
     lines.append("")
-    ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S (Local)")
+    now = datetime.now().astimezone()
+    off = now.strftime("%z")
+    ts = now.strftime("%Y-%m-%d %H:%M:%S") + f" (UTC{off[:3]}:{off[3:]}, local)"
     lines.append(f"**Generated:** {ts}")
     lines.append("")
 
@@ -186,6 +188,9 @@ def generate_markdown_report(
 
     # ── Measurement Protocol ──────────────────────────────────────────
     _add_protocol_section(lines, fingerprint)
+
+    # ── Glossary ──────────────────────────────────────────────────────
+    _add_glossary_section(lines)
 
     # ── Benchmarked Models ────────────────────────────────────────────
     _add_model_info_section(lines, fingerprint, model_results)
@@ -496,6 +501,14 @@ def _add_protocol_section(lines: list[str], fingerprint: dict) -> None:
     lines.append(f"| FPS Threshold | {protocol.get('fps_threshold', 'N/A')} |")
     lines.append(f"| Multi-Stream Search | {protocol.get('multi_stream_search', 'N/A')} |")
     lines.append(f"| Stable Capacity Rule | {protocol.get('stable_capacity_rule', 'N/A')} |")
+    # Buffer-count sweep (protocol v2): how the throughput buffer count was chosen.
+    if 'bc_sweep_mode' in protocol:
+        lines.append(f"| Buffer-count Sweep | {protocol.get('bc_sweep_mode')} |")
+        lines.append(f"| Sweep Probe | {protocol.get('bc_probe_sec', 'N/A')} s x "
+                     f"{protocol.get('bc_sweep_repeats', 'N/A')} repeats |")
+        lines.append(f"| Sweep Tolerance | {protocol.get('bc_sweep_tolerance_pct', 'N/A')} % |")
+        lines.append(f"| Sweep Timeout | "
+                     f"{protocol.get('bc_sweep_timeout_effective_sec', protocol.get('bc_sweep_timeout_sec', 'N/A'))} s |")
     # v2 thermal params (conditionally)
     if protocol.get('thermal_mode') == 'steady':
         lines.append(f"| Cooldown Target ΔT | {protocol.get('thermal_cooldown_target_delta_c', 'N/A')} °C |")
@@ -504,6 +517,35 @@ def _add_protocol_section(lines: list[str], fingerprint: dict) -> None:
         lines.append(f"| Cooldown Max Time | {protocol.get('thermal_cooldown_max_sec', 'N/A')} s |")
     lines.append(f"| NPU Warmup | {protocol.get('npu_warmup_sec', 'N/A')} s |")
     lines.append(f"| NPU Drain | {protocol.get('npu_drain_sec', 'N/A')} s |")
+    lines.append("")
+
+
+# ── Glossary section ─────────────────────────────────────────────────────
+
+_GLOSSARY = [
+    ("ORT ON / OFF", "ONNX Runtime executes the model's CPU part on the host CPU. ON = NPU + CPU part; "
+                     "OFF = NPU part only, returning raw NPU output tensors. Classification has no CPU part."),
+    ("BC", "I/O buffer count (`--buffer-count`) recommended by the sweep (★): the smallest count whose "
+           "throughput is within the sweep tolerance of the sweep's peak."),
+    ("Throughput", "Multi-core async `run_model` over the throughput duration, at the recommended BC."),
+    ("Latency", "Single-core sync. Total ms = profiler NPU task + CPU task per inference; it excludes "
+                "host-side submit/wait overhead, so it is slightly below wall-clock latency."),
+    ("E2E FPS", "Frames/s of the full DX-Stream pipeline (decode, preprocess, inference, postprocess) "
+                "into a fakesink."),
+    ("NPU Avg% / Max%", "NPU core utilization sampled by dxtop, averaged over all cores and devices."),
+    ("NPU MHz", "Min~max NPU core clock during the run; below 1000 MHz means the clock was lowered "
+                "(thermal throttling)."),
+    ("Max Channels", "Highest stream count where every run succeeded and per-channel FPS >= the FPS threshold."),
+]
+
+
+def _add_glossary_section(lines: list[str]) -> None:
+    lines.append("## Glossary")
+    lines.append("")
+    lines.append("| Term | Meaning |")
+    lines.append("|------|---------|")
+    for term, meaning in _GLOSSARY:
+        lines.append(f"| **{term}** | {meaning} |")
     lines.append("")
 
 
@@ -551,6 +593,9 @@ def _add_model_info_section(lines: list[str], fingerprint: dict, model_results: 
 
     lines.append("## Benchmarked Models")
     lines.append("")
+    if fingerprint.get("model_source"):
+        lines.append(f"Model source: {fingerprint['model_source']}")
+        lines.append("")
 
     # Group by task in canonical order
     by_task: dict[str, list[dict]] = {}
@@ -558,8 +603,10 @@ def _add_model_info_section(lines: list[str], fingerprint: dict, model_results: 
         by_task.setdefault(m["task"], []).append(m)
     by_task = dict(sorted(by_task.items(), key=lambda kv: _TASK_DISPLAY_ORDER.get(kv[0], 99)))
 
-    lines.append("| Model | Task | Input Size | NPU Memory (MB) | ORT CPU Offload | Multi-Stream Sweep |")
-    lines.append("|-------|------|------------|:----------------:|:---------------:|:------------------:|")
+    lines.append("| Model | Task | Input Size | NPU Memory (MiB) | ORT CPU Offload | Multi-Stream Sweep "
+                 "| Format | DX-COM | SHA256 |")
+    lines.append("|-------|------|------------|:----------------:|:---------------:|:------------------:"
+                 "|--------|--------|--------|")
 
     for task, task_models in by_task.items():
         task_name = _TASK_DISPLAY_NAMES.get(task, task)
@@ -577,11 +624,47 @@ def _add_model_info_section(lines: list[str], fingerprint: dict, model_results: 
                 mem_mb_s = f"{mem_bytes / (1024 * 1024):.1f}"
             else:
                 mem_mb_s = "—"
-            lines.append(f"| {m['name']} | {task_name} | {input_size_s} | {mem_mb_s} | {ort_s} | {multi_s} |")
+            fmt = m.get("format_version") or "—"
+            dxcom = m.get("dxcom_version") or "—"
+            sha = (m.get("sha256") or "")[:12] or "—"
+            lines.append(f"| {m['name']} | {task_name} | {input_size_s} | {mem_mb_s} | {ort_s} | {multi_s} "
+                         f"| {fmt} | {dxcom} | {sha} |")
     lines.append("")
 
 
 # ── Environment section ──────────────────────────────────────────────────
+
+def _governor_str(host: dict) -> str:
+    """'powersave' for a uniform governor, 'a ×6, b ×2' when cores differ."""
+    govs = host.get("cpu_governors") or {}
+    if not govs:
+        return "N/A"
+    if len(govs) == 1:
+        return next(iter(govs))
+    return ", ".join(f"{g} ×{n}" for g, n in govs.items())
+
+
+def _npu_pcie_summary(npu: dict) -> str:
+    """PCIe link of every NPU device ('Gen3 X4 ×4'); single device keeps its bus id."""
+    links = re.findall(r"PCIe\s*:\s*(Gen\d+\s+X\d+)\s*\[([^\]]+)\]", npu.get("raw") or "")
+    if len(links) > 1:
+        kinds: dict[str, int] = {}
+        for link, _bus in links:
+            kinds[link] = kinds.get(link, 0) + 1
+        return ", ".join(f"{k} ×{n}" for k, n in kinds.items())
+    return npu.get("pcie", "N/A")
+
+
+def _host_health_str(health: dict | None) -> str:
+    """'throttled=0x0, EXT5V 5.19 V' (Raspberry Pi); empty when nothing was probed."""
+    health = health or {}
+    parts = []
+    if health.get("throttled"):
+        parts.append(str(health["throttled"]))
+    if health.get("pmic_ext5v_v") is not None:
+        parts.append(f"EXT5V {health['pmic_ext5v_v']:.2f} V")
+    return ", ".join(parts)
+
 
 def _add_environment_section(lines: list[str], fingerprint: dict) -> None:
     lines.append("## Environment")
@@ -596,21 +679,31 @@ def _add_environment_section(lines: list[str], fingerprint: dict) -> None:
     lines.append(f"| Hostname | {host.get('hostname', 'N/A')} |")
     lines.append(f"| OS | {host.get('os', 'N/A')} |")
     lines.append(f"| Kernel | {host.get('kernel', 'N/A')} |")
-    lines.append(f"| CPU | {host.get('cpu', 'N/A')} |")
-    lines.append(f"| CPU Cores | {host.get('cpu_count', 'N/A')} |")
-    lines.append(f"| RAM | {host.get('ram_gb', 'N/A')} GB |")
+    lines.append(f"| CPU | {host.get('cpu') if host.get('cpu') not in (None, '', '-') else 'N/A'} |")
+    lines.append(f"| CPU Threads | {host.get('cpu_count', 'N/A')} |")
+    lines.append(f"| CPU Governor | {_governor_str(host)} |")
+    lines.append(f"| RAM | {host.get('ram_gb', 'N/A')} GiB |")
+    n_dev = npu.get("device_count") or 0
     lines.append(f"| NPU SKU | {npu.get('sku', 'N/A')} |")
+    if n_dev:
+        lines.append(f"| NPU Devices | {n_dev} ({npu.get('sku', 'N/A')}) |")
     lines.append(f"| DX-AllSuite | {fingerprint.get('dx_all_suite_version') or 'N/A'} |")
+    lines.append(f"| DX-Stream | {(fingerprint.get('software') or {}).get('dx_stream') or 'N/A'} |")
     lines.append(f"| Benchmark Tool | {fingerprint.get('benchmark_tool_version') or 'N/A'} |")
+    lines.append(f"| Tool commit | {fingerprint.get('tool_commit') or 'N/A'} |")
     lines.append(f"| NPU RT | {npu.get('rt_version', 'N/A')} |")
     if npu.get("rt_version_raw") and npu.get("rt_version_raw") != npu.get("rt_version"):
         lines.append(f"| NPU RT (commit) | {npu.get('rt_version_raw')} |")
     lines.append(f"| NPU Driver (RT) | {npu.get('driver', 'N/A')} |")
     lines.append(f"| NPU Driver (PCIe) | {npu.get('pcie_driver', 'N/A')} |")
     lines.append(f"| NPU Firmware | {npu.get('firmware', 'N/A')} |")
-    lines.append(f"| NPU Memory | {npu.get('memory', 'N/A')} |")
+    mem_label = "NPU Memory (per device)" if n_dev > 1 else "NPU Memory"
+    lines.append(f"| {mem_label} | {npu.get('memory', 'N/A')} |")
     lines.append(f"| NPU Board | {npu.get('board', 'N/A')} |")
-    lines.append(f"| NPU PCIe | {npu.get('pcie', 'N/A')} |")
+    lines.append(f"| NPU PCIe | {_npu_pcie_summary(npu)} |")
+    health = _host_health_str(fingerprint.get("host_health"))
+    if health:
+        lines.append(f"| Host Health | {health} |")
     lines.append("")
 
     tools = fingerprint.get("tools", {})
@@ -714,7 +807,7 @@ def _add_bc_sweep_subtable(lines: list[str], results: list[dict]) -> None:
     if not sweeps:
         return
     lines.append("")
-    lines.append("_Buffer-count sweep_ — throughput fps per `--buffer-count` (★ = winner):")
+    lines.append("_Buffer-count sweep_ — throughput fps per `--buffer-count` (★ = recommended):")
     lines.append("")
     lines.append("| Model | BC ★ | Sweep ([bc]:fps) |")
     lines.append("|-------|------|----------------|")
@@ -739,11 +832,12 @@ def _add_model_throughput_section(lines: list[str], throughput: list[dict]) -> N
         # Legend once per report; the per-table sweep captions below just mark ★.
         lines.append(
             "> **Buffer-count sweep (★)** — the _Buffer-count sweep_ tables below list "
-            "throughput fps per `--buffer-count`; ★ marks the winner (highest measured "
-            "throughput, at full probe precision; fps rounded to 1 decimal). A smaller "
-            "buffer-count wins only on an exact tie. The sweep's goal is the throughput "
-            "ceiling — the winning buffer-count value itself is secondary, since tied "
-            "buffer-counts deliver effectively equal throughput."
+            "throughput fps per `--buffer-count`, averaged over repeated probes (fps rounded "
+            "to 1 decimal). ★ marks dxrun's recommendation: the smallest buffer-count whose "
+            "throughput is within the sweep tolerance of the sweep's peak. The sweep stops "
+            "by itself once the curve flattens, so only the counts up to that point appear. "
+            "The goal is the throughput ceiling — the recommended value itself is secondary, "
+            "since buffer-counts inside the tolerance deliver effectively equal throughput."
         )
         lines.append("")
 
@@ -917,7 +1011,12 @@ def _add_pipeline_section(lines: list[str], pipeline_results: list[dict]) -> Non
                 lines.append("| " + " | ".join(row_parts) + " |")
             lines.append("")
 
-        _add_ort_comparison_table(lines, sorted_results, "avg_e2e_fps", "E2E FPS")
+        if TASK_MODEL_META.get(task, {}).get("ort_offload", "").lower().startswith("no"):
+            lines.append("> Classification has no CPU part, so ORT ON and OFF run the same model; "
+                         "differences between the two tables are measurement noise.")
+            lines.append("")
+        else:
+            _add_ort_comparison_table(lines, sorted_results, "avg_e2e_fps", "E2E FPS")
 
 
 # ── Multi-stream section ────────────────────────────────────────────────

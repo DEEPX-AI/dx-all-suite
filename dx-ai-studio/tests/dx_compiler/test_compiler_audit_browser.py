@@ -113,6 +113,8 @@ def test_a_refused_compile_keeps_the_graph_and_shows_why(page):
             document.getElementById(id).value = v;
         document.getElementById('model_path').required = false;
         document.getElementById('config_path').required = false;
+        // The server's refusal is under test, not the Setup gate: without dx_com on this host the button is locked.
+        document.getElementById('compile-main-btn').disabled = false;
     }""")
     page.click("#compile-main-btn")
     page.wait_for_selector("#result .result.error", timeout=5000)

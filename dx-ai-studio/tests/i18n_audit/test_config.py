@@ -55,3 +55,24 @@ def test_source_extensions_and_brand_terms_are_explicit():
     assert SOURCE_EXTENSIONS == (".html", ".js", ".json", ".py")
     for term in ("DX AI Studio", "NPU", "SDK", "DX-M1", "GStreamer", "WebRTC"):
         assert term in BRAND_TERMS
+
+
+def test_run_outputs_under_var_and_outputs_are_not_product_source():
+    """var/ and outputs/ hold run artifacts (acceptance evidence, compile summaries,
+    inference results — shared/paths.py var_dir() / outputs_dir()). A summary HTML a
+    compile wrote there is not Studio copy; scanning it failed the i18n gate."""
+    assert is_excluded_path("var/qa-remote-evidence/20261019-184128/MobileNetV2-1_summary.html")
+    assert is_excluded_path("var/acceptance/20261019-135608/report.md")
+    assert is_excluded_path("outputs/result_demo.html")
+    assert not is_excluded_path("shared/static/js/var-helpers.js")
+
+
+def test_the_source_walk_skips_var(tmp_path):
+    from tools.i18n_audit.extractors import iter_source_files
+
+    (tmp_path / "var" / "evidence").mkdir(parents=True)
+    (tmp_path / "var" / "evidence" / "summary.html").write_text("<p>English only</p>")
+    (tmp_path / "dx_app" / "static").mkdir(parents=True)
+    (tmp_path / "dx_app" / "static" / "page.html").write_text("<p>x</p>")
+    rels = sorted(p.relative_to(tmp_path).as_posix() for p in iter_source_files(tmp_path))
+    assert rels == ["dx_app/static/page.html"]

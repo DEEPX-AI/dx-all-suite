@@ -317,6 +317,10 @@ global.document = {
   createElement(tag) { return makeElement(tag, {}); },
 };
 
+// Node 21+ has a global navigator, Node 18 none: define one either way so the browser-language default reads the same.
+Object.defineProperty(global, 'navigator', {value: {language: 'en-US', languages: ['en-US']},
+                                            configurable: true, writable: true});
+
 global.window = global;
 global.window.addEventListener = function() {};
 
@@ -562,3 +566,12 @@ def test_shared_i18n_behavior_runtime(tmp_path):
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
     assert "ALL ASSERTIONS PASSED" in result.stdout
+
+
+def test_the_demo_retry_button_reads_retry_not_reconnect():
+    """'Retry' on a failed demo restarts the pipeline — ko/ja translate it as "retry", not "reconnect"."""
+    source = (STREAM / "static" / "js" / "stream-i18n.js").read_text(encoding="utf-8")
+    line = next(ln for ln in source.splitlines() if ln.strip().startswith("'Retry':"))
+    assert "ko: '재시도'" in line, line
+    assert "ja: '再試行'" in line, line
+    assert "재연결 버튼" not in source and "再接続ボタン" not in source

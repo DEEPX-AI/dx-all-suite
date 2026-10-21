@@ -143,6 +143,10 @@ tbody tr:hover td{background:var(--surface-hover)}
 .dds-live{position:relative;width:100%;height:100%}
 .dds-live .video-container{height:100%;aspect-ratio:auto;border:0;border-radius:0;background:transparent}
 .dds-live #webrtc-stats-overlay{display:none}
+.stream-demo-error{margin-bottom:var(--sp-3);padding:var(--sp-3);border:1px solid var(--status-error);
+  border-radius:var(--radius-sm);color:var(--text-primary);overflow-wrap:anywhere}
+.stream-demo-error code{color:var(--status-error)}
+.stream-demo-error p{margin:var(--sp-2) 0;white-space:pre-wrap}
 .dds-live-fs{position:absolute;top:var(--sp-2);right:var(--sp-2);display:inline-flex;align-items:center;justify-content:center;
   width:32px;height:32px;padding:0;border:1px solid var(--border-subtle);border-radius:var(--radius-sm);
   background:var(--surface-panel);color:var(--text-secondary);cursor:pointer;opacity:.85}

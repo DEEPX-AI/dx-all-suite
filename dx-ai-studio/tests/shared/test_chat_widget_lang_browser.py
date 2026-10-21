@@ -73,3 +73,15 @@ def test_every_label_follows_a_language_change(page):
     finally:
         page.evaluate("() => DXI18n.setLang('en')")
     assert _snapshot(page)["fields"][2] == "API Key", "다시 영어로"
+
+
+def test_the_page_translator_leaves_the_widgets_own_labels_alone(page):
+    """The widget translates its labels itself (data-chat-t). DX App's page translator also walks every `option`
+    and every select option; a label not in the page dictionary went back to English when it ran after the
+    widget (on a slower board, after every language change)."""
+    page.evaluate("() => DXI18n.setLang('ja')")
+    try:
+        page.evaluate("() => { DXI18n.applyLang(); if (typeof _i18nOptions === 'function') _i18nOptions(); }")
+        assert _snapshot(page)["custom"] == "カスタムエンドポイント"
+    finally:
+        page.evaluate("() => DXI18n.setLang('en')")

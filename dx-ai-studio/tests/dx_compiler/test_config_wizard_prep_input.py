@@ -63,10 +63,9 @@ def test_the_front_end_also_catches_a_zero_std():
 
 
 def test_the_front_end_does_not_police_what_the_server_leaves_alone():
-    """axis, x and pad_value may be a scalar or a list, with any sign.
+    """axis, x and pad_value may be a scalar or a list, with either sign.
 
-    Blocking them in the front end would warn about valid values the server accepts —
-    a front end stricter than the server is itself a defect.
+    Numeric operands must not be incorrectly restricted to positive scalars.
     """
     src = js()
     m = re.search(r"var PREP_POSITIVE = \[([^\]]*)\]", src)
@@ -74,3 +73,12 @@ def test_the_front_end_does_not_police_what_the_server_leaves_alone():
     for loose in ("axis", "x", "pad_value", "channel"):
         assert loose not in front, (
             f"{loose} 는 스칼라도 리스트도 되는데 프론트가 양수로 제한한다")
+
+
+def test_the_front_end_checks_the_same_arithmetic_transforms_as_the_server():
+    from dx_compiler.core.validation import _ARITHMETIC_TRANSFORMS
+
+    match = re.search(r"var PREP_ARITHMETIC = \[([^\]]*)\]", js())
+    assert match
+    front = {t.strip().strip("'\"") for t in match.group(1).split(",") if t.strip()}
+    assert front == set(_ARITHMETIC_TRANSFORMS)

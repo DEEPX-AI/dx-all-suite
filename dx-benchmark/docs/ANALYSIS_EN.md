@@ -907,7 +907,7 @@ combination of environment, version, task, size and ORT mode to be compared.
 |------|---------|
 | **Backpressure** | The mechanism by which a downstream element's processing delay propagates upstream through non-leaky queues, limiting both overall throughput and the supply of frames to the NPU. Every queue in the measured pipeline is `leaky=no` |
 | **Coefficient of variation** | Standard deviation ÷ mean, expressed as a percentage — used here to quantify cross-host spread |
-| **CPU part (CPU offload)** | The portion of a compiled model's graph that the NPU cannot execute — for YOLO26, NMS plus the keypoint or mask decode. Executed on the host CPU only when ORT is ON. Distinct from the pipeline's post-processing stage. |
+| **CPU part (CPU offload)** | The portion of a compiled model's graph that the NPU cannot execute. Executed on the host CPU only when ORT is ON. Distinct from the pipeline's post-processing stage. |
 | **NPU · ORT · Throughput · Latency · End-to-end FPS · Maximum channels** | Defined in [§3](#3-what-was-measured--terms-and-method) |
 | **NPU utilisation** | Average NPU core utilisation sampled by dxtop over the measurement window (`npu_total_avg_pct`). A low value indicates a host-bound state in which the NPU is waiting for input |
 | **Thermal throttling** | NPU clock reduction under high temperature (the NPU steps its clock down from 1000 MHz) |

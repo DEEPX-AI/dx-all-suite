@@ -9,45 +9,15 @@ procedure across any Host PC + NPU combination. It measures two tiers:
 Both tiers run automatic ONNX-Runtime ON/OFF comparison with thermal-throttle detection,
 then render an interactive dashboard for cross-environment and cross-version comparison.
 
-> **Status:** Beta (tool `v0.1.0`). Data is final; the CLI and output schema may still evolve.
+> **Status:** Beta. The CLI and output schema may still evolve. Tool version: `./run.sh --version`.
 
 ---
 
-## At a Glance
+## Results
 
-Practical performance of the lightest **nano** model on the current release
-(**dx-all-suite v2.4.0**), Full HD (1920×1080) 30 fps input, **`end-to-end FPS / max
-concurrent channels`** (better of ORT ON/OFF):
-
-| Environment | NPU | Object Detection (nano) | Note |
-|-------------|-----|------------------------:|------|
-| **BIOSTAR_H1-Quattro** | H1 (4-chip) | **496.8 fps / 17 ch** | highest channel density |
-| **DX-AIPlayer-N97_M1** | M1 | 184.9 fps / 6 ch | x86, PCIe ×2 |
-| **OrangePi5+_M1** | M1 | 148.1 fps / 4 ch | RK3588, PCIe ×4 |
-| **ROCK5B+_M1** | M1 | 141.5 fps / 4 ch | RK3588, PCIe ×2 |
-| **RPi5B_M1** | M1 | 80.1 fps / 2 ch | PCIe ×1, SW decode |
-| **RPi5B_M1M** | M1M | 79.8 fps / 2 ch | M1M SKU — 31–47% slower on m/l/x (nano is host-bound) |
-
-**Five headline findings** — the same five as *Principal findings* in
-[`docs/ANALYSIS_EN.md`](docs/ANALYSIS_EN.md) · [한국어](docs/ANALYSIS_KOR.md), where the full
-data and method are documented:
-
-1. **The DEEPX M1 NPU is the performance anchor.** On medium/large/x-large models the four
-   very different single-M1 hosts agree to within a few percent — the host mainly affects the
-   lightest models and the surrounding video pipeline.
-2. **Model-level throughput improved a median +28.4% from v2.3.3 to v2.4.0 in the NPU-bound
-   sizes (medium/large/x-large)** — all 18 cells improved (14 in the +25–35% band), as the
-   whole release stack (DX-COM, DX-RT, drivers, firmware) advanced together. Single-stream
-   end-to-end FPS does not inherit this gain where the host is already the ceiling.
-3. **H1-Quattro scales model-level throughput ~4× with its four chips** (4.24–4.32× a single
-   M1). Single-stream end-to-end FPS does not scale by the same factor, because the host
-   supply rate limits it first.
-4. **For light models the end-to-end ceiling is the host, not the NPU.** At nano and small
-   sizes, single-stream end-to-end FPS reaches only 45–82% of the model throughput measured
-   under the same conditions, with NPU utilization at 18–41% — that headroom is recovered
-   through multi-stream operation.
-5. **The best ORT mode depends on the environment × task combination** — up to +48.8% on
-   light models, so confirm it before deployment.
+- [`docs/ANALYSIS_EN.md`](docs/ANALYSIS_EN.md) · [한국어](docs/ANALYSIS_KOR.md) — findings, method and data tables.
+- The interactive dashboard below — generated from `results/`.
+- `results/<hw_id>/<run_id>/REPORT.md` — the full report of each run.
 
 ---
 
@@ -228,17 +198,17 @@ cd /path/to/dx-benchmark
 ./run.sh run --sizes n,s --family model --model-time 30
 
 # Resume interrupted run
-./run.sh run --resume results/BIOSTAR_H1-Quattro/20260722_151413
+./run.sh run --resume results/<hw_id>/<run_id>
 
 # Retry failed conditions only
-./run.sh run --resume results/BIOSTAR_H1-Quattro/20260722_151413 --retry-failed
+./run.sh run --resume results/<hw_id>/<run_id> --retry-failed
 ```
 
 ### 4. Regenerate Report
 
 ```bash
 # Specify a {hw_id}/{run_id} result directory path
-./run.sh report results/BIOSTAR_H1-Quattro/20260722_151413
+./run.sh report results/<hw_id>/<run_id>
 ```
 
 ### 5. Aggregate Results
@@ -288,7 +258,7 @@ computed from the `environment.json` fingerprint during `run`.
 
 The version is captured per run, resolved in this order:
 
-1. `--dx-all-suite-version v2.4.0` passed to `run` (explicit — always wins), else
+1. `--dx-all-suite-version vX.Y.Z` passed to `run` (explicit — always wins), else
 2. in-suite: auto-read from the **suite-root** `release.ver` (above the `dx-benchmark/`
    folder; dx-benchmark's own `release.ver` is skipped), else
 3. neither available → a `[WARN]` is printed and the run is recorded (and bucketed) as `unknown`.
@@ -314,7 +284,7 @@ The version is captured per run, resolved in this order:
 | `--resume` | — | Resume from an existing result directory |
 | `--retry-failed` | — | With `--resume`, rerun only entries not in `ok`/`partial` status |
 | `--product-name` | — | Product name. Used in HW_ID instead of hostname (e.g., `DX-AIPlayer-N97`) |
-| `--dx-all-suite-version VER` | Auto (`release.ver`) | dx-all-suite release version for the Version Trend axis (e.g. `v2.4.0`) |
+| `--dx-all-suite-version VER` | Auto (`release.ver`) | dx-all-suite release version for the Version Trend axis (e.g. `vX.Y.Z`) |
 
 ### Subcommands
 

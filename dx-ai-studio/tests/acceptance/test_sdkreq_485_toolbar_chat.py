@@ -10,6 +10,8 @@ import json
 import os
 import shutil
 
+import pytest
+
 from tests.acceptance.conftest import module_frame, wait_home
 from tests.acceptance.hardware import need, real_chat_config_path
 
@@ -78,7 +80,19 @@ def test_every_module_chat_opens_shows_settings_and_closes(pages):
     assert len(seen) >= 9 and "edge" in seen, seen      # DX Cloud has the chat too (2026-10-16 decision)
 
 
+def _system_agent_clis(path: str = LAUNCHER_ENV["PATH"]) -> list[str]:
+    """Coding-agent CLIs the Studio under test finds on its PATH. Chat answers through the first
+    logged-in one (shared.agent_cli.resolve_chat_source), so "no AI connected" cannot be shown
+    on a machine that has one installed system-wide (e.g. /usr/local/bin/copilot)."""
+    from shared.agent_cli import AGENT_ORDER, BINS
+    return [found for found in (shutil.which(BINS[name], path=path) for name in AGENT_ORDER) if found]
+
+
 def test_every_module_chat_sends_and_answers_without_an_ai_connected(pages):
+    clis = _system_agent_clis()
+    if clis:
+        pytest.skip("NOT RUN: an AI agent CLI is installed system-wide (" + ", ".join(clis)
+                    + "), so Chat is connected; this AC needs a machine with no AI connected")
     for _, key, frame in _each_module(pages):
         frame.locator(".dx-chat-fab").click()
         win = frame.locator(".dx-chat-window.open")

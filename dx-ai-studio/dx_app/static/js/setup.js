@@ -50,6 +50,16 @@ var _SETUP_FACTS=[
   [/^Found: (.+) \| Missing: (.+)$/,{ko:'있음: $1 | 없음: $2',ja:'あり: $1 | なし: $2','zh-CN':'已找到: $1 | 缺少: $2','zh-TW':'已找到: $1 | 缺少: $2',es:'Encontrado: $1 | Falta: $2'}],
   [/^Found: (.+)$/,{ko:'있음: $1',ja:'あり: $1','zh-CN':'已找到: $1','zh-TW':'已找到: $1',es:'Encontrado: $1'}],
   [/^missing: (.+)$/,{ko:'없음: $1',ja:'なし: $1','zh-CN':'缺少: $1','zh-TW':'缺少: $1',es:'falta: $1'}],
+  // DX-APP Build (setup_steps._app_build_status) and Sample Assets (shared/asset_setup.sample_assets_status)
+  [/^demo C\+\+ (\d+)\/(\d+)$/,{ko:'데모 C++ $1/$2',ja:'デモ C++ $1/$2','zh-CN':'演示 C++ $1/$2','zh-TW':'示範 C++ $1/$2',es:'C++ de demo $1/$2'}],
+  [/^all C\+\+ (\d+)\/(\d+)$/,{ko:'전체 C++ $1/$2',ja:'C++ 全体 $1/$2','zh-CN':'全部 C++ $1/$2','zh-TW':'全部 C++ $1/$2',es:'C++ en total $1/$2'}],
+  [/^demo models (\d+)\/(\d+) \((\d+) unverified\)$/,{ko:'데모 모델 $1/$2 (검증 안 됨 $3)',ja:'デモモデル $1/$2 (未検証 $3)','zh-CN':'演示模型 $1/$2（未验证 $3）','zh-TW':'示範模型 $1/$2（未驗證 $3）',es:'modelos de demo $1/$2 ($3 sin verificar)'}],
+  [/^demo models (\d+)\/(\d+)$/,{ko:'데모 모델 $1/$2',ja:'デモモデル $1/$2','zh-CN':'演示模型 $1/$2','zh-TW':'示範模型 $1/$2',es:'modelos de demo $1/$2'}],
+  [/^models (\d+)\/(\d+) \((\d+) unverified\)$/,{ko:'모델 $1/$2 (검증 안 됨 $3)',ja:'モデル $1/$2 (未検証 $3)','zh-CN':'模型 $1/$2（未验证 $3）','zh-TW':'模型 $1/$2（未驗證 $3）',es:'modelos $1/$2 ($3 sin verificar)'}],
+  [/^models (\d+)\/(\d+)$/,{ko:'모델 $1/$2',ja:'モデル $1/$2','zh-CN':'模型 $1/$2','zh-TW':'模型 $1/$2',es:'modelos $1/$2'}],
+  [/^videos (\d+)\/(\d+) \((\d+) unverified\)$/,{ko:'영상 $1/$2 (검증 안 됨 $3)',ja:'動画 $1/$2 (未検証 $3)','zh-CN':'视频 $1/$2（未验证 $3）','zh-TW':'影片 $1/$2（未驗證 $3）',es:'videos $1/$2 ($3 sin verificar)'}],
+  [/^videos (\d+)\/(\d+)$/,{ko:'영상 $1/$2',ja:'動画 $1/$2','zh-CN':'视频 $1/$2','zh-TW':'影片 $1/$2',es:'videos $1/$2'}],
+  [/^Unverified sample assets: (.+)$/,{ko:'샘플 자산을 확인할 수 없음: $1',ja:'サンプルを確認できません: $1','zh-CN':'无法确认示例资源: $1','zh-TW':'無法確認範例資源: $1',es:'No se pudieron comprobar los recursos de ejemplo: $1'}],
   [/^probe failed: (.+)$/,{ko:'확인 실패: $1',ja:'確認に失敗: $1','zh-CN':'检测失败: $1','zh-TW':'檢測失敗: $1',es:'falló la comprobación: $1'}],
   [/^No DeepX device found on PCIe bus$/,{ko:'PCIe 버스에서 DeepX 장치를 찾지 못했습니다',ja:'PCIe バスに DeepX デバイスがありません','zh-CN':'PCIe 总线上未找到 DeepX 设备','zh-TW':'PCIe 匯流排上未找到 DeepX 裝置',es:'No se encontró ningún dispositivo DeepX en el bus PCIe'}],
   [/^(?:No )?\/dev\/dxrt\* or \/dev\/deepx\* (?:not )?found$/,{ko:'/dev/dxrt* · /dev/deepx* 없음',ja:'/dev/dxrt* · /dev/deepx* なし','zh-CN':'未找到 /dev/dxrt* · /dev/deepx*','zh-TW':'未找到 /dev/dxrt* · /dev/deepx*',es:'No se encontró /dev/dxrt* ni /dev/deepx*'}],
@@ -94,8 +104,22 @@ async function setupCheckAll(){
       if(det)det.textContent=(locallyDone&&!s.ok)?_T5('방금 완료됨','Completed just now','完了したばかり','刚刚完成','剛剛完成','Completado ahora mismo'):'';
       /* Badge, next step and bar are painted by the shared step list (shared/static/dx-steps.js). One row holds short facts only. */
       _setupStepState(id,(s.ok||locallyDone)?'done':'todo',_setupFacts(s.detail));
+      /* Present files without a Studio record are installed but unverified: offer Verify
+         (the same step checks each file's size against the server and keeps a matching one). */
+      if(id==='dx-app-setup'){
+        var vb=$('setup-verify-dx-app-setup');
+        if(vb)vb.style.display=(s.ok&&s.verified===false)?'':'none';
+      }
     });
+    _setupLiveDisplay(r['live-display']);
   }catch(e){console.error('setupCheckAll error:',e);}
+}
+/* Optional Live display capture (Xvfb): reported, never installed by a step (setup_steps.live_display_status). */
+function _setupLiveDisplay(s){
+  var box=$('setup-live-display'), st=$('setup-live-display-state');
+  if(!box||!st||!s)return;
+  box.setAttribute('data-ok',s.ok?'true':'false');
+  _setupRunStatus(st,s.ok?'done':'todo',_setupFactText(s.ok?'Xvfb found':'Xvfb not installed'));
 }
 function setupMarkStepDone(stepId){
   if(!stepId)return;
@@ -394,9 +418,11 @@ async function setupRunAll() {
  * (GET /api/setup/quick-start-plan → quick_start_plan(), the single source of
  * truth — see dx_app/core/setup_steps.py), then reuses the exact same sudo
  * prompt + sequencing + #setup-log as Run All via _setupRunSequence. Only
- * 'dx-app-setup' gets demo_only:true so the backend (setup_run) downloads the
- * small demo asset set instead of --all.
+ * 'dx-app-build' and 'dx-app-setup' get demo_only:true so the backend (setup_steps.step_argv)
+ * builds --minimal and downloads only the run_demo models plus the sample videos.
  */
+/* Demo form of the build and asset steps (setup_steps.step_argv): build.sh --minimal and the run_demo models only. */
+function _setupDemoParams(id){return (id==='dx-app-setup'||id==='dx-app-build')?{demo_only:true}:{};}
 async function setupDemoQuickStart() {
   if(SETUP.running){toast(_T6('다른 작업이 이미 실행 중입니다','Another task is already running','別のタスクが実行中です','另一个任务正在运行','另一個任務正在執行','Otra tarea ya está en ejecución'),'err');return;}
   var btn=$('setup-quickstart-btn');
@@ -412,7 +438,7 @@ async function setupDemoQuickStart() {
     }
     var res=await _setupRunSequence(plan,{
       progressEl:prog,
-      extraParamsFor:function(id){return id==='dx-app-setup'?{demo_only:true}:{};}
+      extraParamsFor:_setupDemoParams
     });
     if(res&&res.completed){
       toast(_T6('데모 준비 완료!','Demo ready!','デモの準備ができました!','演示已就绪！','示範已就緒！','¡Demo lista!'),'ok');

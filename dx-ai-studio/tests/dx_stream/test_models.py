@@ -41,13 +41,16 @@ class TestModelCatalog:
             assert counts["obb_detection"] == 1
 
     def test_get_model_status(self, tmp_path):
-        from core.models import get_model_status
+        from core.models import get_model_status, get_models
+        # The first catalog file, whichever source the catalog came from (dx_stream's manifest, else the embedded list)
+        name = get_models()[0]["file"]
         models_dir = tmp_path / "models"
         models_dir.mkdir()
-        (models_dir / "yolo26-n_640x640.dxnn").write_bytes(b"fake")
+        (models_dir / name).write_bytes(b"fake")
         with patch("core.models.MODELS_DIR", models_dir):
             status = get_model_status()
-        assert status["yolo26-n_640x640.dxnn"]["installed"] is True
+        assert status[name] == {"installed": True, "size": 4}
+        assert all(not s["installed"] for f, s in status.items() if f != name)
 
     def test_has_obb_category(self):
         from core.models import get_catalog_source, get_models_by_category

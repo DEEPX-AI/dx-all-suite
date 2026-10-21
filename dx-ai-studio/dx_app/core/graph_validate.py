@@ -188,7 +188,8 @@ def validate(graph: dict) -> dict:
         return res
     if graph_cli.available() is None:
         res = _studio_error("GRAPH_BINARY_MISSING", "multi_model_graph_sync is not built",
-                            "build dx_app (./build.sh)")
+                            "in dx_app run ./build.sh --target multi_model_graph_sync multi_model_graph_async "
+                            "or ./build.sh --all")
         res["available"] = False
         return res
     caps = graph_cli.capabilities()

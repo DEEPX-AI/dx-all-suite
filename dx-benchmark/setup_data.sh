@@ -14,7 +14,7 @@ VIDEO_DIR="$SCRIPT_DIR/benchmark/assets/videos"
 phase_models() {
     mkdir -p "$MODEL_DIR"
     # Download benchmark models listed in model_list.json to $MODEL_DIR.
-    local BASE_URL="https://sdk.deepx.ai/modelzoo/dxnn"
+    local BASE_URL="https://sdk.deepx.ai/modelzoo/q-lite-dxnn"
     local MODEL_LIST_JSON="$SCRIPT_DIR/benchmark/model_list.json"
     local OUTPUT_DIR="$MODEL_DIR"
 
@@ -35,9 +35,25 @@ phase_models() {
 
     mkdir -p "$OUTPUT_DIR"
 
+    # Model file names repeat across releases; reuse models only if they came from
+    # the stamped source/version, otherwise move them to .stale/.
+    local SOURCE="$BASE_URL/$MODEL_VERSION" STAMP="$OUTPUT_DIR/.model_source" stamped="" moved=0 model
+    [ -f "$STAMP" ] && stamped=$(<"$STAMP")
+    if [ "$stamped" != "$SOURCE" ]; then
+        for model in "${MODEL_FILES[@]}"; do
+            if [ -e "$OUTPUT_DIR/$model" ]; then
+                mkdir -p "$OUTPUT_DIR/.stale"
+                mv -f "$OUTPUT_DIR/$model" "$OUTPUT_DIR/.stale/$model"
+                moved=$((moved + 1))
+            fi
+        done
+        [ "$moved" -gt 0 ] && echo "[WARN] Model source changed (was '${stamped:-unknown}'); moved $moved existing model(s) to $OUTPUT_DIR/.stale/"
+        printf '%s\n' "$SOURCE" > "$STAMP"
+    fi
+
     echo "[INFO] Downloading ${#MODEL_FILES[@]} models (version=$MODEL_VERSION) to $OUTPUT_DIR"
 
-    local model dest url tmp_dest
+    local dest url tmp_dest
     for model in "${MODEL_FILES[@]}"; do
         dest="$OUTPUT_DIR/$model"
         if [ -s "$dest" ]; then
