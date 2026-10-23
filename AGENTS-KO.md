@@ -289,7 +289,10 @@ fork 기반 app(PaddleOCR / RapidDoc), compile/retrain session.
 
 ## 브레인스토밍 — 계획 전 Spec (HARD GATE)
 
-superpowers `brainstorming` 스킬 또는 `/dx-swe-brainstorm` 사용 시:
+**모든** brainstorming 진입점에 적용됩니다 — superpowers `brainstorming` 스킬,
+`/dx-swe-brainstorm`, `/dx-agent-brainstorm`. 어느 것이 존재하는지는 레벨에 따라
+다릅니다: suite 는 둘 다 제공하고, 하위 프로젝트는 `/dx-agent-brainstorm` 만
+제공합니다. 어느 것을 호출했는지에 따라 spec 게이트가 면제되지 않습니다.
 
 1. **Spec 문서는 MANDATORY** — `writing-plans`로 전환하기 전에, spec 문서를
    `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md`에 반드시 작성해야 합니다.
@@ -297,16 +300,23 @@ superpowers `brainstorming` 스킬 또는 `/dx-swe-brainstorm` 사용 시:
 2. **사용자 승인 게이트는 MANDATORY** — spec 작성 후, 계획 작성으로 진행하기 전에
    사용자가 반드시 검토하고 승인해야 합니다. 관련 없는 사용자 응답 (예: 다른 질문에
    답변)을 spec 승인으로 처리하지 마세요.
+   **autopilot (사용자 부재, `--yolo`, 자동 응답) 에서는 spec 을 작성하고 knowledge
+   base 기준으로 자체 검토하는 것으로 이 게이트가 충족됩니다** — Autopilot Mode Guard
+   를 참조하세요. 검토자가 없다고 해서 spec 작성이 면제되지 않으며, 진행이 막히지도
+   않습니다.
 3. **계획 문서는 spec을 참조해야 합니다** — 계획 헤더에는 승인된 spec 문서에 대한
    링크가 포함되어야 합니다.
-4. **`/dx-swe-brainstorm` 선호** — 일반 superpowers `brainstorming` 스킬 대신
-   프로젝트 레벨의 brainstorming 스킬을 사용하세요. 프로젝트 레벨 스킬에는
-   도메인별 질문과 사전 점검이 포함되어 있습니다.
+4. **프로젝트 레벨 brainstorming 스킬 선호** — suite 에서는 `/dx-swe-brainstorm`,
+   하위 프로젝트에서는 `/dx-agent-brainstorm` 을 일반 superpowers `brainstorming`
+   스킬 대신 사용하세요. 프로젝트 레벨 스킬에는 도메인별 질문과 사전 점검이
+   포함되어 있습니다. 해당 레벨이 제공하는 스킬을 호출했다고 해서 위의 spec
+   게이트가 면제되지는 않습니다.
 5. **규칙 충돌 확인은 MANDATORY** — brainstorming 중, agent는 사용자 요구사항이
    HARD GATE 규칙 (IFactory 패턴, skeleton-first, Output Isolation,
    SyncRunner/AsyncRunner)과 충돌하는지 반드시 확인해야 합니다. 충돌이 감지되면,
    agent는 brainstorming 중에 이를 해결해야 합니다 — 설계 spec에서 위반 요청을
    조용히 따르지 마세요. 위의 "규칙 충돌 해결"을 참조하세요.
+
 ## 필수 프로세스 스킬 시퀀스 — 모든 코드 생성 (HARD GATE)
 
 이 gate는 `dx-agent-dev/<session_id>/`에 코드 artifact를 생성하는 모든 세션에
@@ -615,24 +625,25 @@ DONE은 맨 마지막 줄 유지).
 ## 필수 산출물
 
 모든 컴파일 또는 앱 생성 세션은 DONE을 출력하기 전에 세션 출력 디렉토리
-(`dx-agent-dev/<session_id>/`)에 다음 파일을 생성해야 합니다. 이것은
-**모든 작업 유형**에 적용됩니다 — compiler-only, app-only, cross-project.
+(`dx-agent-dev/<session_id>/`)에 다음 파일을 반드시 생성해야 합니다.
+이것은 **모든 작업 유형**에 적용됩니다 — compiler-only, app-only, cross-project.
 
-| 파일 | 목적 | 필요한 경우 |
-|------|------|-------------|
-| `setup.sh` | 환경 설정 (sanity check, dxcom 설치, venv, pip deps) | 항상 |
-| `run.sh` | venv activation을 포함한 원커맨드 inference 실행기 | 항상 |
+| 파일 | 목적 | 필요 시점 |
+|------|------|-----------|
+| `setup.sh` | 환경 설정 (sanity check, dxcom 설치, venv, pip 종속성) | 항상 |
+| `run.sh` | venv 활성화와 함께 원클릭 inference 실행기 | 항상 |
 | `README.md` | 세션 요약, 빠른 시작, 파일 목록 | 항상 |
 | `verify.py` | ONNX vs DXNN 수치 비교 | 컴파일 포함 시 |
-| `session.log` | 실제 명령 출력 로그 (손으로 작성한 요약이 아님) | 항상 |
+| `session.log` | 실제 명령 출력 로그 (직접 작성한 요약이 아님) | 항상 |
 | `config.json` | dxcom 컴파일 설정 | 컴파일 포함 시 |
 | `*.dxnn` | 컴파일된 모델 바이너리 | 컴파일 포함 시 |
+| `*.onnx` / `*.pt` | 생성한 `.dxnn` 옆에 보존하는 원본 모델 | 컴파일 포함 시 |
 
-이것들은 애플리케이션별 아티팩트 (factory/inference 패턴을 가진 Python 파일,
+이것들은 애플리케이션별 산출물 (factory/inference 패턴이 있는 Python 파일,
 GStreamer pipeline 코드 등)에 추가됩니다.
 
-각 서브 프로젝트도 해당 agent/skill 문서에서 이 파일들의 템플릿을 정의합니다
-(예: `dx-compiler/.deepx/agents/dx-dxnn-compiler.md` Phase 5.5).
+각 서브 프로젝트도 agent/skill 문서에서 이러한 파일의 템플릿을 정의합니다
+(예: **dx-compiler** 저장소 `.deepx/agents/` 의 dx-dxnn-compiler.md Phase 5.5).
 
 ### Cross-project suite 작업 — pre-DONE `.dxnn` 확인 (HARD GATE, REC-X4)
 
@@ -646,7 +657,157 @@ test -f "${COMPILER_SESSION}/yolo26n.dxnn" \
 ```
 
 `yolo26n.dxnn`이 없는 상태에서 DONE을 출력하면 백그라운드 컴파일이 나중에 완료되더라도
-`test_dxnn_compiled`가 실패합니다. Phase 5.8을 참조하세요: `dx-compiler/.deepx/agents/dx-dxnn-compiler.md`.
+`test_dxnn_compiled`가 실패합니다 (test harness는 DONE 시점에 파일을 수집합니다).
+Phase 5.8을 참조하세요: **dx-compiler** 저장소 `.deepx/agents/` 의 dx-dxnn-compiler.md.
+
+**모든 산출물은 이번 세션이 직접 생성해야 합니다.** 다른 세션의 출력 디렉터리에서
+파일을 복사해 — 다른 agent 의 것이든, 다른 회차의 것이든, 본인의 이전 세션이든 —
+이번 세션의 결과물로 제출하는 것은 수정 여부와 무관하게 금지됩니다. 같은 결과에
+이르는 지름길이 아닙니다: 이 디렉터리의 목적은 이번 실행이 무엇을 만들었는지
+보여주는 것입니다. `session.log` 에 이미 적용되는 규칙(heredoc 금지, `echo` 금지,
+손으로 쓴 요약 금지)이 표의 모든 파일에 동일하게 적용됩니다. 전제 조건이 빠졌다면
+그 사실을 알리고 멈추세요 — 빌려오지 마세요.
+
+## 사전 요구사항 확인 (HARD GATE)
+
+코드를 생성하거나 파일을 만들거나 sub-agent에 라우팅하기 전에, 다음 환경 확인이 통과해야 합니다.
+이 gate는 suite 레벨에서 적용됩니다 — brainstorming으로 spec과 plan이 완성된 경우에도
+이 확인들은 구현 전에 반드시 실행되어야 합니다.
+
+```bash
+# 1. dx-runtime sanity check (MANDATORY — 건너뛰지 마세요)
+bash dx-runtime/scripts/sanity_check.sh --dx_rt
+# 중요: PASS/FAIL을 exit code가 아닌 텍스트 출력으로 판단하세요.
+# Agent가 `| tail` 또는 `| head`로 파이프하면, 실제 exit code가
+# tail의 exit code (항상 0)로 조용히 대체됩니다.
+# PASS = 출력에 "Sanity check PASSED!"가 포함되고 [ERROR] 줄이 없음
+# FAIL = 출력에 "Sanity check FAILED!"가 포함되거나 [ERROR] 줄이 있음
+# tail/head/grep으로 절대 파이프하지 마세요 — 명령을 직접 실행하세요.
+# FAIL인 경우 → install 실행 후 재확인:
+bash dx-runtime/install.sh --all --exclude-app --exclude-stream --skip-uninstall --venv-reuse
+bash dx-runtime/scripts/sanity_check.sh --dx_rt  # install 후 반드시 PASS
+
+# 2. dx_engine import 확인 (앱 생성 작업에 MANDATORY)
+python -c "import dx_engine; print('dx_engine OK')" 2>/dev/null || {
+    echo "dx_engine not available. Run: cd dx-runtime/dx_app && ./install.sh && ./build.sh"
+}
+
+# 3. dxcom 가용성 확인 (컴파일 작업에 MANDATORY)
+python -c "import dx_com; print('dxcom OK')" 2>/dev/null || {
+    echo "dxcom not available."
+    # 설치 대안:
+    #   1. pip install dxcom (venv 내인 경우)
+    #   2. bash dx-compiler/install.sh (가용한 경우)
+    #   3. source dx-compiler/venv-dx-compiler-local/bin/activate (존재하는 경우)
+    # 모두 실패하면 → 중지하고 사용자에게 알리세요. dxcom 없이 절대 진행하지 마세요.
+}
+```
+
+**이것은 HARD GATE입니다:**
+- 이 확인이 통과할 때까지 구현 코드를 생성하지 마세요
+- brainstorming이나 계획이 완료되었다고 이 확인을 건너뛰지 마세요
+- 각 서브 프로젝트 builder에도 자체 Step 0 사전 요구사항이 있습니다 — 이것들은
+  이 스위트 레벨 확인의 대체가 아닌 추가 확인입니다
+- 확인이 실패하면, 사용자에게 정확한 수정 명령을 알려주고 중지하세요
+
+### dxcom Anti-Fabrication (컴파일 작업에 MANDATORY)
+
+dxcom이 사용 가능하고 컴파일이 진행될 때:
+- **dxcom API 호출을 기억에서 절대 조작하지 마세요.** 항상 toolset 파일을 읽으세요.
+  **dx-compiler** 저장소의 `.deepx/toolsets/` 아래에 있습니다:
+  - CLI: `dxcom-cli.md`
+  - Python API: `dxcom-api.md`
+  - Config schema: `config-schema.md`
+- **올바른 import**: `import dx_com; dx_com.compile(...)` (`from dxcom import dxcom`이 아님)
+- **`compiler.properties`를 절대 수정하지 마세요** — 설치 프로그램이 관리하는 시스템 파일입니다.
+  **dx-compiler** 저장소 `.deepx/memory/` 의 common_pitfalls.md Pitfall #21과 #22를
+  참조하세요.
+
+### Background Compilation (RECOMMENDED)
+
+`subprocess.Popen`을 사용한 컴파일은 에이전트의 tool-call 스레드가 10분 이상
+블록되는 것을 방지하여 병렬 artifact 생성을 가능하게 합니다.
+
+**권장 패턴** — `compile.pid` 파일과 함께 `subprocess.Popen` 사용:
+```python
+import subprocess, os
+compile_script = f"{work_dir}/compile.py"
+compile_out = open(f"{work_dir}/compile_out.log", "w")
+proc = subprocess.Popen(
+    ["python3", compile_script],
+    stdout=compile_out, stderr=subprocess.STDOUT,
+    cwd=work_dir, start_new_session=True,
+)
+with open(f"{work_dir}/compile.pid", "w") as f:
+    f.write(str(proc.pid))
+# 이제 compile.pid / .dxnn 존재 여부 확인 전에 다른 모든 artifact를 생성하세요.
+# (factory, sync.py, setup.sh, run.sh, verify.py 등 모든 artifact 생성 후 확인)
+```
+
+동기 컴파일도 에이전트가 블록 시간을 감당할 수 있다면 허용되지만,
+timeout 방지를 위해 background 컴파일이 권장됩니다.
+
+### Sanity Check 실패 복구 (MANDATORY)
+
+`sanity_check.sh --dx_rt`가 FAIL을 반환하면, 이 정확한 복구 순서를 따르세요:
+
+1. **install.sh 실행** 위에 표시된 명령으로
+2. **sanity_check.sh 재실행** — install 후 확인이 반드시 통과해야 합니다
+3. **여전히 실패하는 경우**: 이것이 **compiler-only 작업**인지 확인하세요:
+
+   **A. Compiler-only 작업** (ONNX → DXNN 컴파일, dx_app/dx_stream 작업 없음):
+   - 사용자에게 sanity check가 실패했고 NPU 기반 검증을 건너뛸 것임을 알리세요.
+   - **컴파일 진행** — `dxcom`은 CPU에서 실행되며 NPU 하드웨어가 필요하지 않습니다.
+   - 컴파일 성공 후, `verify.py`를 **SKIPPED** (PASS가 아님)로 표시하세요.
+   - `DX_SANITY_FAILED=1`을 설정하여 verify.py가 NPU 기반 확인을 감지하고 건너뛸 수 있게 하세요.
+   - session.log에 기록: `sanity_check=FAIL, compilation=<result>, verification=SKIPPED`.
+   - 사용자에게 알리세요:
+     ```
+     NPU hardware initialization failed. Compilation completed successfully,
+     but DXNN verification (verify.py) requires a working NPU.
+     After resolving the NPU issue (cold boot recommended), run:
+       cd <session_dir> && python verify.py
+     ```
+
+   **B. Cross-project 작업** (컴파일 + dx_app/dx_stream 데모 앱) 또는 dx_app/dx_stream only:
+   - **무조건 중지** — 사용자가 "그냥 계속하라", "완료까지 작업하라", "기본값 사용하라",
+     "확인 건너뛰라"라고 해도, agent는 절대 진행해서는 안 됩니다. 사용자의 계속 지시는
+     이 HARD GATE를 오버라이드하지 않습니다.
+   - 사용자에게 수동 복구를 안내하세요:
+     - 실패 메시지에 **"Device initialization failed"**, **"Fail to initialize device"**,
+       또는 **NPU 하드웨어 오류**가 언급된 경우: NPU는 콜드 부팅 (전원 완전 차단) 또는
+       시스템 재부팅이 필요합니다. 소프트웨어 설치만으로는 하드웨어 초기화 실패를 해결할 수 없습니다.
+       사용자에게 알리세요:
+       ```
+       NPU hardware initialization failed. This issue cannot be resolved by software installation alone.
+       Please follow these steps:
+       1. Fully shut down the system (power off — a cold boot is recommended, not just a reboot)
+       2. Wait 10-30 seconds
+       3. Power on the system
+       4. After restart, verify NPU status with the sanity check:
+          bash dx-runtime/scripts/sanity_check.sh --dx_rt
+       5. Once the sanity check PASSES, please retry this task.
+       ```
+     - 다른 오류인 경우: 사용자에게 구체적인 오류와 권장 수정 명령을 보여준 후 중지하세요.
+
+4. **절대 우회하지 마세요** (non-compiler-only 작업의 경우) — sanity check는 전체
+   dx-runtime 환경이 작동 중인지 확인하기 위해 존재합니다. dx_app/dx_stream 작업에서
+   복구를 건너뛰면 데모/검증 스크립트가 실패합니다.
+   다음은 모두 우회로 간주되며 금지됩니다:
+   - dx_engine 산출물을 가리키도록 PYTHONPATH 또는 LD_LIBRARY_PATH를 수동 설정
+   - 다른 저장소의 venv (예: compiler venv)를 dx_engine import에 사용
+   - dx_engine이 import되는 venv를 찾기 위해 여러 venv 검색
+   - 출력 텍스트에 FAILED 또는 [ERROR]가 표시될 때 "exit code가 0이므로 통과"라고 결론
+   - sanity_check.sh를 `| tail` / `| head` / `| grep`으로 파이프하고 파이프의 exit code 사용
+   - 사용자의 "그냥 계속" / "완료까지 작업" / "기본값 사용" / autopilot 지시를
+     HARD GATE 오버라이드 권한으로 재해석
+   - 실제로 실패했을 때 prerequisite check를 "완료" 또는 "통과"로 표시
+   참고: compiler-only 작업 (위의 3A 항목)은 이 중지에서 면제됩니다 — 컴파일은
+   진행되지만, 검증은 PASS가 아닌 SKIPPED로 표시됩니다.
+5. **일반적인 실패 원인**:
+   - NPU 드라이버 미설치 → `install.sh`에 `dx_rt_npu_linux_driver` target
+   - dx_engine 빌드 산출물 누락 → `cd dx_app && ./install.sh && ./build.sh`
+   - PEP 668 (Ubuntu 24.04+)이 pip 차단 → venv 사용 필수 (`--break-system-packages` 금지)
 
 ## Artifact 검증 게이트 (HARD GATE — 모든 코드 생성)
 
@@ -827,149 +988,6 @@ Autopilot mode에서도 선택사항이 아닙니다. 코드 생성에서 어떤
 건너뛰는 것은 task가 "internal development"인지 "user-facing"인지에 관계없이
 session 실패 위반입니다.
 
-## 사전 요구사항 점검 (HARD GATE)
-
-코드 생성, 파일 생성, 또는 sub-agent 라우팅 전에, 다음 환경 점검이 반드시
-통과해야 합니다. 이 게이트는 스위트 수준에서 적용됩니다 — 브레인스토밍이 spec과
-plan을 생성했더라도, 이 점검은 구현 전에 반드시 실행되어야 합니다.
-
-```bash
-# 1. dx-runtime sanity check (MANDATORY — 건너뛰지 마세요)
-bash dx-runtime/scripts/sanity_check.sh --dx_rt
-# 중요: 종료 코드가 아닌 텍스트 출력으로 PASS/FAIL을 판단하세요.
-# Agent는 종종 `| tail` 또는 `| head`를 통해 파이프하는데, 이는 실제 종료 코드를
-# tail의 종료 코드 (항상 0)로 조용히 대체합니다.
-# PASS = 출력에 "Sanity check PASSED!"가 포함되고 [ERROR] 줄이 없음
-# FAIL = 출력에 "Sanity check FAILED!"가 포함되거나 [ERROR] 줄이 있음
-# 절대 tail/head/grep을 통해 파이프하지 마세요 — 명령을 직접 실행하세요.
-# FAIL인 경우 → install을 실행한 다음, 재확인:
-bash dx-runtime/install.sh --all --exclude-app --exclude-stream --skip-uninstall --venv-reuse
-bash dx-runtime/scripts/sanity_check.sh --dx_rt  # install 후 반드시 PASS해야 함
-
-# 2. dx_engine import 점검 (앱 생성 작업에 MANDATORY)
-python -c "import dx_engine; print('dx_engine OK')" 2>/dev/null || {
-    echo "dx_engine not available. Run: cd dx-runtime/dx_app && ./install.sh && ./build.sh"
-}
-
-# 3. dxcom 가용성 점검 (컴파일 작업에 MANDATORY)
-python -c "import dx_com; print('dxcom OK')" 2>/dev/null || {
-    echo "dxcom not available."
-    # 설치 폴백:
-    #   1. pip install dxcom (venv인 경우)
-    #   2. bash dx-compiler/install.sh (가능한 경우)
-    #   3. source dx-compiler/venv-dx-compiler-local/bin/activate (존재하는 경우)
-    # 모두 실패하면 → 중지하고 사용자에게 알리세요. 절대 dxcom 없이 진행하지 마세요.
-}
-```
-
-**이것은 HARD GATE입니다:**
-- 이 점검이 통과할 때까지 구현 코드를 생성하지 마세요
-- 브레인스토밍이나 계획이 완료되었다고 이 점검을 건너뛰지 마세요
-- 각 서브 프로젝트 빌더에도 자체 Step 0 Prerequisites가 있습니다 — 이것들은
-  이 스위트 수준 점검의 대체가 아닌 추가 점검입니다
-- 점검이 실패하면, 정확한 수정 명령과 함께 사용자에게 알리고 중지하세요
-
-### dxcom Anti-Fabrication (컴파일 작업에 MANDATORY)
-
-dxcom이 사용 가능하고 컴파일이 진행되는 경우:
-- **절대 기억에서 dxcom API 호출을 조작하지 마세요.** 항상 toolset 파일을 읽으세요:
-  - CLI: `dx-compiler/.deepx/toolsets/dxcom-cli.md`
-  - Python API: `dx-compiler/.deepx/toolsets/dxcom-api.md`
-  - Config schema: `dx-compiler/.deepx/toolsets/config-schema.md`
-- **올바른 import**: `import dx_com; dx_com.compile(...)` (`from dxcom import dxcom`이 아님)
-- **절대 `compiler.properties`를 수정하지 마세요** — 설치 프로그램이 관리하는 시스템 파일입니다.
-  `dx-compiler/.deepx/memory/common_pitfalls.md` Pitfalls #21과 #22를 참조하세요.
-
-### Background Compilation (RECOMMENDED)
-
-`subprocess.Popen`을 사용한 컴파일은 에이전트의 tool-call 스레드가 10분 이상
-블록되는 것을 방지하여 병렬 artifact 생성을 가능하게 합니다.
-
-**권장 패턴** — `compile.pid` 파일과 함께 `subprocess.Popen` 사용:
-```python
-import subprocess, os
-compile_script = f"{work_dir}/compile.py"
-compile_out = open(f"{work_dir}/compile_out.log", "w")
-proc = subprocess.Popen(
-    ["python3", compile_script],
-    stdout=compile_out, stderr=subprocess.STDOUT,
-    cwd=work_dir, start_new_session=True,
-)
-with open(f"{work_dir}/compile.pid", "w") as f:
-    f.write(str(proc.pid))
-# 이제 compile.pid / .dxnn 존재 여부 확인 전에 다른 모든 artifact를 생성하세요.
-# (factory, sync.py, setup.sh, run.sh, verify.py 등 모든 artifact 생성 후 확인)
-```
-
-동기 컴파일도 에이전트가 블록 시간을 감당할 수 있다면 허용되지만,
-timeout 방지를 위해 background 컴파일이 권장됩니다.
-
-### Sanity Check 실패 복구 (MANDATORY)
-
-`sanity_check.sh --dx_rt`가 FAIL을 반환하면, 다음 정확한 복구 순서를 따르세요:
-
-1. **install.sh 실행** 위에 표시된 명령으로
-2. **sanity_check.sh 재실행** — install 후 점검이 반드시 통과해야 합니다
-3. **여전히 실패하는 경우**: **compiler-only 작업**인지 아닌지 확인:
-
-   **A. Compiler-only 작업** (ONNX → DXNN 컴파일, dx_app/dx_stream 작업 없음):
-   - 사용자에게 sanity check가 실패했고 NPU 기반 검증이 건너뛰어질 것임을 알리세요.
-   - **컴파일 진행** — `dxcom`은 CPU에서 실행되며 NPU 하드웨어가 필요하지 않습니다.
-   - 컴파일 성공 후, `verify.py`를 **SKIPPED** (PASS가 아님)로 표시하세요.
-   - verify.py가 NPU 기반 점검을 감지하고 건너뛸 수 있도록 `DX_SANITY_FAILED=1`을
-     설정하세요.
-   - session.log에 기록: `sanity_check=FAIL, compilation=<result>, verification=SKIPPED`.
-   - 사용자에게 알리세요:
-     ```
-     NPU hardware initialization failed. Compilation completed successfully,
-     but DXNN verification (verify.py) requires a working NPU.
-     After resolving the NPU issue (cold boot recommended), run:
-       cd <session_dir> && python verify.py
-     ```
-
-   **B. Cross-project 작업** (컴파일 + dx_app/dx_stream 데모 앱) 또는 dx_app/dx_stream만:
-   - **무조건 중지** — 사용자가 "그냥 계속해", "완료까지 작업해", "기본값 사용",
-     또는 "점검 건너뛰기"라고 말하더라도, agent는 절대 진행해서는 안 됩니다.
-     사용자의 계속 지시는 이 HARD GATE를 오버라이드하지 않습니다.
-   - 사용자를 수동 복구로 안내:
-     - 실패가 **"Device initialization failed"**, **"Fail to initialize device"**,
-       또는 **NPU 하드웨어 오류**를 언급하는 경우: NPU는 콜드 부트 (전체 전원
-       차단) 또는 시스템 재부팅이 필요합니다. 소프트웨어만으로는 하드웨어
-       초기화 실패를 수정할 수 없습니다. 사용자에게 알리세요:
-       ```
-       NPU hardware initialization failed. This issue cannot be resolved by software installation alone.
-       Please follow these steps:
-       1. Fully shut down the system (power off — a cold boot is recommended, not just a reboot)
-       2. Wait 10-30 seconds
-       3. Power on the system
-       4. After restart, verify NPU status with the sanity check:
-          bash dx-runtime/scripts/sanity_check.sh --dx_rt
-       5. Once the sanity check PASSES, please retry this task.
-       ```
-     - 실패가 다른 오류인 경우: 사용자에게 특정 오류와 권장 수정 명령을
-       보여주고 중지하세요.
-
-4. **절대 우회 금지** (non-compiler-only 작업의 경우) — sanity check는 전체
-   dx-runtime 환경이 작동하는지 확인하기 위해 존재합니다. dx_app/dx_stream
-   작업에서 복구를 건너뛰면 데모/검증 스크립트가 실패합니다.
-   다음은 모두 우회로 간주되며 금지됩니다:
-   - dx_engine 아티팩트를 가리키도록 PYTHONPATH 또는 LD_LIBRARY_PATH를 수동 설정
-   - 다른 저장소의 venv (예: compiler venv)를 dx_engine import에 사용
-   - dx_engine이 import되는 venv를 여러 개 검색
-   - 출력 텍스트에 FAILED 또는 [ERROR]가 표시될 때 "종료 코드가 0이었으므로
-     통과"라고 결론
-   - sanity_check.sh를 `| tail` / `| head` / `| grep`을 통해 파이프하고
-     파이프의 종료 코드를 사용
-   - 사용자의 "그냥 계속해" / "완료까지 작업해" / "기본값 사용" / autopilot
-     지시를 HARD GATE를 오버라이드하는 권한으로 재해석
-   - 실제로 실패한 prerequisite 점검을 "완료" 또는 "통과"로 표시
-   참고: compiler-only 작업 (항목 3A 위)은 이 중지에서 면제 — 컴파일은
-   진행되지만, 검증은 PASS가 아닌 SKIPPED로 표시됩니다.
-5. **일반적인 실패 원인**:
-   - NPU 드라이버 미설치 → `install.sh` with `dx_rt_npu_linux_driver` target
-   - dx_engine 빌드 아티팩트 누락 → `cd dx_app && ./install.sh && ./build.sh`
-   - PEP 668 (Ubuntu 24.04+) pip 차단 → venv를 사용해야 함 (절대 `--break-system-packages` 사용 금지)
-
 ## 규칙 충돌 해결 (HARD GATE)
 
 사용자의 요청이 HARD GATE 규칙과 충돌할 때, agent는 반드시:
@@ -980,7 +998,10 @@ timeout 방지를 위해 background 컴파일이 권장됩니다.
    보여주세요. 예를 들어, 사용자가 직접 `InferenceEngine.run()` 사용을 요청하면,
    IFactory 패턴이 동일한 API를 래핑함을 설명하고 factory 기반 동등물을 제안하세요.
 4. **올바른 접근 방식으로 진행** — 규칙 위반 요청을 조용히 따르지 마세요.
-   "옵션 A vs 옵션 B"로 제시하지 마세요.
+   "옵션 A vs 옵션 B"로 제시하지 말고, 어느 쪽을 원하는지 되물으며 턴을 끝내지도
+   마세요. 규격 준수 버전을 만드세요. 규칙 안에서의 질문(어떤 모델, 어떤 입력,
+   sync/async)은 괜찮지만 "대신 비준수 방식으로 할까요?"는 아닙니다 — 위반을
+   선택지로 제시하는 것 자체가 위반입니다.
 
 **일반적인 충돌 패턴** (실제 세션에서):
 - 사용자가 "use `InferenceEngine.Run()`"이라고 말함 → IFactory 패턴 사용 필수
@@ -998,6 +1019,11 @@ timeout 방지를 위해 background 컴파일이 권장됩니다.
 안내받은 후, 명시적으로 "규칙을 이해합니다, 직접 API 사용으로 진행하세요"라고
 말하면, 따르세요. 하지만 agent는 충돌을 먼저 설명해야 합니다 — 조용한 순응은
 항상 위반입니다.
+
+**오버라이드는 사용자가 먼저 꺼내는 것이지 agent가 제안하는 것이 아닙니다.**
+충돌을 설명하고, 규격 준수 구현을 제공하고, 거기서 멈추세요. 예외를 승인할지
+묻는 문장으로 끝내지 마세요 — 그렇게 하면 4항의 금지가 형식이 되어 버리고,
+TC-144가 지적하는 것이 바로 그 패턴입니다.
 
 ## 서브 프로젝트 개발 규칙 (MANDATORY — 자체 완결)
 

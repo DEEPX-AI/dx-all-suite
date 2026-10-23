@@ -95,7 +95,6 @@ Pod가 deepx.ai/dx-m1: 1 요청 → containerd가 /dev/dxrtN + runtime libs 주�
     cd /var/lib/rancher/k3s/agent/etc/containerd
     sudo cp config.toml config.toml.tmpl
     sudo tee -a config.toml.tmpl <<'EOF'
-
     [plugins."io.containerd.grpc.v1.cri".cdi]
       enable_cdi = true
       cdi_spec_dirs = ["/etc/cdi", "/var/run/cdi"]

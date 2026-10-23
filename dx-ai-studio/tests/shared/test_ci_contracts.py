@@ -144,6 +144,18 @@ def test_ci_workflow_uses_self_hosted_runner():
     assert "ci-browser-smoke" not in workflow
 
 
+def test_ci_workflow_checks_out_recursive_submodules():
+    workflow = (
+        ROOT.parent / ".github" / "workflows" / "dx-ai-studio-pytest.yml"
+    ).read_text(encoding="utf-8")
+    checkouts = workflow.split("      - name: Checkout\n")[1:]
+    assert len(checkouts) == 4
+    for checkout in checkouts:
+        step = checkout.split("\n      - name:", 1)[0]
+        assert "submodules: recursive" in step
+        assert "token: ${{ secrets.GH_DCI_TOKEN }}" in step
+
+
 def _workflow_job_condition(filename, job_id):
     import re
 
@@ -531,6 +543,8 @@ def test_coverage_uses_append_across_isolated_processes():
     assert "scripts/coverage_gate.py" in cov_block, (
         "coverage must be compared against config/coverage_baseline.json"
     )
+    module_run = cov_block.split("-- coverage 3/4:", 1)[1].split("-- coverage 4/4:", 1)[0]
+    assert "tests/dx_edge/" in module_run, "DX Cloud (dx_edge) tests must contribute to coverage"
 
 
 def test_browser_suites_support_sharding():

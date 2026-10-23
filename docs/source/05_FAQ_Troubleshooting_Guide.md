@@ -13,12 +13,14 @@ This guide addresses common errors and symptoms encountered while using the **DX
 - Q7. DX-ModelZoo Environment Error (`dxmz` / `dx_engine` / `dx_com` Not Found)  
 - Q8. DX-ModelZoo Model Download Timeout  
 - Q9. DX-ModelZoo Dataset Not Found  
+- Q10. Docker Mount Error After Recreating a Host Path
+- Q11. NPU Device Driver Version Is Too Old
 
 ---
 
 ## Q1. Container 'Restarting' Error (dxrtd Conflict)
 
-This issue occurs when the container status is continuously displayed as Restarting after running docker_run.sh, making it impossible to enter the container.  
+This issue occurs when the container status is continuously displayed as `Restarting` after running `docker_run.sh`, making it impossible to enter the container.  
 
 ### Diagnostic Steps
 
@@ -30,8 +32,8 @@ This issue occurs when the container status is continuously displayed as Restart
 docker ps
 
 # Example Output: STATUS repeats 'Restarting (255)'
-CONTAINER ID   IMAGE             COMMAND                 STATUS                          NAMES
-041b9a4933e3   dx-runtime:24.04  "/usr/local/bin/dxrtd"  Restarting (255) 4 seconds ago  dx-runtime-24.04
+CONTAINER ID   IMAGE                    COMMAND                 STATUS                          NAMES
+041b9a4933e3   dx-runtime:24.04         "/usr/local/bin/dxrtd"  Restarting (255) 4 seconds ago  dx-runtime-24.04
 
 # Check container logs 
 docker logs dx-runtime-24.04 
@@ -69,7 +71,7 @@ This occurs when X11 forwarding authentication fails, leading to GUI tool errors
 
 ### Diagnostic Steps
 
-- **Q2.1 Warning**: `[WARN] it is recommended to use an X11 session` appears during startup.  
+- **Q2.1 Warning**: `[WARNING] it is recommended to use an **X11 session (with .Xauthority support)** when working with the 'dx-all-suite' container.` appears during startup.  
 - **Q2.2 Error**: The container fails with `error mounting /tmp/.docker.xauth` after a system reboot or logout.  
 
 ### Cause
@@ -101,7 +103,7 @@ sudo systemctl restart gdm3
 ```
 
 **Step 3. Resource Cleanup**  
-Remove orphan containers before re-running.  
+Remove the existing container before re-running.  
 ```Bash
 # Clean up existing containers
 docker compose -f docker/docker-compose.yml down --remove-orphans

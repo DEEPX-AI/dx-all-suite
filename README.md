@@ -3,18 +3,24 @@
 **DX-AllSuite** is an all-in-one software platform designed to streamline the entire process of compiling, optimizing, simulating, and deploying AI inference applications on **DEEPX NPUs**. It ensures optimal compatibility and powerful hardware performance through a complete toolchain that covers everything from model creation to real-world "Physical AI" deployment.  
 
 <div align="center">
-  <img src="./docs/source/img/DXNN-SDK-Full-Architecture.png" width="600">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./docs/source/img/DXNN-SDK-Full-Architecture-dark.png">
+    <img src="./docs/source/img/DXNN-SDK-Full-Architecture.png" width="600">
+  </picture>
   <p><strong>Figure. DXNN SDK Full Architecture Overview.</strong></p>
 </div>
 
 **Key Features**  
 
 - **High Efficiency**: Equipped with the proprietary **DX-COM** compiler that extracts 100% of NPU performance. It utilizes advanced quantization (Intelligent Quantization with INT8) to minimize accuracy loss while maximizing inference speed.  
-- **Seamless Integration**: Build intelligent video analytics pipelines that bridge the entire pre-processing, inference, and post-processing workflow. Using **DX-Stream** (GStreamer-based custom plugins), you can deploy complex vision tasks without extensive code modifications.  
-- **Flexible Ecosystem**: Fully supports **Python and C++ APIs** and offers a **ModelZoo** with 345 optimized models. As a leader in the Open-Source Physical AI Alliance, we provide seamless workflows for popular frameworks.  
+- **Seamless Integration**: Build intelligent video analytics pipelines that bridge the entire pre-processing, inference, and post-processing workflow. Using **DX-STREAM** (GStreamer-based custom plugins), you can deploy complex vision tasks without extensive code modifications.  
+- **Flexible Ecosystem**: Fully supports **Python and C++ APIs** and offers a **ModelZoo** with 300+ optimized models. As a leader in the Open-Source Physical AI Alliance, we provide seamless workflows for popular frameworks.  
 
 <div align="center">
-  <img src="./docs/source/img/DXNN-SDK-Simple-Architecture.png" width="600">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./docs/source/img/DXNN-SDK-Simple-Architecture-dark.png">
+    <img src="./docs/source/img/DXNN-SDK-Simple-Architecture.png" width="600">
+  </picture>
   <p><strong>Figure. DXNN SDK Simple Architecture Overview.</strong></p>
 </div>
 
@@ -269,7 +275,7 @@ The October 2026 catalog reference contains **497 canonical model variants acros
 Reproducible YOLO26 performance benchmarking on the DEEPX NPU — one standardized procedure
 across any Host PC + NPU combination. It measures two tiers: **Model-Level** (`run_model`) —
 **Latency** (single-core, sync) and **Throughput** (multi-core, async) — and **E2E Pipeline**
-(DX-Stream) — **Single-Stream** FPS and **Multi-Stream** channel capacity. Both tiers run
+(DX-STREAM) — **Single-Stream** FPS and **Multi-Stream** channel capacity. Both tiers run
 automatic ONNX-Runtime ON/OFF comparison with thermal-throttle detection, then render an
 interactive dashboard for cross-environment and cross-version comparison. Measured results for
 6 hardware environments are included, and the dashboard built from them is also viewable in
@@ -302,13 +308,13 @@ document is published in English and Korean.
 
 DX-AllSuite supports a vast array of industry-standard AI architectures, optimized for peak performance on our NPU.  
 
-- **Image Classification**: AlexNet, ResNet/ResNeXt/WideResNet, MobileNet, EfficientNet (Lite/V2), ViT/DeiT/BEiT, MobileViT, FastViT, CasViT, RegNet, ShuffleNet, VGG, and more.  
-- **Object Detection**: YOLO families (YOLOv3–YOLOv11, YOLOX, YOLO26), SSD, EfficientDet, NanoDet, DamoYOLO.  
+- **Image Classification**: AlexNet, ResNet/ResNeXt/WideResNet, MobileNet, EfficientNet (Lite/V2), ViT/DeiT/BEiT, FastViT, CasViT, RegNet, ShuffleNet, VGG, and more.  
+- **Object Detection**: YOLO families (YOLOv3–YOLOv13, YOLOX, YOLO26), RT-DETR (v1/v2/v3), SSD, EfficientDet, NanoDet, DamoYOLO.  
 - **Segmentation**: DeepLabV3/DeepLabV3+, SegFormer, BiSeNet, UNet, YOLACT, and YOLO-based segmentation variants (YOLOv5/YOLOv8/YOLO26).  
 - **Advanced Vision Tasks**: Face analysis (Detection, Recognition, Landmarks, Attributes), Human/Hand Pose Estimation, Low-Light Enhancement, Image Denoising, Super Resolution, Depth Estimation, Oriented Object Detection (OBB), Zero-Shot Instance Segmentation, and Person Attributes.  
 
 > **Note: Pro Tip**  
-> Instead of compiling models yourself, you can download ready-to-use binaries from the [**DEEPX ModelZoo**](https://developer.deepx.ai/modelzoo/), which features **345 optimized models**.  
+> Instead of compiling models yourself, you can download ready-to-use binaries from the [**DEEPX ModelZoo**](https://developer.deepx.ai/modelzoo/), which features **300+ optimized models**.  
 
 
 ## Support

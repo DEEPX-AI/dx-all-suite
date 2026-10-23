@@ -42,6 +42,18 @@
 }
 :root[data-theme="light"] { --logo-filter: invert(1); }
 
+/* Diagrams that ship a black-text and a white-text variant: tag them .theme-img-light /
+   .theme-img-dark and only the one matching the active theme is shown. Same two states
+   as above — the media query when un-stamped, the attribute for an explicit choice. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) .theme-img-dark { display: none !important; }
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .theme-img-light { display: none !important; }
+}
+:root[data-theme="light"] .theme-img-dark,
+:root[data-theme="dark"] .theme-img-light { display: none !important; }
+
 /* clip (not auto) so extreme browser zoom / narrow viewports never produce a horizontal
    document scrollbar — the hub dashboard is designed to wrap, not scroll sideways.
    Must sit on the root element: the document scrollbar is driven by <html>. */

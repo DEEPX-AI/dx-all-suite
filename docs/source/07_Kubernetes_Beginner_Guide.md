@@ -18,11 +18,11 @@ Kindergarten (Cluster)
 │
 ├─ Classroom A (Node)              door sign: 1 special block
 │    ├─ Class monitor (Device Plugin)
-│    ├─ Special block (DX-M1) 🧩
-│    └─ Child (Pod) 🙋
+│    ├─ Special block (DX-M1)
+│    └─ Child (Pod)
 │
 └─ Classroom B (Node)              door sign: no special block
-     └─ Child (Pod) 🙂
+     └─ Child (Pod)
 ```
 
 | In the kindergarten | In Kubernetes | What it does |
@@ -50,7 +50,7 @@ Never to classroom B, which has none.
 
 On their own, they don't. A few helpers make it work.
 
-**🧑‍🏫 Class monitor = Device Plugin** (`dx-k8s-device-plugin`)
+**Class monitor = Device Plugin** (`dx-k8s-device-plugin`)
 
 Every classroom with a block has one class monitor, who keeps reporting to the head teacher:
 "We have 1 special block, and it works!"
@@ -59,23 +59,23 @@ If the block breaks, the monitor reports it right away and the head teacher stop
 children there. The rule that puts exactly one monitor in every block classroom is called a
 **DaemonSet**.
 
-**🏷️ Door sign = NFD (Node Feature Discovery) label**
+**Door sign = NFD (Node Feature Discovery) label**
 
 A sign on the classroom door: "Special block · 1 · version v2.7.6". A child (or a parent) can
 ask to go only to classrooms whose sign says v2.7.6. That is a **nodeSelector**.
 
-**🚚 Delivery helper = CDI (Container Device Interface)**
+**Delivery helper = CDI (Container Device Interface)**
 
 When a child enters the classroom, the helper puts the block and its **instruction booklet**
 (driver libraries) right on the child's desk. The child doesn't pack anything. That is why a
 container image can use the NPU without the DEEPX runtime baked in.
 
-**📦 Classroom setup box = Helm chart** (`dx-npu`)
+**Classroom setup box = Helm chart** (`dx-npu`)
 
 Installing the monitors, door-sign rules, and health log one by one is tedious, so they all
 come in one box. Open it once (`helm install`) and every classroom is ready.
 
-**🩺 School nurse = Prometheus**, **📊 Notice board = Grafana**
+**School nurse = Prometheus**, **Notice board = Grafana**
 
 Every 30 seconds the nurse records each block's temperature, pulse (clock), and health.
 The notice board draws those records as graphs. If a block was sick overnight, one look at the

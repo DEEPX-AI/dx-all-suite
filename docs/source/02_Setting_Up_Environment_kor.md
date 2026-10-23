@@ -17,6 +17,70 @@
 
 ---
 
+## Quick Install (one-line)
+
+단일 컴포넌트만 필요하다면 저장소 clone이나 submodule 동기화 없이 바로 설치할 수 있습니다.
+
+```Bash
+# DX-Compiler (x86_64 Host PC)
+curl -fsSL https://raw.githubusercontent.com/DEEPX-AI/dx-compiler/main/oneline-install.sh | sh
+
+# DX-Runtime (DEEPX NPU가 장착된 target device: NPU driver + dx_rt + firmware)
+curl -fsSL https://raw.githubusercontent.com/DEEPX-AI/dx-runtime/main/oneline-install.sh | sh
+```
+
+각 설치 스크립트는 최신 버전을 스스로 결정합니다 — DX-Compiler는 PyPI의 최신 릴리즈를,
+DX-Runtime은 각 컴포넌트 `main` branch의 `latest` pointer를 사용합니다. 버전을 지정하려면
+DX-Compiler는 `DX_VERSION=2.4.1`, DX-Runtime은 컴포넌트별로 `DX_RT_VERSION=3.4.2`,
+`DX_DRIVER_VERSION=2.6.0`, `DX_FW_VERSION=2.7.4`를 사용하십시오. DX-Compiler는 설치 루트를 옮기는
+`DX_INSTALL_DIR=<dir>`(기본값 `~/deepx`)도 지원합니다. DX-Runtime은 사용자가 고른 디렉터리가 아니라
+`dpkg`로 system package를 설치하므로 이에 해당하는 옵션이 없습니다.
+
+!!! warning "DX-Runtime은 `main`을 따르므로 기본적으로 재현성이 보장되지 않습니다"  
+    버전이 실행 시점에 결정되고, 다운로드한 artifact는 checksum 검증을 거치지 않으며, 세
+    컴포넌트가 각자의 branch를 독립적으로 따릅니다 — dx-runtime 릴리즈 사이에 실행하면 함께
+    검증되지 않은 조합이 설치될 수 있습니다. 검증된 조합이 필요하면 위의 버전을 고정하거나
+    저장소의 `install.sh`를 사용하십시오.
+
+!!! note "DX-Compiler는 system package 설치에 root 권한이 필요합니다"  
+    `dx-com`은 PyPI에서 `$DX_INSTALL_DIR/venv-dx-compiler`(기본값
+    `~/deepx/venv-dx-compiler`)에 설치되고, `dxcom` launcher는 `DX_BIN_DIR`(기본값
+    `~/.local/bin`)에 link되어 venv를 활성화하지 않고도 실행됩니다. 설치 스크립트는
+    `libgl1-mesa-dev`와 `libglib2.0-0`도 apt로 설치합니다. `dx-com`은 `opencv-python`에
+    의존하며, 그 `cv2` extension이 이 library들에 link되어 있어 없으면 import에 실패합니다.
+    Debian 또는 Ubuntu에서 root로, 또는 `sudo`를 사용할 수 있는 환경에서 실행하십시오.
+    이 방법은 sample data를 설치하지 않습니다 — sample data가 필요하면 저장소를 clone하십시오.
+
+!!! warning "DX-Runtime: 재부팅 필수"
+    설치 후 kernel이 NPU driver를 로드하도록 반드시 재부팅해야 합니다. NPU device가 감지되지
+    않으면 firmware 업데이트 단계는 건너뛰므로, 재부팅 후 같은 명령을 다시 실행하여 완료하십시오.
+
+!!! note "한 줄 설치의 범위"
+    DX-Runtime의 한 줄 설치는 `dx_fw`, `dx_rt`, `dx_rt_npu_linux_driver`를 다룹니다.
+    `dx_app`, `dx_stream`, source build, Docker 방식은 모두 아래의 전체 설치 절차를 따릅니다.
+
+### 한 줄 설치 제거
+
+```Bash
+# DX-Compiler
+curl -fsSL https://raw.githubusercontent.com/DEEPX-AI/dx-compiler/main/oneline-uninstall.sh | sh
+
+# DX-Runtime
+curl -fsSL https://raw.githubusercontent.com/DEEPX-AI/dx-runtime/main/oneline-uninstall.sh | sh
+```
+
+DX-Compiler는 설치 때 사용한 것과 같은 `DX_INSTALL_DIR` / `DX_BIN_DIR`를 지정해야 합니다.
+그렇지 않으면 기본 위치를 찾아 아무것도 제거하지 못합니다. DX-Runtime은 이런 인자가 없습니다:
+두 설치 방식이 모두 같은 Debian package를 만들기 때문에 이 명령으로 `install.sh` 설치도
+함께 제거됩니다.
+
+!!! warning "제거로 되돌릴 수 없는 것"
+    NPU에 이미 기록된 firmware는 되돌리지 않습니다 — firmware에 대한 제거 경로는 없습니다.
+    `dx_engine` Python wheel도 그대로 남습니다: `libdxrt-bin`은 wheel이 어느 interpreter나
+    virtualenv에 설치되었는지 알 수 없으므로, 자체 purge 과정에서 제거 방법을 출력합니다.
+    `dx_app`과 `dx_stream`은 한 줄 설치가 설치하지 않으므로 건드리지 않습니다. 이 두 모듈은
+    저장소의 `uninstall.sh`를 사용하십시오.
+
 ## APT 저장소 설치 (DX-Runtime)
 
 NPU driver와 DX-RT runtime은 DEEPX APT 저장소에 Debian package로도 배포됩니다(Ubuntu /
@@ -73,7 +137,8 @@ sudo apt install libdxrt-bin
 
 ## Prerequisites
 
-안정적인 설치를 위해 다음 단계를 먼저 수행하십시오.  
+안정적인 설치를 위해 다음 단계를 먼저 수행하십시오. 이는 전체 suite 설치 경로입니다 —
+위의 한 줄 설치로 충분하다면 이 단계는 건너뛰어도 됩니다.  
 
 ### Repository Cloning and Submodule Synchronization
 
@@ -432,6 +497,8 @@ dx_stream 코드 수정은 필요 없습니다 — GStreamer `decodebin`이 VA-A
 !!! note "Intel GPU 적용 범위"
     `--intel_gpu_hw_acc`는 **dx_stream(GStreamer) 파이프라인의 미디어 처리만** 가속합니다. dx-compiler/dx-modelzoo 워크로드는 가속하지 않으며(연산 가속은 `--nvidia_gpu`의 CUDA 전용), dx_app은 기본적으로 software decoding을 사용합니다.
 
+### Container Access and Task Guide
+
 #### A. DX-Compiler 환경 (모델 변환)
 DX-Compiler 환경은 하드웨어에 최적화된 `.dxnn` 바이너리를 생성하는 데 사용됩니다.  
 
@@ -439,7 +506,7 @@ DX-Compiler 환경은 하드웨어에 최적화된 `.dxnn` 바이너리를 생�
 컨테이너 내에서 작업을 수행하려면, **반드시** 먼저 실행 중인 컨테이너의 쉘에 로그인해야 합니다.  
 ```Bash
 # 1. Run in Host Terminal: Enter the container
-docker exec -it dx-compiler-24.04 bash 
+docker exec -it dx-compiler-24.04 bash
 
 # 2. Inside Container: Navigate to the work directory
 cd /deepx/dx-compiler/dx_com
@@ -458,10 +525,9 @@ cd /deepx/dx-compiler/dx_com
 ```
 
 - **방법 2**: 수동 컴파일 (CLI)  
-세밀한 제어를 위해 가상 환경을 활성화하고 `dxcom` 도구를 직접 사용합니다.  
-```Bash
-source ../venv-dx-compiler/bin/activate  # Activate venv
+세밀한 제어를 위해 가상 환경을 활성화하고 `dxcom` 도구를 직접 사용합니다.
 
+```Bash
 dxcom -m sample_models/onnx/YOLOV5S-1.onnx \
       -c sample_models/json/YOLOV5S-1.json \
       -o output/YOLOV5S-1
@@ -480,7 +546,7 @@ dxcom -m sample_models/onnx/YOLOV5S-1.onnx \
 추론을 실행하기 전에 컨테이너가 NPU 하드웨어와 통신할 수 있는지 확인하십시오.  
 ```Bash
 # 1. Run from the host terminal: Enter the container
-docker exec -it dx-runtime-24.04 
+docker exec -it dx-runtime-24.04
 
 # 2. Inside Container: Verify NPU hardware recognition
 dxrt-cli -s
@@ -622,9 +688,9 @@ ENTRYPOINT ["tail", "-f", "/dev/null"]
 Docker Compose를 사용하는 경우, `docker/docker-compose.yml`의 해당 서비스 섹션에서 기본 Entrypoint를 직접 덮어쓸 수 있습니다.  
 ```YAML
 services:
-dx-runtime:
-entrypoint: ["/bin/sh", "-c"]
-command: ["sleep infinity"]
+  dx-runtime:
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["sleep infinity"]
 ```
 
 !!! note "수동 시작"  

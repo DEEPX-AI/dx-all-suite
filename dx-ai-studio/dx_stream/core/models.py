@@ -61,7 +61,7 @@ _EMBEDDED_MODELS = [
 # renamed model into 'uncategorized' in the DX Stream UI. Mirrors demos._MODEL_ALIAS
 # (old -> new) but covers the full catalog, not just demo-backed models.
 _MANIFEST_ALIAS = {
-    "efficientnet-lite0_256x256.dxnn": "EfficientNet_Lite0.dxnn",
+    "efficientnet-lite0_224x224.dxnn": "EfficientNet_Lite0.dxnn",
     "scrfd-500m_640x640.dxnn": "SCRFD500M.dxnn",
     "yolov5-s_640x640_ppu.dxnn": "YoloV5S_PPU.dxnn",
     "yolov5-s-face_640x640.dxnn": "YOLOv5s_Face.dxnn",

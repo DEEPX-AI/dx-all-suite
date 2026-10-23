@@ -84,7 +84,9 @@ The DX-AIPlayer N97 and DX-M1 Raspberry Pi 5 Dev Kit documents follow the AWS De
 ## Related
 
 - [DEEPX Developer Documentation](https://developer.deepx.ai)
-- [DEEPX Model Zoo](https://developer.deepx.ai/modelzoo/)
-- [DEEPX dx-all-suite](https://github.com/DEEPX-AI/dx-all-suite)
+- [DEEPX ModelZoo](https://developer.deepx.ai/modelzoo/)
+- [DEEPX DX-AllSuite](https://github.com/DEEPX-AI/dx-all-suite)
 
 For technical support, contact tech_support@deepx.ai or visit https://deepx.ai/contact-us/technical-support/
+
+---

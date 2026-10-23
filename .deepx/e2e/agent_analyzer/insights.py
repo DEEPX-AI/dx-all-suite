@@ -612,7 +612,7 @@ def invoke_cli(cli: str, prompt: str, *, model: Optional[str] = None,
 # Mode: insights
 # ---------------------------------------------------------------------------
 
-def run_insights(report_dir: Path, cli: str, output_dir: Path,
+def run_insights(report_dir: Path, cli: Optional[str], output_dir: Path,
                   *, model: Optional[str] = None, allow_paid: bool = False) -> int:
     """Generate insights.md from analysis.md + analysis.json using a CLI agent."""
     analysis_md = report_dir / "analysis.md"
@@ -660,6 +660,16 @@ def run_insights(report_dir: Path, cli: str, output_dir: Path,
     prompt_path = output_dir / "insights_prompt.md"
     prompt_path.write_text(prompt, encoding="utf-8")
     print(f"Saved prompt to: {prompt_path}")
+
+    # No usable CLI: the prompt is the deliverable. main() used to return 3
+    # before reaching this point, so the documented "CLI 부재 시 프롬프트 저장
+    # -> 수동 실행" path never ran and output_dir came back empty (SR-861b).
+    if not cli:
+        print(f"\n⚠ No usable agent CLI found — the prompt was NOT run.\n"
+              f"  Run it manually with your preferred agent:\n"
+              f"    <your-cli> < {prompt_path}\n",
+              file=sys.stderr)
+        return 1
 
     print(f"Invoking CLI '{cli}'... (this can take several minutes)")
     result = invoke_cli(cli, prompt, model=model, allow_paid=allow_paid,
@@ -1141,7 +1151,12 @@ def main(argv: Optional[List[str]] = None) -> int:
         print(f"ERROR: no usable CLI found. Tried: {chain}. "
               f"Install one (or pass --allow-paid to widen the chain), or use "
               f"--cli <name> with a specific binary in PATH.", file=sys.stderr)
-        return 3
+        # insights mode still has something to deliver without a CLI: the
+        # assembled prompt. Fall through so run_insights() can write it and
+        # tell the user how to run it by hand (SR-861b); the other modes have
+        # no such artifact and still stop here.
+        if args.mode != "insights":
+            return 3
 
     if args.mode == "insights":
         return run_insights(report_dir, chosen_cli, out_dir,

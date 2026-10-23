@@ -98,14 +98,39 @@ def run_script(script: Path, args, extra_env=None, timeout=300):
     )
 
 
+def _copy_tracked(src: Path, dst: Path) -> None:
+    """Copy src's TRACKED working-tree files into dst (dst must not exist).
+
+    `shutil.copytree(ignore=.git)` also copied every untracked artifact the
+    checkout happened to hold (venvs, build output, models, past session dirs)
+    — 2.2 GB for dx_app on a working machine against a few MB of tracked
+    content, retained until the pytest session ends. Results then depended on
+    what the machine had lying around (SR-862). Tracked set from `git ls-files`,
+    bytes from the working tree, so uncommitted edits still come along.
+    """
+    dst.mkdir(parents=True, exist_ok=True)
+    out = subprocess.run(
+        ["git", "-C", str(src), "ls-files", "-z"],
+        check=True, capture_output=True,
+    ).stdout
+    for rel in filter(None, out.decode("utf-8").split("\0")):
+        s = src / rel
+        if not s.is_file() and not s.is_symlink():
+            continue  # gitlink (nested submodule) or deleted-but-tracked
+        d = dst / rel
+        d.parent.mkdir(parents=True, exist_ok=True)
+        if s.is_symlink():
+            os.symlink(os.readlink(s), d)
+        else:
+            shutil.copy2(s, d, follow_symlinks=False)
+
+
 def _copy_dx_app(dst: Path) -> Path:
     src = SUITE_ROOT / "dx-runtime" / "dx_app"
     if not (src / ".deepx").is_dir():
         pytest.skip("dx_app submodule not initialised")
     dst.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copytree(
-        src, dst, symlinks=True, ignore=shutil.ignore_patterns(".git")
-    )
+    _copy_tracked(src, dst)
     return dst
 
 

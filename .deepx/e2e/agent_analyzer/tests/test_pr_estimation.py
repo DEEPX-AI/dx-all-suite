@@ -16,6 +16,9 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
+from typing import Optional
+
+import os
 
 import pytest
 
@@ -221,15 +224,37 @@ def test_cursor_auto_zero_cost(pricing_config):
 # Stream parsing — Phase C user_turn extraction
 # ---------------------------------------------------------------------------
 
-# Real result-dir samples (skip if not present — keeps test portable across CI)
-_RESULTS_ROOT = Path(
-    "/data/home/dhyang/github/dx-all-suite-full-e2e/dx-agent-dev/e2e-tests/results"
-)
+# Real result-dir samples (skip if not present — keeps test portable across CI).
+#
+# The root used to be one developer's absolute path, so these tests skipped on
+# every other machine and TC-121 was never actually exercised (SR-861c). Resolve
+# it from the repo instead, with DX_E2E_RESULTS_ROOT as an explicit override for
+# a results tree kept outside the checkout.
+def _resolve_results_root() -> Optional[Path]:
+    env = os.environ.get("DX_E2E_RESULTS_ROOT")
+    if env:
+        return Path(env).expanduser()
+    # agent_analyzer/tests/ -> agent_analyzer -> e2e -> .deepx -> <suite root>
+    suite_root = Path(__file__).resolve().parents[4]
+    for rel in (
+        "dx-agent-dev/e2e-tests/results",
+        ".deepx/e2e/e2e-tests/results",
+    ):
+        cand = suite_root / rel
+        if cand.is_dir():
+            return cand
+    return None
+
+
+_RESULTS_ROOT = _resolve_results_root()
 
 
 def _find_sample(pattern: str) -> Path:
-    if not _RESULTS_ROOT.is_dir():
-        pytest.skip(f"results root not present: {_RESULTS_ROOT}")
+    if _RESULTS_ROOT is None or not _RESULTS_ROOT.is_dir():
+        pytest.skip(
+            "no e2e results tree found — set DX_E2E_RESULTS_ROOT to one, or run "
+            "the e2e layer so dx-agent-dev/e2e-tests/results/ exists"
+        )
     matches = sorted(_RESULTS_ROOT.glob(pattern))
     if not matches:
         pytest.skip(f"no sample matching: {pattern}")

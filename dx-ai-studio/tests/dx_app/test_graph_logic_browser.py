@@ -447,6 +447,11 @@ def test_a_line_is_flipped_and_typed_in_numbers(ui):
 
 
 def test_run_events_are_listed_filtered_badged_and_downloadable(browser, server, webm):
+    from dx_app.core import config
+
+    events_file = Path(config.OUTPUTS_DIR) / "graph" / "runs" / "job1" / "events.jsonl"
+    events_file.parent.mkdir(parents=True, exist_ok=True)
+    events_file.write_text("".join(json.dumps(e) + "\n" for e in EVENTS), encoding="utf-8")
     fake = FakeApi(video_url="/fake/result.webm" if webm else None)
     ctx, page, errors = _page(browser, server, fake, webm)
     try:
@@ -455,6 +460,11 @@ def test_run_events_are_listed_filtered_badged_and_downloadable(browser, server,
         page.wait_for_selector("#gc-run-events .gc-ev-table tbody tr")
         assert page.locator("#gc-run-events tbody tr").count() == 3
         assert page.get_attribute("#gc-run-events .gc-ev-download", "href") == "/outputs/graph/runs/job1/events.jsonl"
+        with page.expect_download() as download_info:
+            page.click("#gc-run-events .gc-ev-download")
+        download = download_info.value
+        assert download.suggested_filename == "events.jsonl"
+        assert Path(download.path()).read_bytes() == events_file.read_bytes()
         page.select_option("#gc-run-ev-node", "zone")
         assert page.locator("#gc-run-events tbody tr").count() == 2
         page.fill("#gc-run-ev-track", "3")
@@ -462,12 +472,12 @@ def test_run_events_are_listed_filtered_badged_and_downloadable(browser, server,
         assert "1 of 3 events" in page.inner_text("#gc-run-events .gc-ev-summary")
         pins = page.evaluate("GraphDoc.pins(null, null, GraphComposer.state().run, k => k).badges")
         assert pins["zone"] == [{"kind": "events", "text": "Events: 2"}]
+        page.click("#gc-run-events tbody tr button")
+        assert page.evaluate("GraphComposer.canvas().selection().nodes") == ["zone"]
         if webm:
             page.wait_for_function("() => document.querySelector('.gc-res-video').readyState >= 1", timeout=10000)
-            page.click("#gc-run-events tbody tr button")
             # frame 0 of the stream at the video's 10 fps, in the middle of the frame
             page.wait_for_function("() => Math.abs(document.querySelector('.gc-res-video').currentTime - 0.05) < 0.02")
-        assert page.evaluate("GraphComposer.canvas().selection().nodes") == ["zone"]
         assert not errors, errors
     finally:
         ctx.close()

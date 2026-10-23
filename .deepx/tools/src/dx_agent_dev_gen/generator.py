@@ -660,15 +660,26 @@ class Generator:
                 content = tmpl_file.read_text(encoding="utf-8")
 
                 # Replace fragment placeholders: {{FRAGMENT:name}}
+                # Every fragment opens with a `## ` heading, so it must be followed by a
+                # blank line. Two placeholder lines in a row used to render as
+                # "…last line of a\n## B" — markdown then reads the heading as prose
+                # (dx_app GHES #431 review; 136 such placements across the five levels).
                 for frag_name, frag_content in frag_set.items():
+                    body = frag_content.rstrip("\n") + "\n"
                     placeholder = "{{FRAGMENT:" + frag_name + "}}\n"
+                    # already separated — keep exactly the one blank line the template has
+                    if placeholder + "\n" in content:
+                        content = content.replace(placeholder + "\n", body + "\n")
+                    # glued to whatever follows — supply the missing blank line
                     if placeholder in content:
-                        content = content.replace(placeholder, frag_content.rstrip("\n") + "\n")
-                    else:
-                        # Try without trailing newline
-                        placeholder2 = "{{FRAGMENT:" + frag_name + "}}"
-                        if placeholder2 in content:
-                            content = content.replace(placeholder2, frag_content.rstrip("\n"))
+                        content = content.replace(placeholder, body + "\n")
+                    # not on a line of its own (inline use): substitute verbatim
+                    placeholder2 = "{{FRAGMENT:" + frag_name + "}}"
+                    if placeholder2 in content:
+                        content = content.replace(placeholder2, frag_content.rstrip("\n"))
+                # Every template ends with a fragment placeholder, and the blank line the
+                # rule above appends would land at EOF — normalise to one trailing newline.
+                content = content.rstrip("\n") + "\n"
 
                 # Replace context variables: {{KEY}}
                 for key, value in context.items():

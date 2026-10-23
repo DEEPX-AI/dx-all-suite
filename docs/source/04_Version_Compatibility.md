@@ -21,13 +21,13 @@ Since the **DEEPX SDK** maintains strict version dependencies between modules, i
       <th>DX-FW</th>
       <th>NPU Driver</th>
       <th>DX-RT</th>
-      <th>DX-Stream</th>
+      <th>DX-STREAM</th>
       <th>DX-APP</th>
     </tr>
   </thead>
   <tbody align="center">
     <tr>
-      <td rowspan="3">2026-10-09</td>
+      <td rowspan="3">2026-10-23</td>
       <td colspan="8">v2.5.0</td>
     </tr>
     <tr>
@@ -300,7 +300,7 @@ Since the **DEEPX SDK** maintains strict version dependencies between modules, i
 </table>
 
 !!! note "DX-TRON Removal"  
-    DX-TRON was removed as of DX-Compiler v2.5.0. Releases from that version onward show `-` in the DX-TRON column. Use the DX-COM Compilation Summary Report (`--export_html`) for model visualization.  
+    DX-TRON was removed as of DX-Compiler v2.5.0. Releases from that version onward show `—` in the DX-TRON column. Use the DX-COM Compilation Summary Report (`--export_html`) for model visualization.  
 
 <sup>*</sup> DX-TRON is no longer included in DX-AllSuite starting from v2.5.0.  
 `—` : Not included in that release. `-` : Not listed in this matrix for that release.
@@ -334,7 +334,7 @@ python3 -c "import dx_com; print(dx_com.__version__)"
 **Step 3. Model Zoo**  
 Verify the installed DX-ModelZoo version. Run it in the environment where `dx-modelzoo` is installed.
 ```Bash
-python3 -c "from dx_modelzoo.version import __version__; print(__version__)"
+python3 -c "from importlib.metadata import version; print(version('dx-modelzoo'))"
 ```
 
 ---

@@ -84,7 +84,9 @@ DX-AIPlayer N97 문서와 DX-M1 Raspberry Pi 5 Dev Kit 문서는 AWS Device Qual
 ## 관련 링크
 
 - [DEEPX 개발자 문서](https://developer.deepx.ai)
-- [DEEPX Model Zoo](https://developer.deepx.ai/modelzoo/)
-- [DEEPX dx-all-suite](https://github.com/DEEPX-AI/dx-all-suite)
+- [DEEPX ModelZoo](https://developer.deepx.ai/modelzoo/)
+- [DEEPX DX-AllSuite](https://github.com/DEEPX-AI/dx-all-suite)
 
 기술 지원은 tech_support@deepx.ai 또는 https://deepx.ai/contact-us/technical-support/ 로 문의하십시오.
+
+---

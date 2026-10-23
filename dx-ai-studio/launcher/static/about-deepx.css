@@ -668,8 +668,8 @@ ul.about-timeline-list li::before {
      Each flex-grow is set to the image's aspect ratio and flex-basis is 0, so the column
      widths come out proportional to aspect — which makes width/aspect (the rendered height)
      identical for both. Each gets a blue highlight frame so the two read as distinct figures.
-     The environments graphic is transparent (designed for the dark page); the architecture
-     diagram has black text so it sits on white inside its frame. */
+     Both graphics are transparent; the architecture diagram is a light/dark pair
+     (.theme-img-light / .theme-img-dark) so only one of the two is ever displayed. */
   margin: 20px 0 32px;
   display: flex;
   gap: 16px;
@@ -684,7 +684,7 @@ ul.about-timeline-list li::before {
   box-shadow: 0 0 0 4px var(--about-accent-glow);
 }
 .about-sdk-env-fig img:nth-of-type(1) { flex: 2054 1 0; }  /* environments 1150×560 (aspect 2.054) */
-.about-sdk-env-fig img:nth-of-type(2) { flex: 1473 1 0; }  /* architecture 1608×1092 (aspect 1.473) */
+.about-sdk-env-fig img:nth-of-type(n+2) { flex: 1389 1 0; }  /* architecture 1500×1080 (aspect 1.389) — light/dark pair, only one displayed */
 
 /* ── 9. Products Section ── */
 .about-product-category {

@@ -3,18 +3,24 @@
 **DX-AllSuite**는 **DEEPX NPU** 상에서 AI inference 애플리케이션을 컴파일, 최적화, 시뮬레이션, 배포하는 전 과정을 간소화하도록 설계된 올인원 소프트웨어 플랫폼입니다. 모델 제작부터 실제 "Physical AI" 배포까지 모두 아우르는 완전한 toolchain을 통해 최적의 호환성과 강력한 하드웨어 성능을 보장합니다.
 
 <div align="center">
-  <img src="./docs/source/img/DXNN-SDK-Full-Architecture.png" width="600">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./docs/source/img/DXNN-SDK-Full-Architecture-dark.png">
+    <img src="./docs/source/img/DXNN-SDK-Full-Architecture.png" width="600">
+  </picture>
   <p><strong>그림. DXNN SDK 전체 아키텍처 개요.</strong></p>
 </div>
 
 **주요 특징**
 
 - **High Efficiency**: NPU 성능을 100% 끌어내는 자체 **DX-COM** compiler를 탑재했습니다. 고급 quantization(INT8 기반 Intelligent Quantization)을 활용해 정확도 손실을 최소화하면서 inference 속도를 극대화합니다.
-- **Seamless Integration**: pre-processing, inference, post-processing 워크플로 전체를 잇는 지능형 video analytics pipeline을 구축합니다. **DX-Stream**(GStreamer 기반 custom plugin)을 사용하면 대규모 코드 수정 없이 복잡한 vision task를 배포할 수 있습니다.
-- **Flexible Ecosystem**: **Python 및 C++ API**를 완전히 지원하며, 345개 최적화된 모델을 갖춘 **ModelZoo**를 제공합니다. Open-Source Physical AI Alliance의 리더로서, 널리 쓰이는 framework들에 대한 매끄러운 워크플로를 제공합니다.
+- **Seamless Integration**: pre-processing, inference, post-processing 워크플로 전체를 잇는 지능형 video analytics pipeline을 구축합니다. **DX-STREAM**(GStreamer 기반 custom plugin)을 사용하면 대규모 코드 수정 없이 복잡한 vision task를 배포할 수 있습니다.
+- **Flexible Ecosystem**: **Python 및 C++ API**를 완전히 지원하며, 300개 이상의 최적화된 모델을 갖춘 **ModelZoo**를 제공합니다. Open-Source Physical AI Alliance의 리더로서, 널리 쓰이는 framework들에 대한 매끄러운 워크플로를 제공합니다.
 
 <div align="center">
-  <img src="./docs/source/img/DXNN-SDK-Simple-Architecture.png" width="600">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./docs/source/img/DXNN-SDK-Simple-Architecture-dark.png">
+    <img src="./docs/source/img/DXNN-SDK-Simple-Architecture.png" width="600">
+  </picture>
   <p><strong>그림. DXNN SDK 간략 아키텍처 개요.</strong></p>
 </div>
 
@@ -267,7 +273,7 @@ Kubernetes 클러스터 전체에서 DEEPX NPU를 스케줄링하는 환경입�
 
 DEEPX NPU에서의 재현 가능한 YOLO26 성능 벤치마크 — 하나의 표준 절차로 모든 Host PC + NPU
 조합에서 측정합니다. 두 계층을 측정합니다: **Model-Level**(`run_model`) — **Latency**
-(single-core, sync)와 **Throughput**(multi-core, async) — 그리고 **E2E Pipeline**(DX-Stream) — **Single-Stream** FPS와 **Multi-Stream** 채널 수용량. 두 계층 모두
+(single-core, sync)와 **Throughput**(multi-core, async) — 그리고 **E2E Pipeline**(DX-STREAM) — **Single-Stream** FPS와 **Multi-Stream** 채널 수용량. 두 계층 모두
 ONNX-Runtime ON/OFF 자동 비교와 thermal-throttle 감지를 수행하고, 환경 간·버전 간 비교용
 interactive dashboard로 렌더링됩니다. 6개 hardware 환경 측정 결과를 함께 제공하며, 이 결과로
 만든 dashboard는 [DX AI Studio](./dx-ai-studio/README.md)의 **DX Benchmark** 화면에서도 확인할 수
@@ -299,13 +305,13 @@ Raspberry Pi 5**(Raspberry Pi 5 + DX-M1)를 AWS IoT Greengrass 코어 디바이�
 
 DX-AllSuite는 우리 NPU에서 최고 성능을 내도록 최적화된, 업계 표준 AI 아키텍처를 폭넓게 지원합니다.
 
-- **Image Classification**: AlexNet, ResNet/ResNeXt/WideResNet, MobileNet, EfficientNet (Lite/V2), ViT/DeiT/BEiT, MobileViT, FastViT, CasViT, RegNet, ShuffleNet, VGG 등.
-- **Object Detection**: YOLO 계열 (YOLOv3–YOLOv11, YOLOX, YOLO26), SSD, EfficientDet, NanoDet, DamoYOLO.
+- **Image Classification**: AlexNet, ResNet/ResNeXt/WideResNet, MobileNet, EfficientNet (Lite/V2), ViT/DeiT/BEiT, FastViT, CasViT, RegNet, ShuffleNet, VGG 등.
+- **Object Detection**: YOLO 계열 (YOLOv3–YOLOv13, YOLOX, YOLO26), RT-DETR (v1/v2/v3), SSD, EfficientDet, NanoDet, DamoYOLO.
 - **Segmentation**: DeepLabV3/DeepLabV3+, SegFormer, BiSeNet, UNet, YOLACT, 그리고 YOLO 기반 segmentation 변형 (YOLOv5/YOLOv8/YOLO26).
 - **Advanced Vision Tasks**: Face analysis (Detection, Recognition, Landmarks, Attributes), Human/Hand Pose Estimation, Low-Light Enhancement, Image Denoising, Super Resolution, Depth Estimation, Oriented Object Detection (OBB), Zero-Shot Instance Segmentation, Person Attributes.
 
 > **참고: Pro Tip**
-> 모델을 직접 컴파일하는 대신, [**DEEPX ModelZoo**](https://developer.deepx.ai/modelzoo/)에서 **345개 최적화된 모델** 중 바로 사용 가능한 binary를 다운로드할 수 있습니다.
+> 모델을 직접 컴파일하는 대신, [**DEEPX ModelZoo**](https://developer.deepx.ai/modelzoo/)에서 **300개 이상의 최적화된 모델** 중 바로 사용 가능한 binary를 다운로드할 수 있습니다.
 
 ## 지원
 

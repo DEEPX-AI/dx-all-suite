@@ -16,7 +16,7 @@ class TestCppPostprocessFlags(unittest.TestCase):
             models,
             "_required_dxnn_exists",
             side_effect=lambda model_file: model_file == "assets/models/yolov7_640x640.dxnn",
-        ):
+        ), patch.object(models, "_python_runtime_ready", return_value=True):
             discovered = models.get_models()
 
         y = next((m for m in discovered if m['name'].startswith('yolov7')

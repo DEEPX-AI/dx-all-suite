@@ -26,6 +26,12 @@
 | Skills | `dx-skill-router` → `dx-agent-brainstorm` → … → `dx-agent-verify` |
 | Wall-clock / turns / cost | ~18 min / 175 / ≈ $12.0 |
 
+> **Measured, not estimated — and not reproducible to the digit.** The figures above are read
+> from this showcase's own session transcript in this directory, so they describe one real run.
+> Wall-clock, turn count, token usage and cost all vary between runs of the same prompt (model
+> routing, retries, cache state, host load), so read them as an order of magnitude rather than a
+> target to hit.
+
 ## The prompt
 
 Short and goal-only — it names no toolset path or branch (only the input video); the skill

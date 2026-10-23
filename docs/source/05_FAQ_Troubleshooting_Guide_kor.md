@@ -13,6 +13,8 @@
 - Q7. DX-ModelZoo Environment Error (`dxmz` / `dx_engine` / `dx_com` Not Found)  
 - Q8. DX-ModelZoo Model Download Timeout  
 - Q9. DX-ModelZoo Dataset Not Found  
+- Q10. 호스트 경로 재생성 후 Docker 마운트 오류  
+- Q11. NPU 디바이스 드라이버 버전이 낮은 경우  
 
 ---
 
@@ -30,8 +32,8 @@
 docker ps
 
 # Example Output: STATUS repeats 'Restarting (255)'
-CONTAINER ID   IMAGE             COMMAND                 STATUS                          NAMES
-041b9a4933e3   dx-runtime:24.04  "/usr/local/bin/dxrtd"  Restarting (255) 4 seconds ago  dx-runtime-24.04
+CONTAINER ID   IMAGE                    COMMAND                 STATUS                          NAMES
+041b9a4933e3   dx-runtime:24.04         "/usr/local/bin/dxrtd"  Restarting (255) 4 seconds ago  dx-runtime-24.04
 
 # Check container logs 
 docker logs dx-runtime-24.04 
@@ -54,12 +56,12 @@ sudo systemctl stop dxrt.service
 ./docker_run.sh --target=dx-runtime --ubuntu_version=24.04 
 ```
 
-자세한 내용은 [**Setting Up Environment**](02_Setting_Up_Environment.md)의 **Host System Preparation** 섹션을 참조하십시오.  
+자세한 내용은 [**Setting Up Environment**](02_Setting_Up_Environment_kor.md)의 **Host System Preparation** 섹션을 참조하십시오.  
 
 **방법 2: 컨테이너 내 자동 실행 방지**  
 호스트 서비스를 **반드시** 유지해야 하는 경우, 컨테이너 시작 시 데몬(`dxrtd`)이 자동으로 실행되지 않도록 설정하십시오.  
 
-자세한 내용은 [**Setting Up Environment**](02_Setting_Up_Environment.md)의 **Docker Advanced Troubleshooting (Multi-Runtime Containers)** 섹션을 참조하십시오.  
+자세한 내용은 [**Setting Up Environment**](02_Setting_Up_Environment_kor.md)의 **Docker Advanced Troubleshooting (Multi-Runtime Containers)** 섹션을 참조하십시오.  
 
 ---
 
@@ -69,7 +71,7 @@ X11 포워딩 인증이 실패하여 GUI 도구 에러가 발생하거나 컨테
 
 ### 진단 단계
 
-- **Q2.1 경고**: `[WARN] it is recommended to use an X11 session` 메시지가 나타납니다.  
+- **Q2.1 경고**: `[WARNING] it is recommended to use an **X11 session (with .Xauthority support)** when working with the 'dx-all-suite' container.` 메시지가 나타납니다.  
 - **Q2.2 오류**: 시스템 재부팅 또는 로그아웃 후 컨테이너 실행 시 `error mounting /tmp/.docker.xauth` 에러와 함께 실패합니다.  
 
 ### 원인
@@ -101,7 +103,7 @@ sudo systemctl restart gdm3
 ```
 
 **단계 3. 리소스 정리**  
-재실행 전 기존의 고립된(orphan) 컨테이너를 제거합니다.  
+재실행 전 기존 컨테이너를 제거합니다.  
 ```Bash
 # Clean up existing containers
 docker compose -f docker/docker-compose.yml down --remove-orphans
@@ -110,7 +112,7 @@ docker compose -f docker/docker-compose.yml down --remove-orphans
 ./docker_run.sh --target=dx-runtime --ubuntu_version=24.04
 ```
 
-자세한 내용은 **Docker Installation** 섹션을 [**Setting Up Environment**](02_Setting_Up_Environment.md)에서 참조하십시오.  
+자세한 내용은 **Docker Installation** 섹션을 [**Setting Up Environment**](02_Setting_Up_Environment_kor.md)에서 참조하십시오.  
 
 ---
 
@@ -120,7 +122,7 @@ NPU 하드웨어의 펌웨어가 요구되는 소프트웨어 스택 버전보�
 
 ### 진단 단계
 
-Check the error message in your terminal.  
+터미널에서 다음 에러 메시지를 확인하십시오.  
 ```Plaintext
 The current firmware version is X.X.X.
 Please update your firmware to version Y.Y.Y or higher.
@@ -128,7 +130,7 @@ Please update your firmware to version Y.Y.Y or higher.
 
 ### 원인
 
-Mismatch between the installed **DX-RT** (Runtime) library and the **DX-FW** (Firmware) flashed onto the NPU. 
+설치된 **DX-RT**(런타임) 라이브러리와 NPU에 기록된 **DX-FW**(펌웨어) 간의 버전 불일치로 인해 발생합니다. 
 
 ### 해결 방법: 펌웨어(DX-FW) 업데이트 및 콜드 부팅
 
@@ -160,7 +162,7 @@ dxrt-cli -u ./dx-runtime/dx_fw/m1/X.X.X/mdot2/fw.bin
 dxrt-cli -s
 ```
 
-자세한 내용은 **Firmware (DX-FW) Update and Activation** 섹션을 [**Setting Up Environment**](02_Setting_Up_Environment.md)에서 참조하십시오.  
+자세한 내용은 **Firmware (DX-FW) Update and Activation** 섹션을 [**Setting Up Environment**](02_Setting_Up_Environment_kor.md)에서 참조하십시오.  
 
 ---
 
@@ -205,7 +207,7 @@ dxrt-cli -s
 !!! caution "Docker 사용자 주의사항"  
     Docker 컨테이너는 호스트의 커널을 공유하므로, **드라이버 업데이트는 컨테이너 내부가 아닌 반드시 호스트 OS에서 수행**해야 합니다. 컨테이너 내부에서 드라이버를 업데이트하는 것은 하드웨어 통신 계층에 아무런 영향을 주지 않습니다.  
 
-자세한 내용은 **Building and Installing Modules** 섹션을 [**Setting Up Environment**](02_Setting_Up_Environment.md)에서 참조하십시오.  
+자세한 내용은 **Building and Installing Modules** 섹션을 [**Setting Up Environment**](02_Setting_Up_Environment_kor.md)에서 참조하십시오.  
 
 ---
 
@@ -239,7 +241,7 @@ Please downgrade the RT library version to X.X.X or use a model file generated w
     이 방법을 선택할 경우, NPU 드라이버 및 펌웨어와의 호환성도 **반드시** 다시 확인해야 합니다.  
 
 **버전 확인 가이드**  
-각 모듈에 대한 정확한 호환 조합은 **DXNN SDK Version Compatibility Matrix**를 [**Version Compatibility**](04_Version_Compatibility.md)에서 참조하십시오.  
+각 모듈에 대한 정확한 호환 조합은 **DXNN SDK Version Compatibility Matrix**를 [**Version Compatibility**](04_Version_Compatibility_kor.md)에서 참조하십시오.  
 
 ---
 

@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "studio_version": "0.1.1",
-  "target_runtime_version": "2.4.2",
+  "target_runtime_version": "2.5.0",
   "profiles": {
     "2.3.0": {
       "gstreamer_abi": "1.20",
@@ -92,6 +92,37 @@
             "version": "2.6.0",
             "uri": "https://raw.githubusercontent.com/DEEPX-AI/dx_rt_npu_linux_driver/7074748e7104f470b02f517583abba652b3f05fa/release/2.6.0/dxrt-driver-dkms_2.6.0-2_all.deb",
             "sha256": "6ab417956d2abd70c181c4aa0bae71bc60e0961ccf37eac9fc82d0e6a8314468"
+          }
+        }
+      }
+    },
+    "2.5.0": {
+      "gstreamer_abi": "1.20",
+      "suite_revision": "a7a9199a3d3063c814172015fb51d9c7016ab5fd",
+      "runtime_revision": "4f0a363b9ce119081063e89fdd7bc31fe96df28c",
+      "architectures": {
+        "x86_64": {
+          "runtime": {
+            "version": "3.5.0",
+            "uri": "https://raw.githubusercontent.com/DEEPX-AI/dx_rt/02861ba4645e338a51c433099114079cbee59213/release/3.5.0/libdxrt-bin_3.5.0_amd64.deb",
+            "sha256": "4abb3ab743f67e538cb8392d419d16242530ac68e1103b20f0b8e9ad8fdf67be"
+          },
+          "driver": {
+            "version": "2.7.0",
+            "uri": "https://raw.githubusercontent.com/DEEPX-AI/dx_rt_npu_linux_driver/8455be625439e005d7b3a375cc79087f4b570404/release/2.7.0/dxrt-driver-dkms_2.7.0-2_all.deb",
+            "sha256": "36ff756cdfee8312d26a1a9b1abb1a9ea58bd764798be17ad9cec89b838cd4b5"
+          }
+        },
+        "aarch64": {
+          "runtime": {
+            "version": "3.5.0",
+            "uri": "https://raw.githubusercontent.com/DEEPX-AI/dx_rt/02861ba4645e338a51c433099114079cbee59213/release/3.5.0/libdxrt-bin_3.5.0_arm64.deb",
+            "sha256": "2fe46df2e145f2825954932ff4e2cdbc6745433db489e8c0cccdc5f2ce18ae83"
+          },
+          "driver": {
+            "version": "2.7.0",
+            "uri": "https://raw.githubusercontent.com/DEEPX-AI/dx_rt_npu_linux_driver/8455be625439e005d7b3a375cc79087f4b570404/release/2.7.0/dxrt-driver-dkms_2.7.0-2_all.deb",
+            "sha256": "36ff756cdfee8312d26a1a9b1abb1a9ea58bd764798be17ad9cec89b838cd4b5"
           }
         }
       }
