@@ -79,16 +79,31 @@ def _git(*args: str, cwd: Path) -> None:
 
 
 def _make_isolated_repo(tmp_path: Path, name: str, source: Path) -> Path:
-    """Copy *source*'s WORKING TREE (not HEAD — the ambient submodule's committed
-    HEAD is stale relative to the current .deepx/ templates, see module docstring)
-    into a fresh standalone git repo under tmp_path, so the initial commit is
-    clean/up-to-date against the current suite fragments."""
+    """Copy *source*'s TRACKED working-tree files into a fresh standalone git repo
+    under tmp_path, so the initial commit is clean/up-to-date against the current
+    suite fragments.
+
+    Working tree, not HEAD: the ambient submodule's committed HEAD is stale
+    relative to the current .deepx/ templates (see module docstring), so
+    uncommitted edits to tracked files must come along.
+
+    Tracked only: ``tar --exclude=.git -cf - .`` also dragged in every untracked
+    artifact the developer's checkout happened to hold — venvs, build output,
+    downloaded models, past session dirs. On a dx-compiler checkout that is
+    2.1 GB against 3.4 MB of tracked content (~620x), and each test keeps its
+    tmp_path until the pytest session ends, so a full run could exhaust the disk
+    and blow the 120 s run_script timeout. Worse, the outcome depended on what
+    the machine happened to have lying around (SR-862).
+    """
     dest = tmp_path / name
     dest.mkdir(parents=True)
     # List-based invocation (M8): the paths are passed as bash positional
     # params ($1/$2), never interpolated into the shell script text itself.
+    # `git ls-files -z` feeds tar the tracked set; the bytes still come from the
+    # working tree, so uncommitted changes to tracked files are preserved.
     subprocess.run(
-        ["bash", "-c", 'tar -C "$1" --exclude=.git -cf - . | tar -xf - -C "$2"',
+        ["bash", "-c",
+         'git -C "$1" ls-files -z | tar -C "$1" --null -T - -cf - | tar -xf - -C "$2"',
          "bash", str(source), str(dest)],
         check=True,
         capture_output=True,

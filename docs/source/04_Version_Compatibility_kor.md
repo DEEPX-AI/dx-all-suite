@@ -21,13 +21,13 @@
       <th>DX-FW</th>
       <th>NPU Driver</th>
       <th>DX-RT</th>
-      <th>DX-Stream</th>
+      <th>DX-STREAM</th>
       <th>DX-APP</th>
     </tr>
   </thead>
   <tbody align="center">
     <tr>
-      <td rowspan="3">2026-10-09</td>
+      <td rowspan="3">2026-10-23</td>
       <td colspan="8">v2.5.0</td>
     </tr>
     <tr>
@@ -300,7 +300,7 @@
 </table>
 
 !!! note "DX-TRON 제거"  
-    DX-TRON은 DX-Compiler v2.5.0부터 제거되었습니다. 해당 버전 이후 릴리스의 DX-TRON 열에는 `-`로 표시됩니다. 모델 시각화에는 DX-COM Compilation Summary Report(`--export_html`)를 사용하십시오.  
+    DX-TRON은 DX-Compiler v2.5.0부터 제거되었습니다. 해당 버전 이후 릴리스의 DX-TRON 열에는 `—`로 표시됩니다. 모델 시각화에는 DX-COM Compilation Summary Report(`--export_html`)를 사용하십시오.  
 
 <sup>*</sup> DX-TRON은 v2.5.0부터 DX-AllSuite에 더 이상 포함되지 않습니다.<br>
 `—` : 해당 릴리스에 포함되지 않음. `-` : 해당 릴리스에서 이 매트릭스에 미기재.
@@ -334,7 +334,7 @@ python3 -c "import dx_com; print(dx_com.__version__)"
 **단계 3. Model Zoo**  
 설치된 DX-ModelZoo 버전을 확인합니다. `dx-modelzoo`가 설치된 환경에서 실행하십시오.
 ```Bash
-python3 -c "from dx_modelzoo.version import __version__; print(__version__)"
+python3 -c "from importlib.metadata import version; print(version('dx-modelzoo'))"
 ```
 
 ---

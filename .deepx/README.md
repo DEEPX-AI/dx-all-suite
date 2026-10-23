@@ -43,7 +43,7 @@ dx-all-suite contains five repos, each with its own `.deepx/`:
 
 Each sub-project `.deepx/` is self-contained. This top-level `.deepx/` adds:
 - Suite-wide router agents (`dx-suite-builder`, `dx-suite-validator`)
-- 20 shared fragments injected into all 5 repos (rename gates, session sentinels,
+- 22 shared fragments injected into all 5 repos (rename gates, session sentinels,
   process gates, autopilot guard, etc.)
 - The `dx-agent-gen` generator (single tool that processes all 5 repos)
 - All agent-driven test infrastructure (`tests/` conformance + `e2e/`)
@@ -76,7 +76,7 @@ Each sub-project `.deepx/` is self-contained. This top-level `.deepx/` adds:
 │   │   ├── CLAUDE-KO.md.tmpl
 │   │   ├── AGENTS-KO.md.tmpl
 │   │   └── copilot-instructions-KO.md.tmpl
-│   └── fragments/               ← 40 shared fragments (20 EN + 20 KO)
+│   └── fragments/               ← 44 shared fragments (22 EN + 22 KO)
 │       ├── en/
 │       └── ko/
 │
@@ -240,7 +240,7 @@ how to fix a red sub-repo gate.
 
 ---
 
-## 8. Shared Fragments (20 EN + 20 KO)
+## 8. Shared Fragments (22 EN + 22 KO)
 
 Fragments are reusable rule blocks injected into instruction files across all 5
 repos. Editing a fragment once propagates the change everywhere via
@@ -253,6 +253,8 @@ repos. Editing a fragment once propagates the change everywhere via
 | `skill-router-mandatory` | Universal pre-flight rule |
 | `session-sentinels` | `[DX-AGENT-DEV: START/DONE]` markers |
 | `artifact-verification-gate` | Per-artifact verification commands |
+| `prerequisites-check` | Sanity / dx_engine / dxcom gate + failure recovery |
+| `mandatory-deliverables` | Per-session deliverable table + own-work rule |
 | `brainstorming-spec-before-plan` | Spec → user approval → plan order |
 | `rule-conflict-resolution` | What to do when user request conflicts with HARD GATE |
 | `autopilot-mode-guard` | Behavior when user is absent |

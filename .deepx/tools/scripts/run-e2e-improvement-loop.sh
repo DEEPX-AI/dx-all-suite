@@ -265,7 +265,21 @@ CLAUDE_QUOTA_MAX_POLLS="${CLAUDE_QUOTA_MAX_POLLS:-8}"             # max 8 h wait
 
 # ── Path resolution ───────────────────────────────────────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SUITE_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+# This script lives at <suite>/.deepx/tools/scripts/, so the suite root is three
+# levels up — "../.." landed on <suite>/.deepx and made E2E_DIR
+# <suite>/.deepx/.deepx/e2e, which failed the pre-flight on every run that did
+# not pass --suite-root (SR-860). Walk up to the directory that OWNS .deepx
+# instead of counting levels, so a worktree or a symlinked checkout resolves too.
+SUITE_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+_probe="$SCRIPT_DIR"
+while [[ "$_probe" != "/" ]]; do
+    if [[ -d "$_probe/.deepx/e2e" && -d "$_probe/.deepx/tools" ]]; then
+        SUITE_ROOT="$_probe"
+        break
+    fi
+    _probe="$(dirname "$_probe")"
+done
+unset _probe
 
 # ── Arg parsing ───────────────────────────────────────────────────────────────
 while [[ $# -gt 0 ]]; do

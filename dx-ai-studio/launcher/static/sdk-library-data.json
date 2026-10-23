@@ -622,104 +622,104 @@
               "size": 8026
             },
             {
-              "path": "dx-modelzoo/docs/source/getting-started/installation.md",
+              "path": "dx-modelzoo/docs/source/02_01_Installation.md",
               "title": "Model Zoo Installation",
               "type": "md",
               "size": 2330
             },
             {
-              "path": "dx-modelzoo/docs/source/getting-started/quickstart.md",
+              "path": "dx-modelzoo/docs/source/00_Quick_Start.md",
               "title": "Model Zoo Quickstart",
               "type": "md",
               "size": 2941
             },
             {
-              "path": "dx-modelzoo/docs/source/guides/yaml-config.md",
+              "path": "dx-modelzoo/docs/source/02_03_YAML_Configuration.md",
               "title": "YAML Config Reference",
               "type": "md",
               "size": 9189
             },
             {
-              "path": "dx-modelzoo/docs/source/guides/evaluation.md",
+              "path": "dx-modelzoo/docs/source/02_02_Model_Evaluation.md",
               "title": "Model Evaluation Guide",
               "type": "md",
               "size": 3669
             },
             {
-              "path": "dx-modelzoo/docs/source/guides/custom-models.md",
+              "path": "dx-modelzoo/docs/source/02_05_Custom_Models.md",
               "title": "Custom Models Guide",
               "type": "md",
               "size": 8636
             },
             {
-              "path": "dx-modelzoo/docs/source/index.md",
+              "path": "dx-modelzoo/docs/source/01_DX-ModelZoo_Overview.md",
               "title": "Model Zoo Documentation",
               "type": "md",
               "size": 2619
             },
             {
-              "path": "dx-modelzoo/docs/source/api/cli.md",
+              "path": "dx-modelzoo/docs/source/04_01_CLI_Reference.md",
               "title": "Model Zoo CLI Reference",
               "type": "md",
               "size": 6491
             },
             {
-              "path": "dx-modelzoo/docs/source/architecture/overview.md",
+              "path": "dx-modelzoo/docs/source/03_01_Architecture_Overview.md",
               "title": "Architecture Overview",
               "size": 6033
             },
             {
-              "path": "dx-modelzoo/docs/source/architecture/pipeline.md",
+              "path": "dx-modelzoo/docs/source/03_02_Execution_Pipeline.md",
               "title": "Pipeline Architecture",
               "size": 6401
             },
             {
-              "path": "dx-modelzoo/docs/source/architecture/registry.md",
+              "path": "dx-modelzoo/docs/source/03_03_Registry.md",
               "title": "Registry Architecture",
               "size": 8319
             },
             {
-              "path": "dx-modelzoo/docs/source/api/session.md",
+              "path": "dx-modelzoo/docs/source/04_03_Session_API.md",
               "title": "Session API",
               "size": 8299
             },
             {
-              "path": "dx-modelzoo/docs/source/api/model-builder.md",
+              "path": "dx-modelzoo/docs/source/04_02_ModelBuilder_API.md",
               "title": "Model Builder API",
               "size": 6616
             },
             {
-              "path": "dx-modelzoo/docs/source/api/dataloader.md",
+              "path": "dx-modelzoo/docs/source/04_04_DataLoader_API.md",
               "title": "DataLoader API",
               "size": 6426
             },
             {
-              "path": "dx-modelzoo/docs/source/api/datasets.md",
+              "path": "dx-modelzoo/docs/source/04_05_Datasets_API.md",
               "title": "Datasets API",
               "size": 17905
             },
             {
-              "path": "dx-modelzoo/docs/source/api/preprocessing.md",
+              "path": "dx-modelzoo/docs/source/04_07_Preprocessing_API.md",
               "title": "Preprocessing API",
               "size": 6544
             },
             {
-              "path": "dx-modelzoo/docs/source/api/postprocessing.md",
+              "path": "dx-modelzoo/docs/source/04_08_Postprocessing_API.md",
               "title": "Postprocessing API",
               "size": 7185
             },
             {
-              "path": "dx-modelzoo/docs/source/api/evaluator.md",
+              "path": "dx-modelzoo/docs/source/04_06_Evaluator_API.md",
               "title": "Evaluator API",
               "size": 9613
             },
             {
-              "path": "dx-modelzoo/docs/source/guides/datasets.md",
+              "path": "dx-modelzoo/docs/source/02_04_Datasets_Guide.md",
               "title": "Datasets Guide",
               "size": 10322
             },
             {
-              "path": "dx-modelzoo/docs/source/guides/custom-datasets.md",
+              "path": "dx-modelzoo/docs/source/02_06_Custom_Datasets.md",
               "title": "Custom Datasets Guide",
               "size": 6794
             }
@@ -864,9 +864,9 @@
               "size": 7633
             },
             {
-              "path": "dx-runtime/dx_rt/csharp_package/DxEngine_NuGet_Guide.md",
-              "title": "C# NuGet Package Guide",
-              "size": 3852
+              "path": "dx-runtime/dx_rt/examples/csharp/README.md",
+              "title": "Using DX-RT from C#",
+              "size": 8963
             },
             {
               "path": "dx-runtime/docs/source/agent_development.md",
@@ -1091,16 +1091,6 @@
               "path": "dx-runtime/dx_stream/docs/source/docs/Elements/03_15_DxVnpuEnc.md",
               "title": "03 15 DxVnpuEnc",
               "size": 2825
-            },
-            {
-              "path": "dx-runtime/dx_stream/docs/source/docs/Elements/03_16_DxVnpuPipeline.md",
-              "title": "03 16 DxVnpuPipeline",
-              "size": 3909
-            },
-            {
-              "path": "dx-runtime/dx_stream/docs/source/docs/Elements/03_17_DxVnpuOverlay.md",
-              "title": "03 17 DxVnpuOverlay",
-              "size": 2945
             },
             {
               "path": "dx-runtime/dx_stream/docs/source/docs/04_Writing_Your_Own_Application.md",

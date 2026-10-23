@@ -291,7 +291,10 @@ apps, dx_stream pipelines, fork-based apps (PaddleOCR / RapidDoc), and compile/r
 
 ## Brainstorming — Spec Before Plan (HARD GATE)
 
-When using the superpowers `brainstorming` skill or `/dx-swe-brainstorm`:
+Applies to **every** brainstorming entry point — the superpowers `brainstorming`
+skill, `/dx-swe-brainstorm`, and `/dx-agent-brainstorm`. Which one exists depends
+on the level: the suite ships both, the sub-projects ship `/dx-agent-brainstorm`
+only. Reaching the spec gate is not conditional on which one you invoked.
 
 1. **Spec document is MANDATORY** — Before transitioning to `writing-plans`, a spec
    document MUST be written to `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md`.
@@ -299,16 +302,23 @@ When using the superpowers `brainstorming` skill or `/dx-swe-brainstorm`:
 2. **User approval gate is MANDATORY** — After writing the spec, the user MUST review
    and approve it before proceeding to plan writing. Do NOT treat unrelated user
    responses (e.g., answering a different question) as spec approval.
+   **In autopilot (user absent, `--yolo`, auto-response), this gate is satisfied by
+   writing the spec and self-reviewing it against the knowledge base** — see the
+   Autopilot Mode Guard. Absence of a reviewer never waives writing the spec, and
+   never blocks progress either.
 3. **Plan document MUST reference the spec** — The plan header must include a link
    to the approved spec document.
-4. **Prefer `/dx-swe-brainstorm`** — Use the project-level brainstorming skill
-   instead of the generic superpowers `brainstorming` skill. The project-level skill
-    has domain-specific questions and pre-flight checks.
+4. **Prefer the project-level brainstorming skill** — `/dx-swe-brainstorm` at the
+   suite, `/dx-agent-brainstorm` in a sub-project — over the generic superpowers
+   `brainstorming` skill. The project-level skills carry domain-specific questions
+   and pre-flight checks. Invoking the one your level ships does NOT exempt you
+   from the spec gate above.
 5. **Rule conflict check is MANDATORY** — During brainstorming, the agent MUST check
    whether any user requirement conflicts with HARD GATE rules (IFactory pattern,
    skeleton-first, Output Isolation, SyncRunner/AsyncRunner). If a conflict is
    detected, the agent MUST resolve it during brainstorming — not silently comply
    with the violating request in the design spec. See the "Rule Conflict Resolution" section.
+
 ## Mandatory Process Skill Sequence — All Code Generation (HARD GATE)
 
 This gate applies to ALL sessions that generate code artifacts in
@@ -634,12 +644,22 @@ This applies to **every task type** — compiler-only, app-only, and cross-proje
 | `session.log` | Actual command output log (NOT hand-written summary) | Always |
 | `config.json` | dxcom compilation configuration | Compilation involved |
 | `*.dxnn` | Compiled model binary | Compilation involved |
+| `*.onnx` / `*.pt` | The source model, kept next to the `.dxnn` it produced | Compilation involved |
 
 These are in ADDITION to any application-specific artifacts (Python files with
 factory/inference patterns, GStreamer pipeline code, etc.).
 
+**Every deliverable must be produced by THIS session.** Copying a file out of
+another session's output directory — another agent's, another round's, your own
+earlier one — and presenting it as this session's work is prohibited, with or
+without edits. It is not a shortcut to the same result: the point of the
+directory is to show what this run produced. The same rule already covers
+`session.log` (no heredoc, no `echo`, no hand-written summary); it applies to
+every file in the table. If a prerequisite is missing, say so and stop — do not
+borrow one.
+
 Each sub-project also defines templates for these files in its agent/skill documents
-(e.g., `dx-compiler/.deepx/agents/dx-dxnn-compiler.md` Phase 5.5).
+(e.g. Phase 5.5 of the **dx-compiler** repo's `.deepx/agents/` dx-dxnn-compiler.md).
 
 ### Cross-project suite tasks — pre-DONE `.dxnn` check (HARD GATE, REC-X4)
 
@@ -654,7 +674,149 @@ test -f "${COMPILER_SESSION}/yolo26n.dxnn" \
 
 Emitting DONE while `yolo26n.dxnn` is absent causes `test_dxnn_compiled` to fail even if
 background compilation eventually produces it (the test harness collects files at DONE time).
-See Phase 5.8 in `dx-compiler/.deepx/agents/dx-dxnn-compiler.md` for the full pre-DONE gate.
+See Phase 5.8 of the **dx-compiler** repo's `.deepx/agents/` dx-dxnn-compiler.md for the full pre-DONE gate.
+
+## Prerequisites Check (HARD GATE)
+
+Before generating ANY code, creating files, or routing to sub-agents, the following
+environment checks MUST pass. This gate applies at the suite level — even if
+brainstorming produced a spec and plan, these checks MUST execute before implementation.
+
+```bash
+# 1. dx-runtime sanity check (MANDATORY — do NOT skip)
+bash dx-runtime/scripts/sanity_check.sh --dx_rt
+# IMPORTANT: Judge PASS/FAIL by the TEXT OUTPUT, not the exit code.
+# Agents often pipe through `| tail` or `| head`, which silently
+# replaces the real exit code with tail's exit code (always 0).
+# PASS = output contains "Sanity check PASSED!" and NO [ERROR] lines
+# FAIL = output contains "Sanity check FAILED!" or ANY [ERROR] lines
+# NEVER pipe through tail/head/grep — run the command directly.
+# If FAIL → run install, then RE-CHECK:
+bash dx-runtime/install.sh --all --exclude-app --exclude-stream --skip-uninstall --venv-reuse
+bash dx-runtime/scripts/sanity_check.sh --dx_rt  # Must PASS after install
+
+# 2. dx_engine import check (MANDATORY for app generation tasks)
+python -c "import dx_engine; print('dx_engine OK')" 2>/dev/null || {
+    echo "dx_engine not available. Run: cd dx-runtime/dx_app && ./install.sh && ./build.sh"
+}
+
+# 3. dxcom availability check (MANDATORY for compilation tasks)
+python -c "import dx_com; print('dxcom OK')" 2>/dev/null || {
+    echo "dxcom not available."
+    # Installation fallback:
+    #   1. pip install dxcom (if in venv)
+    #   2. bash dx-compiler/install.sh (if available)
+    #   3. source dx-compiler/venv-dx-compiler-local/bin/activate (if exists)
+    # If ALL fail → STOP and inform user. NEVER proceed without dxcom.
+}
+```
+
+**This is a HARD GATE:**
+- Do NOT generate any implementation code until these checks pass
+- Do NOT skip these checks because brainstorming or planning was completed
+- Each sub-project builder also has its own Step 0 Prerequisites — those are
+  ADDITIONAL checks, not replacements for these suite-level checks
+- If a check fails, inform the user with the exact fix command and STOP
+
+### dxcom Anti-Fabrication (MANDATORY for compilation tasks)
+
+When dxcom is available and compilation proceeds:
+- **NEVER fabricate dxcom API calls from memory.** Always read the toolset files,
+  which live in the **dx-compiler** repo under `.deepx/toolsets/`:
+  - CLI: `dxcom-cli.md`
+  - Python API: `dxcom-api.md`
+  - Config schema: `config-schema.md`
+- **Correct import**: `import dx_com; dx_com.compile(...)` (NOT `from dxcom import dxcom`)
+- **NEVER modify `compiler.properties`** — system file managed by the installer.
+  See Pitfalls #21 and #22 in the **dx-compiler** repo's `.deepx/memory/`
+  common_pitfalls.md.
+
+### Background Compilation (RECOMMENDED)
+
+Using `subprocess.Popen` for compilation avoids blocking the agent's tool-call
+thread for 10+ minutes, allowing parallel artifact generation.
+
+**Recommended pattern** — `subprocess.Popen` with a `compile.pid` file:
+```python
+import subprocess, os
+compile_script = f"{work_dir}/compile.py"
+compile_out = open(f"{work_dir}/compile_out.log", "w")
+proc = subprocess.Popen(
+    ["python3", compile_script],
+    stdout=compile_out, stderr=subprocess.STDOUT,
+    cwd=work_dir, start_new_session=True,
+)
+with open(f"{work_dir}/compile.pid", "w") as f:
+    f.write(str(proc.pid))
+# Now generate ALL other artifacts (factory, sync.py, setup.sh, run.sh, verify.py)
+# BEFORE checking compile.pid / .dxnn existence.
+```
+
+Synchronous compilation is acceptable when the agent can tolerate the blocking
+time, but background compilation is preferred for timeout avoidance.
+
+### Sanity Check Failure Recovery (MANDATORY)
+
+When `sanity_check.sh --dx_rt` returns FAIL, follow this exact recovery sequence:
+
+1. **Run install.sh** with the command shown above
+2. **Re-run sanity_check.sh** — the check MUST pass after install
+3. **If still failing**: check whether this is a **compiler-only task** or not:
+
+   **A. Compiler-only task** (ONNX → DXNN compilation, no dx_app/dx_stream work):
+   - Inform the user that the sanity check failed and NPU-based verification will be skipped.
+   - **Proceed with compilation** — `dxcom` runs on CPU and does not require NPU hardware.
+   - After compilation succeeds, mark `verify.py` as **SKIPPED** (not PASS).
+   - Set `DX_SANITY_FAILED=1` so verify.py can detect and skip NPU-based checks.
+   - Record in session.log: `sanity_check=FAIL, compilation=<result>, verification=SKIPPED`.
+   - Tell the user:
+     ```
+     NPU hardware initialization failed. Compilation completed successfully,
+     but DXNN verification (verify.py) requires a working NPU.
+     After resolving the NPU issue (cold boot recommended), run:
+       cd <session_dir> && python verify.py
+     ```
+
+   **B. Cross-project task** (compilation + dx_app/dx_stream demo app) or dx_app/dx_stream only:
+   - **STOP unconditionally** — even if the user says "just continue",
+     "work to completion", "use defaults", or "skip checks", the agent MUST NOT
+     proceed. The user's instruction to continue does NOT override this HARD GATE.
+   - Guide the user through manual recovery:
+     - If the failure mentions **"Device initialization failed"**, **"Fail to initialize device"**,
+       or **NPU hardware errors**: the NPU requires a cold boot (full power cycle) or
+       system reboot. Software-only install cannot fix hardware initialization failures.
+       Tell the user:
+       ```
+       NPU hardware initialization failed. This issue cannot be resolved by software installation alone.
+       Please follow these steps:
+       1. Fully shut down the system (power off — a cold boot is recommended, not just a reboot)
+       2. Wait 10-30 seconds
+       3. Power on the system
+       4. After restart, verify NPU status with the sanity check:
+          bash dx-runtime/scripts/sanity_check.sh --dx_rt
+       5. Once the sanity check PASSES, please retry this task.
+       ```
+     - If the failure is a different error: show the user the specific error and
+       recommended fix command, then STOP.
+
+4. **NEVER bypass** (for non-compiler-only tasks) — the sanity check exists
+   to ensure the full dx-runtime environment is operational. For dx_app/dx_stream
+   tasks, skipping recovery means demo/verification scripts will fail.
+   The following are ALL considered bypass and are PROHIBITED:
+   - Setting PYTHONPATH or LD_LIBRARY_PATH manually to point at dx_engine artifacts
+   - Using a venv from another repository (e.g., compiler venv) for dx_engine imports
+   - Searching multiple venvs to find one where dx_engine happens to import
+   - Concluding "exit code was 0, so it passed" when output text shows FAILED or [ERROR]
+   - Piping sanity_check.sh through `| tail` / `| head` / `| grep` and using the pipe's exit code
+   - Reinterpreting the user's "just continue" / "work to completion" / "use defaults"
+     / autopilot instructions as permission to override the HARD GATE
+   - Marking the prerequisite check as "done" or "passed" when it actually failed
+   Note: compiler-only tasks (item 3A above) are exempt from this STOP — compilation
+   proceeds, but verification is marked SKIPPED, not PASS.
+5. **Common failure causes**:
+   - NPU driver not installed → `install.sh` with `dx_rt_npu_linux_driver` target
+   - dx_engine build artifacts missing → `cd dx_app && ./install.sh && ./build.sh`
+   - PEP 668 (Ubuntu 24.04+) blocking pip → must use venv (never `--break-system-packages`)
 
 ## Artifact Verification Gate (HARD GATE — All Code Generation)
 
@@ -836,146 +998,6 @@ This is NOT optional even in autopilot mode. Skipping any process skill for code
 generation is a session-failing violation regardless of whether the task is
 "internal development" or "user-facing."
 
-## Prerequisites Check (HARD GATE)
-
-Before generating ANY code, creating files, or routing to sub-agents, the following
-environment checks MUST pass. This gate applies at the suite level — even if
-brainstorming produced a spec and plan, these checks MUST execute before implementation.
-
-```bash
-# 1. dx-runtime sanity check (MANDATORY — do NOT skip)
-bash dx-runtime/scripts/sanity_check.sh --dx_rt
-# IMPORTANT: Judge PASS/FAIL by the TEXT OUTPUT, not the exit code.
-# Agents often pipe through `| tail` or `| head`, which silently
-# replaces the real exit code with tail's exit code (always 0).
-# PASS = output contains "Sanity check PASSED!" and NO [ERROR] lines
-# FAIL = output contains "Sanity check FAILED!" or ANY [ERROR] lines
-# NEVER pipe through tail/head/grep — run the command directly.
-# If FAIL → run install, then RE-CHECK:
-bash dx-runtime/install.sh --all --exclude-app --exclude-stream --skip-uninstall --venv-reuse
-bash dx-runtime/scripts/sanity_check.sh --dx_rt  # Must PASS after install
-
-# 2. dx_engine import check (MANDATORY for app generation tasks)
-python -c "import dx_engine; print('dx_engine OK')" 2>/dev/null || {
-    echo "dx_engine not available. Run: cd dx-runtime/dx_app && ./install.sh && ./build.sh"
-}
-
-# 3. dxcom availability check (MANDATORY for compilation tasks)
-python -c "import dx_com; print('dxcom OK')" 2>/dev/null || {
-    echo "dxcom not available."
-    # Installation fallback:
-    #   1. pip install dxcom (if in venv)
-    #   2. bash dx-compiler/install.sh (if available)
-    #   3. source dx-compiler/venv-dx-compiler-local/bin/activate (if exists)
-    # If ALL fail → STOP and inform user. NEVER proceed without dxcom.
-}
-```
-
-**This is a HARD GATE:**
-- Do NOT generate any implementation code until these checks pass
-- Do NOT skip these checks because brainstorming or planning was completed
-- Each sub-project builder also has its own Step 0 Prerequisites — those are
-  ADDITIONAL checks, not replacements for these suite-level checks
-- If a check fails, inform the user with the exact fix command and STOP
-
-### dxcom Anti-Fabrication (MANDATORY for compilation tasks)
-
-When dxcom is available and compilation proceeds:
-- **NEVER fabricate dxcom API calls from memory.** Always read the toolset files:
-  - CLI: `dx-compiler/.deepx/toolsets/dxcom-cli.md`
-  - Python API: `dx-compiler/.deepx/toolsets/dxcom-api.md`
-  - Config schema: `dx-compiler/.deepx/toolsets/config-schema.md`
-- **Correct import**: `import dx_com; dx_com.compile(...)` (NOT `from dxcom import dxcom`)
-- **NEVER modify `compiler.properties`** — system file managed by the installer.
-  See `dx-compiler/.deepx/memory/common_pitfalls.md` Pitfalls #21 and #22.
-
-### Background Compilation (RECOMMENDED)
-
-Using `subprocess.Popen` for compilation avoids blocking the agent's tool-call
-thread for 10+ minutes, allowing parallel artifact generation.
-
-**Recommended pattern** — `subprocess.Popen` with a `compile.pid` file:
-```python
-import subprocess, os
-compile_script = f"{work_dir}/compile.py"
-compile_out = open(f"{work_dir}/compile_out.log", "w")
-proc = subprocess.Popen(
-    ["python3", compile_script],
-    stdout=compile_out, stderr=subprocess.STDOUT,
-    cwd=work_dir, start_new_session=True,
-)
-with open(f"{work_dir}/compile.pid", "w") as f:
-    f.write(str(proc.pid))
-# Now generate ALL other artifacts (factory, sync.py, setup.sh, run.sh, verify.py)
-# BEFORE checking compile.pid / .dxnn existence.
-```
-
-Synchronous compilation is acceptable when the agent can tolerate the blocking
-time, but background compilation is preferred for timeout avoidance.
-
-### Sanity Check Failure Recovery (MANDATORY)
-
-When `sanity_check.sh --dx_rt` returns FAIL, follow this exact recovery sequence:
-
-1. **Run install.sh** with the command shown above
-2. **Re-run sanity_check.sh** — the check MUST pass after install
-3. **If still failing**: check whether this is a **compiler-only task** or not:
-
-   **A. Compiler-only task** (ONNX → DXNN compilation, no dx_app/dx_stream work):
-   - Inform the user that the sanity check failed and NPU-based verification will be skipped.
-   - **Proceed with compilation** — `dxcom` runs on CPU and does not require NPU hardware.
-   - After compilation succeeds, mark `verify.py` as **SKIPPED** (not PASS).
-   - Set `DX_SANITY_FAILED=1` so verify.py can detect and skip NPU-based checks.
-   - Record in session.log: `sanity_check=FAIL, compilation=<result>, verification=SKIPPED`.
-   - Tell the user:
-     ```
-     NPU hardware initialization failed. Compilation completed successfully,
-     but DXNN verification (verify.py) requires a working NPU.
-     After resolving the NPU issue (cold boot recommended), run:
-       cd <session_dir> && python verify.py
-     ```
-
-   **B. Cross-project task** (compilation + dx_app/dx_stream demo app) or dx_app/dx_stream only:
-   - **STOP unconditionally** — even if the user says "just continue",
-     "work to completion", "use defaults", or "skip checks", the agent MUST NOT
-     proceed. The user's instruction to continue does NOT override this HARD GATE.
-   - Guide the user through manual recovery:
-     - If the failure mentions **"Device initialization failed"**, **"Fail to initialize device"**,
-       or **NPU hardware errors**: the NPU requires a cold boot (full power cycle) or
-       system reboot. Software-only install cannot fix hardware initialization failures.
-       Tell the user:
-       ```
-       NPU hardware initialization failed. This issue cannot be resolved by software installation alone.
-       Please follow these steps:
-       1. Fully shut down the system (power off — a cold boot is recommended, not just a reboot)
-       2. Wait 10-30 seconds
-       3. Power on the system
-       4. After restart, verify NPU status with the sanity check:
-          bash dx-runtime/scripts/sanity_check.sh --dx_rt
-       5. Once the sanity check PASSES, please retry this task.
-       ```
-     - If the failure is a different error: show the user the specific error and
-       recommended fix command, then STOP.
-
-4. **NEVER bypass** (for non-compiler-only tasks) — the sanity check exists
-   to ensure the full dx-runtime environment is operational. For dx_app/dx_stream
-   tasks, skipping recovery means demo/verification scripts will fail.
-   The following are ALL considered bypass and are PROHIBITED:
-   - Setting PYTHONPATH or LD_LIBRARY_PATH manually to point at dx_engine artifacts
-   - Using a venv from another repository (e.g., compiler venv) for dx_engine imports
-   - Searching multiple venvs to find one where dx_engine happens to import
-   - Concluding "exit code was 0, so it passed" when output text shows FAILED or [ERROR]
-   - Piping sanity_check.sh through `| tail` / `| head` / `| grep` and using the pipe's exit code
-   - Reinterpreting the user's "just continue" / "work to completion" / "use defaults"
-     / autopilot instructions as permission to override the HARD GATE
-   - Marking the prerequisite check as "done" or "passed" when it actually failed
-   Note: compiler-only tasks (item 3A above) are exempt from this STOP — compilation
-   proceeds, but verification is marked SKIPPED, not PASS.
-5. **Common failure causes**:
-   - NPU driver not installed → `install.sh` with `dx_rt_npu_linux_driver` target
-   - dx_engine build artifacts missing → `cd dx_app && ./install.sh && ./build.sh`
-   - PEP 668 (Ubuntu 24.04+) blocking pip → must use venv (never `--break-system-packages`)
-
 ## Rule Conflict Resolution (HARD GATE)
 
 When a user's request conflicts with a HARD GATE rule, the agent MUST:
@@ -987,7 +1009,11 @@ When a user's request conflicts with a HARD GATE rule, the agent MUST:
    `InferenceEngine.run()` usage, explain that the IFactory pattern wraps
    the same API and propose the factory-based equivalent.
 4. **Proceed with the correct approach** — Do NOT silently comply with the
-   rule-violating request. Do NOT present it as "Option A vs Option B".
+   rule-violating request. Do NOT present it as "Option A vs Option B", and do
+   NOT end the turn by asking which one the user wants. Build the compliant
+   version. Questions that stay inside the rules (which model, which input,
+   sync or async) are fine; "shall I do it the non-compliant way instead?" is
+   not — offering the violation as a choice is itself the violation.
 
 **Common conflict patterns** (from real sessions):
 - User says "use `InferenceEngine.Run()`" → Must use IFactory pattern (engine
@@ -1005,6 +1031,11 @@ When a user's request conflicts with a HARD GATE rule, the agent MUST:
 informed of the conflict, explicitly says "I understand the rule, proceed with
 direct API usage anyway", then comply. But the agent MUST explain the conflict
 FIRST — silent compliance is always a violation.
+
+**The override is the user's to raise, never the agent's to offer.** Explain the
+conflict, deliver the compliant implementation, and stop there. Do not close with
+a prompt inviting the user to authorise the exception — that turns item 4's
+prohibition into a formality and is what TC-144 flags.
 
 ## Sub-Project Development Rules (MANDATORY — SELF-CONTAINED)
 

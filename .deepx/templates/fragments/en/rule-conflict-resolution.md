@@ -9,7 +9,11 @@ When a user's request conflicts with a HARD GATE rule, the agent MUST:
    `InferenceEngine.run()` usage, explain that the IFactory pattern wraps
    the same API and propose the factory-based equivalent.
 4. **Proceed with the correct approach** — Do NOT silently comply with the
-   rule-violating request. Do NOT present it as "Option A vs Option B".
+   rule-violating request. Do NOT present it as "Option A vs Option B", and do
+   NOT end the turn by asking which one the user wants. Build the compliant
+   version. Questions that stay inside the rules (which model, which input,
+   sync or async) are fine; "shall I do it the non-compliant way instead?" is
+   not — offering the violation as a choice is itself the violation.
 
 **Common conflict patterns** (from real sessions):
 - User says "use `InferenceEngine.Run()`" → Must use IFactory pattern (engine
@@ -27,3 +31,8 @@ When a user's request conflicts with a HARD GATE rule, the agent MUST:
 informed of the conflict, explicitly says "I understand the rule, proceed with
 direct API usage anyway", then comply. But the agent MUST explain the conflict
 FIRST — silent compliance is always a violation.
+
+**The override is the user's to raise, never the agent's to offer.** Explain the
+conflict, deliver the compliant implementation, and stop there. Do not close with
+a prompt inviting the user to authorise the exception — that turns item 4's
+prohibition into a formality and is what TC-144 flags.

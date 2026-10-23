@@ -13,7 +13,8 @@ This guide provides a comprehensive overview of the **DXNN (DEEPX Neural Network
 ## System Architecture & Core Modules
 
 <div align="center">
-  <img src="./resources/DXNN-SDK-Full-Architecture.png" width="600">
+  <img src="./resources/DXNN-SDK-Full-Architecture.png#only-light" width="600">
+  <img src="./resources/DXNN-SDK-Full-Architecture-dark.png#only-dark" width="600">
   <p><strong>Figure. DXNN SDK Full Architecture Overview.</strong></p>
 </div>
 
@@ -29,7 +30,7 @@ This environment runs optimized `.dxnn` models on actual NPU hardware and integr
 
 -	**DX-RT (Runtime)**: The core software that interacts with firmware and drivers to run `.dxnn` models on the DEEPX NPU. It manages model loading, I/O buffers, inference execution, and real-time monitoring, offering flexible control via C/C++ and Python APIs.  
 -	**DX-APP**: Sample applications built on DX-RT. It provides reference code for key vision tasks (Object Detection, Face Recognition, Image Classification, etc.), enabling developers to quickly build unique AI apps using these templates.  
--	**DX-Stream**: A GStreamer-based custom plugin that connects real-time video data to DEEPX NPU inference. It provides a modular pipeline covering pre-processing, inference, and post-processing, optimized for high-performance vision AI applications like intelligent cameras.  
+-	**DX-STREAM**: A GStreamer-based custom plugin that connects real-time video data to DEEPX NPU inference. It provides a modular pipeline covering pre-processing, inference, and post-processing, optimized for high-performance vision AI applications like intelligent cameras.  
 - **Driver & FW**: Supports high-speed data communication via the PCIe interface and manages NPU resource scheduling and power. It ensures stability between hardware and software while maximizing the hardware's potential for a seamless inference environment.  
 
 **Development Workflow**  
@@ -78,12 +79,12 @@ We maintain strong technical partnerships to ensure the DXNN SDK operates flawle
 
 ## DEEPX ModelZoo & Supported Tasks
 
-DEEPX ModelZoo is a comprehensive repository providing **345 pre-validated models**. It allows users to immediately verify performance and accuracy across various hardware profiles without the need for a manual compilation process.  
+DEEPX ModelZoo is a comprehensive repository providing **300+ pre-validated models**. It allows users to immediately verify performance and accuracy across various hardware profiles without the need for a manual compilation process.  
 
 | Task | Representative Models |
 | :--- | :--- |
-| **Image Classification** | ResNet, ResNeXt, MobileNet, EfficientNet (Lite/V2),<br>ViT/DeiT/BEiT, MobileViT, FastViT, CasViT,<br>RegNet, ShuffleNet, VGG |
-| **Object Detection** | YOLO families (YOLOv3–YOLOv11, YOLOX, YOLO26),<br>SSD, EfficientDet, NanoDet, DamoYOLO |
+| **Image Classification** | ResNet, ResNeXt, MobileNet, EfficientNet (Lite/V2),<br>ViT/DeiT/BEiT, FastViT, CasViT,<br>RegNet, ShuffleNet, VGG |
+| **Object Detection** | YOLO families (YOLOv3–YOLOv13, YOLOX, YOLO26), RT-DETR (v1/v2/v3),<br>SSD, EfficientDet, NanoDet, DamoYOLO |
 | **3D Object Detection** | 3D detection models |
 | **Instance Segmentation** | YOLACT, YOLOv5-Seg, YOLOv8-Seg, YOLO26-Seg |
 | **Semantic Segmentation** | DeepLabV3/DeepLabV3+, SegFormer, BiSeNet, UNet |

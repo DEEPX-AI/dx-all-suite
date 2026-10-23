@@ -99,7 +99,6 @@ Components (mirroring the proven NVIDIA stack layout):
     cd /var/lib/rancher/k3s/agent/etc/containerd
     sudo cp config.toml config.toml.tmpl
     sudo tee -a config.toml.tmpl <<'EOF'
-
     [plugins."io.containerd.grpc.v1.cri".cdi]
       enable_cdi = true
       cdi_spec_dirs = ["/etc/cdi", "/var/run/cdi"]

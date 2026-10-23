@@ -58,6 +58,23 @@ def _path(root: Path, variant: str) -> Path:
     return root / ".github" / "workflows" / VARIANTS[variant]["file"]
 
 
+def _gate_workflows_deployed(root: Path) -> bool:
+    """True when this checkout carries the sub-repo gate workflows at all.
+
+    A release-excluded distribution (github.com/DEEPX-AI) ships `.github/` but
+    strips `.github/workflows/dx-agent-dev-*`, so *every* gate file is absent.
+    That is a packaging decision, not a defect, and the `gate` fixture already
+    skips on it — `test_workflow_file_exists` has to agree, or the same fact
+    (file absent) is reported as FAIL by one test and SKIP by the rest (SR-858).
+    A checkout that carries *some* gate files but not this variant is a real
+    gap and still fails.
+    """
+    wf = root / ".github" / "workflows"
+    if not wf.is_dir():
+        return False
+    return any(wf.glob("dx-agent-dev-subrepo-gate-*.yml"))
+
+
 @pytest.fixture(params=CASES, ids=[c[0] for c in CASES])
 def repo_case(request):
     label, root, subrepo_path = request.param
@@ -115,6 +132,8 @@ def test_old_single_file_workflow_is_gone(repo_case):
 
 def test_workflow_file_exists(repo_case, variant):
     label, root, _ = repo_case
+    if not _gate_workflows_deployed(root):
+        pytest.skip(f"{label}: gate workflows not deployed in this checkout (release-excluded)")
     assert _path(root, variant).is_file(), f"{label}/{variant}: missing {_path(root, variant)}"
 
 

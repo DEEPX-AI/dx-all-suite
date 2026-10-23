@@ -21,6 +21,8 @@ a {
 @media print {
     a { color: #1565c0; text-decoration: underline; }
     a:visited { color: #0d47a1; }
+    /* Paper is white: keep only the black-text variant of light/dark image pairs */
+    img[src$="#only-dark"] { display: none !important; }
 }
 
 /* ---------------------------------------------------- */

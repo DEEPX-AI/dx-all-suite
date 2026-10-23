@@ -45,7 +45,7 @@ Before you begin, ensure your environment meets the following criteria:
 - **Environment Selection**  
     : **Local**: For users who have installed drivers and the SDK directly on the Host OS.  
     : **Docker**: For users working inside the container provided by the DEEPX Docker image.  
-      Tip: All scripts **must** be executed inside the container (via docker exec).  
+      Tip: All scripts **must** be executed inside the container (via `docker exec`).  
 
 ---
 
@@ -131,7 +131,7 @@ All runtime scripts are engineered with the following logic to ensure a seamless
 
 - **Intelligent Diagnosis & Recovery**: Scripts automatically verify the NPU driver and installation integrity using `sanity_check.sh`. If an environment is corrupted, use `-f` or `--force` to re-initialize.  
 - **Environment-Adaptive Logic**: Paths are dynamically assigned based on your Host or Docker environment. In headless (TTY) environments, the scripts automatically apply the `--no-display` flag to prevent GUI errors.  
-- **Resource Delegation**: The scripts trigger `dx_app/setup.sh` to automatically populate the `forked_dx_app_example` folder with required binaries and sample data.  
+- **Resource Delegation**: The scripts trigger `dx_app/setup.sh` to automatically populate the `forked_dx_app_example` folder with required binaries and sample data.
 - **Visual Verification**:  
    : **CLI Environment**: Includes a `fim` (fbi improved) installation routine to view result images directly in the terminal.  
    : **Docker Environment**: Since GUI output is limited, results can be retrieved using `docker cp <container_id>:/path/to/result ./local_path`.  
@@ -159,7 +159,7 @@ Synchronizes paths so that the runtime engine can load the `.dxnn` models genera
 **[Preparation for Step 5] `runtime-2_setup_assets.sh` (Resource Preparation)**  
 Prepare the dependency files and sample data required to run the inference example.  
 
-- **Action**: Sequentially calls the `setup.sh` scripts within the `dx_app` and `dx_stream` directories.  
+- **Action**: Sequentially calls the `setup.sh` scripts within the `dx_app` and `dx_stream` directories.
 - **Note**: This script manages resources within their respective modules; it does not create redundant copies in the `forked_dx_app_example` folder.  
 
 **[Step 5] `runtime-3_run_example_using_dxrt.sh` (Execute Example and Check Results)**  

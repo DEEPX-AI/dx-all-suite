@@ -33,6 +33,12 @@ Extracted from the build session transcript (`claude-code-session.*`):
 | Output tokens | **≈ 109K** |
 | Approx. cost | **≈ $7.3** |
 
+> **Measured, not estimated — and not reproducible to the digit.** The figures above are read
+> from this showcase's own session transcript in this directory, so they describe one real run.
+> Wall-clock, turn count, token usage and cost all vary between runs of the same prompt (model
+> routing, retries, cache state, host load), so read them as an order of magnitude rather than a
+> target to hit.
+
 The full brainstorm → plan → TDD → verify skill sequence ran end-to-end before the
 app was declared done — the transcript shows each step as a real tool call.
 
