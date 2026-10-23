@@ -270,7 +270,7 @@ sudo apt-get install -y --no-install-recommends libgl1-mesa-glx libglib2.0-0 mak
 - **Python Version**: 3.8, 3.9, 3.10, 3.11, 3.12, 3.13, 3.14 (The installation script will automatically detect your version)
 
 **Integrated Package Installation**  
-The provided install.sh script handles everything in one go, including Python version detection and package installation.  
+The provided `install.sh` script handles everything in one go, including Python version detection and package installation.  
 ```Bash
 # Run the interactive installation script (recommended)
 ./dx-compiler/install.sh
@@ -401,7 +401,7 @@ dxrt-cli -s
 
 **Success Checklist**  
 
-- **[x] Device Recognition**: Does it display `Device 0: M1?`  
+- **[x] Device Recognition**: Does it display `Device 0: M1`?  
 - **[x] Version Info**: Do `RT Driver`, `PCIe Driver`, and `FW version` show valid numbers (e.g., v1.x.x)?  
 - **[x] Status**: Are real-time metrics for **Voltage**, **Clock**, and **Temperature** visible at the bottom?  
 
@@ -513,7 +513,7 @@ The DX-Compiler environment is used to generate hardware-optimized `.dxnn` binar
 To perform tasks within the container, you **must** first log in to the running container's shell.  
 ```Bash
 # 1. Run in Host Terminal: Enter the container
-docker exec -it dx-compiler-24.04 bash 
+docker exec -it dx-compiler-24.04 bash
 
 # 2. Inside Container: Navigate to the work directory
 cd /deepx/dx-compiler/dx_com
@@ -532,9 +532,10 @@ Use the provided script to compile all sample models automatically.
 ```
 
 - **Method 2**: Manual Compilation (CLI)  
-For granular control, activate the virtual environment and use the `dxcom` tool directly.  
+For granular control, activate the virtual environment and use the `dxcom` tool directly.
+
 ```Bash
-source ../venv-dx-compiler/bin/activate  # Activate venv
+source ../venv-dx-compiler/bin/activate # Activate venv
 
 dxcom -m sample_models/onnx/YOLOV5S-1.onnx \
       -c sample_models/json/YOLOV5S-1.json \
@@ -554,7 +555,7 @@ The **DX-Runtime** environment is designed for executing model inference and pro
 Before running any inference, ensure the container can communicate with the NPU hardware.
 ```Bash
 # 1. Run from the host terminal: Enter the container
-docker exec -it dx-runtime-24.04 
+docker exec -it dx-runtime-24.04 bash
 
 # 2. Inside Container: Verify NPU hardware recognition
 dxrt-cli -s

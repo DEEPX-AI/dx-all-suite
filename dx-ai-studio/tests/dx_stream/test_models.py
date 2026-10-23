@@ -30,8 +30,9 @@ class TestModelCatalog:
         from collections import Counter
         counts = Counter(m["category"] for m in get_models())
         assert counts["object_detection"] == 8
-        assert counts["face_detection"] == 3
-        assert counts["pose_estimation"] == 3
+        expected_face_pose_count = 2 if get_catalog_source() == "manifest" else 3
+        assert counts["face_detection"] == expected_face_pose_count
+        assert counts["pose_estimation"] == expected_face_pose_count
         assert counts["segmentation"] == 1
         assert counts["classification"] == 1
         assert counts["depth_estimation"] == 1
@@ -72,14 +73,14 @@ class TestModelCatalog:
 
     def test_total_model_count(self):
         from core.models import get_catalog_source, get_models
-        # manifest: 17 — one per entry in dx-runtime/dx_stream/model_list.json.
+        # manifest: 15 — one per entry in the pinned v2.5.0 model_list.json.
         # fallback: 18 — the embedded table additionally carries yolo26n-obb, which
         # the runtime manifest does not ship.
-        assert len(get_models()) == (17 if get_catalog_source() == "manifest" else 18)
+        assert len(get_models()) == (15 if get_catalog_source() == "manifest" else 18)
 
 
 DEV_MODELS = [
-    "EfficientNet_Lite0.dxnn", "SCRFD500M.dxnn", "YoloV5S_PPU.dxnn",
+    "efficientnet-lite0_224x224.dxnn", "SCRFD500M.dxnn", "YoloV5S_PPU.dxnn",
     "YOLOv5s_Face.dxnn", "yolo26n.dxnn", "yolo26n-pose.dxnn",
     "yolo26n-seg.dxnn", "YoloV5S.dxnn", "YoloV7.dxnn",
     "YoloV8N.dxnn", "YoloV9S.dxnn", "YoloXS.dxnn",
@@ -124,6 +125,10 @@ def test_manifest_catalog_uses_runtime_models(monkeypatch, tmp_path, request):
 
     # In manifest mode, entries missing from the manifest (such as OBB) are excluded
     assert len(files) == 16
-    assert "EfficientNet_Lite0.dxnn" in files
+    assert "efficientnet-lite0_224x224.dxnn" in files
+    efficientnet = next(
+        m for m in models.get_models() if m["file"] == "efficientnet-lite0_224x224.dxnn"
+    )
+    assert efficientnet["category"] == "classification"
     assert "yolo26n-obb.dxnn" not in files
     assert models.get_catalog_source() == "manifest"

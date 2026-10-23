@@ -378,7 +378,7 @@ if [ "$RUN_COVERAGE" = "1" ]; then
   echo "-- coverage 3/4: modules + shared + root --"
   "$PY" -m pytest \
     tests/dx_app/ tests/dx_stream/ tests/dx_compiler/ tests/dx_modelzoo/ \
-    tests/dx_planner/ tests/dx_benchmark/ tests/dx_monitor/ tests/shared/ \
+    tests/dx_planner/ tests/dx_benchmark/ tests/dx_monitor/ tests/dx_edge/ tests/shared/ \
     tests/i18n_audit/ "${ROOT_TESTS[@]}" \
     -q --tb=short \
     --ignore=tests/dx_stream/benchmark --ignore=tests/e2e \

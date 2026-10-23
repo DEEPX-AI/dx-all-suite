@@ -289,3 +289,5 @@ sudo tail -f /greengrass/v2/logs/com.example.HelloWorld.log
 디바이스가 AWS IoT Core에 등록되고 Thing Group에 포함되면, AWS Marketplace에서 제공하는 **DEEPX Greengrass Solution**을 사용해 DEEPX NPU 드라이버, 펌웨어, `dx_rt` 런타임, `dx_stream` 미디어 파이프라인을 현장 작업 없이 OTA로 설치할 수 있습니다. [DEEPX Greengrass Solution](01_DEEPX_Greengrass_Solution_kor.md)을 참고합니다.
 
 직접 만든 ONNX 모델을 AWS에서 DEEPX NPU 실행 형식으로 컴파일하려면 [DEEPX Compiler Solution](02_DEEPX_Compiler_Solution_kor.md)을 참고합니다.
+
+---

@@ -119,7 +119,7 @@ AWS Marketplace에서 [DEEPX Greengrass Solution](https://aws.amazon.com/marketp
 
 ### ONNX 모델 업로드 및 자동 컴파일
 
-컴파일할 모델과 설정 파일을 준비합니다. 직접 학습한 모델 외에도 [DEEPX Model Zoo](https://developer.deepx.ai/modelzoo/)에서 DEEPX NPU용으로 검증된 사전 학습 모델을 내려받아 바로 컴파일할 수 있습니다. 이 예제에서는 `yolov5-s-face_640x640.onnx` 모델과 같은 이름의 JSON 설정 파일을 사용합니다. 두 파일은 같은 S3 경로에 업로드해야 하며, 다른 모델의 설정 파일이 섞이지 않도록 모델별 전용 prefix를 사용합니다.
+컴파일할 모델과 설정 파일을 준비합니다. 직접 학습한 모델 외에도 [DEEPX ModelZoo](https://developer.deepx.ai/modelzoo/)에서 DEEPX NPU용으로 검증된 사전 학습 모델을 내려받아 바로 컴파일할 수 있습니다. 이 예제에서는 `yolov5-s-face_640x640.onnx` 모델과 같은 이름의 JSON 설정 파일을 사용합니다. 두 파일은 같은 S3 경로에 업로드해야 하며, 다른 모델의 설정 파일이 섞이지 않도록 모델별 전용 prefix를 사용합니다.
 
 설정 파일에는 입력 텐서 형상과 캘리브레이션 방식을 정의합니다. `dataset_path`에는 로컬 경로를 넣을 수 있지만, 이 솔루션은 컴파일 시 해당 값을 AMI에 포함된 캘리브레이션 데이터셋 경로인 `/opt/dx-compiler/calibration_dataset`으로 자동 치환합니다.
 
@@ -137,7 +137,7 @@ AWS Marketplace에서 [DEEPX Greengrass Solution](https://aws.amazon.com/marketp
 }
 ```
 
-이제 ONNX 모델과 JSON 설정 파일을 같은 S3 prefix에 업로드해 컴파일을 시작합니다. 아래 명령은 CloudFormation Outputs에서 모델 버킷 이름을 가져오고, DEEPX Model Zoo 예제 모델을 내려받은 뒤, 모델별 전용 경로에 두 파일을 업로드합니다.
+이제 ONNX 모델과 JSON 설정 파일을 같은 S3 prefix에 업로드해 컴파일을 시작합니다. 아래 명령은 CloudFormation Outputs에서 모델 버킷 이름을 가져오고, DEEPX ModelZoo 예제 모델을 내려받은 뒤, 모델별 전용 경로에 두 파일을 업로드합니다.
 
 ```bash
 export STACK_NAME=<cloudformation-stack-name>
@@ -360,5 +360,7 @@ AWS 리소스 사용 비용이 별도로 발생합니다. 현재 소프트웨어
 - [AWS IoT Fleet Provisioning](https://docs.aws.amazon.com/iot/latest/developerguide/provision-wo-cert.html)
 - [AWS CloudFormation](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/Welcome.html)
 - [DEEPX 개발자 문서](https://developer.deepx.ai)
-- [DEEPX Model Zoo](https://developer.deepx.ai/modelzoo/)
-- [DEEPX dx-all-suite — GitHub](https://github.com/DEEPX-AI/dx-all-suite)
+- [DEEPX ModelZoo](https://developer.deepx.ai/modelzoo/)
+- [DEEPX DX-AllSuite](https://github.com/DEEPX-AI/dx-all-suite)
+
+---

@@ -139,6 +139,7 @@ def test_platform_info_left_uses_requested_five_image_sequence():
         "/static/img/about/marketing/m1_m2.webp",
         "/static/img/about/marketing/products.jpg",
         "/static/img/about/marketing/dxnn-sdk-fullstack-architecture-diagram.png",
+        "/static/img/about/marketing/dxnn-sdk-fullstack-architecture-diagram-dark.png",
     ]
     for source in image_sources[1:]:
         assert (ROOT / "launcher/static" / (source[8:] if source.startswith("/static/") else source)).exists()

@@ -76,10 +76,16 @@ does not modify `dx-runtime` sources. The Studio-owned compatibility matrix in
 immutable GitHub revision URLs, and SHA-256 digests. Package discovery uses installed
 Debian package metadata, not the version of a source checkout.
 
-- **Supported migration:** Studio can reconcile the declared `2.3.0` and `2.4.1` rollback
-  profiles to the target `2.4.2` profile (DX-RT 3.4.2, NPU driver 2.6.0 — the runtime the
-  suite release pins) on `x86_64` and `aarch64` hosts. A runtime it does not declare (for
-  example a newer pre-release) is never replaced: reconciliation stops as blocked.
+- **Supported migration:** Studio can reconcile the declared `2.3.0`, `2.4.1` and `2.4.2`
+  profiles to the target `2.5.0` profile (DX-RT 3.5.0, NPU driver 2.7.0 — the runtime the
+  suite release pins; FW 2.7.6) on `x86_64` and `aarch64` hosts. The older profiles are kept
+  deliberately as verified rollback profiles: they are only reconciliation sources and rollback
+  targets, never installation targets, and each digest was checked against the published
+  packages. A runtime it does not declare (for example a newer pre-release) is never replaced:
+  reconciliation stops as blocked ("No verified rollback profile").
+- **Pending release tag:** the `2.5.0` profile pins the dx-runtime commit `4f0a363` and the
+  dx-all-suite release-candidate commit `a7a9199`; refresh `suite_revision` /
+  `runtime_revision` with `scripts.runtime_profile_update --tag v2.5.0` once that tag is published.
 - **New dx-runtime release:** `python -m scripts.runtime_profile_update --write` reads the
   latest `DEEPX-AI/dx-runtime` release (or `--tag vX.Y.Z`) and adds its profile — revisions,
   DX-RT / driver versions from `RELEASE_NOTES.md`, `.deb` URLs and SHA-256 digests computed

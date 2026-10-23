@@ -22,7 +22,7 @@ DEEPX NPU는 표준 ONNX 모델을 그대로 실행하지 않습니다. NPU가 �
 1. 2절에서 공통 사전 요구 사항을 준비합니다.
 2. 대화형 컴파일과 반복적인 옵션 변경이 필요하면 3절의 Amazon EC2 배포를 따릅니다.
 3. 반복 가능하고 이벤트 기반인 컴파일이 필요하면 4절의 AWS CloudFormation 배포를 따릅니다.
-4. 5절과 6절에서 모델 설정과 Model Zoo 사용 방법을 확인합니다.
+4. 5절과 6절에서 모델 설정과 ModelZoo 사용 방법을 확인합니다.
 5. 종료 전에 비용, 문제 해결, 리소스 정리 안내를 확인합니다.
 
 ---
@@ -52,7 +52,7 @@ DEEPX NPU는 표준 ONNX 모델을 그대로 실행하지 않습니다. NPU가 �
 ## 2. 사전 준비 사항
 
 - EC2 인스턴스를 시작하거나 CloudFormation 스택을 생성할 수 있는 AWS 계정과 권한
-- 컴파일할 ONNX 모델과 컴파일 설정 JSON 파일. 직접 학습한 모델 외에도 [DEEPX Model Zoo](https://developer.deepx.ai/modelzoo/)에서 DEEPX NPU용으로 검증된 사전 학습 모델을 내려받아 바로 사용할 수 있습니다.
+- 컴파일할 ONNX 모델과 컴파일 설정 JSON 파일. 직접 학습한 모델 외에도 [DEEPX ModelZoo](https://developer.deepx.ai/modelzoo/)에서 DEEPX NPU용으로 검증된 사전 학습 모델을 내려받아 바로 사용할 수 있습니다.
 - 인스턴스를 실행할 기존 VPC와 서브넷. 서브넷은 Amazon S3, AWS Systems Manager, Amazon CloudWatch Logs 등 필요한 AWS 서비스에 HTTPS로 연결할 수 있어야 합니다. 프라이빗 서브넷을 사용한다면 NAT Gateway 또는 필요한 VPC 엔드포인트를 구성합니다.
 - 로컬에서 AWS CLI 명령을 실행하려면 자격 증명이 설정되어 있어야 합니다.
 
@@ -113,7 +113,7 @@ ssh -i <your-key>.pem ubuntu@<instance-address>
 # 컴파일러가 동작하는 Python 환경 활성화
 source /opt/dx-compiler/venv/bin/activate
 
-# Model Zoo 예제 모델 내려받기
+# ModelZoo 예제 모델 내려받기
 curl -fLO https://sdk.deepx.ai/modelzoo/onnx/yolov5-s-face_640x640.onnx
 
 # 또는 S3에 올려둔 자체 모델 가져오기
@@ -129,11 +129,11 @@ sed -i 's#"dataset_path": *"[^"]*"#"dataset_path": "/opt/dx-compiler/calibration
     yolov5-s-face_640x640.json
 ```
 
-> **참고 — 설정 파일은 직접 작성하지 말고 Model Zoo 것을 사용**
+> **참고 — 설정 파일은 직접 작성하지 말고 ModelZoo 것을 사용**
 >
 > 설정 파일에는 모델의 입력 전처리가 정의되어 있어야 합니다. `inputs`, `calibration_num`,
 > `calibration_method`만 넣어 직접 작성한 파일은 `preprocessings` 항목이 없어 컴파일에
-> 실패합니다. Model Zoo는 공개하는 모든 모델에 대해 검증된 설정 파일을 함께 제공하므로,
+> 실패합니다. ModelZoo는 공개하는 모든 모델에 대해 검증된 설정 파일을 함께 제공하므로,
 > 이를 받아 필요한 부분만 바꾸는 편이 안전합니다. 각 항목은 [5절](#5-컴파일-설정-파일-json)에서
 > 설명합니다.
 >
@@ -300,9 +300,9 @@ aws s3 ls "s3://${MODEL_BUCKET}/${MODEL_PREFIX}/"
 
 ---
 
-## 6. DEEPX Model Zoo 연계
+## 6. DEEPX ModelZoo 연계
 
-직접 학습한 모델이 없더라도 [DEEPX Model Zoo](https://developer.deepx.ai/modelzoo/)에서 DEEPX NPU용으로 검증된 사전 학습 ONNX 모델과 그에 대응하는 설정 파일을 내려받아 즉시 컴파일할 수 있습니다. 객체 검출, 얼굴 검출, 분류, 세그멘테이션, 포즈 추정 등 주요 비전 태스크의 모델이 제공되며, INT8 양자화 후 정확도 수치도 함께 공개되어 있습니다.
+직접 학습한 모델이 없더라도 [DEEPX ModelZoo](https://developer.deepx.ai/modelzoo/)에서 DEEPX NPU용으로 검증된 사전 학습 ONNX 모델과 그에 대응하는 설정 파일을 내려받아 즉시 컴파일할 수 있습니다. 객체 검출, 얼굴 검출, 분류, 세그멘테이션, 포즈 추정 등 주요 비전 태스크의 모델이 제공되며, INT8 양자화 후 정확도 수치도 함께 공개되어 있습니다.
 
 ---
 
@@ -329,7 +329,7 @@ AWS 리소스 사용 비용이 별도로 발생합니다. 현재 소프트웨어
 | 인스턴스가 시작되지 않음 | 서브넷이 필요한 AWS 서비스에 HTTPS로 나갈 수 있는지(NAT Gateway 또는 VPC 엔드포인트), 그리고 Marketplace 구독이 완료되었는지 확인합니다. |
 | `dxcom: command not found` | 컴파일러 가상 환경을 먼저 활성화합니다. `source /opt/dx-compiler/venv/bin/activate` |
 | `dxcom` 시작 시 `GPU device discovery failed` 경고 | 무시해도 됩니다. 컴파일러 인스턴스에는 GPU가 없어 ONNX Runtime의 디바이스 탐색이 실패하고 CPU로 대체될 뿐이며, 컴파일은 정상 진행됩니다. |
-| 직접 작성한 설정 파일로 컴파일이 실패함 | `preprocessings` 항목이 빠졌을 가능성이 높습니다. 최소 설정을 직접 작성하지 말고 해당 모델의 Model Zoo 설정 파일을 사용합니다. |
+| 직접 작성한 설정 파일로 컴파일이 실패함 | `preprocessings` 항목이 빠졌을 가능성이 높습니다. 최소 설정을 직접 작성하지 말고 해당 모델의 ModelZoo 설정 파일을 사용합니다. |
 | 캘리브레이션 이미지를 찾지 못함 | `dataset_path`가 상위 디렉토리가 아니라 `/opt/dx-compiler/calibration_dataset/calibration_dataset`을 가리키는지 확인합니다. |
 | 입력 형상 관련 컴파일 오류 | 설정 파일의 `inputs` 텐서 이름과 형상이 ONNX 모델의 입력 정의와 일치하는지 확인합니다. |
 | 양자화 후 정확도가 기대보다 낮음 | `preprocessings`가 학습 시 전처리와 동일한지, `calibration_num`이 충분한지 확인합니다. |
@@ -348,9 +348,11 @@ AWS 리소스 사용 비용이 별도로 발생합니다. 현재 소프트웨어
 
 - [DEEPX Compiler Solution — AWS Marketplace](https://aws.amazon.com/marketplace/pp/prodview-ev6ed5omu4ulo)
 - [DEEPX Greengrass Solution — AWS Marketplace](https://aws.amazon.com/marketplace/pp/prodview-732s46qfzuh34)
-- [DEEPX Model Zoo](https://developer.deepx.ai/modelzoo/)
-- [DEEPX 기술 문서](https://developer.deepx.ai/tech-docs)
 - [Amazon EC2 사용 설명서](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/concepts.html)
 - [AWS Systems Manager Session Manager](https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager.html)
 - [AWS Step Functions 개발자 안내서](https://docs.aws.amazon.com/step-functions/latest/dg/welcome.html)
-- [DEEPX dx-all-suite — GitHub](https://github.com/DEEPX-AI/dx-all-suite)
+- [DEEPX 기술 문서](https://developer.deepx.ai/tech-docs)
+- [DEEPX ModelZoo](https://developer.deepx.ai/modelzoo/)
+- [DEEPX DX-AllSuite](https://github.com/DEEPX-AI/dx-all-suite)
+
+---

@@ -1630,6 +1630,16 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
     lines.append("</details>")
     lines.append("")
 
+    # ----------------------------------------------------------
+    # Cursor 'auto' bias check (Q4)
+    # ----------------------------------------------------------
+    # analyze_bias() was imported at module scope but never called, so the
+    # section it renders never reached analysis.md (SR-858 sibling: SR-861a).
+    # It is appended last because it reads every metric the sections above
+    # introduce, so the reader meets the raw numbers before the bias reading.
+    lines.append(analyze_bias(evals))
+    lines.append("")
+
     out_path.write_text("\n".join(lines), encoding="utf-8")
 
 

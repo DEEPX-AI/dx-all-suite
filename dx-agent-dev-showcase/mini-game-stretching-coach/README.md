@@ -27,6 +27,12 @@
 | Output tokens / approx. cost | ≈ 142K / ≈ $8.1 |
 | Tools | `Bash`×27, `Read`×17, `Write`×12, `Skill`×5, `Edit`×2 |
 
+> **Measured, not estimated — and not reproducible to the digit.** The figures above are read
+> from this showcase's own session transcript in this directory, so they describe one real run.
+> Wall-clock, turn count, token usage and cost all vary between runs of the same prompt (model
+> routing, retries, cache state, host load), so read them as an order of magnitude rather than a
+> target to hit.
+
 ## The prompt
 
 The prompt (verbatim below) asks for the coach avatar to be a **filled procedural

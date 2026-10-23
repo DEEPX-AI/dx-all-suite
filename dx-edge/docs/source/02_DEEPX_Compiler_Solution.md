@@ -52,7 +52,7 @@ Both options use the same compiler and the same calibration dataset, so the comp
 ## 2. Prerequisites
 
 - An AWS account and permissions to launch EC2 instances or create a CloudFormation stack
-- The ONNX model to compile and its JSON configuration file. In addition to models you train yourself, you can download pre-trained models validated for DEEPX NPUs from the [DEEPX Model Zoo](https://developer.deepx.ai/modelzoo/) and use them directly.
+- The ONNX model to compile and its JSON configuration file. In addition to models you train yourself, you can download pre-trained models validated for DEEPX NPUs from the [DEEPX ModelZoo](https://developer.deepx.ai/modelzoo/) and use them directly.
 - An existing VPC and subnet in which to run the instance. The subnet must be able to reach the required AWS services, including Amazon S3, AWS Systems Manager, and Amazon CloudWatch Logs, over HTTPS. If you use a private subnet, configure a NAT gateway or the necessary VPC endpoints.
 - Credentials configured locally if you want to run AWS CLI commands from your machine
 
@@ -113,7 +113,7 @@ ssh -i <your-key>.pem ubuntu@<instance-address>
 # Activate the Python environment the compiler runs in
 source /opt/dx-compiler/venv/bin/activate
 
-# Download a sample model from the Model Zoo
+# Download a sample model from the ModelZoo
 curl -fLO https://sdk.deepx.ai/modelzoo/onnx/yolov5-s-face_640x640.onnx
 
 # Or retrieve your own model from S3
@@ -129,11 +129,11 @@ sed -i 's#"dataset_path": *"[^"]*"#"dataset_path": "/opt/dx-compiler/calibration
     yolov5-s-face_640x640.json
 ```
 
-> **Note — Use the Model Zoo configuration rather than writing a minimal one**
+> **Note — Use the ModelZoo configuration rather than writing a minimal one**
 >
 > The configuration must describe the model's input preprocessing. A hand-written file that
 > sets only `inputs`, `calibration_num`, and `calibration_method` fails, because the
-> `preprocessings` list is missing. The Model Zoo ships a validated configuration for every
+> `preprocessings` list is missing. The ModelZoo ships a validated configuration for every
 > model it publishes, so start from that and change only what you need. [Section
 > 5](#5-compilation-configuration-file-json) describes the fields.
 >
@@ -301,9 +301,9 @@ The compilation configuration file defines the input tensor shape and the calibr
 
 ---
 
-## 6. Working with the DEEPX Model Zoo
+## 6. Working with the DEEPX ModelZoo
 
-Even if you do not have a model of your own, you can download pre-trained ONNX models validated for DEEPX NPUs, along with their corresponding configuration files, from the [DEEPX Model Zoo](https://developer.deepx.ai/modelzoo/) and compile them immediately. Models are available for the main vision tasks, including object detection, face detection, classification, segmentation, and pose estimation, and accuracy figures after INT8 quantization are published as well.
+Even if you do not have a model of your own, you can download pre-trained ONNX models validated for DEEPX NPUs, along with their corresponding configuration files, from the [DEEPX ModelZoo](https://developer.deepx.ai/modelzoo/) and compile them immediately. Models are available for the main vision tasks, including object detection, face detection, classification, segmentation, and pose estimation, and accuracy figures after INT8 quantization are published as well.
 
 ---
 
@@ -330,7 +330,7 @@ Actual costs vary with model size, compilation time, instance type, Region, and 
 | The instance does not launch | Confirm that the subnet has outbound HTTPS access to the required AWS services (through a NAT gateway or VPC endpoints), and that the Marketplace subscription is complete. |
 | `dxcom: command not found` | Activate the compiler's virtual environment first: `source /opt/dx-compiler/venv/bin/activate`. |
 | `GPU device discovery failed` warning at the start of `dxcom` | Harmless. The compiler instance has no GPU, so the ONNX Runtime device probe fails and falls back to CPU. Compilation proceeds normally. |
-| Compilation fails with a hand-written configuration file | The `preprocessings` list is likely missing. Use the Model Zoo configuration for the model instead of a minimal hand-written one. |
+| Compilation fails with a hand-written configuration file | The `preprocessings` list is likely missing. Use the ModelZoo configuration for the model instead of a minimal hand-written one. |
 | Compilation fails to find calibration images | Confirm `dataset_path` points at `/opt/dx-compiler/calibration_dataset/calibration_dataset`, not the parent directory. |
 | A compilation error related to input shape | Confirm that the `inputs` tensor names and shapes in the configuration file match the input definition of the ONNX model. |
 | Accuracy after quantization is lower than expected | Confirm that `preprocessings` matches the preprocessing used during training and that `calibration_num` is large enough. |
@@ -349,9 +349,11 @@ To run a compiled `.dxnn` model on an edge device, the device must have the NPU 
 
 - [DEEPX Compiler Solution — AWS Marketplace](https://aws.amazon.com/marketplace/pp/prodview-ev6ed5omu4ulo)
 - [DEEPX Greengrass Solution — AWS Marketplace](https://aws.amazon.com/marketplace/pp/prodview-732s46qfzuh34)
-- [DEEPX Model Zoo](https://developer.deepx.ai/modelzoo/)
-- [DEEPX Technical Documentation](https://developer.deepx.ai/tech-docs)
 - [Amazon EC2 User Guide](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/concepts.html)
 - [AWS Systems Manager Session Manager](https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager.html)
 - [AWS Step Functions Developer Guide](https://docs.aws.amazon.com/step-functions/latest/dg/welcome.html)
-- [DEEPX dx-all-suite — GitHub](https://github.com/DEEPX-AI/dx-all-suite)
+- [DEEPX Technical Documentation](https://developer.deepx.ai/tech-docs)
+- [DEEPX ModelZoo](https://developer.deepx.ai/modelzoo/)
+- [DEEPX DX-AllSuite](https://github.com/DEEPX-AI/dx-all-suite)
+
+---

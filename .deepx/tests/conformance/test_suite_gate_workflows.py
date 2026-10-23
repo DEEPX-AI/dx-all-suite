@@ -73,8 +73,24 @@ def test_old_single_file_gates_are_gone():
         assert not (WORKFLOWS / old).exists(), f"{old} must be removed (replaced by -ghes/-cloud)"
 
 
+def _gate_workflows_deployed() -> bool:
+    """True when this checkout carries the suite gate workflows at all.
+
+    A release-excluded distribution (github.com/DEEPX-AI) ships `.github/` but
+    strips `.github/workflows/dx-agent-dev-*`. Every other test here loads the
+    file through `_load()` and would error out, so `test_file_exists` must skip
+    on that packaging rather than be the one test that fails (SR-858). A
+    checkout carrying some gate files but not this variant still fails.
+    """
+    if not WORKFLOWS.is_dir():
+        return False
+    return any(WORKFLOWS.glob("dx-agent-dev-gate-*.yml"))
+
+
 def test_file_exists(variant):
     _, v = variant
+    if not _gate_workflows_deployed():
+        pytest.skip("suite gate workflows not deployed in this checkout (release-excluded)")
     assert (WORKFLOWS / v["file"]).is_file()
 
 
