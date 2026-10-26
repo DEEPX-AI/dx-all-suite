@@ -1,10 +1,12 @@
-/* DX Agent Dev — Agent Console (채팅 UX + Activity 패널 + SSE) */
+/* DX Agent Dev — Agent Console (chat UX + Activity panel + SSE) */
 (function () {
   let _running = false;
   let _agents = [];
   let _showcaseCache = null;
   let _showcasePromise = null;
   let _turn = null;
+  /* After an error the server still ends with done, so remember until done whether this run failed. */
+  let _runFailed = false;
   let _heartbeatTimer = null;
   let _agentControlsBound = false;
   let _modelHintBound = false;
@@ -18,6 +20,8 @@
   let _streamRenderRaf = null;
   /** Server-issued conversation id for multi-turn CLI resume. */
   let _conversationId = null;
+  /** The user pressed Stop — the "exit -15" the CLI reports is then expected, not a failure. */
+  let _stopRequested = false;
 
   function setConsoleBusy(busy) {
     const form = $('console-form');
@@ -26,6 +30,32 @@
     if (form) form.classList.toggle('console-form--busy', !!busy);
     if (input) input.disabled = !!busy;
     if (send) send.disabled = !!busy;
+    const stop = $('console-stop');
+    if (stop) { stop.hidden = !busy; stop.disabled = false; }
+  }
+
+  /* Stop a run: a minutes-long build sent by mistake should not have to run to the end. */
+  function stopRun() {
+    if (!_running || _stopRequested) return;
+    _stopRequested = true;
+    const stop = $('console-stop');
+    if (stop) stop.disabled = true;
+    setStatusLine(T('Stopping...'), 'Stopping...');
+    fetch('/api/agent/cancel', { method: 'POST' }).catch(function () {});
+  }
+
+  /* The stream ended without done: the server died or the connection dropped. Do not leave "Running..." on screen. */
+  function finishWithoutDone() {
+    if (!_turn) return;
+    if (_stopRequested) {
+      setBadge('Stopped', 'failed');
+      setStatusLine(T('Stopped.'), 'Stopped.');
+    } else {
+      if (!_runFailed) appendError(T('The connection to the agent ended before it finished.'));
+      setBadge('Failed', 'failed');
+    }
+    if (_turn) updateAssistantView(true);
+    _turn = null;
   }
 
   function releaseRunLock() {
@@ -160,7 +190,30 @@
     }
   }
 
-  function fillAgentControls(agents) {
+  var _STUDIO_ORDER = ['claude', 'copilot', 'cursor', 'codex', 'opencode'];
+  /* Start with the same agent as Home: the picked one (studio_agent) -> first logged-in agent (Studio order) -> first agent.
+     Contract: tests/dx_agent_dev/test_studio_agent_console_browser.py */
+  function initialAgent(agents, studio) {
+    const names = agents.map(function (a) { return a.name; });
+    if (studio && names.indexOf(studio.agent) !== -1) return studio.agent;
+    for (let i = 0; i < _STUDIO_ORDER.length; i++) {
+      const a = agents.find(function (x) { return x.name === _STUDIO_ORDER[i]; });
+      if (a && a.authenticated === true) return a.name;
+    }
+    return names[0];
+  }
+
+  function saveStudioAgent() {
+    const agentSel = $('agent-select');
+    const modelSel = $('model-select');
+    if (!agentSel || !agentSel.value) return;
+    fetch('api/studio/agent', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ agent: agentSel.value, model: (modelSel && modelSel.value) || null })
+    }).catch(function () { /* the pick still applies to this page */ });
+  }
+
+  function fillAgentControls(agents, studio) {
     _agents = agents || [];
     const controls = $('agent-controls');
     const agentSel = $('agent-select');
@@ -175,17 +228,26 @@
       agentSel.appendChild(opt);
     });
     updateAgentPickerLayout();
-    fillModels(_agents[0]);
+    const first = initialAgent(_agents, studio);
+    agentSel.value = first;
+    fillModels(_agents.find(function (x) { return x.name === first; }));
     if (!_agentControlsBound) {
       _agentControlsBound = true;
       agentSel.addEventListener('change', function () {
         const found = _agents.find(function (x) { return x.name === agentSel.value; });
+        if (modelSel) delete modelSel.dataset.userPicked;  // another agent: start from that agent's default model
         fillModels(found);
+        saveStudioAgent();
       });
     }
     if (!_modelHintBound) {
       _modelHintBound = true;
-      modelSel.addEventListener('change', updateModelQualityHint);
+      modelSel.addEventListener('change', function () {
+        // Keep the user's model pick when the CLI list is refetched or the language changes.
+        modelSel.dataset.userPicked = '1';
+        updateModelQualityHint();
+        saveStudioAgent();
+      });
     }
     updateModelQualityHint();
     controls.removeAttribute('hidden');
@@ -202,11 +264,11 @@
     }
     badge.removeAttribute('hidden');
     if (agent.authenticated === true) {
-      badge.textContent = '✓';
+      badge.innerHTML = (typeof DXIcon === 'function') ? DXIcon('check') : '';
       badge.className = 'agent-auth-badge ok';
       badge.title = T('Logged in');
     } else {
-      badge.textContent = '⚠';
+      badge.innerHTML = (typeof DXIcon === 'function') ? DXIcon('alert') : '';
       badge.className = 'agent-auth-badge warn';
       badge.title = T('Login required');
     }
@@ -288,9 +350,12 @@
         if (!live.length || !sel || sel.value !== agent.name) return;
         const prev = modelSel.value;
         const def = d.default_model;
+        // The static default (prev) must not win over the CLI's real default model (e.g. copilot's claude-sonnet-5).
+        const picked = modelSel.dataset.userPicked === '1' && live.indexOf(prev) !== -1;
+        const keep = picked ? prev : (def && live.indexOf(def) !== -1 ? def : prev);
         modelSel.innerHTML = '';
         live.forEach(function (m) {
-          appendModelOption(modelSel, m, m === prev || (!prev && m === def));
+          appendModelOption(modelSel, m, m === keep);
         });
         modelSel.disabled = false;
         updateModelQualityHint();
@@ -303,6 +368,8 @@
     const m = String(model).trim().toLowerCase();
     if (!m || m === '—') return true;
     if (m === 'auto' || m.includes('auto')) return false;
+    // An alias without a version points at the newest of that family
+    if (m === 'opus' || m === 'sonnet') return true;
     return _RECOMMENDED_MODEL.test(m);
   }
 
@@ -575,9 +642,23 @@
         break;
       case 'error':
         noteRunOutput();
+        if (_stopRequested && /^exit -?\d+$/.test(String(ev.text || '').trim())) break;
         appendError(ev.text);
+        _runFailed = true;
         setBadge('Failed', 'failed');
         setStatusLine('');
+        break;
+      case 'artifacts':
+        // Where the agent built the app (the target project's dx-agent-dev/<session>/); preferred over done's Studio tracking folder
+        if (Array.isArray(ev.dirs) && ev.dirs.length) {
+          const where = ev.dirs.join(', ');
+          setStatusLine(T('App written to') + ' ' + where, null);
+          const bar = $('console-status-bar');
+          if (bar) {
+            bar.setAttribute('data-i18n-prefix', 'App written to');
+            bar.setAttribute('data-session-dir', where);
+          }
+        }
         break;
       case 'status':
         if (ev.text) {
@@ -590,7 +671,9 @@
         cancelStreamingRender();
         if (ev.conversation_id) _conversationId = ev.conversation_id;
         if (_turn) updateAssistantView(true);
-        setBadge('Completed', 'ok');
+        if (_stopRequested) setBadge('Stopped', 'failed');
+        else if (_runFailed) setBadge('Failed', 'failed');
+        else setBadge('Completed', 'ok');
         if (ev.session_dir) {
           var statusBar = $('console-status-bar');
           setStatusLine(T('Output saved to') + ' ' + ev.session_dir, null);
@@ -615,7 +698,9 @@
       return;
     }
     _running = true;
+    _stopRequested = false;
     setConsoleBusy(true);
+    _runFailed = false;
     setBadge('Running...', 'running');
     startHeartbeat();
     beginTurn(rawPrompt);
@@ -642,29 +727,74 @@
         releaseRunLock();
         return;
       }
-      const reader = resp.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue;
-          const frag = line.slice(6);
-          if (frag === '[DONE]') continue;
-          let evt;
-          try { evt = JSON.parse(frag); } catch (e) { continue; }
-          renderEvent(evt);
-        }
-      }
+      await _consumeStream(resp);
+      finishWithoutDone();
     } catch (e) {
       clearHeartbeat();
       appendError(String((e && e.message) || e));
       setBadge('Failed', 'failed');
       _turn = null;
+    } finally {
+      clearHeartbeat();
+      releaseRunLock();
+    }
+  }
+
+  /* Read the SSE body and render it. Starting a run and attaching to a running one share this code;
+     if attaching drew differently, "picked up" would be a lie. */
+  async function _consumeStream(resp) {
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const frag = line.slice(6);
+        if (frag === '[DONE]') continue;
+        let evt;
+        try { evt = JSON.parse(frag); } catch (e) { continue; }
+        renderEvent(evt);
+      }
+    }
+  }
+
+  /* Picks up here a run started from home, so a user who navigates over sees it continue. */
+  /* The request home hands over (/agent/#ask=…): the first line when status does not know it */
+  function _askFromHash() {
+    const m = /(?:^#|&)ask=([^&]*)/.exec(window.location.hash || '');
+    if (!m) return '';
+    try { return decodeURIComponent(m[1].replace(/\+/g, ' ')); } catch (e) { return ''; }
+  }
+
+  async function attachIfRunning(st) {
+    if (!st || !st.run_id || st.run_done || _running) return false;
+    _running = true;
+    _stopRequested = false;
+    setConsoleBusy(true);
+    _runFailed = false;
+    setBadge('Running...', 'running');
+    startHeartbeat();
+    /* The conversation cell comes first: without it the message and command renderers drop everything
+       (`if (!_turn) return`), and a user arriving from home would see no live output. The first line is the
+       run's request (status), else the #ask home handed over. Replying here continues the same conversation
+       (conversation, mode). */
+    beginTurn(st.run_prompt || _askFromHash() || T('Resumed run'));
+    if (st.run_conversation_id) _conversationId = st.run_conversation_id;
+    const modeSel = $('mode-select');
+    if (modeSel && st.run_mode) modeSel.value = st.run_mode;
+    try {
+      const resp = await fetch('/api/agent/run/events?from=0');
+      if (!resp.ok || !resp.body) return false;
+      await _consumeStream(resp);
+      finishWithoutDone();
+      return true;
+    } catch (e) {
+      return false;
     } finally {
       clearHeartbeat();
       releaseRunLock();
@@ -798,7 +928,9 @@
     try { st = await api('/api/agent/status'); } catch (e) { st = {}; }
     if (st && st.available) {
       setBadge('Ready', 'ok');
-      fillAgentControls(st.agents);
+      fillAgentControls(st.agents, st.studio_agent);
+      /* Attach to a run already in progress (the case when arriving from home). */
+      if (st.run_id && !st.run_done) attachIfRunning(st);
     } else {
       showDegradedGallery(st);
     }
@@ -826,15 +958,18 @@
     if (!bar || bar.hidden) return;
     var key = bar.getAttribute('data-i18n-key');
     if (key) setStatusLine(T(key), key);
-    else if (bar.getAttribute('data-i18n-prefix') === 'Output saved to') {
+    else if (bar.getAttribute('data-i18n-prefix')) {
+      var prefix = bar.getAttribute('data-i18n-prefix');
       var dir = bar.getAttribute('data-session-dir') || '';
-      setStatusLine(T('Output saved to') + (dir ? ' ' + dir : ''), null);
+      setStatusLine(T(prefix) + (dir ? ' ' + dir : ''), null);
     }
   }
 
   function applyLang() {
     const input = $('console-input');
     if (input) input.placeholder = T('Describe what you want to build...');
+    const outEl = $('console-output');
+    if (outEl) outEl.dataset.emptyHint = T('Plans, commands and results from the agent appear here. Describe an app below, or start from a showcase.');
     const b = $('status-badge');
     if (b && b.dataset.i18nKey) b.textContent = T(b.dataset.i18nKey);
     const note = document.querySelector('.gallery-note');
@@ -847,7 +982,20 @@
     }
     const agentSel = $('agent-select');
     const agent = _agents.find(function (x) { return x.name === (agentSel && agentSel.value); }) || _agents[0];
-    if (agent) fillModels(agent);
+    if (agent) {
+      // Only the language changed: keep the picked model and effort level (do not reset to defaults)
+      const modelSel = $('model-select'), effortSel = $('effort-select');
+      const keepModel = modelSel ? modelSel.value : '', picked = modelSel ? modelSel.dataset.userPicked : '';
+      const keepEffort = effortSel ? effortSel.value : '';
+      fillModels(agent);
+      if (modelSel && keepModel && Array.prototype.some.call(modelSel.options, function (o) { return o.value === keepModel; })) {
+        modelSel.value = keepModel;
+        if (picked) modelSel.dataset.userPicked = picked;
+      }
+      if (effortSel && keepEffort && Array.prototype.some.call(effortSel.options, function (o) { return o.value === keepEffort; })) {
+        effortSel.value = keepEffort;
+      }
+    }
     updateModelQualityHint();
     renderExamplePanels();
     relocalizeOpenTurns();
@@ -870,6 +1018,8 @@
         runPrompt(prompt);
       });
     }
+    const stopBtn = $('console-stop');
+    if (stopBtn) stopBtn.addEventListener('click', stopRun);
     applyLang();
     if (typeof DXI18n !== 'undefined' && DXI18n.onLangChange) DXI18n.onLangChange(applyLang);
     checkStatus();

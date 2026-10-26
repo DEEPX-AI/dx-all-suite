@@ -12,14 +12,141 @@
 **[Common] 1. Prerequisites**: Acquire source code and understand virtual environment management policies.  
 
 **[Optional]** Choose Installation Path.  
-- **[Route A] 2. Docker Installation**: Isolated installation based on containers.  
-- **[Route B] 3. Local Installation**: Direct installation on the host OS.  
+- **[Route A] 2. Local Installation**: Direct installation on the host OS.  
+- **[Route B] 3. Docker Installation**: Isolated installation based on containers.  
 
 ---
 
+## Quick Install (one-line)
+
+If you only need a single component, install it directly — no cloning, no submodule
+synchronization:
+
+```Bash
+# DX-Compiler (x86_64 Host PC)
+curl -fsSL https://raw.githubusercontent.com/DEEPX-AI/dx-compiler/main/oneline-install.sh | sh
+
+# DX-Runtime (target device with a DEEPX NPU: NPU driver + dx_rt + firmware)
+curl -fsSL https://raw.githubusercontent.com/DEEPX-AI/dx-runtime/main/oneline-install.sh | sh
+```
+
+Each installer resolves the newest version on its own — DX-Compiler from its latest
+release on PyPI, DX-Runtime from the `latest` pointer on each component's `main` branch.
+Override with `DX_VERSION=2.4.1` (DX-Compiler) or, for DX-Runtime, per component with
+`DX_RT_VERSION=3.4.2`, `DX_DRIVER_VERSION=2.6.0`, `DX_FW_VERSION=2.7.4`. DX-Compiler also
+accepts `DX_INSTALL_DIR=<dir>` (default `~/deepx`) to move the install root; DX-Runtime
+has no equivalent, because it installs system packages through `dpkg` rather than into a
+directory you choose.
+
+!!! warning "DX-Runtime tracks `main`, so runs are not reproducible by default"
+    Because versions are resolved at run time, the downloaded artifacts are not
+    checksum-verified, and the three components follow their own branches independently —
+    a run made between dx-runtime releases can install a combination that has not been
+    validated together. Pin the versions above, or use the repository's `install.sh`,
+    whenever you need a known-good set.
+
+!!! note "DX-Compiler needs root for its system packages"
+    `dx-com` is installed from PyPI into `$DX_INSTALL_DIR/venv-dx-compiler` (default
+    `~/deepx/venv-dx-compiler`), and the `dxcom` launcher is linked into `DX_BIN_DIR`
+    (default `~/.local/bin`) so it runs without activating the venv. The installer also
+    apt-installs `libgl1-mesa-dev` and `libglib2.0-0`: `dx-com` depends on
+    `opencv-python`, whose `cv2` extension links against those libraries and fails to
+    import without them. Run as root or with `sudo` available, on Debian or Ubuntu.
+    This route does not install the sample data — clone the repository for that.
+
+!!! warning "DX-Runtime: reboot required"
+    A reboot is mandatory after installation so the kernel loads the NPU driver. When no
+    NPU device is detected the firmware update step is skipped — rerun the same command
+    after rebooting to finish it.
+
+!!! note "Scope of one-line install"
+    One-line install covers `dx_fw`, `dx_rt`, and `dx_rt_npu_linux_driver` for DX-Runtime.
+    `dx_app`, `dx_stream`, source builds, and the Docker route all use the full setup
+    described below.
+
+### Uninstalling a one-line install
+
+```Bash
+# DX-Compiler
+curl -fsSL https://raw.githubusercontent.com/DEEPX-AI/dx-compiler/main/oneline-uninstall.sh | sh
+
+# DX-Runtime
+curl -fsSL https://raw.githubusercontent.com/DEEPX-AI/dx-runtime/main/oneline-uninstall.sh | sh
+```
+
+DX-Compiler must be given the same `DX_INSTALL_DIR` / `DX_BIN_DIR` used at install time,
+otherwise it looks in the default location and finds nothing. DX-Runtime takes no such
+argument: both of its install routes produce the same Debian packages, so this command
+removes an `install.sh` install as well.
+
+!!! warning "What uninstalling cannot undo"
+    Firmware already flashed to the NPU is not reverted — there is no uninstall path for it.
+    The `dx_engine` Python wheel is also left in place: `libdxrt-bin` cannot know which
+    interpreter or virtualenv it went into, so it prints removal instructions during its own
+    purge instead. `dx_app` and `dx_stream` are untouched, since the one-liner never installs
+    them; use the repository's `uninstall.sh` for those.
+
+## APT Repository Install (DX-Runtime)
+
+The NPU driver and the DX-RT runtime are also published as Debian packages in the DEEPX APT
+repository, for Ubuntu and Debian on `amd64` and `arm64`. Use this route when you want them managed by
+`apt` like any other system package — installed, upgraded and removed with the usual commands.
+
+```Bash
+# 1. Download the DEEPX signing key and check its fingerprint
+wget -O deepx-archive-keyring.asc https://apt.releases.deepx.ai/gpg
+gpg --show-keys deepx-archive-keyring.asc
+
+# 2. Only if the fingerprint matches, install the key and remove the download
+sudo gpg --dearmor -o /usr/share/keyrings/deepx-archive-keyring.gpg deepx-archive-keyring.asc
+rm deepx-archive-keyring.asc
+
+# 3. Add the repository for this Ubuntu / Debian release
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/deepx-archive-keyring.gpg] https://apt.releases.deepx.ai $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") main" | sudo tee /etc/apt/sources.list.d/deepx.list
+
+# 4. Install the driver and the runtime
+sudo apt update
+sudo apt install dxrt-driver-dkms
+sudo apt install libdxrt-bin
+```
+
+!!! danger "Verify the key fingerprint before step 2"
+    To guard against a tampered key (e.g. a man-in-the-middle attack), check the output of
+    `gpg --show-keys` before installing the key. It must show exactly this 40-character
+    fingerprint — `3A20CC853C64AE328D0F58CFD816AAC6689DBDEA`:
+    ```
+    pub   rsa4096 2026-08-11 [SCEA]
+          3A20CC853C64AE328D0F58CFD816AAC6689DBDEA
+    uid                      DeepX APT Repo <jhsa@deepx.ai>
+    ```
+    If it differs, stop, delete `deepx-archive-keyring.asc`, and contact DEEPX support.
+
+| Package | Contents |
+|---|---|
+| `dxrt-driver-dkms` | NPU kernel driver, built for the running kernel through DKMS (pulls in `dkms` and `build-essential`) and rebuilt automatically on kernel updates |
+| `libdxrt-bin` | Pre-built DX-RT library and headers under `/usr/local`, `dxrt-cli` and the other runtime tools, and the `dxrt` service |
+
+!!! warning "Reboot and firmware"
+    Reboot after installing `dxrt-driver-dkms` so the kernel loads the NPU driver. Firmware
+    is not shipped in the APT repository — update it with the one-line installer above or
+    `./dx-runtime/install.sh --target=dx_fw`, then cold boot as described in
+    **DX-Runtime Installation**.
+
+!!! note "Install the `dx_engine` Python package"
+    `libdxrt-bin` does not install the `dx_engine` Python binding, since it cannot know which
+    interpreter or virtualenv you use. Wheels matching the installed `libdxrt-bin` (one per
+    CPython ABI) are staged in `/usr/share/libdxrt-bin/python`; install the one for your
+    Python version into your virtualenv. The package prints the exact `pip install` command
+    after installation.
+
+Upgrade to later releases with `sudo apt update && sudo apt upgrade`, and remove the packages
+with `sudo apt purge libdxrt-bin dxrt-driver-dkms`. This route covers the driver and runtime
+only; `dx_app` and `dx_stream` still use the full setup below.
+
 ## Prerequisites
 
-Follow these steps first to ensure a stable installation.
+Follow these steps first to ensure a stable installation. This is the full-suite route —
+skip it if the one-line install above already covers what you need.
 
 ### Repository Cloning and Submodule Synchronization
 
@@ -59,13 +186,14 @@ DX-AllSuite automates the creation of Python virtual environments (venv) to prev
 
 - **Compiler Environment**: Created at `dx-compiler/venv-dx-compiler`  
 - **Runtime Environment**: Created at `dx-runtime/venv-dx-runtime`  
+- **ModelZoo Environment**: DX-ModelZoo is installed into the runtime environment (`dx-runtime/venv-dx-runtime`) so that `dxmz` can use `dx_engine` for NPU evaluation. In the Docker image, it is pre-installed in `/venv-dxnn`.  
 
 !!! warning "CAUTION"  
     If you are installing an individual module (e.g., `dx-rt` only), you **must** activate the corresponding virtual environment (`source .../activate`) created by the script to avoid installation failure.     
     
 ### SDK Workflow Guide
 
-**DX-AllSuite** provides two paths for utilizing the DEEPX NPU, depending on whether you are bringing your own model or using a pre-optimized one. The SDK automatically manages the necessary virtual environments and dependencies to ensure a seamless development experience.  
+**DX-AllSuite** provides three paths for utilizing the DEEPX NPU, depending on whether you are bringing your own model, using a pre-optimized one, or evaluating models from the DEEPX ModelZoo. The SDK automatically manages the necessary virtual environments and dependencies to ensure a seamless development experience.  
 
 **[Path A] Custom Model Inference Path**  
 The standard workflow for converting and deploying user-trained models.  
@@ -97,6 +225,194 @@ This path is ideal for users who want to quickly benchmark DEEPX NPU performance
 - **Step 1 (Select)**: Choose a pre-validated `.dxnn` model from the **DEEPX ModelZoo** or sample data.  
 - **Step 2 (DX-RT)**: Load the selected model immediately in the runtime environment (`venv-dx-runtime`) without a separate compilation process.  
 - **Step 3 (NPU Acceleration)**: Execute hardware-accelerated inference and analyze key performance indicators like **FPS** and **Latency**.  
+
+**[Path C] Model Evaluation Path (DX-ModelZoo)**  
+The path for measuring accuracy and performance of pre-configured models with a single CLI (`dxmz`).  
+
+- **Step 1 (Select)**: Choose a model from **DX-ModelZoo** (`dxmz list`, `dxmz info`). Each model is defined by one YAML file (preprocessing, postprocessing, dataset, profiles).  
+- **Step 2 (ONNX Baseline)**: Evaluate the ONNX model on CPU/GPU (`--profile onnx`). Missing models are downloaded automatically from `DXMZ_MODEL_URL`.  
+- **Step 3 (DX-COM)**: Compile the ONNX model to `.dxnn` with a DXNN profile (`c-lite`, `q-lite`, `q-pro`).  
+- **Step 4 (DX-RT)**: Evaluate the `.dxnn` model on the NPU with the same dataset and compare the metrics with the ONNX baseline.  
+
+---
+
+## Local Installation
+
+Installing **DX-AllSuite** directly on the **Host OS** ensures maximum hardware performance and seamless compatibility between all software modules. This method is recommended for production environments and advanced performance benchmarking.  
+
+### DX-Compiler Installation (DX-COM)
+
+DX-Compiler (DX-COM) can be used as a CLI tool or a Python module on supported Linux distributions.  
+
+**Differences in Usage**  
+- **CLI Tool (Command Line Interface)**: Perform compilation by entering `dxcom` commands directly in the terminal (Bash). Ideal for quick execution and automated shell scripts without additional coding.  
+- **Python Module (Library)**: Call functions or classes via `import dx_com` within your Python scripts. This is the preferred method for integrating the compiler into your existing AI training or automation pipelines.  
+
+!!! warning "Change in Distribution Method"  
+    The standalone executable distribution method is **no longer supported**. This guide describes the latest **Wheel-based** installation workflow, which ensures better dependency management and Python environment integration.  
+
+#### A. Pre-Installation Requirements
+Before installing **DX-COM**, you **must** install the following system libraries to support core utilities and graphical operations.  
+
+- **`libgl1-mesa-glx`**: OpenGL runtime support for graphics processing  
+- **`libglib2.0-0`**: Core utility library (related to GNOME/GTK)
+
+**Installation Command**  
+```Bash
+sudo apt-get update
+sudo apt-get install -y --no-install-recommends libgl1-mesa-glx libglib2.0-0 make
+```
+
+#### B. Installation Method
+**Supported Environments**  
+
+- **OS**: Linux (x86_64)  
+- **Python Version**: 3.8, 3.9, 3.10, 3.11, 3.12, 3.13, 3.14 (The installation script will automatically detect your version)
+
+**Integrated Package Installation**  
+The provided `install.sh` script handles everything in one go, including Python version detection and package installation.  
+```Bash
+# Run the interactive installation script (recommended)
+./dx-compiler/install.sh
+```
+
+#### C. Verify and Usage
+After installation, activate the virtual environment (`venv-dx-compiler`) to verify the setup.  
+```Bash
+# 1. Activate the Virtual Environment
+source ./dx-compiler/venv-dx-compiler/bin/activate
+
+# 2. Verify Installed Version (CLI and Python Modules)
+dxcom --version
+python3 -c "import dx_com; print(dx_com.__version__)"
+
+# 3. Access Help Documentation
+dxcom -h
+```
+
+- **Sample Data Location**: `./dx-compiler/dx_com/sample_models/`  
+
+!!! note "Tip"  
+    If the automatic sample data download fails, you can manually fetch the assets using the following scripts:  
+    - `./dx-compiler/example/1-download_sample_models.sh` (Model data)  
+    - `./dx-compiler/example/2-download_sample_calibration_dataset.sh` (Calibration data)  
+
+#### D. Model Visualization
+**DX-TRON has been removed** as of DX-Compiler v2.5.0. To inspect the compiled model structure and CPU/NPU workload distribution, generate the interactive HTML **Compilation Summary Report** with DX-COM:  
+```bash
+dxcom -m model.onnx -c config.json -o output/ --export_html
+```
+Then open `output/<model_name>_summary.html` in your browser.  
+
+### DX-Runtime Installation (RT, Driver, FW, App, Stream)
+
+The **DX-Runtime** stack is the core software layer required to control DEEPX NPU hardware and execute AI applications. Each component is managed as a submodule within the `./dx-runtime` directory.  
+
+#### A. Building and Installing Modules
+Depending on your requirements, you can perform a full installation or target specific modules to save time.  
+```Bash
+# Option 1: Install all modules (Driver, FW, RT, App, Stream)
+./dx-runtime/install.sh --all
+
+# Option 2: Full install excluding firmware
+# (Use this if your NPU already has the latest FW version)
+./dx-runtime/install.sh --all --exclude-fw
+
+# Option 3: Install a specific module only
+./dx-runtime/install.sh --target=<module_name>
+```
+
+#### B. Firmware (DX-FW) Update and Activation
+Updating the firmware is a critical process. To ensure the hardware logic is correctly initialized, follow these steps precisely.
+
+**Step 1. Update the Firmware**  
+You can update the firmware using the automated installation script or the dedicated CLI tool.  
+```Bash
+# Method 1. Using the installation script
+./dx-runtime/install.sh --target=dx_fw
+
+# Method 2. Manual update using dxrt-cli
+dxrt-cli -u ./dx-runtime/dx_fw/m1/X.X.X/mdot2/fw.bin
+```
+
+**Step 2. Perform a Cold Boot**  
+It is **strongly recommended** to completely shut down the system, turn off the power, and then turn it back on. A simple 'Restart' may not be sufficient for hardware initialization.  
+
+**Step 3. System Reboot**  
+After installation is complete, be sure to perform `sudo reboot` to activate the installed kernel driver.  
+
+### DX-ModelZoo Installation
+
+**DX-ModelZoo** is a YAML-driven framework for model evaluation and NPU compilation, operated through the `dxmz` CLI. It is located in the `./dx-modelzoo` submodule.  
+
+#### A. Pre-Installation Requirements
+- **DX-Runtime**: DX-ModelZoo is installed into the runtime environment (`dx-runtime/venv-dx-runtime`), which provides `dx_engine` for NPU evaluation. Install DX-Runtime first (`./getting-started/runtime-0_install_dx-runtime.sh`).  
+- **DX-Compiler** (for `dxmz compile` only): The `dx_com` wheel must be installed in the same environment.  
+- **Python**: 3.8 or higher  
+
+#### B. Installation Method
+The provided scripts install DX-ModelZoo and prepare its workspace.  
+```Bash
+# 1. Install dx-modelzoo into dx-runtime/venv-dx-runtime (CPU ONNX Runtime by default)
+./getting-started/modelzoo-0_install_dx-modelzoo.sh
+
+# (Optional) GPU ONNX Runtime
+./getting-started/modelzoo-0_install_dx-modelzoo.sh --extra gpu
+
+# 2. Create getting-started/modelzoo (-> workspace/modelzoo) and dx-modelzoo/.env
+./getting-started/modelzoo-1_prepare_assets.sh
+```
+
+!!! note "GPU Inference (ONNX Runtime GPU)"  
+    `--extra gpu` installs `.[gpu]` (`onnxruntime-gpu` and CUDA libraries) and removes `onnxruntime`, because the two packages cannot coexist. Do not combine `gpu` with `all`, which includes `cpu`. Requirements: NVIDIA GPU (Pascal/Turing/Ampere), NVIDIA Driver ≥ 535.230.02, CUDA 12.2, cuDNN 9.1. After installation, add the NVIDIA library paths printed by the script to `LD_LIBRARY_PATH`.  
+
+`modelzoo-1_prepare_assets.sh` copies `dx-modelzoo/.env.example` to `dx-modelzoo/.env` only when `.env` does not exist. Edit it for your environment:  
+
+| Variable | Description |
+| :--- | :--- |
+| `DXMZ_MODEL_URL` | Base URL for automatic model download. Required for auto-download (no built-in default); `.env.example` sets `https://sdk.deepx.ai/modelzoo` |
+| `MODEL_ROOT` | Model file root directory (overridden by `--model-root`) |
+| `DATA_ROOT` | Dataset root directory (overridden by `--data-root`) |
+
+#### C. Verify and Usage
+```Bash
+# 1. Activate the Virtual Environment
+source ./dx-runtime/venv-dx-runtime/bin/activate
+
+# 2. Verify the CLI and the NPU Python API
+dxmz --help
+python3 -c "import dx_engine; print('dx_engine OK')"
+
+# 3. Inspect a model
+dxmz info resnet50_224x224
+```
+
+- **Next Step**: Run the first model with `./getting-started/modelzoo-2_run_first_npu_model.sh`. Refer to [**Running Your First NPU Model**](03_Running_Your_First_NPU_Model.md).  
+
+### [Local] Installation Verification (Sanity Check)
+
+Once the local installation is finished, perform a final check to confirm that the hardware and software are communicating correctly. 
+
+#### A. Hardware and Version Check  
+Run the following command to display information about the NPU devices recognized by the system.  
+```Bash
+dxrt-cli -s
+```
+
+**Success Checklist**  
+
+- **[x] Device Recognition**: Does it display `Device 0: M1`?  
+- **[x] Version Info**: Do `RT Driver`, `PCIe Driver`, and `FW version` show valid numbers (e.g., v1.x.x)?  
+- **[x] Status**: Are real-time metrics for **Voltage**, **Clock**, and **Temperature** visible at the bottom?  
+
+#### B. System Integrity Check  
+Run the batch sanity script to verify that all modules are located in their designated paths.  
+```Bash
+./dx-runtime/scripts/sanity_check.sh
+```
+
+!!! note "Tip"  
+    If any item returns a **FAIL** or **Not Found**, please revisit the **DX-Runtime Installation** section (Building and Installing Modules) to ensure all components were compiled correctly.    
 
 ---
 
@@ -141,6 +457,53 @@ Run the container after the image build is complete.
 !!! warning "Note on GUI Environments"  
     If you encounter X11 warnings or mount errors (e.g., cannot open display), it is likely due to the host OS using a **Wayland** session. Refer to **Q2. X11 Session Warnings & Mount Errors (Wayland Issues)** in [**FAQ Troubleshooting Guide**](05_FAQ_Troubleshooting_Guide.md).  
 
+### GPU Acceleration Options (Optional)
+
+Docker images can optionally be built with GPU acceleration. The two options serve **different purposes and different containers**, and are mutually exclusive (Ubuntu only):
+
+| Option | Accelerates | Target containers | Typical use case |
+|---|---|---|---|
+| `--nvidia_gpu` | Compute (CUDA) | `dx-compiler`, `dx-modelzoo` | Faster ONNX raw accuracy evaluation (dx-modelzoo) and `q-pro` quantization calibration (dx-compiler) |
+| `--intel_gpu_hw_acc` | Media (VA-API) | `dx-runtime` — **dx_stream pipelines only** | Offload video decode/scale to the Intel iGPU so the CPU stays free for pre/post-processing in multi-channel GStreamer pipelines |
+
+**A. NVIDIA GPU (CUDA) — dx-compiler / dx-modelzoo**
+
+Host requirements: NVIDIA driver and [nvidia-container-toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
+(`sudo nvidia-ctk runtime configure --runtime=docker && sudo systemctl restart docker`).
+
+```Bash
+# Build on a CUDA base image (default CUDA version: 12.8.1, override with --cuda_version=<ver>)
+./docker_build.sh --target=dx-modelzoo --ubuntu_version=24.04 --nvidia_gpu
+./docker_build.sh --target=dx-compiler --ubuntu_version=24.04 --nvidia_gpu
+
+# Run / stop — GPU images are tagged cuda<ver>-ubuntu-<os> and coexist with CPU images
+./docker_run.sh  --target=dx-modelzoo --ubuntu_version=24.04 --nvidia_gpu
+./docker_down.sh --target=dx-modelzoo --ubuntu_version=24.04 --nvidia_gpu
+```
+
+The dx-modelzoo GPU image already includes an `onnxruntime-gpu` build that matches the image's CUDA version, so ONNX evaluation runs on the GPU without extra setup.
+
+- CUDA 12 images: `onnxruntime-gpu<1.27`; CUDA 13 images: `onnxruntime-gpu>=1.27`. CUDA/cuDNN come from the `nvidia/cuda` base image.
+- **Do not upgrade `onnxruntime-gpu` inside the container** (e.g. `pip install -U onnxruntime-gpu`): the newest release may target a different CUDA major version, and evaluation then falls back to the CPU. The `[gpu]` extra is not needed either; it only adds pip CUDA 12 libraries that duplicate the base image.
+- To check: `python -c "import onnxruntime as ort; print(ort.__version__)"`, and watch `nvidia-smi` during evaluation.
+
+For dx-compiler, `q-pro` calibration uses the GPU automatically (`quantization_device` auto-detection).
+
+**B. Intel GPU (VA-API Media Acceleration) — dx-runtime (dx_stream)**
+
+Host requirements: Intel GPU with the `i915`/`xe` driver loaded (`/dev/dri/renderD*` present on the host).
+
+```Bash
+./docker_build.sh --target=dx-runtime --ubuntu_version=24.04 --intel_gpu_hw_acc
+./docker_run.sh   --target=dx-runtime --ubuntu_version=24.04 --intel_gpu_hw_acc
+./docker_down.sh  --target=dx-runtime --ubuntu_version=24.04 --intel_gpu_hw_acc
+```
+
+No dx_stream code changes are required — GStreamer `decodebin` automatically selects the VA-API HW decoder (e.g., `vah264dec`), and adding `vapostproc` to a pipeline additionally offloads resize/color conversion to the iGPU video-enhance engine.
+
+!!! note "Intel GPU scope"
+    `--intel_gpu_hw_acc` accelerates **media processing for dx_stream (GStreamer) pipelines only**. It does not accelerate dx-compiler or dx-modelzoo workloads (compute acceleration is CUDA-only via `--nvidia_gpu`), and dx_app uses software decoding by default.
+
 ### Container Access and Task Guide
 
 #### A. DX-Compiler Environment (Model Conversion)
@@ -150,7 +513,7 @@ The DX-Compiler environment is used to generate hardware-optimized `.dxnn` binar
 To perform tasks within the container, you **must** first log in to the running container's shell.  
 ```Bash
 # 1. Run in Host Terminal: Enter the container
-docker exec -it dx-compiler-24.04 bash 
+docker exec -it dx-compiler-24.04 bash
 
 # 2. Inside Container: Navigate to the work directory
 cd /deepx/dx-compiler/dx_com
@@ -169,9 +532,10 @@ Use the provided script to compile all sample models automatically.
 ```
 
 - **Method 2**: Manual Compilation (CLI)  
-For granular control, activate the virtual environment and use the `dxcom` tool directly.  
+For granular control, activate the virtual environment and use the `dxcom` tool directly.
+
 ```Bash
-source ../venv-dx-compiler/bin/activate  # Activate venv
+source ../venv-dx-compiler/bin/activate # Activate venv
 
 dxcom -m sample_models/onnx/YOLOV5S-1.onnx \
       -c sample_models/json/YOLOV5S-1.json \
@@ -191,7 +555,7 @@ The **DX-Runtime** environment is designed for executing model inference and pro
 Before running any inference, ensure the container can communicate with the NPU hardware.
 ```Bash
 # 1. Run from the host terminal: Enter the container
-docker exec -it dx-runtime-24.04 
+docker exec -it dx-runtime-24.04 bash
 
 # 2. Inside Container: Verify NPU hardware recognition
 dxrt-cli -s
@@ -233,6 +597,78 @@ cd /deepx/dx-runtime/dx_stream
 
 !!! note "Scenario Selection"  
     You can select specific streaming scenarios by entering the scenario number displayed in the terminal.
+
+#### C. DX-ModelZoo Environment (Model Evaluation)
+The **DX-ModelZoo** environment evaluates pre-configured models with ONNX Runtime and the DEEPX NPU, and compiles them to `.dxnn`. The image pre-installs DX-ModelZoo (`dxmz`) in `/venv-dxnn`.  
+
+!!! note "Rebuild Required for Older Images"  
+    `dxmz` is installed during the image build. An image built before DX-ModelZoo was added to `Dockerfile.dx-modelzoo` does not contain it — verify with `docker run --rm --entrypoint /venv-dxnn/bin/dxmz dx-modelzoo:ubuntu-24.04 --help` and rebuild if it fails:  
+    ```Bash
+    ./docker_build.sh --target=dx-modelzoo --ubuntu_version=24.04
+    ```
+
+**C-1. Accessing the Container**  
+```Bash
+# 1. Run from the host terminal: Enter the container
+docker exec -it dx-modelzoo-ubuntu-24.04 bash
+
+# 2. Inside Container: Verify the CLI
+dxmz --help
+```
+
+!!! note "NPU Access"  
+    The `dx-modelzoo` container does not start its own `dxrtd`. It uses the DX-RT service running in the `dx-runtime` container (or on the host). Start the `dx-runtime` container before NPU (`dxnn`) evaluation.  
+
+!!! note "GPU Image (ONNX Runtime GPU)"  
+    The default image installs `.[cpu]`. To evaluate ONNX models on an NVIDIA GPU, build and run with `--nvidia_gpu`. It uses the `nvidia/cuda` cuDNN runtime base image (CUDA/cuDNN included) and installs an `onnxruntime-gpu` build matching the image's CUDA version (see GPU Acceleration Options above), so no `LD_LIBRARY_PATH` setup is needed. The host requires the NVIDIA driver and NVIDIA Container Toolkit.  
+    ```Bash
+    ./docker_build.sh --target=dx-modelzoo --ubuntu_version=24.04 --nvidia_gpu
+    ./docker_run.sh --target=dx-modelzoo --ubuntu_version=24.04 --nvidia_gpu
+    ```
+    The GPU container is named `dx-modelzoo-12.8.1-cudnn-runtime-ubuntu24.04`.  
+    ```Bash
+    docker exec -it dx-modelzoo-12.8.1-cudnn-runtime-ubuntu24.04 bash
+    ```
+
+**C-2. Preparing the Workspace and `.env`**  
+`modelzoo-1_prepare_assets.sh` links `getting-started/modelzoo` to `${DOCKER_VOLUME_PATH}/modelzoo` (mounted from the host `workspace/` directory) and creates `/deepx/dx-modelzoo/.env` from `.env.example` if it does not exist.  
+```Bash
+cd /deepx/getting-started
+./modelzoo-1_prepare_assets.sh
+```
+
+Review `/deepx/dx-modelzoo/.env` and set `DXMZ_MODEL_URL` if your network uses a model mirror. Place evaluation datasets under `getting-started/modelzoo/datasets` (e.g., `ILSVRC2012/val`).  
+
+!!! tip "Mounting an Existing Dataset Directory"  
+    If the datasets already live on the host (e.g., `/mnt/datasets/ILSVRC2012`), mount them read-only instead of copying. Set `DX_DATASETS_PATH` when starting the container — it is mounted at `/deepx/datasets` (override with `DX_DATASETS_TARGET`).  
+    ```Bash
+    # Host terminal
+    DX_DATASETS_PATH=/mnt/datasets ./docker_run.sh --target=dx-modelzoo --ubuntu_version=24.04
+    ```
+    Inside the container, point the script or the CLI at the mount:  
+    ```Bash
+    # Script: override DATA_ROOT
+    DATA_ROOT=/deepx/datasets ./getting-started/modelzoo-2_run_first_npu_model.sh
+
+    # CLI: override per run
+    dxmz eval resnet50_224x224 --profile onnx --data-root /deepx/datasets --save
+    ```
+
+**C-3. Running the First Model**  
+```Bash
+./modelzoo-2_run_first_npu_model.sh
+```
+
+!!! note "Compilation"  
+    `dxmz compile` requires `dx_com`. The script installs it automatically with `pip` (the version pinned in `dx-compiler/compiler.properties`, falling back to the PyPI release); pass `--dx-com-wheel /path/to/dx_com-*.whl` to use a local wheel instead.  
+
+!!! tip "NPU Evaluation Without Compiling"  
+    `dxmz eval --profile q-lite` downloads a prebuilt `.dxnn` from `DXMZ_MODEL_URL`, so you can evaluate on the NPU without `dx_com`:  
+    ```Bash
+    ./modelzoo-2_run_first_npu_model.sh --skip-onnx --skip-compile
+    ```
+
+For the detailed script flow, refer to **DX-ModelZoo: Model Evaluation Scripts Guide** in [**Running Your First NPU Model**](03_Running_Your_First_NPU_Model.md).  
 
 **Path Precautions**  
 It is critical to distinguish between your **Host** terminal and the **Container** terminal to avoid "`File not found`" errors.  
@@ -306,146 +742,5 @@ This script performs a batch check to ensure all individual modules are correctl
 ```
 
 If **[OK]** or **PASS** is output for all items, you are ready to start service development.  
-
----
-
-## Local Installation
-
-Installing **DX-AllSuite** directly on the **Host OS** ensures maximum hardware performance and seamless compatibility between all software modules. This method is recommended for production environments and advanced performance benchmarking.  
-
-### DX-Compiler Installation (DX-COM, DX-TRON)
-
-DX-Compiler (DX-COM) can be used as a CLI tool or a Python module on supported Linux distributions.  
-
-**Differences in Usage**  
-- **CLI Tool (Command Line Interface)**: Perform compilation by entering `dxcom` commands directly in the terminal (Bash). Ideal for quick execution and automated shell scripts without additional coding.  
-- **Python Module (Library)**: Call functions or classes via `import dx_com` within your Python scripts. This is the preferred method for integrating the compiler into your existing AI training or automation pipelines.  
-
-!!! warning "Change in Distribution Method"  
-    The standalone executable distribution method is **no longer supported**. This guide describes the latest **Wheel-based** installation workflow, which ensures better dependency management and Python environment integration.  
-
-#### A. Pre-Installation Requirements
-Before installing **DX-COM**, you **must** install the following system libraries to support core utilities and graphical operations.  
-
-- **`libgl1-mesa-glx`**: OpenGL runtime support for graphics processing  
-- **`libglib2.0-0`**: Core utility library (related to GNOME/GTK)
-
-**Installation Command**  
-```Bash
-sudo apt-get update
-sudo apt-get install -y --no-install-recommends libgl1-mesa-glx libglib2.0-0 make
-```
-
-#### B. Installation Method
-**Supported Environments**  
-
-- **OS**: Linux (x86_64)  
-- **Python Version**: 3.8, 3.9, 3.10, 3.11, 3.12, 3.13, 3.14 (The installation script will automatically detect your version)
-
-**Integrated Package Installation**  
-The provided install.sh script handles everything in one go, including Python version detection and package installation.  
-```Bash
-# Run the interactive installation script (recommended)
-./dx-compiler/install.sh
-```
-
-#### C. Verify and Usage
-After installation, activate the virtual environment (`venv-dx-compiler`) to verify the setup.  
-```Bash
-# 1. Activate the Virtual Environment
-source ./dx-compiler/venv-dx-compiler/bin/activate
-
-# 2. Verify Installed Version (CLI and Python Modules)
-dxcom --version
-python3 -c "import dx_com; print(dx_com.__version__)"
-
-# 3. Access Help Documentation
-dxcom -h
-```
-
-- **Sample Data Location**: `./dx-compiler/dx_com/sample_models/`  
-
-!!! note "Tip"  
-    If the automatic sample data download fails, you can manually fetch the assets using the following scripts:  
-    - `./dx-compiler/example/1-download_sample_models.sh` (Model data)  
-    - `./dx-compiler/example/2-download_sample_calibration_dataset.sh` (Calibration data)  
-
-#### D. DX-TRON (GUI Visualizer)
-**DX-TRON** is a visual analysis tool for inspecting model structures and workload distribution. Choose the execution mode that fits your environment:  
-
-- **Local Execution (Desktop)**: Type `dxtron` in the terminal or execute the following script:  
-```bash
-./dx-compiler/run_dxtron_appimage.sh
-```
-
-- **Web Server Execution (Remote/Docker)**: Run the web server script and specify a port:  
-```bash 
-./dx-compiler/run_dxtron_web.sh --port=8080
-```
-Then, access [**http://localhost:8080**](http://localhost:8080) in your browser.  
-
-- **Windows Users**: You can download the dedicated Windows installer directly from the [**DEEPX Developer Portal**](https://developer.deepx.ai).  
-
-### DX-Runtime Installation (RT, Driver, FW, App, Stream)
-
-The **DX-Runtime** stack is the core software layer required to control DEEPX NPU hardware and execute AI applications. Each component is managed as a submodule within the `./dx-runtime` directory.  
-
-#### A. Building and Installing Modules
-Depending on your requirements, you can perform a full installation or target specific modules to save time.  
-```Bash
-# Option 1: Install all modules (Driver, FW, RT, App, Stream)
-./dx-runtime/install.sh --all
-
-# Option 2: Full install excluding firmware
-# (Use this if your NPU already has the latest FW version)
-./dx-runtime/install.sh --all --exclude-fw
-
-# Option 3: Install a specific module only
-./dx-runtime/install.sh --target=<module_name>
-```
-
-#### B. Firmware (DX-FW) Update and Activation
-Updating the firmware is a critical process. To ensure the hardware logic is correctly initialized, follow these steps precisely.
-
-**Step 1. Update the Firmware**  
-You can update the firmware using the automated installation script or the dedicated CLI tool.  
-```Bash
-# Method 1. Using the installation script
-./dx-runtime/install.sh --target=dx_fw
-
-# Method 2. Manual update using dxrt-cli
-dxrt-cli -u ./dx-runtime/dx_fw/m1/X.X.X/mdot2/fw.bin
-```
-
-**Step 2. Perform a Cold Boot**  
-It is **strongly recommended** to completely shut down the system, turn off the power, and then turn it back on. A simple 'Restart' may not be sufficient for hardware initialization.  
-
-**Step 3. System Reboot**  
-After installation is complete, be sure to perform `sudo reboot` to activate the installed kernel driver.  
-
-### [Local] Installation Verification (Sanity Check)
-
-Once the local installation is finished, perform a final check to confirm that the hardware and software are communicating correctly. 
-
-#### A. Hardware and Version Check  
-Run the following command to display information about the NPU devices recognized by the system.  
-```Bash
-dxrt-cli -s
-```
-
-**Success Checklist**  
-
-- **[x] Device Recognition**: Does it display `Device 0: M1?`  
-- **[x] Version Info**: Do `RT Driver`, `PCIe Driver`, and `FW version` show valid numbers (e.g., v1.x.x)?  
-- **[x] Status**: Are real-time metrics for **Voltage**, **Clock**, and **Temperature** visible at the bottom?  
-
-#### B. System Integrity Check  
-Run the batch sanity script to verify that all modules are located in their designated paths.  
-```Bash
-./dx-runtime/scripts/sanity_check.sh
-```
-
-!!! note "Tip"  
-    If any item returns a **FAIL** or **Not Found**, please revisit the **DX-Runtime Installation** section (Building and Installing Modules) to ensure all components were compiled correctly.    
 
 ---

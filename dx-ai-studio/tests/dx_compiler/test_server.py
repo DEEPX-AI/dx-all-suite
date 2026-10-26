@@ -14,6 +14,7 @@ from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 import pytest
+from tests.i18n_markup import assert_translatable
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -46,12 +47,12 @@ COMPILER_DIR = ROOT / "dx_compiler"
 TEST_PORT = 18095
 BASE_URL = f"http://127.0.0.1:{TEST_PORT}"
 
-# 다른 테스트 conftest 훅(예: dx_stream)이 등록한 모듈과 충돌 방지용 프리픽스 목록
+# Module prefixes to clear, so modules registered by other tests' conftest hooks (e.g. dx_stream) do not collide
 _STALE_MODULE_PREFIXES = ("core", "shared", "server", "dx_compiler_server_for_tests", "dx_compiler")
 
 
 def _clear_stale_modules():
-    """sys.modules에서 다른 앱이 남긴 core/shared/server 모듈을 제거한다."""
+    """Remove core/shared/server modules left in sys.modules by other apps."""
     for name in list(sys.modules):
         if any(
             name == prefix or name.startswith(prefix + ".")
@@ -61,16 +62,16 @@ def _clear_stale_modules():
 
 
 def _reset_sys_path():
-    """sys.path에서 COMPILER_DIR/ROOT 항목을 제거한 후 재삽입하여 결정적 순서를 보장한다.
+    """Remove and re-insert the COMPILER_DIR/ROOT entries in sys.path for a deterministic order.
 
-    최종 순서: COMPILER_DIR(idx 0) → ROOT(idx 1) → 기존 항목들.
-    TODO(Task 4.1): 모든 컴파일러 테스트가 package import만 사용하면 COMPILER_DIR 삽입을 제거한다.
+    Final order: COMPILER_DIR (idx 0) → ROOT (idx 1) → existing entries.
+    TODO: drop the COMPILER_DIR insert once every compiler test uses package imports only.
     """
     root_str, compiler_str = str(ROOT), str(COMPILER_DIR)
     for p in (root_str, compiler_str):
         while p in sys.path:
             sys.path.remove(p)
-    # COMPILER_DIR를 먼저 insert(0)하면 ROOT가 0으로 밀리므로 역순으로 삽입
+    # Insert in reverse: inserting COMPILER_DIR at 0 first would let ROOT push it down
     sys.path.insert(0, root_str)
     sys.path.insert(0, compiler_str)
 
@@ -79,12 +80,15 @@ class ReusableThreadingHTTPServer(ThreadingHTTPServer):
     allow_reuse_address = True
 
 
-# module-scoped fixture: 하나의 서버 인스턴스를 모든 테스트가 공유한다.
-# 이 서버는 읽기 전용/안전한 라우트에만 사용되어야 한다 — 상태를 변경하는
-# 요청은 별도의 function-scoped 서버를 사용할 것.
+# module-scoped fixture: every test shares one server instance.
+# Use it only for read-only / safe routes — requests that change state
+# need their own function-scoped server.
 @pytest.fixture(scope="module")
 def server():
     _clear_stale_modules()
+    # Snapshot BEFORE _reset_sys_path() reorders things, so teardown can put back
+    # exactly what was there — see the restore in this fixture's finally block.
+    _saved_sys_path = list(sys.path)
     _reset_sys_path()
 
     spec = importlib.util.spec_from_file_location(
@@ -121,9 +125,12 @@ def server():
         srv.server_close()
         sys.modules.pop("dx_compiler_server_for_tests", None)
         _clear_stale_modules()
-        for p in (str(COMPILER_DIR), str(ROOT)):
-            while p in sys.path:
-                sys.path.remove(p)
+        # Restore, do NOT blind-remove. Stripping every copy of ROOT would also drop
+        # the ones tests/conftest.py and this package's conftest.py own — so for the
+        # REST of the pytest process the repo root would be off sys.path and any later
+        # `import shared` (which production code in setup_service._run_install_sh does
+        # at call time) would die with ModuleNotFoundError, far from the test that caused it.
+        sys.path[:] = _saved_sys_path
 
 
 def _get_raw(path: str):
@@ -689,8 +696,9 @@ def test_compiler_dxnn_download_control_has_all_languages():
     html = (COMPILER_DIR / "templates" / "index.html").read_text(encoding="utf-8")
     assert 'id="download-dxnn-btn"' in html
     control = html[html.index('id="download-dxnn-btn"'):html.index("</button>", html.index('id="download-dxnn-btn"'))]
-    for language in ("ko", "en", "ja", "zh-CN", "zh-TW", "es"):
-        assert f'class="{language}"' in control
+    assert_translatable(
+        control, "dx_compiler/static/js/compiler-i18n.js", "download-dxnn-btn"
+    )
     assert "window.location.href = '/compile/' + jobId + '/dxnn'" in html
     assert "dxnnBtn.disabled = true" in html
     assert "delete dxnnBtn.dataset.jobId" in html
@@ -1131,3 +1139,195 @@ def test_checkpoint_backend_symbols_removed():
     assert not hasattr(job, "is_checkpoint")
     assert not hasattr(job, "checkpoint_output_name")
     assert hasattr(job, "qxnn_checkpoint_path")
+
+
+# ── Filesystem picker routes: /api/listdir, /api/mkdir, /validate/path ──────
+#
+# These back the Output Directory picker and the config wizard's path advisory.
+# They are the compiler server's only routes that touch arbitrary user paths, so
+# the allowed-roots checks are what keeps a localhost tool from browsing or
+# creating anywhere. tmp_path lives under /tmp, which is an allowed root.
+
+
+def _api(method: str, path: str, body=None):
+    """Return (status, payload), including for 4xx which urlopen raises on."""
+    data = json.dumps(body).encode() if body is not None else None
+    headers = {"Content-Type": "application/json"} if data else {}
+    req = Request(f"{BASE_URL}{path}", data=data, headers=headers, method=method)
+    try:
+        resp = urlopen(req, timeout=5)
+        raw = resp.read()
+        return resp.status, (json.loads(raw) if raw else None)
+    except HTTPError as e:
+        raw = e.read()
+        try:
+            return e.code, json.loads(raw)
+        except json.JSONDecodeError:
+            return e.code, raw.decode(errors="replace")
+
+
+@pytest.fixture()
+def browse_root(tmp_path):
+    """A populated, allowed-root directory to browse."""
+    (tmp_path / "beta").mkdir()
+    (tmp_path / "Alpha").mkdir()
+    (tmp_path / ".hidden").mkdir()
+    (tmp_path / "config.json").write_text("{}")
+    (tmp_path / "notes.txt").write_text("x")
+    (tmp_path / ".secret.json").write_text("{}")
+    return tmp_path
+
+
+class TestListDirRoute:
+    def test_lists_subdirectories_case_insensitively_sorted(self, server, browse_root):
+        status, body = _api("GET", f"/api/listdir?path={browse_root}")
+        assert status == 200 and body["ok"] is True
+        assert body["dirs"] == ["Alpha", "beta"], "sorted by lowercased name"
+
+    def test_dotfiles_and_dotdirs_are_hidden(self, server, browse_root):
+        _, body = _api("GET", f"/api/listdir?path={browse_root}")
+        assert ".hidden" not in body["dirs"]
+        _, with_ext = _api("GET", f"/api/listdir?path={browse_root}&ext=.json")
+        assert ".secret.json" not in with_ext["files"]
+
+    def test_files_are_empty_without_an_ext_filter(self, server, browse_root):
+        """The picker is folder-only by default; leaking files would make the
+        directory chooser show unselectable entries."""
+        _, body = _api("GET", f"/api/listdir?path={browse_root}")
+        assert body["files"] == []
+
+    def test_ext_filter_selects_matching_files_only(self, server, browse_root):
+        _, body = _api("GET", f"/api/listdir?path={browse_root}&ext=.json")
+        assert body["files"] == ["config.json"]
+        assert "notes.txt" not in body["files"]
+
+    def test_ext_without_a_leading_dot_is_normalised(self, server, browse_root):
+        """The UI sends "json"; without normalisation the endswith() check would
+        still match "config.json" by accident but miss e.g. "ajson" cases."""
+        _, dotted = _api("GET", f"/api/listdir?path={browse_root}&ext=.json")
+        _, bare = _api("GET", f"/api/listdir?path={browse_root}&ext=json")
+        assert bare["files"] == dotted["files"] == ["config.json"]
+
+    def test_reports_parent_and_writability(self, server, browse_root):
+        _, body = _api("GET", f"/api/listdir?path={browse_root}")
+        assert body["path"] == str(browse_root)
+        assert body["parent"] == str(browse_root.parent)
+        assert body["writable"] is True
+
+    def test_unsafe_path_is_refused(self, server):
+        """/etc is outside the allowed roots — the picker must not browse it."""
+        status, _ = _api("GET", "/api/listdir?path=/etc")
+        assert status == 400
+
+    def test_missing_directory_is_refused(self, server, tmp_path):
+        status, _ = _api("GET", f"/api/listdir?path={tmp_path}/does-not-exist")
+        assert status == 400
+
+    def test_file_path_is_not_a_directory(self, server, browse_root):
+        status, _ = _api("GET", f"/api/listdir?path={browse_root}/config.json")
+        assert status == 400
+
+    def test_no_path_falls_back_to_a_safe_default(self, server):
+        status, body = _api("GET", "/api/listdir")
+        assert status == 200 and body["ok"] is True
+        assert body["path"], "the default start directory must be reported"
+
+
+class TestMkdirRoute:
+    def test_creates_a_subdirectory(self, server, tmp_path):
+        status, body = _api("POST", "/api/mkdir", {"path": str(tmp_path), "name": "outdir"})
+        assert status == 200 and body["ok"] is True
+        assert (tmp_path / "outdir").is_dir()
+        assert body["path"] == str(tmp_path / "outdir")
+
+    def test_is_idempotent(self, server, tmp_path):
+        (tmp_path / "already").mkdir()
+        status, body = _api("POST", "/api/mkdir", {"path": str(tmp_path), "name": "already"})
+        assert status == 200 and body["ok"] is True
+
+    @pytest.mark.parametrize("bad", ["", ".", "..", ".hidden", "a/b", "a\\b", "../escape"])
+    def test_rejects_unsafe_names(self, server, tmp_path, bad):
+        status, _ = _api("POST", "/api/mkdir", {"path": str(tmp_path), "name": bad})
+        assert status == 400, f"{bad!r} must not be accepted as a directory name"
+        assert list(tmp_path.iterdir()) == [], "a rejected mkdir must create nothing"
+
+    def test_rejects_unsafe_parent_at_the_parent_check(self, server):
+        """make_directory guards twice — the parent must be an allowed root, AND
+        the resolved target must stay directly under it. Asserting only the 400
+        cannot tell the layers apart: deleting the parent check still yields 400
+        because the target check catches it. Pin the message so a lost layer is
+        visible."""
+        status, body = _api("POST", "/api/mkdir", {"path": "/etc", "name": "newdir"})
+        assert status == 400
+        assert body["error"] == "unsafe parent", (
+            "expected the parent-root check to reject this; "
+            f"got {body['error']!r} — a guard layer may have been removed"
+        )
+        assert not Path("/etc/newdir").exists()
+
+    def test_target_check_backs_up_the_parent_check(self, server, tmp_path):
+        """Defence in depth: even for an allowed parent, the resolved target must
+        remain directly beneath it."""
+        from dx_compiler.core import fs_browse
+
+        with pytest.raises(ValueError, match="invalid name"):
+            fs_browse.make_directory(str(tmp_path), "../sneaky")
+        assert not (tmp_path.parent / "sneaky").exists()
+
+    def test_rejects_missing_parent(self, server, tmp_path):
+        status, _ = _api("POST", "/api/mkdir",
+                         {"path": str(tmp_path / "nope"), "name": "x"})
+        assert status == 400
+
+    def test_invalid_json_body_is_400(self, server):
+        req = Request(f"{BASE_URL}/api/mkdir", data=b"{not json",
+                      headers={"Content-Type": "application/json"}, method="POST")
+        try:
+            urlopen(req, timeout=5)
+            raise AssertionError("expected 400")
+        except HTTPError as e:
+            assert e.code == 400
+
+
+class TestValidatePathRoute:
+    def test_empty_path_is_not_an_error(self, server):
+        """The wizard calls this on every keystroke, including an empty field —
+        it must stay quiet rather than flashing a warning."""
+        status, body = _api("GET", "/validate/path?path=")
+        assert status == 200 and body["warnings"] == []
+
+    def test_unsafe_path_is_403(self, server):
+        status, _ = _api("GET", "/validate/path?path=/etc/passwd&kind=file")
+        assert status == 403
+
+    def test_existing_directory_has_no_warnings(self, server, tmp_path, monkeypatch):
+        # tmp_path is under /tmp, outside the compile path policy — this test only checks "existing folder, no warning"
+        monkeypatch.setenv("DX_COMPILER_ALLOWED_ROOTS", str(tmp_path))
+        status, body = _api("GET", f"/validate/path?path={tmp_path}&kind=dir")
+        assert status == 200 and body["warnings"] == []
+
+    def test_missing_path_warns_but_still_200(self, server, tmp_path):
+        """Advisory, never blocking: the user may be typing a path they intend
+        to create, so this returns 200 with a warning rather than an error."""
+        status, body = _api("GET", f"/validate/path?path={tmp_path}/nope&kind=dir")
+        assert status == 200
+        assert any("does not exist" in w for w in body["warnings"])
+
+    def test_file_kind_on_a_directory_warns(self, server, tmp_path):
+        status, body = _api("GET", f"/validate/path?path={tmp_path}&kind=file")
+        assert status == 200
+        assert any("not a file" in w for w in body["warnings"])
+
+    def test_dir_kind_on_a_file_warns(self, server, tmp_path):
+        f = tmp_path / "a.json"
+        f.write_text("{}")
+        status, body = _api("GET", f"/validate/path?path={f}&kind=dir")
+        assert status == 200
+        assert any("not a directory" in w for w in body["warnings"])
+
+    def test_extension_mismatch_warns_for_file_kind(self, server, tmp_path):
+        f = tmp_path / "dataset.txt"
+        f.write_text("x")
+        status, body = _api("GET", f"/validate/path?path={f}&kind=file&ext=.json")
+        assert status == 200
+        assert any("does not end in .json" in w for w in body["warnings"])

@@ -17,6 +17,7 @@ REQUIRED_APPS = (
     "dx_monitor",
     "dx_modelzoo",
     "dx_agent_dev",
+    "dx_edge",
     "sdk_library",
 )
 

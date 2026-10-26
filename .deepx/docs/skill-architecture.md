@@ -65,6 +65,13 @@ Skills are organized into three tiers by naming convention:
 | `dx-harness-validate` | `.deepx/` framework integrity validation |
 | `dx-harness-writing-skills` | Create/edit `.deepx/` skill files |
 
+#### Internal Business (`dx-internal-*`)
+
+| Skill | Purpose |
+|-------|---------|
+| `dx-internal-model-eval` | Coding-agent / model / thinking-mode comparison via the e2e harness |
+| `dx-internal-pr-review-apply` | Act on a bot's code review of a GHES PR: per-thread verify + decide, one commit, replies, re-request reviewer |
+
 #### Meta
 
 | Skill | Purpose |
@@ -76,7 +83,7 @@ Skills are organized into three tiers by naming convention:
 Sub-project skills follow the same naming convention. Key differences:
 
 - **`dx-agent-*`** at sub-project level contains project-specific details
-  (e.g., dx_app's `dx-agent-tdd` has 133-model validation details)
+  (e.g., dx_app's `dx-agent-tdd` has model-registry validation details)
 - **`dx-swe-*`** at sub-project level are typically identical to suite level
 - **Domain-specific skills** are unique per sub-project
 

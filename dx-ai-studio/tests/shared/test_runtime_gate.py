@@ -68,3 +68,36 @@ def test_degraded_blocks_when_module_contracts_fail(tmp_path, monkeypatch):
 def test_non_inference_module_always_allowed(tmp_path):
     store = _store(tmp_path, RuntimePhase.FAILED, None)
     assert module_start_policy("dx_modelzoo", store).allowed is True
+
+
+def test_a_degraded_allow_says_so(tmp_path, monkeypatch):
+    import shared.runtime_validation as rv
+    monkeypatch.setattr(rv, "validate_module_contracts",
+                        lambda module, **_: ContractResult((_check("gst.plugin", True),)))
+    store = _store(tmp_path, RuntimePhase.DISCOVERED, None)
+    policy = module_start_policy("dx_stream", store)
+    assert policy.allowed is True and policy.degraded is True
+    assert module_start_policy("dx_stream", _store(tmp_path, RuntimePhase.ACTIVE, "2.4.1")).degraded is False
+
+
+def test_the_launch_context_follows_the_policy_not_only_the_journal(tmp_path, monkeypatch):
+    """When the gate allows dx_stream as degraded, the launch context must allow it too; a context that accepts
+    only ACTIVE would block every Stream run with 424 'profile.context'."""
+    import shared.runtime_validation as rv
+    from shared.runtime_context import RuntimeContextError, resolve_launch_context
+    monkeypatch.setattr(rv, "validate_module_contracts",
+                        lambda module, **_: ContractResult((_check("gst.plugin", True),)))
+    interpreter = tmp_path / "infer" / "bin" / "python3"
+    interpreter.parent.mkdir(parents=True)
+    interpreter.touch()
+    lib = tmp_path / "lib"
+    lib.mkdir()
+    store = _store(tmp_path, RuntimePhase.DISCOVERED, None)
+    ctx = resolve_launch_context("dx_stream", state_store=store, python_executable=interpreter, library_dirs=(lib,))
+    assert ctx.python_executable == interpreter and ctx.version == "unvalidated"
+
+    monkeypatch.setattr(rv, "validate_module_contracts",
+                        lambda module, **_: ContractResult((_check("gst.plugin", False),)))
+    import pytest
+    with pytest.raises(RuntimeContextError):
+        resolve_launch_context("dx_stream", state_store=store, python_executable=interpreter, library_dirs=(lib,))

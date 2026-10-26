@@ -1,6 +1,6 @@
-"""ModelInfo 형식 fixture – parse_modelzoo_model_file 테스트용."""
-# 실제 dx-modelzoo 모델 파일과 동일한 패턴으로 작성
-# (텍스트 파싱 대상이므로 실제 import 없이 구조만 유지)
+"""ModelInfo-format fixture for the parse_modelzoo_model_file tests."""
+# Written in the same pattern as a real dx-modelzoo model file
+# (it is parsed as text, so only the structure matters; nothing is imported)
 
 from dx_modelzoo.models import ModelInfo
 from dx_modelzoo.enums import DatasetType, EvaluationType

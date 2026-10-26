@@ -286,7 +286,7 @@
         break;
 
       case 'command':
-        // Compact tool/shell activity (→ Read: SKILL.md, ✓ Bash: …) formatted server-side.
+        // Compact tool/shell activity (→ Read: SKILL.md, check-mark Bash: …) formatted server-side.
         if (data.text) appendLog(data.text);
         break;
 
@@ -442,9 +442,13 @@
         if (!live.length || !agentSel || agentSel.value !== agent.name) return;
         var prev = modelSel.value;
         var def = d.default_model;
+        // Keep only a model the user picked; otherwise prefer the CLI's real default model over the
+        // static default (prev), which would show "auto" and a warning. Same rule as Agent Dev.
+        var picked = modelSel.dataset.userPicked === '1' && live.indexOf(prev) !== -1;
+        var keep = picked ? prev : (def && live.indexOf(def) !== -1 ? def : prev);
         modelSel.innerHTML = '';
         live.forEach(function (m) {
-          appendModelOption(modelSel, m, m === prev || (!prev && m === def));
+          appendModelOption(modelSel, m, m === keep);
         });
         modelSel.disabled = false;
         updateModelQualityHint();
@@ -457,6 +461,8 @@
     var m = String(model).trim().toLowerCase();
     if (!m || m === '—') return true;
     if (m.indexOf('auto') >= 0) return false;
+    // An alias without a version points to the latest model of that family
+    if (m === 'opus' || m === 'sonnet') return true;
     return _RECOMMENDED_MODEL.test(m);
   }
 
@@ -589,8 +595,18 @@
           select._agenticBound = true;
           select.addEventListener('change', function () {
             var found = _agents.find(function (a) { return a.name === select.value; });
+            var ms = document.getElementById('agentic-model-select');
+            if (ms) delete ms.dataset.userPicked;  // Another agent — start from that agent's default model
             fillModels(found);
           });
+          // A hand-picked model re-checks the warning and survives a CLI model list that arrives late
+          var modelSelect = document.getElementById('agentic-model-select');
+          if (modelSelect) {
+            modelSelect.addEventListener('change', function () {
+              modelSelect.dataset.userPicked = '1';
+              updateModelQualityHint();
+            });
+          }
         }
 
         // Disable buttons when no authenticated agents or service unavailable

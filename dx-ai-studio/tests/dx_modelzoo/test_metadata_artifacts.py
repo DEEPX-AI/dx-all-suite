@@ -1,5 +1,6 @@
-"""아티팩트 검증 및 서버 엔드포인트 테스트."""
+"""Artifact validation and server endpoint tests."""
 import json
+import urllib.request
 import sys
 import pytest
 from pathlib import Path
@@ -58,7 +59,7 @@ def test_safe_local_artifact_path_rejects_symlink_escape(tmp_path):
     from dx_modelzoo.metadata.artifacts import safe_local_artifact_path
     root = tmp_path / "assets"
     root.mkdir()
-    # 심볼릭 링크로 탈출 시도
+    # try to escape through a symlink
     link = root / "escape"
     link.symlink_to(tmp_path.parent)
     try:
@@ -134,7 +135,7 @@ def _load_create_server():
 
 @pytest.fixture(scope="module")
 def server():
-    """테스트용 서버 시작/정지."""
+    """Start/stop a server for the tests."""
     import threading, time
     create_server = _load_create_server()
     srv = create_server(TEST_PORT)
@@ -155,11 +156,11 @@ def server():
 
 
 def test_safe_local_artifact_path_accepts_double_dot_in_filename(tmp_path):
-    """model..v2.dxnn 같은 유효한 파일명은 허용해야 한다."""
+    """A valid file name such as model..v2.dxnn must be accepted."""
     from dx_modelzoo.metadata.artifacts import safe_local_artifact_path
     root = tmp_path / "assets"
     root.mkdir()
-    # 실제 traversal 아닌 '..'를 포함하는 파일명
+    # a file name containing '..' that is not a traversal
     result = safe_local_artifact_path(root, "models/model..v2.dxnn")
     assert result.is_relative_to(root)
     assert result.name == "model..v2.dxnn"
@@ -168,7 +169,7 @@ def test_safe_local_artifact_path_accepts_double_dot_in_filename(tmp_path):
 
 
 def test_resolve_artifact_blocks_internal_host_even_with_local_profile():
-    """source_profile='local'이라도 내부 호스트 URL은 노출하지 않아야 한다."""
+    """Internal host URLs must not be exposed, even with source_profile='local'."""
     from dx_modelzoo.metadata.artifacts import resolve_artifact
     model = {
         "id": "TestModel",
@@ -184,7 +185,7 @@ def test_resolve_artifact_blocks_internal_host_even_with_local_profile():
 
 
 def test_resolve_artifact_allows_public_host_with_local_profile():
-    """source_profile='local'에서 공개 호스트 URL은 허용해야 한다."""
+    """Public host URLs must be allowed with source_profile='local'."""
     from dx_modelzoo.metadata.artifacts import resolve_artifact
     model = {
         "id": "TestModel",
@@ -201,7 +202,7 @@ def test_resolve_artifact_allows_public_host_with_local_profile():
 
 class TestArtifactEndpoints:
     def test_artifact_endpoint_rejects_unknown_artifact(self, server):
-        # 먼저 유효한 모델 ID를 가져옴
+        # get a valid model ID first
         resp = urlopen(f"http://127.0.0.1:{TEST_PORT}/api/catalog")
         data = json.loads(resp.read())
         if not data["models"]:
@@ -232,15 +233,24 @@ class TestArtifactEndpoints:
         if not data["models"]:
             pytest.skip("No models loaded")
         model_id = data["models"][0]["id"]
+        # Do not follow redirects. For a remote artifact the server answers 302 to the CDN;
+        # urlopen would follow it, so without internet the test would fail even though the
+        # server answered correctly. What matters is the server's response, not the CDN.
+        class _NoRedirect(urllib.request.HTTPRedirectHandler):
+            def redirect_request(self, *args, **kwargs):
+                return None
+
+        opener = urllib.request.build_opener(_NoRedirect)
         try:
-            urlopen(f"http://127.0.0.1:{TEST_PORT}/api/catalog/{model_id}/artifacts/onnx")
+            resp = opener.open(
+                f"http://127.0.0.1:{TEST_PORT}/api/catalog/{model_id}/artifacts/onnx")
+            assert resp.status in (200, 302)
         except HTTPError as e:
-            body = json.loads(e.read())
-            assert e.code == 404
-            assert body["error_code"] == "artifact_unavailable"
-        else:
-            # 만약 실제로 onnx가 있으면 성공해도 OK
-            pass
+            if e.code == 404:
+                body = json.loads(e.read())
+                assert body["error_code"] == "artifact_unavailable"
+            else:
+                assert e.code in (302, 303, 307), f"예상 밖 응답: {e.code}"
 
     def test_artifact_endpoint_rejects_traversal(self, server):
         try:

@@ -17,6 +17,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from shared.paths import var_dir
 from dx_compiler.core.config import SCRIPT_DIR
 from dx_compiler.core.log_capture import LogBuffer, LogCapture
+from dx_compiler.core import path_policy
 
 _log = logging.getLogger(__name__)
 
@@ -167,11 +168,29 @@ class CompileJob:
             return True
 
 
+def _resolve_relative_dataset(raw: str, config_path: str) -> Path:
+    """Resolve a config's relative dataset_path to a real folder. SDK sample configs
+    (dx_com/sample_models/json/*.json) use "./calibration_dataset", assuming dxcom runs from dx_com/.
+    Look in the config folder and up to two levels above it and take the first match; if none exists,
+    return the path under the config folder so the check reports it as missing."""
+    p = Path(raw).expanduser()
+    if p.is_absolute():
+        return p
+    base = Path(config_path).resolve().parent
+    for root in (base, *list(base.parents)[:2]):
+        if (root / p).is_dir():
+            return root / p
+    return base / p
+
+
 class CompilerService:
     def __init__(self, job_root: Optional[Path] = None):
         self.jobs: Dict[str, CompileJob] = {}
         self._direct_compile_lock = threading.Lock()
-        self.job_root = Path(job_root) if job_root is not None else var_dir("compiler", "jobs")
+        # DX_COMPILER_JOB_ROOT moves job folders outside var/ (used by tests; same value as path_policy._jobs_root)
+        env_root = os.environ.get("DX_COMPILER_JOB_ROOT", "").strip()
+        self.job_root = (Path(job_root) if job_root is not None
+                         else Path(env_root) if env_root else var_dir("compiler", "jobs"))
         self.job_root.mkdir(parents=True, exist_ok=True)
         self.job_root = self.job_root.resolve()
         self.cleanup_completed_jobs()
@@ -188,6 +207,11 @@ class CompilerService:
         except ValueError as exc:
             raise ValueError("Invalid compiler job directory") from exc
         return path
+
+    @staticmethod
+    def _job_inputs(job: "CompileJob") -> list:
+        """This job's input files, which publishing must not overwrite."""
+        return [getattr(job, k, "") or "" for k in ("model_path", "config_path", "qxnn_checkpoint_path")]
 
     def _prepare_job_staging(
         self, job: CompileJob, requested_output_dir: Optional[str] = None
@@ -327,6 +351,10 @@ class CompilerService:
             canonical = candidates[0]
             requested_dir = Path(job.requested_output_dir)
             destination = requested_dir / canonical.name
+            if path_policy.would_overwrite_input(destination, self._job_inputs(job)):
+                job.status = "error"
+                job.error = "The compiled artifact would overwrite an input file; choose another output folder."
+                return False
             temporary = requested_dir / f".{canonical.name}.{uuid.uuid4().hex}.tmp"
             try:
                 requested_dir.mkdir(parents=True, exist_ok=True)
@@ -353,10 +381,9 @@ class CompilerService:
             # The /progress SSE loop polls job.status every 0.5s and, the moment it sees
             # "done", it emits the terminal `complete` event (with a qxnn payload computed
             # from job.diagnosis_report_path) and breaks — it never polls again. If these
-            # stores ran AFTER status="done" (as they used to, from the callers), an SSE
-            # poll landing in that window would send `complete` with the report still
-            # unrecorded, so the freshly-generated diagnosis_report.html — which does exist
-            # on disk under work_dir/quant_diagnosis/ — was reported as "not generated".
+            # stores ran AFTER status="done", an SSE poll landing in that window would send
+            # `complete` with the report still unrecorded, and a diagnosis_report.html that
+            # exists under work_dir/quant_diagnosis/ would be reported as "not generated".
             # Ordering these first (same thread, before the status write) closes the race.
             try:
                 self._store_qxnn_artifact(job)
@@ -557,6 +584,9 @@ class CompilerService:
             selected = selected.resolve()
             relative = selected.relative_to(work_dir)
             target = Path(job.requested_output_dir) / relative
+            if path_policy.would_overwrite_input(target, self._job_inputs(job)):
+                _log.warning("QXNN artifact for job %s would overwrite an input; not published", job.job_id)
+                return
             target.parent.mkdir(parents=True, exist_ok=True)
             temporary = target.parent / f".{target.name}.{uuid.uuid4().hex}.tmp"
             shutil.copyfile(selected, temporary)
@@ -671,6 +701,23 @@ class CompilerService:
         node_selection: bool = False,
         use_q_pro: bool = False,
     ) -> CompileJob:
+        # Check again right before running (the HTTP entry point checks too); reject before creating the job or folders.
+        model_path = str(path_policy.check_input_file(model_path, "model_path"))
+        config_path = str(path_policy.check_input_file(config_path, "config_path"))
+        # The compiler also reads the calibration folder the config points at; an uploaded config must not read outside
+        try:
+            config_data = json.loads(Path(config_path).read_text(encoding="utf-8")) or {}
+            loader = config_data.get("default_loader") or {}
+        except (OSError, ValueError, AttributeError):
+            config_data, loader = {}, {}
+        dataset_copy = None
+        if isinstance(loader, dict) and loader.get("dataset_path"):
+            raw = str(loader["dataset_path"])
+            dataset = path_policy.check_input_dir(
+                str(_resolve_relative_dataset(raw, config_path)), "dataset_path (in config)")
+            if not Path(raw).expanduser().is_absolute():
+                dataset_copy = dict(config_data, default_loader=dict(loader, dataset_path=str(dataset)))
+        output_dir = str(path_policy.check_output_dir(output_dir))
         self.cleanup_completed_jobs()
         job_id = str(uuid.uuid4())
         job = CompileJob(
@@ -691,6 +738,13 @@ class CompilerService:
         self.jobs[job_id] = job
         if not self._prepare_job_staging(job):
             return job
+        if dataset_copy is not None:
+            # dxcom resolves a relative dataset_path against its own cwd, so pass a resolved copy kept in
+            # this job folder. The user's config is left untouched.
+            resolved = self._job_directory(job) / "config.resolved.json"
+            resolved.write_text(json.dumps(dataset_copy, indent=2, ensure_ascii=False), encoding="utf-8")
+            config_path = str(resolved)
+            job.config_path = config_path
 
         thread = threading.Thread(
             target=self._run_compile,
@@ -724,6 +778,10 @@ class CompilerService:
         dataset_path: Optional[str] = None,
     ) -> CompileJob:
         """Submit a QXNN resume (re-quantization) job."""
+        qxnn_path = str(path_policy.check_input_file(qxnn_path, "qxnn_path"))
+        output_dir = str(path_policy.check_output_dir(output_dir))
+        if dataset_path:
+            dataset_path = str(path_policy.check_input_dir(dataset_path, "dataset_path"))
         self.cleanup_completed_jobs()
         job_id = str(uuid.uuid4())
         job = CompileJob(
@@ -811,7 +869,7 @@ class CompilerService:
         use_q_pro: bool,
     ):
 
-        # venv에만 dx_com이 있는 경우 → subprocess 방식
+        # dx_com only in the venv: run it in a subprocess
         from dx_compiler.core.setup_service import setup_service
         venv_python = setup_service.get_venv_python()
         if venv_python and not self._is_dx_com_available():
@@ -899,7 +957,7 @@ class CompilerService:
                 job.tqdm_sub = None
 
     def _is_dx_com_available(self) -> bool:
-        """현재 프로세스에서 dx_com을 import할 수 있는지 확인"""
+        """Return True if dx_com can be imported in this process."""
         try:
             import importlib.util
             return importlib.util.find_spec("dx_com") is not None
@@ -910,7 +968,7 @@ class CompilerService:
                                  opt_level, aggressive_partitioning, gen_log,
                                  quant_debug, quant_diagnosis, enhanced_scheme, use_q_pro,
                                  input_nodes=None, output_nodes=None):
-        """venv Python의 compile_worker.py를 subprocess로 실행."""
+        """Run compile_worker.py with the venv Python in a subprocess."""
         if not self._prepare_job_staging(job, output_dir):
             return
         output_dir = job.work_dir

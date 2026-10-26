@@ -33,6 +33,11 @@
 
 ## 2. 개요
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="img/badges/aws-qualified-device-dark.png">
+  <img src="img/badges/aws-qualified-device-light.png" alt="AWS Qualified Device — AWS IoT Greengrass" width="120" align="right">
+</picture>
+
 DX-AIPlayer N97은 Intel® Processor N97(x86_64)과 DEEPX DX-M1 AI 가속기(M.2 모듈)를 기반으로 하는 소형 팬리스 엣지 AI 시스템으로, 가속기 전력 1–5 W에서 최대 25 TOPS의 AI 추론 성능을 제공합니다. 듀얼 GbE LAN, USB 3.2, 시리얼 포트, 온보드 스토리지를 갖추고 있어 로컬 AI 추론과 AWS IoT Greengrass를 통한 클라우드 연결이 함께 필요한 비전 AI, 스마트 팩토리, 리테일 분석 등 엣지 애플리케이션에 적합합니다.
 
 DX-AIPlayer N97은 Ubuntu 24.04 LTS에서 AWS IoT Greengrass Core 소프트웨어(클래식 nucleus)를 실행하며, Greengrass 컴포넌트 로컬 실행, 메시징, 데이터 관리, AWS 클라우드와의 보안 통신을 지원합니다.
@@ -232,3 +237,5 @@ sudo tail -f /greengrass/v2/logs/com.example.HelloWorld.log
 디바이스가 AWS IoT Core에 등록되고 Thing Group에 포함되면, AWS Marketplace에서 제공하는 **DEEPX Greengrass Solution**을 사용해 DEEPX NPU 드라이버, 펌웨어, `dx_rt` 런타임, `dx_stream` 미디어 파이프라인을 현장 작업 없이 OTA로 설치할 수 있습니다. [DEEPX Greengrass Solution](01_DEEPX_Greengrass_Solution_kor.md)을 참고합니다.
 
 직접 만든 ONNX 모델을 AWS에서 DEEPX NPU 실행 형식으로 컴파일하려면 [DEEPX Compiler Solution](02_DEEPX_Compiler_Solution_kor.md)을 참고합니다.
+
+---

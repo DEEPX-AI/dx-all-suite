@@ -1,4 +1,4 @@
-"""ModelZoo 소스 어댑터 – 로컬 런타임, dx-modelzoo 리포, 내부 테이블, 벤치마크 캐시."""
+"""ModelZoo source adapters – local runtime, dx-modelzoo repo, internal table, benchmark cache."""
 
 import json
 import re
@@ -32,11 +32,11 @@ def _adapter_result(adapter, profile="default") -> AdapterResult:
 
 
 def _find_example_dir(base, task_dir_name, model_dir_name):
-    """example 디렉토리에서 모델별 예제 경로를 확인하고 DX_APP_ROOT 기준 상대경로로 반환.
+    """Find the model's example path in the example directory, relative to DX_APP_ROOT.
 
     Return a path RELATIVE to DX_APP_ROOT (e.g. 'src/cpp_example/<task>/<model>/'), NOT the
-    absolute build path — str(candidate) baked the build machine's /home/... into the shipped
-    generated_catalog.json (544 leaks + non-portable). base is .../dx_app/src/{cpp,python}_example,
+    absolute build path, which would bake the build machine's /home/... into the shipped
+    generated_catalog.json. base is .../dx_app/src/{cpp,python}_example,
     so base.name gives the example type. Matches core.catalog._build_demo_info's format.
     """
     candidate = base / task_dir_name / model_dir_name
@@ -46,7 +46,7 @@ def _find_example_dir(base, task_dir_name, model_dir_name):
 
 
 def _task_to_example_dir(task):
-    """add_model_task → example 디렉토리명 매핑."""
+    """add_model_task → example directory name."""
     mapping = {
         "classification": "classification",
         "object_detection": "object_detection",
@@ -69,8 +69,22 @@ def _task_to_example_dir(task):
     return mapping.get(task)
 
 
+def _studio_task(task, legacy_task):
+    """The Model Zoo task of a registry row.
+
+    The registry's current ``task`` is dx_app's own category (add_model_task is its legacy column, which files CLIP
+    under embedding and PP-Matting under semantic_segmentation). A renamed task keeps Studio's legacy key
+    (image_classification → classification) so the model groups with the rest of the Model Zoo, as
+    core.catalog.conf_ids_from_generated does; ``ppu`` is a group rather than a task and stays one.
+    """
+    from shared.tasks import legacy
+    if not task or legacy_task == "ppu":
+        return legacy_task or task or ""
+    return legacy(task)
+
+
 def local_runtime_adapter(suite_root) -> AdapterResult:
-    """dx-runtime의 model_registry.json, manifest, example을 읽어 메타데이터 구성."""
+    """Build metadata from dx-runtime's model_registry.json, manifest and examples."""
     suite_root = Path(suite_root)
     result = _adapter_result("local_runtime")
 
@@ -101,6 +115,10 @@ def local_runtime_adapter(suite_root) -> AdapterResult:
 
     cpp_example_root = suite_root / "dx-runtime" / "dx_app" / "src" / "cpp_example"
     py_example_root = suite_root / "dx-runtime" / "dx_app" / "src" / "python_example"
+    # Per-model layout: examples live in <task>/<family>/<stem>/ — the resolver finds them
+    from shared import dx_app_layout as _layout
+    app_root = suite_root / "dx-runtime" / "dx_app"
+    per_model = _layout.detect(app_root) == _layout.PER_MODEL
 
     for reg in registry:
         model_name = reg.get("model_name", "")
@@ -110,7 +128,8 @@ def local_runtime_adapter(suite_root) -> AdapterResult:
         if not cid:
             continue
 
-        task = reg.get("add_model_task", "")
+        legacy_task = reg.get("add_model_task", "")
+        task = _studio_task(reg.get("task"), legacy_task)
         entry = {
             "display.name": original_name,
             "display.class_name": model_name,
@@ -138,13 +157,24 @@ def local_runtime_adapter(suite_root) -> AdapterResult:
             entry["artifacts.qlite_json.remote_url"] = json_url
 
         if dxnn_file:
+            # dx_app models live in assets/models, falling back to the suite's workspace/res/models —
+            # the same order as dx_app's run_demo.sh.
             dxnn_rel = str(dxnn_file).lstrip("/\\")
-            local_rel_path = Path("models") / dxnn_rel
-            local_path = suite_root / "dx-runtime" / "dx_app" / local_rel_path
+            local_rel_path = Path("assets") / "models" / dxnn_rel
             entry["artifacts.qlite_dxnn.local_path"] = local_rel_path.as_posix()
-            entry["artifacts.qlite_dxnn.local_exists"] = local_path.exists()
+            entry["artifacts.qlite_dxnn.local_exists"] = _layout.find_model(
+                local_rel_path.as_posix(), app_root, suite_root) is not None
 
-        example_dir = _task_to_example_dir(task)
+        if per_model and reg.get("variant"):
+            ex = _layout.find(app_root, reg.get("task", ""), reg["variant"])
+            if ex is not None:
+                if ex.cpp_dir is not None:
+                    entry["demo.cpp_example"] = ex.cpp_dir.relative_to(app_root).as_posix() + "/"
+                if ex.py_dir is not None:
+                    entry["demo.python_example"] = ex.py_dir.relative_to(app_root).as_posix() + "/"
+            example_dir = None
+        else:
+            example_dir = _task_to_example_dir(legacy_task)
         if example_dir:
             cpp_ex = _find_example_dir(cpp_example_root, example_dir, model_name)
             if cpp_ex:
@@ -187,7 +217,7 @@ _INTERNAL_PUBLISH_URL = "https://modelzoo-publish-api.devops.dpx.ai/publish/html
 
 
 def _set_accuracy_or_suspect(fields, field, value):
-    """accuracy 값이 suspicious이면 suspect로 격리, 아니면 정상 저장."""
+    """Quarantine a suspicious accuracy value as suspect; otherwise store it normally."""
     if _is_suspicious_accuracy(field, value):
         base = field.rsplit(".", 1)[0]
         fields[f"{base}.source_status"] = "suspect"
@@ -197,7 +227,7 @@ def _set_accuracy_or_suspect(fields, field, value):
 
 
 def parse_internal_table_html(html):
-    """내부 HTML 테이블을 파싱하여 모델 메타데이터 dict 반환 (호환성 래퍼)."""
+    """Parse the internal HTML table into a model metadata dict (compatibility wrapper)."""
     result = _adapter_result("internal_table")
     result["models"] = parse_internal_table_models(html)
     return result
@@ -219,7 +249,7 @@ def _fetch_url_text(url, *, verify_tls=True, timeout=30):
 
 
 def internal_modelzoo_adapter(suite_root, publish_url=_INTERNAL_PUBLISH_URL, fetch_text=None, verify_tls=True) -> AdapterResult:
-    """내부 ModelZoo publish HTML을 가져와 정규화된 메타데이터로 변환."""
+    """Fetch the internal ModelZoo publish HTML and convert it into normalized metadata."""
     result = _adapter_result("internal_modelzoo", profile="internal")
     fetch_text = fetch_text or (lambda url: _fetch_url_text(url, verify_tls=verify_tls))
     try:
@@ -249,8 +279,8 @@ _PUBLIC_MODELZOO_URL = "https://developer.deepx.ai/modelzoo/"
 
 
 def public_modelzoo_adapter(suite_root, publish_url=_PUBLIC_MODELZOO_URL, fetch_text=None, verify_tls=True) -> AdapterResult:
-    """공개 ModelZoo(developer.deepx.ai/modelzoo)의 서버 렌더 HTML 테이블을 파싱해
-    정규화된 메타데이터로 변환. (일반망 사용자가 보는 데이터에 맞춤)"""
+    """Parse the server-rendered HTML table of the public ModelZoo (developer.deepx.ai/modelzoo) into
+    normalized metadata — matching what users on the general network see."""
     result = _adapter_result("public_modelzoo", profile="public")
     fetch_text = fetch_text or (lambda url: _fetch_url_text(url, verify_tls=verify_tls))
     try:
@@ -280,7 +310,7 @@ def public_modelzoo_adapter(suite_root, publish_url=_PUBLIC_MODELZOO_URL, fetch_
 
 
 def benchmark_cache_adapter(cache_path) -> AdapterResult:
-    """벤치마크 캐시 JSON(스펙 포맷)을 읽어 정규화된 모델 메타데이터 반환."""
+    """Read the benchmark cache JSON (spec format) and return normalized model metadata."""
     cache_path = Path(cache_path)
     result = _adapter_result("benchmark_cache")
 
@@ -321,7 +351,7 @@ def benchmark_cache_adapter(cache_path) -> AdapterResult:
 
 
 
-# DatasetType enum → 사람이 읽을 수 있는 값 매핑
+# DatasetType enum → human-readable value
 _DATASET_TYPE_MAP = {
     "imagenet": "ImageNet",
     "coco": "COCO",
@@ -335,7 +365,7 @@ _DATASET_TYPE_MAP = {
     "coco_pose": "COCOPose",
 }
 
-# EvaluationType enum → metric 문자열 매핑
+# EvaluationType enum → metric string
 _EVALUATION_METRIC_MAP = {
     "image_classification": "TopK1, TopK5",
     "coco": "mAP, mAP50",
@@ -350,7 +380,7 @@ _EVALUATION_METRIC_MAP = {
     "coco_pose": "mAP, mAP50",
 }
 
-# ModelInfo 텍스트 파싱용 정규식
+# Regexes for parsing ModelInfo text
 _RE_FIELD_STR = re.compile(
     r'(\w+)\s*=\s*"([^"]*)"'
 )
@@ -368,17 +398,17 @@ _RE_MODELINFO_START = re.compile(r"ModelInfo\s*\(")
 
 
 def _find_modelinfo_blocks(text):
-    """Quote-aware balanced-parentheses scanner로 ModelInfo(...) 블록 내부를 추출."""
+    """Extract the inside of a ModelInfo(...) block with a quote-aware balanced-parentheses scanner."""
     blocks = []
     for m in _RE_MODELINFO_START.finditer(text):
-        start = m.end()  # '(' 다음 위치
+        start = m.end()  # position after '('
         depth = 1
         i = start
         length = len(text)
         while i < length and depth > 0:
             ch = text[i]
             if ch in ('"', "'"):
-                # 문자열 내부 스킵
+                # skip string contents
                 quote = ch
                 i += 1
                 while i < length:
@@ -399,9 +429,9 @@ def _find_modelinfo_blocks(text):
 
 
 def parse_modelzoo_model_file(file_path):
-    """dx-modelzoo 모델 .py 파일에서 ModelInfo 필드를 텍스트 파싱으로 추출.
+    """Extract ModelInfo fields from a dx-modelzoo model .py file by parsing its text.
 
-    항상 {canonical_id: fields} dict를 반환.
+    Always returns a {canonical_id: fields} dict.
     """
     file_path = Path(file_path)
     text = file_path.read_text(encoding="utf-8")
@@ -418,7 +448,7 @@ from dx_modelzoo.metadata._yaml_parser import (  # noqa: E402
 
 
 def _extract_all_model_infos(text):
-    """텍스트에서 모든 ModelInfo(...) 블록을 파싱하여 {cid: fields} 반환."""
+    """Parse every ModelInfo(...) block in the text and return {cid: fields}."""
     models = {}
     for block in _find_modelinfo_blocks(text):
         fields = _parse_modelinfo_block(block)
@@ -433,7 +463,7 @@ def _extract_all_model_infos(text):
 
 
 def _parse_modelinfo_block(block):
-    """ModelInfo(...) 내부 블록에서 필드 추출."""
+    """Extract fields from the inside of a ModelInfo(...) block."""
     fields = {}
 
     name_m = _RE_NAME_POSITIONAL.search(block)
@@ -590,7 +620,7 @@ def studio_enrichment_adapter(suite_root) -> AdapterResult:
 
 
 def local_modelzoo_repo_adapter(suite_root) -> AdapterResult:
-    """dx-modelzoo 리포에서 모든 모델 파일을 텍스트 파싱하여 메타데이터 수집."""
+    """Collect metadata by text-parsing every model file in the dx-modelzoo repo."""
     suite_root = Path(suite_root)
     result = _adapter_result("local_modelzoo_repo")
 

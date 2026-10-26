@@ -1,4 +1,4 @@
-"""launcher 8번째 모듈(dx_agent_dev) 등록 배선 테스트."""
+"""Launcher wiring for the dx_agent_dev module."""
 import sys
 from pathlib import Path
 
@@ -55,10 +55,10 @@ def test_health_status_has_agent():
 
 
 def test_referer_target_has_agent_no_widget():
-    # _SUBAPP_REFERER_TARGETS는 핸들러 클래스 변수 → 소스 텍스트로 계약 고정.
-    # inject_widget=False: 콘솔은 챗 위젯 주입 대상 아님(dx_monitor와 동일).
+    # _SUBAPP_REFERER_TARGETS is a handler class variable, so the contract is pinned on the source text.
+    # inject_widget=False: the console gets no chat widget (same as dx_monitor).
     src = _src()
-    # ports now resolved dynamically from _LAUNCHER_PROXY_PORTS → targets carry server_id
+    # ports resolve dynamically from _LAUNCHER_PROXY_PORTS → targets carry server_id
     assert '("/agent", "dx_agent_dev", False)' in src
 
 
@@ -70,6 +70,6 @@ def test_nav_tab_has_agent_card():
 
 
 def test_auth_policy_has_agent_prefix():
-    # map_launcher_proxy("/agent/")가 dx_agent_dev로 라우팅되도록 _PROXY_PREFIX_MAP 등록
+    # _PROXY_PREFIX_MAP must route map_launcher_proxy("/agent/") to dx_agent_dev
     src = (_STUDIO_ROOT / "shared" / "auth_policy.py").read_text(encoding="utf-8")
     assert '"/agent": "dx_agent_dev"' in src

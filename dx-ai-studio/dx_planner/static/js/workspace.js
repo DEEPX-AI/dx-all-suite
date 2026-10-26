@@ -76,7 +76,7 @@ const PlannerWorkspace = {
     if (this.conditionSummary) {
       const runtime = inputs.ort ? 'ONNX Runtime' : 'Native';
       this.conditionSummary.innerHTML = [
-        this._summaryChip('Task', inputs.task),
+        this._summaryChip('Task', plannerTaskLabel(inputs.task)),
         this._summaryChip('Model', 'yolo26' + inputs.size),
         this._summaryChip('Channels', inputs.cameras),
         this._summaryChip('FPS', inputs.targetFps),
@@ -102,8 +102,13 @@ const PlannerWorkspace = {
     const platformCount = meta.platform_count != null ? meta.platform_count : DataLoader.getPlatforms().length;
     const generated = DataLoader.getGeneratedAt();
     const generatedText = generated ? generated.slice(0, 10) : 'N/A';
-    this.scopeBannerMeta.textContent =
-      platformCount + ' platforms · YOLO26 benchmark · updated ' + generatedText;
+    const tpl = (typeof T === 'function') ? T('{n} platforms · YOLO26 benchmark · updated {date}')
+      : '{n} platforms · YOLO26 benchmark · updated {date}';
+    this.scopeBannerMeta.textContent = tpl.replace('{n}', platformCount).replace('{date}', generatedText);
+    if (!this._metaLangHooked && typeof DXI18n !== 'undefined' && DXI18n.onLangChange) {
+      this._metaLangHooked = true;   // re-render on language change
+      DXI18n.onLangChange(() => this.renderScopeBannerMeta());
+    }
   },
 
   _renderRecommendationVerdict(inputs, results) {
@@ -121,16 +126,14 @@ const PlannerWorkspace = {
     const name = top.platform.npu.model + ' + ' + top.platform.host.name;
     const channels = this._formatChannels(top.maxChannels, top.boundaryFlag);
     const meets = top.meetsRequirement;
-    // boundaryFlag is measured-only now. '+' means even the top tested stream
-    // sustained, so the real ceiling is "at least this many".
-    const evidence = top.boundaryFlag === '+'
-      ? '<span class="ko">(실측 상한+)</span><span class="en">(measured, likely higher)</span><span class="ja">(実測上限+)</span><span class="zh-CN">(实测上限+)</span><span class="zh-TW">(實測上限+)</span><span class="es">(medido, probablemente más)</span>'
-      : '<span class="ko">(실측)</span><span class="en">(measured)</span><span class="ja">(実測)</span><span class="zh-CN">(实测)</span><span class="zh-TW">(實測)</span><span class="es">(medido)</span>';
-    // Informational: where the NPU starts to throttle (never affects ranking).
-    const throttleNote = top.throttleOnset
-      ? '<span class="ko"> · ' + top.throttleOnset + '채널↑ throttle</span><span class="en"> · throttles at ' + top.throttleOnset + '+ ch</span><span class="ja"> · ' + top.throttleOnset + 'ch↑ スロットル</span><span class="zh-CN"> · ' + top.throttleOnset + ' 路↑ 降频</span><span class="zh-TW"> · ' + top.throttleOnset + ' 路↑ 降頻</span><span class="es"> · limita desde ' + top.throttleOnset + ' ch</span>'
+    // Measured at a tested stream count, or estimated from the measured total FPS.
+    const evidence = {
+      estimated: '<span data-i18n="(estimated)">(estimated)</span>',
+      '+': '<span data-i18n="(estimated, at least)">(estimated, at least)</span>',
+    }[top.boundaryFlag] || '<span data-i18n="(measured)">(measured)</span>';
+    const throttleNote = top.throttled
+      ? ' · <span data-i18n="NPU throttled while measured">NPU throttled while measured</span>'
       : '';
-
     el.hidden = false;
     el.classList.remove('verdict-meets', 'verdict-insufficient', 'verdict-empty');
     el.classList.add(meets ? 'verdict-meets' : 'verdict-insufficient');
@@ -138,7 +141,7 @@ const PlannerWorkspace = {
     if (meets) {
       el.innerHTML =
         '<p class="verdict-line">' +
-          '<strong><span class="ko">1순위 추천</span><span class="en">Top pick</span><span class="ja">第1推奨</span><span class="zh-CN">首选</span><span class="zh-TW">首選</span><span class="es">Mejor opción</span></strong>: ' +
+          '<strong data-i18n="Top pick">Top pick</strong>: ' +
           this._escHtml(name) + ' — ' +
           '<span class="ko">' + inputs.cameras + '채널 · ' + inputs.targetFps + ' FPS 조건 충족</span>' +
           '<span class="en">' + inputs.cameras + ' channels · ' + inputs.targetFps + ' FPS requirement met</span>' +
@@ -160,7 +163,7 @@ const PlannerWorkspace = {
     } else {
       el.innerHTML =
         '<p class="verdict-line">' +
-          '<strong><span class="ko">조건 미충족</span><span class="en">No exact match</span><span class="ja">条件未充足</span><span class="zh-CN">无完全匹配</span><span class="zh-TW">無完全匹配</span><span class="es">Sin coincidencia exacta</span></strong>: ' +
+          '<strong data-i18n="No exact match">No exact match</strong>: ' +
           this._escHtml(name) + ' — ' +
           '<span class="ko">최대 ' + channels + '채널 (요청 ' + inputs.cameras + '채널)</span>' +
           '<span class="en">max ' + channels + ' ch (requested ' + inputs.cameras + ')</span>' +
@@ -215,7 +218,8 @@ const PlannerWorkspace = {
   },
 
   _summaryChip(label, value) {
-    return '<span class="summary-chip"><strong>' + this._escHtml(label) + '</strong>' +
+    const text = typeof T === 'function' ? T(label) : label;
+    return '<span class="summary-chip"><strong>' + this._escHtml(text) + '</strong>' +
       '<span>' + this._escHtml(value) + '</span></span>';
   },
 

@@ -26,7 +26,7 @@ from pathlib import Path
 from urllib.request import Request, urlopen
 
 _LANGS = ("en", "ko", "ja", "zh-CN", "zh-TW", "es")
-# deepx.ai/media/ went 404 in the mid-2026 site restructure; news lives at /category/news/.
+# News lives at /category/news/ (deepx.ai/media/ returns 404).
 _DEFAULT_URL = os.environ.get("DX_ABOUT_NEWS_URL", "https://deepx.ai/category/news/")
 _ABOUT_DATA = Path(__file__).resolve().parent.parent / "launcher" / "static" / "about-data.json"
 _BASE = "https://deepx.ai"

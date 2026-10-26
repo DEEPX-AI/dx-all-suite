@@ -3,6 +3,8 @@
 import json
 from pathlib import Path
 
+from tests.installed_sdk import require, require_dx_app
+
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -165,14 +167,13 @@ def test_get_models_excludes_python_source_when_studio_runtime_is_unavailable(
 def test_get_catalog_keeps_uninstalled_modelzoo_entry(tmp_path, monkeypatch):
     import models
 
-    catalog = json.loads(
-        (ROOT / "dx_modelzoo" / "data" / "model_catalog.json").read_text(
-            encoding="utf-8"
-        )
-    )
-    catalog_model = next(
-        model for model in catalog["models"] if model["id"] == "efficientnet_lite0"
-    )
+    # The file name comes from dx_app's registry, the source the catalog follows; the hand-written
+    # model_catalog.json may still name an older build of the same model.
+    registry = json.loads((require_dx_app("config/model_registry.json") / "config" / "model_registry.json")
+                          .read_text(encoding="utf-8"))
+    dxnn_file = next((r["dxnn_file"] for r in registry if r.get("model_name") == "efficientnet_lite0"), None)
+    require(dxnn_file is not None, "dx_app's model_registry.json has no efficientnet_lite0")
+    catalog_model = {"model_file": f"assets/models/{dxnn_file}"}
     fake_root = tmp_path / "dx_app_root"
     source_dir = fake_root / "src" / "cpp_example" / "classification" / "efficientnet"
     source_dir.mkdir(parents=True)
@@ -186,11 +187,57 @@ def test_get_catalog_keeps_uninstalled_modelzoo_entry(tmp_path, monkeypatch):
     monkeypatch.setattr(models, "_REG", models._load_reg())
     monkeypatch.setattr(models, "_download_index", lambda: {})
 
-    entry = next(
-        model
-        for model in models.get_catalog()
-        if model["model_file"] == catalog_model["model_file"]
-    )
+    entry = next((model for model in models.get_catalog() if model["model_file"] == catalog_model["model_file"]), None)
+    require(entry is not None, f"the Model Zoo catalog has no {dxnn_file}, this dx_app's file (another release)")
 
     assert entry["model_exists"] is False
     assert entry["dxnn_url"]
+
+
+def test_a_zoo_entry_is_installed_only_where_the_models_dir_says(tmp_path, monkeypatch):
+    """With DX_APP_MODELS_DIR set, a file left in dx_app/assets/models does not count as installed: the
+    install state follows resolve_model_path, as the rest of the page does."""
+    import models
+
+    registry = json.loads((require_dx_app("config/model_registry.json") / "config" / "model_registry.json")
+                          .read_text(encoding="utf-8"))
+    dxnn_file = next((r["dxnn_file"] for r in registry if r.get("model_name") == "efficientnet_lite0"), None)
+    require(dxnn_file is not None, "dx_app's model_registry.json has no efficientnet_lite0")
+    fake_root = tmp_path / "dx_app_root"
+    (fake_root / "assets" / "models").mkdir(parents=True)
+    (fake_root / "assets" / "models" / dxnn_file).write_bytes(b"DXNN")
+    empty = tmp_path / "models_dir"
+    empty.mkdir()
+
+    monkeypatch.setattr(models, "CONFIG_FILE", fake_root / "config" / "test_models.conf")
+    monkeypatch.setattr(models, "DX_APP_ROOT", fake_root)
+    monkeypatch.setattr(models, "CPP_DIR", fake_root / "src" / "cpp_example")
+    monkeypatch.setattr(models, "PY_DIR", fake_root / "src" / "python_example")
+    monkeypatch.setattr(models, "BUILD_DIR", fake_root / "bin", raising=False)
+    monkeypatch.setattr(models, "_REG", models._load_reg())
+    monkeypatch.setattr(models, "_download_index", lambda: {})
+    monkeypatch.setattr(models, "resolve_model_path", lambda mf, root=None: empty / mf.rsplit("/", 1)[-1])
+
+    entry = next((m for m in models.get_catalog() if m["model_file"] == f"assets/models/{dxnn_file}"), None)
+    require(entry is not None, f"the Model Zoo catalog has no {dxnn_file}, this dx_app's file (another release)")
+    assert entry["model_exists"] is False
+
+
+def test_the_models_page_follows_the_model_zoo_catalog(monkeypatch, tmp_path):
+    """App > Models reads the same catalog as Model Zoo (dx_modelzoo/data/generated_catalog.json), not a frozen copy
+    of the public page, so new models on the publish page show up."""
+    import models
+
+    gen = tmp_path / "generated_catalog.json"
+    gen.write_text(json.dumps({"schema_version": "2.0", "models": [
+        {"id": "patchcore_224x224", "display": {"name": "PatchCore", "task": "anomaly_detection", "class_name": "patchcore"},
+         "artifacts": {"qlite_dxnn": {"remote_url": "https://sdk.deepx.ai/modelzoo/q-lite-dxnn/2_5_0/patchcore_224x224.dxnn"},
+                       "qlite_json": {"remote_url": "https://sdk.deepx.ai/modelzoo/q-lite-json/2_5_0/patchcore_224x224.json"}}},
+        {"id": "vitl16", "display": {"name": "ViTL16-1", "task": "classification"}, "artifacts": {}}]}))
+    monkeypatch.setattr(models, "_GENERATED_CATALOG", gen)
+    monkeypatch.setattr(models, "get_models", lambda: [])
+    rows = {r["name"]: r for r in models.get_catalog()}
+    assert rows["PatchCore"]["category"] == "Anomaly Detection"
+    assert rows["PatchCore"]["dxnn_url"].endswith("/2_5_0/patchcore_224x224.dxnn")
+    assert rows["PatchCore"]["model_file"] == "assets/models/patchcore_224x224.dxnn"
+    assert rows["ViTL16-1"]["dxnn_url"] is None, "아직 받을 수 없는 model 도 목록에는 (받기 없이)"

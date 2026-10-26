@@ -1,4 +1,4 @@
-"""models.py 테스트 — 모델 카탈로그"""
+"""models.py — the model catalog"""
 import os, sys, pytest, json, importlib
 from pathlib import Path
 from unittest.mock import patch
@@ -16,9 +16,13 @@ class TestModelCatalog:
     def test_categories_correct(self):
         from core.models import get_catalog_source, get_models
         cats = {m["category"] for m in get_models()}
-        expected = {"object_detection", "face_detection", "pose_estimation", "segmentation", "classification"}
+        # depth_estimation is in BOTH modes: dx-runtime/dx_stream ships the full
+        # yolo26-depth pipeline and model_list.json lists the model, so the studio
+        # carries its metadata rather than dropping it into 'uncategorized'.
+        expected = {"object_detection", "face_detection", "pose_estimation",
+                    "segmentation", "classification", "depth_estimation"}
         if get_catalog_source() == "fallback":
-            expected.add("obb_detection")
+            expected.add("obb_detection")  # not in the runtime manifest
         assert cats == expected
 
     def test_category_counts(self):
@@ -26,23 +30,28 @@ class TestModelCatalog:
         from collections import Counter
         counts = Counter(m["category"] for m in get_models())
         assert counts["object_detection"] == 8
-        assert counts["face_detection"] == 3
-        assert counts["pose_estimation"] == 3
+        expected_face_pose_count = 2 if get_catalog_source() == "manifest" else 3
+        assert counts["face_detection"] == expected_face_pose_count
+        assert counts["pose_estimation"] == expected_face_pose_count
         assert counts["segmentation"] == 1
         assert counts["classification"] == 1
+        assert counts["depth_estimation"] == 1
         if get_catalog_source() == "manifest":
             assert counts["obb_detection"] == 0
         else:
             assert counts["obb_detection"] == 1
 
     def test_get_model_status(self, tmp_path):
-        from core.models import get_model_status
+        from core.models import get_model_status, get_models
+        # The first catalog file, whichever source the catalog came from (dx_stream's manifest, else the embedded list)
+        name = get_models()[0]["file"]
         models_dir = tmp_path / "models"
         models_dir.mkdir()
-        (models_dir / "yolo26-n_640x640.dxnn").write_bytes(b"fake")
+        (models_dir / name).write_bytes(b"fake")
         with patch("core.models.MODELS_DIR", models_dir):
             status = get_model_status()
-        assert status["yolo26-n_640x640.dxnn"]["installed"] is True
+        assert status[name] == {"installed": True, "size": 4}
+        assert all(not s["installed"] for f, s in status.items() if f != name)
 
     def test_has_obb_category(self):
         from core.models import get_catalog_source, get_models_by_category
@@ -64,11 +73,14 @@ class TestModelCatalog:
 
     def test_total_model_count(self):
         from core.models import get_catalog_source, get_models
-        assert len(get_models()) == (16 if get_catalog_source() == "manifest" else 17)
+        # manifest: 15 — one per entry in the pinned v2.5.0 model_list.json.
+        # fallback: 18 — the embedded table additionally carries yolo26n-obb, which
+        # the runtime manifest does not ship.
+        assert len(get_models()) == (15 if get_catalog_source() == "manifest" else 18)
 
 
 DEV_MODELS = [
-    "EfficientNet_Lite0.dxnn", "SCRFD500M.dxnn", "YoloV5S_PPU.dxnn",
+    "efficientnet-lite0_224x224.dxnn", "SCRFD500M.dxnn", "YoloV5S_PPU.dxnn",
     "YOLOv5s_Face.dxnn", "yolo26n.dxnn", "yolo26n-pose.dxnn",
     "yolo26n-seg.dxnn", "YoloV5S.dxnn", "YoloV7.dxnn",
     "YoloV8N.dxnn", "YoloV9S.dxnn", "YoloXS.dxnn",
@@ -111,8 +123,12 @@ def test_manifest_catalog_uses_runtime_models(monkeypatch, tmp_path, request):
 
     files = [m["file"] for m in models.get_models()]
 
-    # manifest 모드에서는 OBB 등 manifest에 없는 항목이 제외된다
+    # In manifest mode, entries missing from the manifest (such as OBB) are excluded
     assert len(files) == 16
-    assert "EfficientNet_Lite0.dxnn" in files
+    assert "efficientnet-lite0_224x224.dxnn" in files
+    efficientnet = next(
+        m for m in models.get_models() if m["file"] == "efficientnet-lite0_224x224.dxnn"
+    )
+    assert efficientnet["category"] == "classification"
     assert "yolo26n-obb.dxnn" not in files
     assert models.get_catalog_source() == "manifest"

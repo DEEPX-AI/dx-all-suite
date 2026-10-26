@@ -1,4 +1,4 @@
-"""Claude 어댑터: claude -p --add-dir --model --output-format stream-json."""
+"""Claude adapter: claude -p --add-dir --model --output-format stream-json."""
 import sys
 from pathlib import Path
 

@@ -4,205 +4,212 @@
 var S = window.DXStream;
 if (!S) return;
 
-function _T5(en, ko, ja, zhCN, zhTW) {
+function _T5(en, ko, ja, zhCN, zhTW, es) {
   var lang = (window.DXI18n && DXI18n.lang) || (S.S && S.S.lang) || document.documentElement.lang || 'en';
   if (lang === 'ko') return ko || en;
   if (lang === 'ja') return ja || en;
   if (lang === 'zh-CN') return zhCN || en;
   if (lang === 'zh-TW') return zhTW || en;
+  if (lang === 'es') return es || en;
   return en;
+}
+
+/* All six languages in one object. Facts in the reference text (step, demo, preset, model and element counts,
+   shortcuts, API) are checked against the code — keep them in sync when the UI changes. */
+function refL(o) {
+  if (o == null) return '';
+  if (typeof o !== 'object') return String(o);
+  var lang = (window.DXI18n && DXI18n.lang) || (S.S && S.S.lang) || document.documentElement.lang || 'en';
+  return o[lang] || o.en || '';
+}
+function _li(items) { return items.map(function (i) { return '<li>' + refL(i) + '</li>'; }).join(''); }
+function _ul(items) { return '<ul>' + _li(items) + '</ul>'; }
+function _ol(items) { return '<ol>' + _li(items) + '</ol>'; }
+function _p(t) { return '<p>' + refL(t) + '</p>'; }
+function _tip(t) { return '<div class="ref-box tip">' + DXIcon('info') + ' ' + refL(t) + '</div>'; }
+function _tbl(head, rows) {
+  return '<table><thead><tr>' + head.map(function (h) { return '<th>' + refL(h) + '</th>'; }).join('') + '</tr></thead><tbody>' +
+    rows.map(function (r) { return '<tr>' + r.map(function (c) { return '<td>' + refL(c) + '</td>'; }).join('') + '</tr>'; }).join('') +
+    '</tbody></table>';
 }
 
 function buildRefCategories() {
   return [
-    { id:'getting-started', icon:'🚀', title:_T5('Getting Started','시작하기','はじめに','入门指南','入門指南'), desc:_T5('Setup, dashboard, and first demo flow','설정, 대시보드, 첫 데모 실행 흐름','セットアップ、ダッシュボード、初回デモの流れ','设置、仪表盘和首次演示流程','設定、儀表板與首次示範流程') },
-    { id:'demo-streaming', icon:'▶️', title:_T5('Demo & Streaming','데모 & 스트리밍','デモ & ストリーミング','演示与流媒体','示範與串流'), desc:_T5('Preset demos, MJPEG/WebRTC','프리셋 데모, MJPEG/WebRTC','プリセットデモ、MJPEG/WebRTC','预设演示、MJPEG/WebRTC','預設示範、MJPEG/WebRTC') },
-    { id:'pipeline', icon:'🔧', title:_T5('Pipeline','파이프라인','パイプライン','管道','管線'), desc:_T5('Pipeline builder, validation, presets, and export','파이프라인 빌더, 검증, 프리셋, 내보내기','パイプラインビルダー、検証、プリセット、エクスポート','管道构建器、验证、预设和导出','管線建置器、驗證、預設與匯出') },
-    { id:'models-elements', icon:'📦', title:_T5('Models & Elements','모델 & 요소','モデル & エレメント','模型与元素','模型與元素'), desc:_T5('Model catalog, GStreamer elements, and custom libraries','모델 카탈로그, GStreamer 요소, 커스텀 라이브러리','モデルカタログ、GStreamerエレメント、カスタムライブラリ','模型目录、GStreamer 元素和自定义库','模型目錄、GStreamer 元素與自訂函式庫') },
-    { id:'system', icon:'⚡', title:_T5('System','시스템','システム','系统','系統'), desc:_T5('Monitoring, APIs, keyboard shortcuts, and troubleshooting','모니터링, API, 단축키, 문제 해결','モニタリング、API、ショートカット、トラブルシューティング','监控、API、快捷键和故障排除','監控、API、快捷鍵與疑難排解') }
+    { id:'getting-started', icon:'run', title:_T5('Getting Started','시작하기','はじめに','入门指南','入門指南','Primeros pasos'),
+      desc:refL({en:'Setup, dashboard and the first demo',ko:'설치, 대시보드, 첫 데모',ja:'セットアップ・ダッシュボード・最初のデモ','zh-CN':'安装、仪表盘和第一个演示','zh-TW':'安裝、儀表板與第一個示範',es:'Instalación, panel y primera demo'}) },
+    { id:'demo-streaming', icon:'play', title:refL({en:'Demo & Streaming',ko:'데모 · 스트리밍',ja:'デモとストリーミング','zh-CN':'演示与流媒体','zh-TW':'示範與串流',es:'Demos y transmisión'}),
+      desc:refL({en:'12 preset demos, WebRTC and MJPEG',ko:'프리셋 데모 12개, WebRTC · MJPEG',ja:'12 のプリセットデモ、WebRTC と MJPEG','zh-CN':'12 个预设演示，WebRTC 与 MJPEG','zh-TW':'12 個預設示範，WebRTC 與 MJPEG',es:'12 demos predefinidas, WebRTC y MJPEG'}) },
+    { id:'pipeline', icon:'wrench', title:refL({en:'Pipeline',ko:'파이프라인',ja:'パイプライン','zh-CN':'管道','zh-TW':'管線',es:'Canalización'}),
+      desc:refL({en:'Pipeline Builder, connection rules, presets and export',ko:'Pipeline Builder, 연결 규칙, 프리셋, 내보내기',ja:'Pipeline Builder・接続ルール・プリセット・エクスポート','zh-CN':'Pipeline Builder、连接规则、预设与导出','zh-TW':'Pipeline Builder、連接規則、預設與匯出',es:'Pipeline Builder, reglas de conexión, preajustes y exportación'}) },
+    { id:'models-elements', icon:'models', title:refL({en:'Models & Elements',ko:'모델 · 요소',ja:'モデルとエレメント','zh-CN':'模型与元素','zh-TW':'模型與元素',es:'Modelos y elementos'}),
+      desc:refL({en:'Model catalog, GStreamer elements and custom libraries',ko:'모델 카탈로그, GStreamer 요소, 사용자 라이브러리',ja:'モデルカタログ・GStreamer エレメント・カスタムライブラリ','zh-CN':'模型目录、GStreamer 元素与自定义库','zh-TW':'模型目錄、GStreamer 元素與自訂程式庫',es:'Catálogo de modelos, elementos de GStreamer y bibliotecas propias'}) },
+    { id:'system', icon:'bolt', title:refL({en:'System',ko:'시스템',ja:'システム','zh-CN':'系统','zh-TW':'系統',es:'Sistema'}),
+      desc:refL({en:'Shortcuts, API, theme and language',ko:'단축키, API, 테마와 언어',ja:'ショートカット・API・テーマと言語','zh-CN':'快捷键、API、主题与语言','zh-TW':'快捷鍵、API、主題與語言',es:'Atajos, API, tema e idioma'}) }
   ];
 }
 
 function buildRefTopics() { return [
-  {
-    id:'quick-start', cat:'getting-started', icon:'🏁',
-    name: _T5('Quick Start','빠른 시작','クイックスタート','快速开始','快速開始'),
-    desc: _T5('Learn the basic workflow of DX Stream','DX Stream의 기본 사용 흐름을 알아봅니다','DX Streamの基本的なワークフローを学びます','了解DX Stream的基本工作流程','了解DX Stream的基本工作流程'),
-    tabs: { overview: _T5(
-      '<p>Recommended steps when using DX Stream for the first time:</p><ol><li>Check prerequisites on the <b>Setup</b> page (NPU device, GStreamer, Models)</li><li>Confirm system status on the <b>Dashboard</b></li><li>Run your first AI inference demo in the <b>Demo Launcher</b></li><li>Build custom pipelines in the <b>Pipeline Builder</b></li><li>Browse available AI models in the <b>Model Catalog</b></li></ol><div class="ref-box tip">💡 Complete all 6 steps on the Setup page before running demos for the best experience.</div>',
-      '<p>DX Stream을 처음 사용할 때 권장하는 순서입니다:</p><ol><li><b>설정 페이지</b>에서 사전 요구사항 확인 (NPU 장치, GStreamer, 모델)</li><li><b>대시보드</b>에서 시스템 상태 확인</li><li><b>데모 실행기</b>에서 첫 번째 AI 추론 데모 실행</li><li><b>파이프라인 빌더</b>에서 커스텀 파이프라인 구성</li><li><b>모델 카탈로그</b>에서 사용 가능한 AI 모델 확인</li></ol><div class="ref-box tip">💡 설정 페이지의 6단계를 모두 완료한 후 데모를 실행하면 가장 좋습니다.</div>',
-      '<p>DX Streamを初めて使用する際の推奨手順：</p><ol><li><b>セットアップ</b>ページで前提条件を確認（NPUデバイス、GStreamer、モデル）</li><li><b>ダッシュボード</b>でシステム状態を確認</li><li><b>デモランチャー</b>で最初のAI推論デモを実行</li><li><b>パイプラインビルダー</b>でカスタムパイプラインを構築</li><li><b>モデルカタログ</b>で利用可能なAIモデルを確認</li></ol><div class="ref-box tip">💡 デモを実行する前にセットアップページの6つのステップをすべて完了することをお勧めします。</div>',
-      '<p>首次使用DX Stream时的推荐步骤：</p><ol><li>在<b>设置</b>页面检查前提条件（NPU设备、GStreamer、模型）</li><li>在<b>仪表盘</b>确认系统状态</li><li>在<b>演示启动器</b>中运行首个AI推理演示</li><li>在<b>管道构建器</b>中构建自定义管道</li><li>在<b>模型目录</b>中浏览可用的AI模型</li></ol><div class="ref-box tip">💡 在运行演示之前完成设置页面的所有6个步骤可获得最佳体验。</div>',
-      '<p>首次使用DX Stream時的建議步驟：</p><ol><li>在<b>設定</b>頁面檢查前提條件（NPU裝置、GStreamer、模型）</li><li>在<b>儀表板</b>確認系統狀態</li><li>在<b>示範啟動器</b>中執行首個AI推論示範</li><li>在<b>管線建置器</b>中建置自訂管線</li><li>在<b>模型目錄</b>中瀏覽可用的AI模型</li></ol><div class="ref-box tip">💡 在執行示範之前完成設定頁面的所有6個步驟可獲得最佳體驗。</div>'
-    ) }
+  { id:'quick-start', cat:'getting-started', icon:'run',
+    name:refL({en:'Quick Start',ko:'빠른 시작',ja:'クイックスタート','zh-CN':'快速开始','zh-TW':'快速開始',es:'Inicio rápido'}),
+    desc:refL({en:'The basic flow of DX Stream',ko:'DX Stream의 기본 흐름',ja:'DX Stream の基本的な流れ','zh-CN':'DX Stream 的基本流程','zh-TW':'DX Stream 的基本流程',es:'El flujo básico de DX Stream'}),
+    tabs:{ overview:
+      _p({en:'Recommended order the first time:',ko:'처음에는 이 순서를 권합니다:',ja:'初めての場合はこの順番がおすすめです：','zh-CN':'首次使用时建议按此顺序：','zh-TW':'首次使用時建議依此順序：',es:'Orden recomendado la primera vez:'}) +
+      _ol([
+        {en:'<b>Setup</b> — finish the six steps (or press <b>Set up the rest</b>).',ko:'<b>Setup</b> — 6단계를 마칩니다(또는 <b>나머지 설치</b>).',ja:'<b>Setup</b> — 6 つのステップを完了します（または<b>残りをセットアップ</b>）。','zh-CN':'<b>Setup</b> — 完成六个步骤（或点击<b>安装其余项</b>）。','zh-TW':'<b>Setup</b> — 完成六個步驟（或點擊<b>安裝其餘項目</b>）。',es:'<b>Setup</b>: complete los seis pasos (o pulse <b>Instalar el resto</b>).'},
+        {en:'<b>Dashboard</b> — check the NPU, GStreamer, models, videos and plugin build tiles.',ko:'<b>Dashboard</b> — NPU · GStreamer · 모델 · 영상 · 플러그인 빌드 타일을 확인합니다.',ja:'<b>Dashboard</b> — NPU・GStreamer・モデル・動画・プラグインビルドのタイルを確認します。','zh-CN':'<b>Dashboard</b> — 查看 NPU、GStreamer、模型、视频和插件构建磁贴。','zh-TW':'<b>Dashboard</b> — 查看 NPU、GStreamer、模型、影片與外掛建置磁磚。',es:'<b>Dashboard</b>: revise los mosaicos de NPU, GStreamer, modelos, videos y compilación de plugins.'},
+        {en:'<b>Demo Launcher</b> — pick a demo and press Start.',ko:'<b>Demo Launcher</b> — 데모를 고르고 시작을 누릅니다.',ja:'<b>Demo Launcher</b> — デモを選んで開始を押します。','zh-CN':'<b>Demo Launcher</b> — 选择演示并点击开始。','zh-TW':'<b>Demo Launcher</b> — 選擇示範並點擊開始。',es:'<b>Demo Launcher</b>: elija una demo y pulse Iniciar.'},
+        {en:'<b>Pipeline Builder</b> — load a demo as a preset and change it, or build your own.',ko:'<b>Pipeline Builder</b> — 데모를 프리셋으로 불러와 고치거나 직접 만듭니다.',ja:'<b>Pipeline Builder</b> — デモをプリセットとして読み込んで変更するか、自分で作ります。','zh-CN':'<b>Pipeline Builder</b> — 将演示作为预设载入后修改，或自行搭建。','zh-TW':'<b>Pipeline Builder</b> — 將示範作為預設載入後修改，或自行建立。',es:'<b>Pipeline Builder</b>: cargue una demo como preajuste y modifíquela, o cree la suya.'}]) +
+      _tip({en:'A demo needs its model and sample video; Setup step 5 downloads both.',ko:'데모에는 그 모델과 샘플 영상이 필요하며, Setup 5단계가 둘 다 내려받습니다.',ja:'デモにはそのモデルとサンプル動画が必要で、Setup のステップ 5 が両方をダウンロードします。','zh-CN':'演示需要对应的模型和示例视频；Setup 第 5 步会一并下载。','zh-TW':'示範需要對應的模型與範例影片；Setup 第 5 步會一併下載。',es:'Una demo necesita su modelo y su video de ejemplo; el paso 5 de Setup descarga ambos.'}) }
   },
-  {
-    id:'setup-install', cat:'getting-started', icon:'⚙️',
-    name: _T5('Setup & Install','설치 및 설정','セットアップとインストール','安装与设置','安裝與設定'),
-    desc: _T5('7-step installation and environment check','6단계 설치 과정과 환경 점검','7ステップのインストールと環境チェック','7步安装和环境检查','7步安裝與環境檢查'),
-    tabs: { overview: _T5(
-      '<p>Complete the 6 steps in order on the Setup page:</p><table><thead><tr><th>Step</th><th>Description</th><th>Required</th></tr></thead><tbody><tr><td>1</td><td><b>Build Tools & Libraries</b> — cmake, meson, GStreamer, OpenCV</td><td>✅</td></tr><tr><td>2</td><td><b>Runtime SDK</b> — Install DEEPX SDK</td><td>✅</td></tr><tr><td>3</td><td><b>Driver</b> — DX NPU kernel driver</td><td>✅</td></tr><tr><td>4</td><td><b>Build Plugins</b> — Compile GStreamer DX elements</td><td>✅</td></tr><tr><td>5</td><td><b>Download AI Models</b> — Choose from 16 models</td><td>✅</td></tr><tr><td>6</td><td><b>WebRTC Support</b> — Low-latency streaming (gstreamer1.0-nice)</td><td>Optional</td></tr></tbody></table><p>Each step has an install button with real-time progress polling. Environment Check and Deep Diagnostics show NPU, GStreamer, and model status at a glance.</p>',
-      '<p>설정 페이지에서 6단계를 순서대로 진행합니다:</p><table><thead><tr><th>단계</th><th>내용</th><th>필수</th></tr></thead><tbody><tr><td>1</td><td><b>빌드 도구 & 라이브러리</b> — cmake, meson, GStreamer, OpenCV</td><td>✅</td></tr><tr><td>2</td><td><b>런타임 SDK</b> — DEEPX SDK 설치</td><td>✅</td></tr><tr><td>3</td><td><b>드라이버</b> — DX NPU 커널 드라이버</td><td>✅</td></tr><tr><td>4</td><td><b>플러그인 빌드</b> — GStreamer DX 요소 컴파일</td><td>✅</td></tr><tr><td>5</td><td><b>AI 모델 다운로드</b> — 16개 모델 중 선택</td><td>✅</td></tr><tr><td>6</td><td><b>WebRTC 지원</b> — 저지연 스트리밍 (gstreamer1.0-nice)</td><td>선택</td></tr></tbody></table><p>각 단계는 설치 버튼이 있으며, 진행률을 실시간 폴링합니다.</p>',
-      '<p>セットアップページで6つのステップを順番に進めます：</p><table><thead><tr><th>ステップ</th><th>内容</th><th>必須</th></tr></thead><tbody><tr><td>1</td><td><b>ビルドツール & ライブラリ</b> — cmake, meson, GStreamer, OpenCV</td><td>✅</td></tr><tr><td>2</td><td><b>ランタイムSDK</b> — DEEPX SDKのインストール</td><td>✅</td></tr><tr><td>3</td><td><b>ドライバー</b> — DX NPUカーネルドライバー</td><td>✅</td></tr><tr><td>4</td><td><b>プラグインビルド</b> — GStreamer DXエレメントのコンパイル</td><td>✅</td></tr><tr><td>5</td><td><b>AIモデルダウンロード</b> — 16モデルから選択</td><td>✅</td></tr><tr><td>6</td><td><b>WebRTCサポート</b> — 低遅延ストリーミング</td><td>任意</td></tr></tbody></table>',
-      '<p>在设置页面按顺序完成6个步骤：</p><table><thead><tr><th>步骤</th><th>说明</th><th>必需</th></tr></thead><tbody><tr><td>1</td><td><b>构建工具和库</b> — cmake、meson、GStreamer、OpenCV</td><td>✅</td></tr><tr><td>2</td><td><b>运行时SDK</b> — 安装DEEPX SDK</td><td>✅</td></tr><tr><td>3</td><td><b>驱动程序</b> — DX NPU内核驱动</td><td>✅</td></tr><tr><td>4</td><td><b>构建插件</b> — 编译GStreamer DX元素</td><td>✅</td></tr><tr><td>5</td><td><b>下载AI模型</b> — 从16个模型中选择</td><td>✅</td></tr><tr><td>6</td><td><b>WebRTC支持</b> — 低延迟流媒体</td><td>可选</td></tr></tbody></table>',
-      '<p>在設定頁面按順序完成6個步驟：</p><table><thead><tr><th>步驟</th><th>說明</th><th>必需</th></tr></thead><tbody><tr><td>1</td><td><b>建置工具與函式庫</b> — cmake、meson、GStreamer、OpenCV</td><td>✅</td></tr><tr><td>2</td><td><b>執行時SDK</b> — 安裝DEEPX SDK</td><td>✅</td></tr><tr><td>3</td><td><b>驅動程式</b> — DX NPU核心驅動</td><td>✅</td></tr><tr><td>4</td><td><b>建置外掛</b> — 編譯GStreamer DX元素</td><td>✅</td></tr><tr><td>5</td><td><b>下載AI模型</b> — 從16個模型中選擇</td><td>✅</td></tr><tr><td>6</td><td><b>WebRTC支援</b> — 低延遲串流</td><td>可選</td></tr></tbody></table>'
-    ) }
+  { id:'setup-install', cat:'getting-started', icon:'gear',
+    name:refL({en:'Setup & Install',ko:'설치 · 설정',ja:'セットアップとインストール','zh-CN':'安装与设置','zh-TW':'安裝與設定',es:'Instalación y configuración'}),
+    desc:refL({en:'Six steps, environment check and diagnostics',ko:'6단계 설치, 환경 점검, 진단',ja:'6 ステップ・環境チェック・診断','zh-CN':'六个步骤、环境检查与诊断','zh-TW':'六個步驟、環境檢查與診斷',es:'Seis pasos, comprobación del entorno y diagnóstico'}),
+    tabs:{ overview:
+      _tbl([{en:'Step',ko:'단계',ja:'ステップ','zh-CN':'步骤','zh-TW':'步驟',es:'Paso'},{en:'What it does',ko:'하는 일',ja:'内容','zh-CN':'作用','zh-TW':'作用',es:'Qué hace'}],[
+        ['1. Build Tools & Libraries',{en:'Build tools, GStreamer and libraries (install.sh)',ko:'빌드 도구 · GStreamer · 라이브러리 (install.sh)',ja:'ビルドツール・GStreamer・ライブラリ（install.sh）','zh-CN':'构建工具、GStreamer 与库（install.sh）','zh-TW':'建置工具、GStreamer 與程式庫（install.sh）',es:'Herramientas de compilación, GStreamer y bibliotecas (install.sh)'}],
+        ['2. DX-Runtime Dependencies',{en:'DX-RT and dx_engine',ko:'DX-RT와 dx_engine',ja:'DX-RT と dx_engine','zh-CN':'DX-RT 与 dx_engine','zh-TW':'DX-RT 與 dx_engine',es:'DX-RT y dx_engine'}],
+        ['3. NPU Linux Driver',{en:'The NPU kernel driver',ko:'NPU 커널 드라이버',ja:'NPU カーネルドライバー','zh-CN':'NPU 内核驱动','zh-TW':'NPU 核心驅動程式',es:'El driver del kernel de la NPU'}],
+        ['4. GStreamer Plugin Build',{en:'Builds the DEEPX GStreamer elements (build.sh; Clean Build and Debug Mode options)',ko:'DEEPX GStreamer 요소 빌드 (build.sh, Clean Build · Debug Mode 선택)',ja:'DEEPX GStreamer エレメントをビルド（build.sh、Clean Build・Debug Mode オプション）','zh-CN':'构建 DEEPX GStreamer 元素（build.sh，可选 Clean Build 与 Debug Mode）','zh-TW':'建置 DEEPX GStreamer 元素（build.sh，可選 Clean Build 與 Debug Mode）',es:'Compila los elementos GStreamer de DEEPX (build.sh; opciones Clean Build y Debug Mode)'}],
+        ['5. Model & Video Download',{en:'Demo models and sample videos (setup.sh)',ko:'데모 모델과 샘플 영상 (setup.sh)',ja:'デモ用モデルとサンプル動画（setup.sh）','zh-CN':'演示模型与示例视频（setup.sh）','zh-TW':'示範模型與範例影片（setup.sh）',es:'Modelos de las demos y videos de ejemplo (setup.sh)'}],
+        ['6. WebRTC Dependencies',{en:'gstreamer1.0-nice and gir1.2-gst-plugins-bad-1.0 for low-latency viewing',ko:'저지연 보기를 위한 gstreamer1.0-nice · gir1.2-gst-plugins-bad-1.0',ja:'低遅延表示用の gstreamer1.0-nice と gir1.2-gst-plugins-bad-1.0','zh-CN':'用于低延迟观看的 gstreamer1.0-nice 与 gir1.2-gst-plugins-bad-1.0','zh-TW':'用於低延遲觀看的 gstreamer1.0-nice 與 gir1.2-gst-plugins-bad-1.0',es:'gstreamer1.0-nice y gir1.2-gst-plugins-bad-1.0 para ver con baja latencia'}]]) +
+      _p({en:'<b>Environment Check</b> shows GStreamer, NPU runtime, custom plugins, model files, sample videos and WebRTC at a glance; <b>Deep Diagnostics</b> runs a detailed check.',ko:'<b>Environment Check</b>는 GStreamer · NPU 런타임 · 사용자 플러그인 · 모델 파일 · 샘플 영상 · WebRTC를 한눈에 보여 주고, <b>Deep Diagnostics</b>는 자세히 검사합니다.',ja:'<b>Environment Check</b> は GStreamer・NPU ランタイム・カスタムプラグイン・モデルファイル・サンプル動画・WebRTC を一目で表示し、<b>Deep Diagnostics</b> は詳しくチェックします。','zh-CN':'<b>Environment Check</b> 一览显示 GStreamer、NPU 运行时、自定义插件、模型文件、示例视频与 WebRTC；<b>Deep Diagnostics</b> 会进行详细检查。','zh-TW':'<b>Environment Check</b> 一覽顯示 GStreamer、NPU 執行環境、自訂外掛、模型檔、範例影片與 WebRTC；<b>Deep Diagnostics</b> 會進行詳細檢查。',es:'<b>Environment Check</b> muestra de un vistazo GStreamer, el runtime de la NPU, plugins propios, archivos de modelo, videos de ejemplo y WebRTC; <b>Deep Diagnostics</b> hace una revisión detallada.'}) }
   },
-  {
-    id:'dashboard-overview', cat:'getting-started', icon:'📊',
-    name: _T5('Dashboard Overview','대시보드 개요','ダッシュボード概要','仪表盘概述','儀表板概述'),
-    desc: _T5('System status, metrics, quick launch','시스템 상태, 성능 지표, 빠른 실행','システム状態、メトリクス、クイック起動','系统状态、指标、快速启动','系統狀態、指標、快速啟動'),
-    tabs: { overview: _T5(
-      '<p>The Dashboard provides a system overview at a glance:</p><ul><li><b>5 stat tiles</b> — NPU Device, GStreamer, Models (installed/total), Sample Videos, Plugin Build</li><li><b>Pipeline Status</b> — Active pipeline info (model, FPS when running)</li><li><b>Quick Launch</b> — 3 presets: Object Detection, Pose Estimation, Segmentation</li><li><b>Performance Metrics table</b> — FPS, Inference Latency, E2E Latency, NPU Utilization (current/avg/max)</li><li><b>Sparkline charts</b> — Real-time FPS and NPU utilization graphs (Chart.js)</li></ul>',
-      '<p>대시보드는 시스템 상태를 한눈에 보여줍니다:</p><ul><li><b>5개 상태 타일</b> — NPU 장치, GStreamer, 모델, 샘플 비디오, 플러그인 빌드</li><li><b>파이프라인 상태</b> — 활성 파이프라인 정보</li><li><b>빠른 실행</b> — 객체 감지, 포즈 추정, 의미론적 분할 3개 프리셋</li><li><b>성능 지표 테이블</b> — FPS, 추론 지연, E2E 지연, NPU 사용률</li><li><b>스파크라인 차트</b> — FPS와 NPU 사용률의 실시간 그래프</li></ul>',
-      '<p>ダッシュボードはシステム状態を一目で表示します：</p><ul><li><b>5つのステータスタイル</b> — NPUデバイス、GStreamer、モデル、サンプルビデオ、プラグインビルド</li><li><b>パイプライン状態</b> — アクティブなパイプライン情報</li><li><b>クイック起動</b> — 物体検出、姿勢推定、セグメンテーション</li><li><b>パフォーマンス指標テーブル</b> — FPS、推論レイテンシ、NPU使用率</li><li><b>スパークラインチャート</b> — リアルタイムグラフ</li></ul>',
-      '<p>仪表盘提供系统状态的一览视图：</p><ul><li><b>5个状态磁贴</b> — NPU设备、GStreamer、模型、示例视频、插件构建</li><li><b>管道状态</b> — 活动管道信息</li><li><b>快速启动</b> — 3个预设</li><li><b>性能指标表</b> — FPS、推理延迟、NPU利用率</li><li><b>迷你图表</b> — 实时图表</li></ul>',
-      '<p>儀表板提供系統狀態的一覽視圖：</p><ul><li><b>5個狀態磁磚</b> — NPU裝置、GStreamer、模型、範例影片、外掛建置</li><li><b>管線狀態</b> — 活動管線資訊</li><li><b>快速啟動</b> — 3個預設</li><li><b>效能指標表</b> — FPS、推論延遲、NPU使用率</li><li><b>迷你圖表</b> — 即時圖表</li></ul>'
-    ) }
+  { id:'dashboard-overview', cat:'getting-started', icon:'dashboard',
+    name:refL({en:'Dashboard',ko:'대시보드',ja:'ダッシュボード','zh-CN':'仪表盘','zh-TW':'儀表板',es:'Panel'}),
+    desc:refL({en:'Status tiles and quick launch',ko:'상태 타일과 빠른 실행',ja:'ステータスタイルとクイック起動','zh-CN':'状态磁贴与快速启动','zh-TW':'狀態磁磚與快速啟動',es:'Mosaicos de estado e inicio rápido'}),
+    tabs:{ overview: _ul([
+        {en:'<b>5 tiles</b> — NPU Device, GStreamer, Models (installed / total), Sample Videos, Plugin Build.',ko:'<b>타일 5개</b> — NPU Device, GStreamer, Models(설치 / 전체), Sample Videos, Plugin Build.',ja:'<b>5 つのタイル</b> — NPU Device・GStreamer・Models（インストール済み / 全体）・Sample Videos・Plugin Build。','zh-CN':'<b>5 个磁贴</b> — NPU Device、GStreamer、Models（已安装 / 总数）、Sample Videos、Plugin Build。','zh-TW':'<b>5 個磁磚</b> — NPU Device、GStreamer、Models（已安裝 / 總數）、Sample Videos、Plugin Build。',es:'<b>5 mosaicos</b>: NPU Device, GStreamer, Models (instalados / total), Sample Videos, Plugin Build.'},
+        {en:'<b>Quick Launch</b> — Object Detection, Pose Estimation and Segmentation open the Demo Launcher and start that demo.',ko:'<b>Quick Launch</b> — Object Detection · Pose Estimation · Segmentation을 누르면 Demo Launcher가 열리며 그 데모가 시작됩니다.',ja:'<b>Quick Launch</b> — Object Detection・Pose Estimation・Segmentation を押すと Demo Launcher が開き、そのデモが始まります。','zh-CN':'<b>Quick Launch</b> — 点击 Object Detection、Pose Estimation 或 Segmentation 会打开 Demo Launcher 并启动该演示。','zh-TW':'<b>Quick Launch</b> — 點擊 Object Detection、Pose Estimation 或 Segmentation 會開啟 Demo Launcher 並啟動該示範。',es:'<b>Quick Launch</b>: Object Detection, Pose Estimation y Segmentation abren Demo Launcher e inician esa demo.'}]) }
   },
-  {
-    id:'demo-launcher', cat:'demo-streaming', icon:'🎬',
-    name: _T5('Demo Launcher','데모 실행기','デモランチャー','演示启动器','示範啟動器'),
-    desc: _T5('Run 11 preset demos and view results','11개 프리셋 데모 실행 및 결과 확인','11個のプリセットデモを実行し結果を確認','运行11个预设演示并查看结果','執行11個預設示範並查看結果'),
-    tabs: { overview: _T5(
-      '<p>Run 11 preset AI inference demos:</p><ul><li>Category filter bar for quick type selection</li><li>Click demo card → auto-build pipeline → start video streaming</li><li>Choose MJPEG (default) or WebRTC output mode</li><li>Real-time FPS and latency overlay on video</li><li>Stop button to terminate pipeline</li><li>Fullscreen mode supported</li></ul><div class="ref-box tip">💡 The required model must be installed before running a demo. Download from Model Catalog.</div>',
-      '<p>11개의 프리셋 AI 추론 데모를 실행할 수 있습니다:</p><ul><li>카테고리 필터 바로 빠르게 원하는 유형 찾기</li><li>데모 카드 클릭 → 파이프라인 자동 빌드 → 비디오 스트리밍 시작</li><li>MJPEG(기본) 또는 WebRTC 출력 모드 선택</li><li>실시간 FPS, 지연 시간 오버레이 표시</li><li>중지 버튼으로 파이프라인 종료</li><li>전체화면 모드 지원</li></ul><div class="ref-box tip">💡 데모를 실행하려면 해당 모델이 먼저 설치되어 있어야 합니다.</div>',
-      '<p>11個のプリセットAI推論デモを実行できます：</p><ul><li>カテゴリフィルターバーで素早くタイプを選択</li><li>デモカードをクリック → パイプライン自動構築 → ストリーミング開始</li><li>MJPEG（デフォルト）またはWebRTC出力モード選択</li><li>リアルタイムFPSとレイテンシのオーバーレイ表示</li><li>停止ボタンでパイプライン終了</li></ul><div class="ref-box tip">💡 デモを実行するには対応するモデルが事前にインストールされている必要があります。</div>',
-      '<p>可运行11个预设AI推理演示：</p><ul><li>类别过滤栏快速选择类型</li><li>点击卡片 → 自动构建管道 → 开始视频流</li><li>选择MJPEG或WebRTC输出模式</li><li>实时FPS和延迟叠加显示</li><li>停止按钮终止管道</li></ul><div class="ref-box tip">💡 运行演示前需先安装相应模型。</div>',
-      '<p>可執行11個預設AI推論示範：</p><ul><li>類別篩選列快速選擇類型</li><li>點擊卡片 → 自動建置管線 → 開始視訊串流</li><li>選擇MJPEG或WebRTC輸出模式</li><li>即時FPS和延遲疊加顯示</li><li>停止按鈕終止管線</li></ul><div class="ref-box tip">💡 執行示範前需先安裝相應模型。</div>'
-    ) }
+  { id:'demo-launcher', cat:'demo-streaming', icon:'demo',
+    name:'Demo Launcher',
+    desc:refL({en:'Run the 12 preset demos',ko:'프리셋 데모 12개 실행',ja:'12 のプリセットデモを実行','zh-CN':'运行 12 个预设演示','zh-TW':'執行 12 個預設示範',es:'Ejecute las 12 demos predefinidas'}),
+    tabs:{ overview: _ul([
+        {en:'The result stage is at the top; the cards below choose which demo it shows. Filter the cards by category.',ko:'결과 무대가 위에 있고, 아래 카드가 무대에 띄울 데모를 고릅니다. 카드는 분류로 거를 수 있습니다.',ja:'上に結果のステージがあり、下のカードでステージに表示するデモを選びます。カードはカテゴリで絞り込めます。','zh-CN':'结果舞台位于上方，下方卡片用于选择要显示的演示，可按类别筛选卡片。','zh-TW':'結果舞台位於上方，下方卡片用於選擇要顯示的示範，可依類別篩選卡片。',es:'El escenario de resultados está arriba; las tarjetas de abajo eligen qué demo muestra. Puede filtrarlas por categoría.'},
+        {en:'Choose the view — <b>Local (WebRTC)</b> by default, or <b>Remote (MJPEG)</b> — and press <b>Start</b>; <b>Stop</b> ends the pipeline.',ko:'보기 방식을 고르고(기본 <b>Local (WebRTC)</b>, 또는 <b>Remote (MJPEG)</b>) <b>Start</b>를 누릅니다. <b>Stop</b>은 파이프라인을 끝냅니다.',ja:'表示方式（既定は <b>Local (WebRTC)</b>、または <b>Remote (MJPEG)</b>）を選び <b>Start</b> を押します。<b>Stop</b> でパイプラインを終了します。','zh-CN':'选择观看方式（默认 <b>Local (WebRTC)</b>，或 <b>Remote (MJPEG)</b>），点击 <b>Start</b>；<b>Stop</b> 结束管道。','zh-TW':'選擇觀看方式（預設 <b>Local (WebRTC)</b>，或 <b>Remote (MJPEG)</b>），點擊 <b>Start</b>；<b>Stop</b> 結束管線。',es:'Elija la vista (<b>Local (WebRTC)</b> por defecto, o <b>Remote (MJPEG)</b>) y pulse <b>Start</b>; <b>Stop</b> detiene la canalización.'},
+        {en:'The panel shows FPS, resolution and model; the stage can go full screen.',ko:'패널에 FPS · 해상도 · 모델이 나오고, 무대는 전체 화면으로 볼 수 있습니다.',ja:'パネルに FPS・解像度・モデルが表示され、ステージは全画面にできます。','zh-CN':'面板显示 FPS、分辨率和模型；舞台可全屏显示。','zh-TW':'面板顯示 FPS、解析度與模型；舞台可全螢幕顯示。',es:'El panel muestra FPS, resolución y modelo; el escenario puede verse a pantalla completa.'}]) +
+      _tip({en:'A card that is not ready says what is missing and links to Setup.',ko:'준비되지 않은 카드는 무엇이 없는지 말하고 Setup으로 이어 줍니다.',ja:'準備ができていないカードは不足しているものを示し、Setup へ案内します。','zh-CN':'未就绪的卡片会说明缺少什么，并链接到 Setup。','zh-TW':'未就緒的卡片會說明缺少什麼，並連結到 Setup。',es:'Una tarjeta que no está lista indica qué falta y enlaza a Setup.'}) }
   },
-  {
-    id:'streaming-modes', cat:'demo-streaming', icon:'📡',
-    name: _T5('MJPEG / WebRTC Streaming','MJPEG / WebRTC 스트리밍','MJPEG / WebRTCストリーミング','MJPEG / WebRTC流媒体','MJPEG / WebRTC串流'),
-    desc: _T5('Compare two video output modes','두 가지 비디오 출력 모드 비교','2つのビデオ出力モードの比較','两种视频输出模式比较','兩種視訊輸出模式比較'),
-    tabs: { overview: _T5(
-      '<table><thead><tr><th>Feature</th><th>MJPEG</th><th>WebRTC</th></tr></thead><tbody><tr><td>Default</td><td>✅ Default</td><td>Manual switch</td></tr><tr><td>Transport</td><td><code>multipart/x-mixed-replace</code></td><td>RTCPeerConnection (SDP/ICE)</td></tr><tr><td>Latency</td><td>High (200–500ms)</td><td>Low (&lt;100ms)</td></tr><tr><td>Compatibility</td><td>All browsers</td><td>Requires <code>gstreamer1.0-nice</code></td></tr></tbody></table><div class="ref-box tip">💡 Use MJPEG for reliability, WebRTC for low latency.</div>',
-      '<table><thead><tr><th>항목</th><th>MJPEG</th><th>WebRTC</th></tr></thead><tbody><tr><td>기본 모드</td><td>✅ 기본값</td><td>수동 전환</td></tr><tr><td>전송 방식</td><td><code>multipart/x-mixed-replace</code></td><td>RTCPeerConnection</td></tr><tr><td>지연 시간</td><td>높음 (200–500ms)</td><td>낮음 (&lt;100ms)</td></tr><tr><td>호환성</td><td>모든 브라우저</td><td><code>gstreamer1.0-nice</code> 필요</td></tr></tbody></table><div class="ref-box tip">💡 안정성이 중요하면 MJPEG, 지연 시간이 중요하면 WebRTC를 사용하세요.</div>',
-      '<table><thead><tr><th>項目</th><th>MJPEG</th><th>WebRTC</th></tr></thead><tbody><tr><td>デフォルト</td><td>✅</td><td>手動切替</td></tr><tr><td>転送方式</td><td><code>multipart/x-mixed-replace</code></td><td>RTCPeerConnection</td></tr><tr><td>レイテンシ</td><td>高い</td><td>低い</td></tr><tr><td>互換性</td><td>全ブラウザ</td><td><code>gstreamer1.0-nice</code>が必要</td></tr></tbody></table><div class="ref-box tip">💡 安定性ならMJPEG、低遅延ならWebRTC。</div>',
-      '<table><thead><tr><th>项目</th><th>MJPEG</th><th>WebRTC</th></tr></thead><tbody><tr><td>默认</td><td>✅</td><td>手动切换</td></tr><tr><td>传输</td><td><code>multipart/x-mixed-replace</code></td><td>RTCPeerConnection</td></tr><tr><td>延迟</td><td>高</td><td>低</td></tr><tr><td>兼容性</td><td>所有浏览器</td><td>需要<code>gstreamer1.0-nice</code></td></tr></tbody></table><div class="ref-box tip">💡 注重稳定性用MJPEG，注重低延迟用WebRTC。</div>',
-      '<table><thead><tr><th>項目</th><th>MJPEG</th><th>WebRTC</th></tr></thead><tbody><tr><td>預設</td><td>✅</td><td>手動切換</td></tr><tr><td>傳輸</td><td><code>multipart/x-mixed-replace</code></td><td>RTCPeerConnection</td></tr><tr><td>延遲</td><td>高</td><td>低</td></tr><tr><td>相容性</td><td>所有瀏覽器</td><td>需要<code>gstreamer1.0-nice</code></td></tr></tbody></table><div class="ref-box tip">💡 注重穩定性用MJPEG，注重低延遲用WebRTC。</div>'
-    ) }
+  { id:'streaming-modes', cat:'demo-streaming', icon:'stream',
+    name:'WebRTC / MJPEG',
+    desc:refL({en:'Two ways to watch the result',ko:'결과를 보는 두 가지 방식',ja:'結果を見る 2 つの方式','zh-CN':'观看结果的两种方式','zh-TW':'觀看結果的兩種方式',es:'Dos maneras de ver el resultado'}),
+    tabs:{ overview:
+      _tbl(['','Local (WebRTC)','Remote (MJPEG)'],[
+        [{en:'Default',ko:'기본',ja:'既定','zh-CN':'默认','zh-TW':'預設',es:'Predeterminado'},DXIcon('check'),'—'],
+        [{en:'Latency',ko:'지연',ja:'遅延','zh-CN':'延迟','zh-TW':'延遲',es:'Latencia'},{en:'Low',ko:'낮음',ja:'低い','zh-CN':'低','zh-TW':'低',es:'Baja'},{en:'Higher',ko:'더 높음',ja:'やや高い','zh-CN':'较高','zh-TW':'較高',es:'Mayor'}],
+        [{en:'Needs',ko:'필요',ja:'必要なもの','zh-CN':'需要','zh-TW':'需要',es:'Requiere'},{en:'gstreamer1.0-nice (Setup step 6)',ko:'gstreamer1.0-nice (Setup 6단계)',ja:'gstreamer1.0-nice（Setup のステップ 6）','zh-CN':'gstreamer1.0-nice（Setup 第 6 步）','zh-TW':'gstreamer1.0-nice（Setup 第 6 步）',es:'gstreamer1.0-nice (paso 6 de Setup)'},{en:'Nothing extra; works from another computer',ko:'추가 설치 없음, 다른 컴퓨터에서도 동작',ja:'追加不要。別のコンピューターからも使える','zh-CN':'无需额外安装，可从其他电脑观看','zh-TW':'無需額外安裝，可從其他電腦觀看',es:'Nada adicional; funciona desde otro equipo'}]]) +
+      _tip({en:'If WebRTC cannot connect within a few seconds, the view switches to MJPEG by itself.',ko:'WebRTC가 몇 초 안에 연결되지 않으면 보기가 저절로 MJPEG로 바뀝니다.',ja:'WebRTC が数秒以内に接続できない場合、表示は自動的に MJPEG に切り替わります。','zh-CN':'若 WebRTC 在几秒内无法连接，会自动切换为 MJPEG。','zh-TW':'若 WebRTC 在幾秒內無法連線，會自動切換為 MJPEG。',es:'Si WebRTC no conecta en unos segundos, la vista cambia sola a MJPEG.'}) }
   },
-  {
-    id:'demo-catalog', cat:'demo-streaming', icon:'📋',
-    name: _T5('Demo Catalog','데모 카탈로그','デモカタログ','演示目录','示範目錄'),
-    desc: _T5('Detailed description of 11 demo scenarios','11개 데모 시나리오 상세 설명','11個のデモシナリオの詳細説明','11个演示场景详细说明','11個示範場景詳細說明'),
-    tabs: { overview: _T5(
-      '<table><thead><tr><th>#</th><th>Demo</th><th>Model</th><th>Category</th></tr></thead><tbody><tr><td>0</td><td>Object Detection</td><td>YOLOv26n</td><td>object_detection</td></tr><tr><td>1</td><td>Object Detection (PPU)</td><td>YoloV5S_PPU</td><td>object_detection</td></tr><tr><td>2</td><td>Face Detection</td><td>YOLOv5s_Face</td><td>face_detection</td></tr><tr><td>3</td><td>Face Detection PPU</td><td>SCRFD500M_PPU</td><td>face_detection</td></tr><tr><td>4</td><td>Pose Estimation</td><td>YOLOv26n_Pose</td><td>pose_estimation</td></tr><tr><td>5</td><td>Pose Estimation PPU</td><td>YOLOV5Pose_PPU</td><td>pose_estimation</td></tr><tr><td>6</td><td>Semantic Segmentation</td><td>YOLOv26n_Seg</td><td>segmentation</td></tr><tr><td>7</td><td>Multi-Object Tracking</td><td>YoloV5S_PPU + DxTracker</td><td>tracking</td></tr><tr><td>8</td><td>Multi-Stream</td><td>YoloV5S_PPU</td><td>multi_stream</td></tr><tr><td>9</td><td>Multi-Stream RTSP</td><td>YoloV5S_PPU</td><td>multi_stream</td></tr><tr><td>10</td><td>Secondary Inference</td><td>Detection + Classification + Face</td><td>secondary</td></tr></tbody></table>',
-      '<table><thead><tr><th>#</th><th>데모</th><th>모델</th><th>카테고리</th></tr></thead><tbody><tr><td>0</td><td>객체 감지</td><td>YOLOv26n</td><td>object_detection</td></tr><tr><td>1</td><td>객체 감지 (PPU)</td><td>YoloV5S_PPU</td><td>object_detection</td></tr><tr><td>2</td><td>얼굴 감지</td><td>YOLOv5s_Face</td><td>face_detection</td></tr><tr><td>3</td><td>얼굴 감지 PPU</td><td>SCRFD500M_PPU</td><td>face_detection</td></tr><tr><td>4</td><td>포즈 추정</td><td>YOLOv26n_Pose</td><td>pose_estimation</td></tr><tr><td>5</td><td>포즈 추정 PPU</td><td>YOLOV5Pose_PPU</td><td>pose_estimation</td></tr><tr><td>6</td><td>의미론적 분할</td><td>YOLOv26n_Seg</td><td>segmentation</td></tr><tr><td>7</td><td>다중 객체 추적</td><td>YoloV5S_PPU + DxTracker</td><td>tracking</td></tr><tr><td>8</td><td>멀티스트림</td><td>YoloV5S_PPU</td><td>multi_stream</td></tr><tr><td>9</td><td>멀티스트림 RTSP</td><td>YoloV5S_PPU</td><td>multi_stream</td></tr><tr><td>10</td><td>2차 추론</td><td>Detection + Classification + Face</td><td>secondary</td></tr></tbody></table>',
-      '<table><thead><tr><th>#</th><th>デモ</th><th>モデル</th><th>カテゴリ</th></tr></thead><tbody><tr><td>0</td><td>物体検出</td><td>YOLOv26n</td><td>object_detection</td></tr><tr><td>1</td><td>物体検出 PPU</td><td>YoloV5S_PPU</td><td>object_detection</td></tr><tr><td>2</td><td>顔検出</td><td>YOLOv5s_Face</td><td>face_detection</td></tr><tr><td>3</td><td>顔検出 PPU</td><td>SCRFD500M_PPU</td><td>face_detection</td></tr><tr><td>4</td><td>姿勢推定</td><td>YOLOv26n_Pose</td><td>pose_estimation</td></tr><tr><td>5</td><td>姿勢推定 PPU</td><td>YOLOV5Pose_PPU</td><td>pose_estimation</td></tr><tr><td>6</td><td>セマンティックセグメンテーション</td><td>YOLOv26n_Seg</td><td>segmentation</td></tr><tr><td>7</td><td>複数物体追跡</td><td>YoloV5S_PPU + DxTracker</td><td>tracking</td></tr><tr><td>8</td><td>マルチストリーム</td><td>YoloV5S_PPU</td><td>multi_stream</td></tr><tr><td>9</td><td>マルチストリーム RTSP</td><td>YoloV5S_PPU</td><td>multi_stream</td></tr><tr><td>10</td><td>二次推論</td><td>Detection + Classification + Face</td><td>secondary</td></tr></tbody></table>',
-      '<table><thead><tr><th>#</th><th>演示</th><th>模型</th><th>类别</th></tr></thead><tbody><tr><td>0</td><td>目标检测</td><td>YOLOv26n</td><td>object_detection</td></tr><tr><td>1</td><td>目标检测 PPU</td><td>YoloV5S_PPU</td><td>object_detection</td></tr><tr><td>2</td><td>人脸检测</td><td>YOLOv5s_Face</td><td>face_detection</td></tr><tr><td>3</td><td>人脸检测 PPU</td><td>SCRFD500M_PPU</td><td>face_detection</td></tr><tr><td>4</td><td>姿态估计</td><td>YOLOv26n_Pose</td><td>pose_estimation</td></tr><tr><td>5</td><td>姿态估计 PPU</td><td>YOLOV5Pose_PPU</td><td>pose_estimation</td></tr><tr><td>6</td><td>语义分割</td><td>YOLOv26n_Seg</td><td>segmentation</td></tr><tr><td>7</td><td>多目标跟踪</td><td>YoloV5S_PPU + DxTracker</td><td>tracking</td></tr><tr><td>8</td><td>多路流</td><td>YoloV5S_PPU</td><td>multi_stream</td></tr><tr><td>9</td><td>多路流 RTSP</td><td>YoloV5S_PPU</td><td>multi_stream</td></tr><tr><td>10</td><td>二次推理</td><td>Detection + Classification + Face</td><td>secondary</td></tr></tbody></table>',
-      '<table><thead><tr><th>#</th><th>示範</th><th>模型</th><th>類別</th></tr></thead><tbody><tr><td>0</td><td>物件偵測</td><td>YOLOv26n</td><td>object_detection</td></tr><tr><td>1</td><td>物件偵測 PPU</td><td>YoloV5S_PPU</td><td>object_detection</td></tr><tr><td>2</td><td>人臉偵測</td><td>YOLOv5s_Face</td><td>face_detection</td></tr><tr><td>3</td><td>人臉偵測 PPU</td><td>SCRFD500M_PPU</td><td>face_detection</td></tr><tr><td>4</td><td>姿態估計</td><td>YOLOv26n_Pose</td><td>pose_estimation</td></tr><tr><td>5</td><td>姿態估計 PPU</td><td>YOLOV5Pose_PPU</td><td>pose_estimation</td></tr><tr><td>6</td><td>語義分割</td><td>YOLOv26n_Seg</td><td>segmentation</td></tr><tr><td>7</td><td>多物件追蹤</td><td>YoloV5S_PPU + DxTracker</td><td>tracking</td></tr><tr><td>8</td><td>多路串流</td><td>YoloV5S_PPU</td><td>multi_stream</td></tr><tr><td>9</td><td>多路串流 RTSP</td><td>YoloV5S_PPU</td><td>multi_stream</td></tr><tr><td>10</td><td>二次推論</td><td>Detection + Classification + Face</td><td>secondary</td></tr></tbody></table>'
-    ) }
+  { id:'demo-catalog', cat:'demo-streaming', icon:'clipboard',
+    name:refL({en:'Demo Catalog',ko:'데모 목록',ja:'デモ一覧','zh-CN':'演示目录','zh-TW':'示範目錄',es:'Catálogo de demos'}),
+    desc:refL({en:'The 12 demos and their models',ko:'데모 12개와 그 모델',ja:'12 のデモとそのモデル','zh-CN':'12 个演示及其模型','zh-TW':'12 個示範及其模型',es:'Las 12 demos y sus modelos'}),
+    tabs:{ overview:
+      _tbl(['#','Demo',{en:'Model',ko:'모델',ja:'モデル','zh-CN':'模型','zh-TW':'模型',es:'Modelo'}],[
+        ['0','Object Detection','YOLO26n'],
+        ['1','Object Detection (PPU)','YoloV5S_PPU'],
+        ['2','Face Detection','YOLOv5s_Face'],
+        ['3','Face Detection (PPU)','SCRFD500M_PPU'],
+        ['4','Pose Estimation','YOLO26n-pose'],
+        ['5','Pose Estimation (PPU)','YOLOV5Pose_PPU'],
+        ['6','Instance Segmentation','YOLO26n-seg'],
+        ['7','Multi-Object Tracking','YoloV5S_PPU + OC-SORT'],
+        ['8','Multi-Stream','YoloV5S_PPU'],
+        ['9','Multi-Stream RTSP','YoloV5S_PPU'],
+        ['10','Secondary Inference','YoloV5S_PPU + EfficientNet-Lite0 + SCRFD500M'],
+        ['11','Depth Estimation','YOLO26-depth-n']]) }
   },
-  {
-    id:'visual-editor', cat:'pipeline', icon:'🎨',
-    name: _T5('Visual Editor','비주얼 에디터','ビジュアルエディタ','可视化编辑器','視覺化編輯器'),
-    desc: _T5('Canvas-based pipeline node editor','캔버스 기반 파이프라인 노드 에디터','キャンバスベースのパイプラインノードエディタ','基于画布的管道节点编辑器','基於畫布的管線節點編輯器'),
-    tabs: { overview: _T5(
-      '<p>A visual pipeline editor based on HTML5 Canvas 2D:</p><ul><li><b>Left sidebar</b> — Element palette with 9 categories</li><li><b>Drag & Drop</b> — Place elements on canvas to create nodes with input/output pads</li><li><b>Connect</b> — Drag from output pad to input pad to link elements</li><li><b>Right-click menu</b> — Delete, Duplicate, Disconnect</li><li><b>Property panel</b> — Edit selected element properties on the right</li><li><b>Minimap</b> — Canvas overview in bottom-right corner</li><li><b>Mouse wheel</b> — Zoom in/out; middle-click drag — Pan</li></ul>',
-      '<p>HTML5 Canvas 2D 기반의 비주얼 파이프라인 에디터입니다:</p><ul><li><b>왼쪽 사이드바</b> — 9개 카테고리의 요소 팔레트</li><li><b>드래그 & 드롭</b> — 요소를 캔버스에 배치하면 입출력 패드가 있는 노드 생성</li><li><b>연결</b> — 출력 패드에서 입력 패드로 드래그</li><li><b>우클릭 메뉴</b> — 삭제, 복제, 연결 해제</li><li><b>속성 패널</b> — 오른쪽에서 선택된 요소의 속성 편집</li><li><b>미니맵</b> — 우측 하단 코너에 캔버스 개요</li><li><b>마우스 휠</b> — 줌 인/아웃</li></ul>',
-      '<p>HTML5 Canvas 2Dベースのビジュアルパイプラインエディタ：</p><ul><li><b>左サイドバー</b> — 9カテゴリのエレメントパレット</li><li><b>ドラッグ＆ドロップ</b> — エレメントをキャンバスに配置</li><li><b>接続</b> — 出力パッドから入力パッドへドラッグ</li><li><b>右クリックメニュー</b> — 削除、複製、切断</li><li><b>プロパティパネル</b> — 右側で編集</li><li><b>ミニマップ</b> — 右下にキャンバス概要</li></ul>',
-      '<p>基于HTML5 Canvas 2D的可视化管道编辑器：</p><ul><li><b>左侧边栏</b> — 9个类别的元素面板</li><li><b>拖放</b> — 将元素放到画布上</li><li><b>连接</b> — 从输出焊盘拖到输入焊盘</li><li><b>右键菜单</b> — 删除、复制、断开</li><li><b>属性面板</b> — 右侧编辑</li><li><b>小地图</b> — 右下角概览</li></ul>',
-      '<p>基於HTML5 Canvas 2D的視覺化管線編輯器：</p><ul><li><b>左側邊欄</b> — 9個類別的元素面板</li><li><b>拖放</b> — 將元素放到畫布上</li><li><b>連接</b> — 從輸出接墊拖到輸入接墊</li><li><b>右鍵選單</b> — 刪除、複製、中斷</li><li><b>屬性面板</b> — 右側編輯</li><li><b>小地圖</b> — 右下角概覽</li></ul>'
-    ) }
+  { id:'visual-editor', cat:'pipeline', icon:'wrench',
+    name:'Pipeline Builder',
+    desc:refL({en:'Build a pipeline on a canvas',ko:'캔버스에서 파이프라인 만들기',ja:'キャンバスでパイプラインを組む','zh-CN':'在画布上搭建管道','zh-TW':'在畫布上建立管線',es:'Construya una canalización en un lienzo'}),
+    tabs:{ overview: _ul([
+        {en:'<b>Palette</b> — elements in 9 categories: source, preprocess, inference, postprocess, tracking, visualization, messaging, output, utility.',ko:'<b>팔레트</b> — 9개 분류의 요소: source, preprocess, inference, postprocess, tracking, visualization, messaging, output, utility.',ja:'<b>パレット</b> — 9 カテゴリのエレメント：source・preprocess・inference・postprocess・tracking・visualization・messaging・output・utility。','zh-CN':'<b>元素面板</b> — 9 个类别的元素：source、preprocess、inference、postprocess、tracking、visualization、messaging、output、utility。','zh-TW':'<b>元素面板</b> — 9 個類別的元素：source、preprocess、inference、postprocess、tracking、visualization、messaging、output、utility。',es:'<b>Paleta</b>: elementos en 9 categorías (source, preprocess, inference, postprocess, tracking, visualization, messaging, output, utility).'},
+        {en:'<b>Drag</b> an element onto the canvas, then drag from an output port to an input port to connect.',ko:'요소를 캔버스로 <b>끌어다 놓고</b>, 출력 포트에서 입력 포트로 끌어 연결합니다.',ja:'エレメントをキャンバスに<b>ドラッグ</b>し、出力ポートから入力ポートへドラッグして接続します。','zh-CN':'将元素<b>拖到</b>画布上，再从输出端口拖到输入端口进行连接。','zh-TW':'將元素<b>拖曳</b>到畫布上，再從輸出埠拖曳到輸入埠進行連接。',es:'<b>Arrastre</b> un elemento al lienzo y luego de un puerto de salida a uno de entrada para conectar.'},
+        {en:'<b>Right-click</b> a node: Delete, Copy, Properties. On empty canvas: Paste, Select All, Undo, Redo, Fit View, Clear All.',ko:'노드를 <b>오른쪽 클릭</b>: Delete, Copy, Properties. 빈 캔버스: Paste, Select All, Undo, Redo, Fit View, Clear All.',ja:'ノードを<b>右クリック</b>：Delete・Copy・Properties。空のキャンバス：Paste・Select All・Undo・Redo・Fit View・Clear All。','zh-CN':'<b>右键</b>节点：Delete、Copy、Properties。空白画布：Paste、Select All、Undo、Redo、Fit View、Clear All。','zh-TW':'<b>右鍵</b>節點：Delete、Copy、Properties。空白畫布：Paste、Select All、Undo、Redo、Fit View、Clear All。',es:'<b>Clic derecho</b> en un nodo: Delete, Copy, Properties. En el lienzo vacío: Paste, Select All, Undo, Redo, Fit View, Clear All.'},
+        {en:'The <b>properties panel</b> edits the selected element; the <b>minimap</b> shows the whole pipeline.',ko:'<b>속성 패널</b>은 고른 요소를 고치고, <b>미니맵</b>은 파이프라인 전체를 보여 줍니다.',ja:'<b>プロパティパネル</b>で選択中のエレメントを編集し、<b>ミニマップ</b>でパイプライン全体を表示します。','zh-CN':'<b>属性面板</b>编辑所选元素；<b>小地图</b>显示整个管道。','zh-TW':'<b>屬性面板</b>編輯所選元素；<b>小地圖</b>顯示整個管線。',es:'El <b>panel de propiedades</b> edita el elemento seleccionado; el <b>minimapa</b> muestra toda la canalización.'},
+        {en:'Mouse wheel zooms; drag the empty canvas (or middle-drag) to pan.',ko:'마우스 휠로 확대 · 축소하고, 빈 캔버스를 끌거나 가운데 단추로 끌어 이동합니다.',ja:'マウスホイールで拡大縮小し、空のキャンバスをドラッグ（または中ボタンでドラッグ）して移動します。','zh-CN':'鼠标滚轮缩放；拖动空白画布（或按住中键拖动）可平移。','zh-TW':'滑鼠滾輪縮放；拖曳空白畫布（或按住中鍵拖曳）可平移。',es:'La rueda del ratón hace zoom; arrastre el lienzo vacío (o con el botón central) para desplazarse.'}]) }
   },
-  {
-    id:'connection-rules', cat:'pipeline', icon:'🔗',
-    name: _T5('Connection Rules','연결 규칙','接続ルール','连接规则','連接規則'),
-    desc: _T5('Pad compatibility, validation, auto-insert','패드 호환성, 검증, 자동 삽입','パッド互換性、検証、自動挿入','焊盘兼容性、验证、自动插入','接墊相容性、驗證、自動插入'),
-    tabs: { overview: _T5(
-      '<p>Connection validation rules in Pipeline Builder:</p><ul><li><b>ID Matching</b> — DxPreprocess and DxInfer must have matching <code>preprocess-id</code></li><li><b>Auto-insert</b> — When connecting incompatible pads, suggests inserting <code>videoconvert</code> or <code>queue</code></li><li><b>Multi-input</b> — DxGather, compositor require 2+ inputs</li><li><b>Multi-output</b> — tee requires 2+ outputs</li><li><b>Terminal</b> — DxMsgBroker has no output pad (must be last)</li><li><b>Validation</b> — Warns about missing source/sink, unconnected pads, ID mismatches</li></ul>',
-      '<p>파이프라인 빌더의 연결 검증 규칙:</p><ul><li><b>ID 매칭</b> — DxPreprocess와 DxInfer는 <code>preprocess-id</code>가 일치해야 함</li><li><b>자동 삽입</b> — 호환되지 않는 패드 연결 시 <code>videoconvert</code> 또는 <code>queue</code> 삽입 제안</li><li><b>다중 입력</b> — DxGather, compositor는 2개 이상의 입력 필요</li><li><b>다중 출력</b> — tee는 2개 이상의 출력 필요</li><li><b>종단 요소</b> — DxMsgBroker는 출력 패드 없음</li><li><b>검증</b> — 소스/싱크 누락, 미연결 패드, ID 불일치 경고</li></ul>',
-      '<p>パイプラインビルダーの接続検証ルール：</p><ul><li><b>IDマッチング</b> — DxPreprocessとDxInferは<code>preprocess-id</code>が一致する必要あり</li><li><b>自動挿入</b> — 互換性のないパッド接続時に自動挿入を提案</li><li><b>複数入力</b> — DxGather、compositorは2つ以上の入力が必要</li><li><b>複数出力</b> — teeは2つ以上の出力が必要</li><li><b>終端エレメント</b> — DxMsgBrokerは出力パッドなし</li><li><b>検証</b> — ソース/シンク不足、未接続パッド、IDミスマッチを警告</li></ul>',
-      '<p>管道构建器的连接验证规则：</p><ul><li><b>ID匹配</b> — DxPreprocess和DxInfer的<code>preprocess-id</code>必须匹配</li><li><b>自动插入</b> — 不兼容时建议插入<code>videoconvert</code>或<code>queue</code></li><li><b>多输入</b> — DxGather、compositor需要2+输入</li><li><b>多输出</b> — tee需要2+输出</li><li><b>终端元素</b> — DxMsgBroker没有输出焊盘</li><li><b>验证</b> — 警告缺少源/汇、未连接焊盘</li></ul>',
-      '<p>管線建置器的連接驗證規則：</p><ul><li><b>ID匹配</b> — DxPreprocess和DxInfer的<code>preprocess-id</code>必須匹配</li><li><b>自動插入</b> — 不相容時建議插入<code>videoconvert</code>或<code>queue</code></li><li><b>多輸入</b> — DxGather、compositor需要2+輸入</li><li><b>多輸出</b> — tee需要2+輸出</li><li><b>終端元素</b> — DxMsgBroker沒有輸出接墊</li><li><b>驗證</b> — 警告缺少源/匯、未連接接墊</li></ul>'
-    ) }
+  { id:'connection-rules', cat:'pipeline', icon:'external',
+    name:refL({en:'Connection Rules',ko:'연결 규칙',ja:'接続ルール','zh-CN':'连接规则','zh-TW':'連接規則',es:'Reglas de conexión'}),
+    desc:refL({en:'What the builder checks and fixes',ko:'빌더가 확인하고 고쳐 주는 것',ja:'ビルダーが確認・修正すること','zh-CN':'构建器检查与修正的内容','zh-TW':'建構器檢查與修正的內容',es:'Lo que el constructor comprueba y corrige'}),
+    tabs:{ overview: _ul([
+        {en:'Each connection is checked by category: allowed, allowed with a warning, or blocked.',ko:'연결마다 분류에 따라 허용 · 경고 후 허용 · 차단으로 판단합니다.',ja:'接続ごとにカテゴリに応じて、許可・警告付きで許可・ブロックを判定します。','zh-CN':'每个连接按类别判定：允许、警告后允许或阻止。','zh-TW':'每個連接依類別判定：允許、警告後允許或阻擋。',es:'Cada conexión se evalúa por categoría: permitida, permitida con aviso o bloqueada.'},
+        {en:'From visualization, postprocess or tracking into an encoder or display sink, <code>videoconvert</code> is inserted for you.',ko:'visualization · postprocess · tracking에서 인코더나 화면 sink로 이으면 <code>videoconvert</code>가 자동으로 들어갑니다.',ja:'visualization・postprocess・tracking からエンコーダーや表示用 sink へつなぐと、<code>videoconvert</code> が自動で挿入されます。','zh-CN':'从 visualization、postprocess 或 tracking 连接到编码器或显示 sink 时，会自动插入 <code>videoconvert</code>。','zh-TW':'從 visualization、postprocess 或 tracking 連接到編碼器或顯示 sink 時，會自動插入 <code>videoconvert</code>。',es:'Al conectar visualization, postprocess o tracking con un codificador o un sink de pantalla, se inserta <code>videoconvert</code> automáticamente.'},
+        {en:'DxPostprocess gets its <code>inference-id</code> from the DxInfer before it.',ko:'DxPostprocess의 <code>inference-id</code>는 앞의 DxInfer에서 채워집니다.',ja:'DxPostprocess の <code>inference-id</code> は前の DxInfer から設定されます。','zh-CN':'DxPostprocess 的 <code>inference-id</code> 取自其前面的 DxInfer。','zh-TW':'DxPostprocess 的 <code>inference-id</code> 取自其前面的 DxInfer。',es:'DxPostprocess toma su <code>inference-id</code> del DxInfer anterior.'},
+        {en:'Warnings: no source, isolated nodes, DxGather or compositor with fewer than 2 inputs, tee with fewer than 2 outputs, DxDeTile without DxTile.',ko:'경고: source 없음, 떨어진 노드, 입력이 2개 미만인 DxGather · compositor, 출력이 2개 미만인 tee, DxTile 없는 DxDeTile.',ja:'警告：source がない・孤立したノード・入力が 2 未満の DxGather / compositor・出力が 2 未満の tee・DxTile のない DxDeTile。','zh-CN':'警告：没有 source、孤立节点、输入少于 2 个的 DxGather 或 compositor、输出少于 2 个的 tee、缺少 DxTile 的 DxDeTile。','zh-TW':'警告：沒有 source、孤立節點、輸入少於 2 個的 DxGather 或 compositor、輸出少於 2 個的 tee、缺少 DxTile 的 DxDeTile。',es:'Avisos: sin source, nodos aislados, DxGather o compositor con menos de 2 entradas, tee con menos de 2 salidas, DxDeTile sin DxTile.'},
+        {en:'DxMsgBroker has no output; put DxMsgConv before it.',ko:'DxMsgBroker에는 출력이 없으며, 앞에 DxMsgConv를 두세요.',ja:'DxMsgBroker には出力がありません。前に DxMsgConv を置いてください。','zh-CN':'DxMsgBroker 没有输出端；请在它前面放置 DxMsgConv。','zh-TW':'DxMsgBroker 沒有輸出端；請在它前面放置 DxMsgConv。',es:'DxMsgBroker no tiene salida; coloque DxMsgConv antes.'}]) }
   },
-  {
-    id:'preset-export', cat:'pipeline', icon:'💾',
-    name: _T5('Preset & Export','프리셋 & 내보내기','プリセット & エクスポート','预设与导出','預設與匯出'),
-    desc: _T5('Save, load, GStreamer command preview','파이프라인 저장, 불러오기, GStreamer 명령 미리보기','パイプラインの保存・読込・コマンドプレビュー','管道保存、加载、命令预览','管線儲存、載入、命令預覽'),
-    tabs: { overview: _T5(
-      '<p>Pipeline Builder save and export features:</p><ul><li><b>5 built-in presets</b> — Standard, Config, PPU, Tracking, Multi-stream</li><li><b>Load preset</b> — auto-builds pipeline on canvas</li><li><b>Save as JSON</b> — exports full pipeline state</li><li><b>Import JSON</b> — restore previously saved pipelines</li><li><b>GStreamer Command Preview</b> — shows equivalent <code>gst-launch-1.0</code> command</li><li><b>Run button</b> — sends pipeline to server for execution</li><li><b>Undo/Redo</b> — <code>Ctrl+Z</code> / <code>Ctrl+Shift+Z</code></li></ul>',
-      '<p>파이프라인 빌더의 저장 및 내보내기 기능:</p><ul><li><b>5개 내장 프리셋</b> — Standard, Config, PPU, Tracking, Multi-stream</li><li><b>프리셋 로드</b> → 캔버스에 자동으로 파이프라인 구성</li><li><b>JSON 저장</b> — 전체 파이프라인 상태 내보내기</li><li><b>JSON 불러오기</b> — 이전에 저장한 파이프라인 복원</li><li><b>GStreamer 명령 미리보기</b> — <code>gst-launch-1.0</code> 명령 표시</li><li><b>실행 버튼</b> — 파이프라인을 서버로 전송하여 실행</li><li><b>Undo/Redo</b> — <code>Ctrl+Z</code> / <code>Ctrl+Shift+Z</code></li></ul>',
-      '<p>パイプラインビルダーの保存・エクスポート機能：</p><ul><li><b>5つの内蔵プリセット</b></li><li><b>プリセットロード</b> → キャンバスに自動構築</li><li><b>JSON保存</b> — パイプライン全状態をエクスポート</li><li><b>JSONインポート</b> — 復元</li><li><b>GStreamerコマンドプレビュー</b></li><li><b>実行ボタン</b></li><li><b>Undo/Redo</b></li></ul>',
-      '<p>管道构建器的保存和导出功能：</p><ul><li><b>5个内置预设</b></li><li><b>加载预设</b> → 自动构建</li><li><b>保存为JSON</b></li><li><b>导入JSON</b></li><li><b>GStreamer命令预览</b></li><li><b>运行按钮</b></li><li><b>撤销/重做</b></li></ul>',
-      '<p>管線建置器的儲存和匯出功能：</p><ul><li><b>5個內建預設</b></li><li><b>載入預設</b> → 自動建置</li><li><b>儲存為JSON</b></li><li><b>匯入JSON</b></li><li><b>GStreamer命令預覽</b></li><li><b>執行按鈕</b></li><li><b>復原/重做</b></li></ul>'
-    ) }
+  { id:'preset-export', cat:'pipeline', icon:'download',
+    name:refL({en:'Presets & Export',ko:'프리셋 · 내보내기',ja:'プリセットとエクスポート','zh-CN':'预设与导出','zh-TW':'預設與匯出',es:'Preajustes y exportación'}),
+    desc:refL({en:'Load a demo, save JSON, see the gst-launch command',ko:'데모 불러오기, JSON 저장, gst-launch 명령 보기',ja:'デモの読み込み・JSON 保存・gst-launch コマンド表示','zh-CN':'载入演示、保存 JSON、查看 gst-launch 命令','zh-TW':'載入示範、儲存 JSON、檢視 gst-launch 指令',es:'Cargar una demo, guardar JSON y ver el comando gst-launch'}),
+    tabs:{ overview: _ul([
+        {en:'<b>Presets</b> — each demo can be loaded onto the canvas as a starting point.',ko:'<b>프리셋</b> — 데모마다 캔버스로 불러와 출발점으로 쓸 수 있습니다.',ja:'<b>プリセット</b> — 各デモをキャンバスに読み込んで出発点にできます。','zh-CN':'<b>预设</b> — 每个演示都可载入画布作为起点。','zh-TW':'<b>預設</b> — 每個示範都可載入畫布作為起點。',es:'<b>Preajustes</b>: cada demo puede cargarse en el lienzo como punto de partida.'},
+        {en:'<b>Export</b> downloads the pipeline as <code>pipeline.json</code>; <b>Import</b> loads such a file.',ko:'<b>Export</b>는 파이프라인을 <code>pipeline.json</code>으로 내려받고, <b>Import</b>는 그 파일을 불러옵니다.',ja:'<b>Export</b> はパイプラインを <code>pipeline.json</code> としてダウンロードし、<b>Import</b> はそのファイルを読み込みます。','zh-CN':'<b>Export</b> 将管道下载为 <code>pipeline.json</code>；<b>Import</b> 载入此类文件。','zh-TW':'<b>Export</b> 將管線下載為 <code>pipeline.json</code>；<b>Import</b> 載入此類檔案。',es:'<b>Export</b> descarga la canalización como <code>pipeline.json</code>; <b>Import</b> carga un archivo así.'},
+        {en:'The command preview shows the equivalent <code>gst-launch-1.0</code> line.',ko:'명령 미리보기에 같은 뜻의 <code>gst-launch-1.0</code> 명령이 나옵니다.',ja:'コマンドプレビューに同等の <code>gst-launch-1.0</code> コマンドが表示されます。','zh-CN':'命令预览显示等效的 <code>gst-launch-1.0</code> 命令。','zh-TW':'指令預覽顯示等效的 <code>gst-launch-1.0</code> 指令。',es:'La vista previa del comando muestra la línea <code>gst-launch-1.0</code> equivalente.'},
+        {en:'<b>Run</b> and <b>Stop</b> start and end the pipeline; Undo / Redo keeps the last 50 changes.',ko:'<b>Run</b> · <b>Stop</b>으로 파이프라인을 시작 · 종료하고, Undo / Redo는 최근 50개 변경을 기억합니다.',ja:'<b>Run</b>・<b>Stop</b> でパイプラインを開始・終了し、Undo / Redo は直近 50 件の変更を保持します。','zh-CN':'<b>Run</b> 与 <b>Stop</b> 用于启动和结束管道；Undo / Redo 保留最近 50 次更改。','zh-TW':'<b>Run</b> 與 <b>Stop</b> 用於啟動與結束管線；Undo / Redo 保留最近 50 次變更。',es:'<b>Run</b> y <b>Stop</b> inician y detienen la canalización; Deshacer / Rehacer guarda los últimos 50 cambios.'}]) }
   },
-  {
-    id:'model-catalog', cat:'models-elements', icon:'🧠',
-    name: _T5('Model Catalog','모델 카탈로그','モデルカタログ','模型目录','模型目錄'),
-    desc: _T5('Search, download, and inspect 16 AI models','16개 AI 모델 검색, 다운로드, 메타데이터 확인','16個のAIモデル検索・ダウンロード・メタデータ確認','搜索、下载和查看16个AI模型','搜尋、下載和查看16個AI模型'),
-    tabs: { overview: _T5(
-      '<p>Manage 16 DEEPX <code>.dxnn</code> AI models:</p><ul><li><b>5 categories</b> — Object Detection(8), Face Detection(3), Pose Estimation(3), Segmentation(1), Classification(1)</li><li><b>Model cards</b> — name, bilingual description, filename, category badge, install status</li><li><b>Download</b> — click button → poll progress → auto-refresh on completion</li><li><b>Detail modal</b> — General tab + Metadata tab</li><li><b>Search + category filter</b> — work independently</li></ul>',
-      '<p>16개의 DEEPX <code>.dxnn</code> AI 모델을 관리합니다:</p><ul><li><b>5개 카테고리</b> — 객체 감지(8), 얼굴 감지(3), 포즈 추정(3), 분할(1), 분류(1)</li><li><b>모델 카드</b> — 이름, 이중 언어 설명, 파일명, 카테고리 배지, 설치 상태</li><li><b>다운로드</b> — 클릭 → 진행률 폴링 → 완료 시 자동 새로고침</li><li><b>상세 모달</b> — 일반 탭 + 메타데이터 탭</li><li><b>검색 + 카테고리 필터</b> — 독립적으로 동작</li></ul>',
-      '<p>16個のDEEPX <code>.dxnn</code> AIモデルを管理：</p><ul><li><b>5カテゴリ</b></li><li><b>モデルカード</b> — 名前、説明、ファイル名、カテゴリバッジ、状態</li><li><b>ダウンロード</b> — 進捗ポーリング → 完了時に自動更新</li><li><b>詳細モーダル</b> — 一般タブ + メタデータタブ</li><li><b>検索 + フィルター</b></li></ul>',
-      '<p>管理16个DEEPX <code>.dxnn</code> AI模型：</p><ul><li><b>5个类别</b></li><li><b>模型卡片</b></li><li><b>下载</b> — 轮询进度 → 完成自动刷新</li><li><b>详细模态框</b></li><li><b>搜索 + 类别过滤</b></li></ul>',
-      '<p>管理16個DEEPX <code>.dxnn</code> AI模型：</p><ul><li><b>5個類別</b></li><li><b>模型卡片</b></li><li><b>下載</b> — 輪詢進度 → 完成自動重新整理</li><li><b>詳細模態框</b></li><li><b>搜尋 + 類別篩選</b></li></ul>'
-    ) }
+  { id:'model-catalog', cat:'models-elements', icon:'models',
+    name:refL({en:'Model Catalog',ko:'모델 카탈로그',ja:'モデルカタログ','zh-CN':'模型目录','zh-TW':'模型目錄',es:'Catálogo de modelos'}),
+    desc:refL({en:'Demo models: install state and download',ko:'데모 모델의 설치 상태와 다운로드',ja:'デモ用モデルのインストール状態とダウンロード','zh-CN':'演示模型的安装状态与下载','zh-TW':'示範模型的安裝狀態與下載',es:'Modelos de las demos: estado y descarga'}),
+    tabs:{ overview: _ul([
+        {en:'Cards show the name, description, file, category and whether the model is installed.',ko:'카드에 이름 · 설명 · 파일 · 분류와 설치 여부가 나옵니다.',ja:'カードに名前・説明・ファイル・カテゴリとインストール状態が表示されます。','zh-CN':'卡片显示名称、描述、文件、类别以及是否已安装。','zh-TW':'卡片顯示名稱、說明、檔案、類別以及是否已安裝。',es:'Las tarjetas muestran nombre, descripción, archivo, categoría y si el modelo está instalado.'},
+        {en:'<b>Download</b> fetches a missing model; the card updates when it is done.',ko:'<b>Download</b>는 없는 모델을 받고, 끝나면 카드가 바뀝니다.',ja:'<b>Download</b> で足りないモデルを取得し、完了するとカードが更新されます。','zh-CN':'<b>Download</b> 获取缺少的模型，完成后卡片会更新。','zh-TW':'<b>Download</b> 取得缺少的模型，完成後卡片會更新。',es:'<b>Download</b> obtiene un modelo que falta; la tarjeta se actualiza al terminar.'},
+        {en:'Open a card for <b>Detail</b> and <b>Metadata</b> tabs.',ko:'카드를 열면 <b>Detail</b> · <b>Metadata</b> 탭이 있습니다.',ja:'カードを開くと <b>Detail</b>・<b>Metadata</b> タブがあります。','zh-CN':'打开卡片可查看 <b>Detail</b> 和 <b>Metadata</b> 标签。','zh-TW':'開啟卡片可查看 <b>Detail</b> 與 <b>Metadata</b> 分頁。',es:'Abra una tarjeta para ver las pestañas <b>Detail</b> y <b>Metadata</b>.'},
+        {en:'Search works within the chosen category.',ko:'검색은 고른 분류 안에서 동작합니다.',ja:'検索は選んだカテゴリ内で行われます。','zh-CN':'搜索在所选类别内进行。','zh-TW':'搜尋在所選類別內進行。',es:'La búsqueda funciona dentro de la categoría elegida.'}]) }
   },
-  {
-    id:'element-reference', cat:'models-elements', icon:'🧩',
-    name: _T5('Element Reference','요소 레퍼런스','エレメントリファレンス','元素参考','元素參考'),
-    desc: _T5('Properties, pads, and examples for 26 elements','26개 GStreamer 요소 속성, 패드, 예제','26個のエレメントの属性・パッド・例','26个元素的属性、焊盘和示例','26個元素的屬性、接墊與範例'),
-    tabs: { overview: _T5(
-      '<p>13 DEEPX custom + 13 standard GStreamer elements:</p><ul><li><b>10 categories</b> — Preprocess, Inference, Postprocess, Visualization, Tracking, Messaging, Source, Output, Utility</li><li><b>Element cards</b> — name, category badge, bilingual description, property count</li><li><b>Detail panel</b> — long description, key features, pipeline hint, example config</li><li><b>Properties table</b> — name, type, default, description</li></ul><div class="ref-box tip">💡 Key rules: DxPreprocess/DxInfer must match <code>preprocess-id</code>; DxInfer/DxPostprocess must match <code>inference-id</code></div>',
-      '<p>13개 DEEPX 커스텀 + 13개 표준 GStreamer 요소:</p><ul><li><b>10개 카테고리</b></li><li><b>요소 카드</b> — 이름, 카테고리 배지, 설명, 속성 수</li><li><b>상세 패널</b> — 긴 설명, 주요 기능, 파이프라인 힌트, 예제</li><li><b>속성 테이블</b> — 이름, 타입, 기본값, 설명</li></ul><div class="ref-box tip">💡 DxPreprocess/DxInfer는 <code>preprocess-id</code> 일치 필수</div>',
-      '<p>13個のDEEPXカスタム + 13個の標準GStreamerエレメント：</p><ul><li><b>10カテゴリ</b></li><li><b>エレメントカード</b></li><li><b>詳細パネル</b></li><li><b>プロパティテーブル</b></li></ul><div class="ref-box tip">💡 DxPreprocess/DxInferは<code>preprocess-id</code>一致必須</div>',
-      '<p>13个DEEPX自定义 + 13个标准GStreamer元素：</p><ul><li><b>10个类别</b></li><li><b>元素卡片</b></li><li><b>详细面板</b></li><li><b>属性表</b></li></ul><div class="ref-box tip">💡 DxPreprocess/DxInfer的<code>preprocess-id</code>必须匹配</div>',
-      '<p>13個DEEPX自訂 + 13個標準GStreamer元素：</p><ul><li><b>10個類別</b></li><li><b>元素卡片</b></li><li><b>詳細面板</b></li><li><b>屬性表</b></li></ul><div class="ref-box tip">💡 DxPreprocess/DxInfer的<code>preprocess-id</code>必須匹配</div>'
-    ) }
+  { id:'element-reference', cat:'models-elements', icon:'puzzle',
+    name:refL({en:'Element Reference',ko:'요소 레퍼런스',ja:'エレメントリファレンス','zh-CN':'元素参考','zh-TW':'元素參考',es:'Referencia de elementos'}),
+    desc:refL({en:'29 GStreamer elements: 17 DEEPX and 12 standard',ko:'GStreamer 요소 29개: DEEPX 17개 · 표준 12개',ja:'29 の GStreamer エレメント：DEEPX 17・標準 12','zh-CN':'29 个 GStreamer 元素：DEEPX 17 个、标准 12 个','zh-TW':'29 個 GStreamer 元素：DEEPX 17 個、標準 12 個',es:'29 elementos de GStreamer: 17 de DEEPX y 12 estándar'}),
+    tabs:{ overview: _ul([
+        {en:'Elements are grouped in the same 9 categories as the Pipeline Builder palette.',ko:'요소는 Pipeline Builder 팔레트와 같은 9개 분류로 묶입니다.',ja:'エレメントは Pipeline Builder のパレットと同じ 9 カテゴリに分かれています。','zh-CN':'元素按与 Pipeline Builder 元素面板相同的 9 个类别分组。','zh-TW':'元素依與 Pipeline Builder 元素面板相同的 9 個類別分組。',es:'Los elementos se agrupan en las mismas 9 categorías que la paleta de Pipeline Builder.'},
+        {en:'The detail panel has the description, key features, a pipeline hint, an example, related elements, properties and pads.',ko:'상세 패널에는 설명 · 주요 기능 · 파이프라인 힌트 · 예시 · 관련 요소 · 속성 · 패드가 있습니다.',ja:'詳細パネルには説明・主な機能・パイプラインのヒント・例・関連エレメント・プロパティ・パッドがあります。','zh-CN':'详情面板包含描述、主要功能、管道提示、示例、相关元素、属性与 pad。','zh-TW':'詳情面板包含說明、主要功能、管線提示、範例、相關元素、屬性與 pad。',es:'El panel de detalle incluye descripción, funciones clave, una pista de canalización, un ejemplo, elementos relacionados, propiedades y pads.'}]) +
+      _tip({en:'DxPreprocess, DxInfer and DxPostprocess work together: DxPostprocess must use the <code>inference-id</code> of its DxInfer.',ko:'DxPreprocess · DxInfer · DxPostprocess는 함께 동작하며, DxPostprocess는 자기 DxInfer의 <code>inference-id</code>를 써야 합니다.',ja:'DxPreprocess・DxInfer・DxPostprocess は連携して動きます。DxPostprocess は対応する DxInfer の <code>inference-id</code> を使う必要があります。','zh-CN':'DxPreprocess、DxInfer 与 DxPostprocess 协同工作：DxPostprocess 必须使用其 DxInfer 的 <code>inference-id</code>。','zh-TW':'DxPreprocess、DxInfer 與 DxPostprocess 協同運作：DxPostprocess 必須使用其 DxInfer 的 <code>inference-id</code>。',es:'DxPreprocess, DxInfer y DxPostprocess trabajan juntos: DxPostprocess debe usar el <code>inference-id</code> de su DxInfer.'}) }
   },
-  {
-    id:'custom-library', cat:'models-elements', icon:'🔩',
-    name: _T5('Custom Library','커스텀 라이브러리','カスタムライブラリ','自定义库','自訂函式庫'),
-    desc: _T5('Upload C source, meson build, .so install','C 소스 업로드, meson 빌드, .so 설치','Cソースアップロード、mesonビルド、.soインストール','C源码上传、meson构建、.so安装','C原始碼上傳、meson建置、.so安裝'),
-    tabs: { overview: _T5(
-      '<p>Manage C libraries for custom post-processing logic:</p><ul><li><b>Upload</b> — C source files + <code>meson.build</code></li><li><b>Build process</b> — meson setup → meson compile → sudo meson install</li><li><b>Install path</b> — <code>/usr/local/share/gstdxstream/lib/</code></li><li><b>Pipeline Builder integration</b> — built <code>.so</code> auto-appears in DxPostprocess dropdown</li><li><b>Real-time build log</b> — 1-second polling interval</li></ul><div class="ref-box tip">💡 The <code>.so</code> must export a C function matching <code>function-name</code> (default: <code>PostProcess</code>).</div>',
-      '<p>커스텀 후처리 로직을 위한 C 라이브러리 관리:</p><ul><li><b>업로드</b> — C 소스 파일 + <code>meson.build</code></li><li><b>빌드 프로세스</b> — meson setup → meson compile → sudo meson install</li><li><b>설치 경로</b> — <code>/usr/local/share/gstdxstream/lib/</code></li><li><b>파이프라인 빌더 연동</b> — 빌드된 <code>.so</code>가 드롭다운에 자동 표시</li><li><b>실시간 빌드 로그</b> — 1초 간격 폴링</li></ul><div class="ref-box tip">💡 <code>.so</code> 파일은 <code>function-name</code>과 일치하는 C 함수를 export해야 합니다.</div>',
-      '<p>カスタム後処理ロジック用のCライブラリ管理：</p><ul><li><b>アップロード</b> — Cソースファイル + <code>meson.build</code></li><li><b>ビルドプロセス</b> — meson setup → compile → install</li><li><b>インストールパス</b> — <code>/usr/local/share/gstdxstream/lib/</code></li><li><b>パイプラインビルダー連携</b> — <code>.so</code>が自動表示</li></ul><div class="ref-box tip">💡 <code>.so</code>は<code>function-name</code>と一致するC関数をエクスポートする必要があります。</div>',
-      '<p>管理自定义后处理逻辑的C库：</p><ul><li><b>上传</b> — C源文件 + <code>meson.build</code></li><li><b>构建过程</b> — meson setup → compile → install</li><li><b>安装路径</b> — <code>/usr/local/share/gstdxstream/lib/</code></li><li><b>管道构建器集成</b> — <code>.so</code>自动出现</li></ul><div class="ref-box tip">💡 <code>.so</code>必须导出与<code>function-name</code>匹配的C函数。</div>',
-      '<p>管理自訂後處理邏輯的C函式庫：</p><ul><li><b>上傳</b> — C原始碼檔案 + <code>meson.build</code></li><li><b>建置過程</b> — meson setup → compile → install</li><li><b>安裝路徑</b> — <code>/usr/local/share/gstdxstream/lib/</code></li><li><b>管線建置器整合</b> — <code>.so</code>自動出現</li></ul><div class="ref-box tip">💡 <code>.so</code>必須匯出與<code>function-name</code>匹配的C函式。</div>'
-    ) }
+  { id:'custom-library', cat:'models-elements', icon:'puzzle',
+    name:refL({en:'Custom Library',ko:'사용자 라이브러리',ja:'カスタムライブラリ','zh-CN':'自定义库','zh-TW':'自訂程式庫',es:'Biblioteca propia'}),
+    desc:refL({en:'Your own post-processing in C',ko:'C로 만드는 나만의 후처리',ja:'C で書く独自の後処理','zh-CN':'用 C 编写自己的后处理','zh-TW':'用 C 撰寫自己的後處理',es:'Su propio posprocesado en C'}),
+    tabs:{ overview: _ul([
+        {en:'Upload C sources with a <code>meson.build</code>; the build starts right away.',ko:'C 소스와 <code>meson.build</code>를 올리면 바로 빌드가 시작됩니다.',ja:'C ソースと <code>meson.build</code> をアップロードすると、すぐにビルドが始まります。','zh-CN':'上传 C 源码和 <code>meson.build</code> 后会立即开始构建。','zh-TW':'上傳 C 原始碼與 <code>meson.build</code> 後會立即開始建置。',es:'Suba fuentes en C con un <code>meson.build</code>; la compilación empieza de inmediato.'},
+        {en:'Build: <code>meson setup</code> → <code>meson compile</code> → <code>sudo meson install</code>, into <code>/usr/local/share/gstdxstream/lib/</code>; the log updates every second.',ko:'빌드: <code>meson setup</code> → <code>meson compile</code> → <code>sudo meson install</code>, 설치 위치 <code>/usr/local/share/gstdxstream/lib/</code>. 로그는 1초마다 갱신됩니다.',ja:'ビルド：<code>meson setup</code> → <code>meson compile</code> → <code>sudo meson install</code>、インストール先 <code>/usr/local/share/gstdxstream/lib/</code>。ログは 1 秒ごとに更新されます。','zh-CN':'构建：<code>meson setup</code> → <code>meson compile</code> → <code>sudo meson install</code>，安装到 <code>/usr/local/share/gstdxstream/lib/</code>；日志每秒更新。','zh-TW':'建置：<code>meson setup</code> → <code>meson compile</code> → <code>sudo meson install</code>，安裝到 <code>/usr/local/share/gstdxstream/lib/</code>；記錄每秒更新。',es:'Compilación: <code>meson setup</code> → <code>meson compile</code> → <code>sudo meson install</code>, en <code>/usr/local/share/gstdxstream/lib/</code>; el registro se actualiza cada segundo.'},
+        {en:'The built <code>.so</code> appears in the DxPostprocess <code>library-file-path</code> list the next time the Pipeline Builder opens.',ko:'빌드된 <code>.so</code>는 다음에 Pipeline Builder를 열 때 DxPostprocess의 <code>library-file-path</code> 목록에 나타납니다.',ja:'ビルドした <code>.so</code> は、次に Pipeline Builder を開いたときに DxPostprocess の <code>library-file-path</code> 一覧に表示されます。','zh-CN':'构建出的 <code>.so</code> 会在下次打开 Pipeline Builder 时出现在 DxPostprocess 的 <code>library-file-path</code> 列表中。','zh-TW':'建置出的 <code>.so</code> 會在下次開啟 Pipeline Builder 時出現在 DxPostprocess 的 <code>library-file-path</code> 清單中。',es:'El <code>.so</code> compilado aparece en la lista <code>library-file-path</code> de DxPostprocess la próxima vez que abra Pipeline Builder.'},
+        {en:'The same page also uploads <code>.dxnn</code> model files.',ko:'같은 페이지에서 <code>.dxnn</code> 모델 파일도 올릴 수 있습니다.',ja:'同じページで <code>.dxnn</code> モデルファイルもアップロードできます。','zh-CN':'同一页面也可上传 <code>.dxnn</code> 模型文件。','zh-TW':'同一頁面也可上傳 <code>.dxnn</code> 模型檔案。',es:'La misma página también sube archivos de modelo <code>.dxnn</code>.'}]) +
+      _tip({en:'The <code>.so</code> must export the C function named in <code>function-name</code>.',ko:'<code>.so</code>는 <code>function-name</code>에 적은 C 함수를 내보내야 합니다.',ja:'<code>.so</code> は <code>function-name</code> に指定した C 関数をエクスポートする必要があります。','zh-CN':'<code>.so</code> 必须导出 <code>function-name</code> 中指定的 C 函数。','zh-TW':'<code>.so</code> 必須匯出 <code>function-name</code> 中指定的 C 函式。',es:'El <code>.so</code> debe exportar la función C indicada en <code>function-name</code>.'}) }
   },
-  {
-    id:'keyboard-shortcuts', cat:'system', icon:'⌨️',
-    name: _T5('Keyboard Shortcuts','키보드 단축키','キーボードショートカット','键盘快捷键','鍵盤快捷鍵'),
-    desc: _T5('Pipeline Builder and general shortcuts','파이프라인 빌더 및 일반 단축키','パイプラインビルダーと一般ショートカット','管道构建器和通用快捷键','管線建置器與一般快捷鍵'),
-    tabs: { overview: _T5(
-      '<table><thead><tr><th>Shortcut</th><th>Action</th><th>Scope</th></tr></thead><tbody><tr><td><code>Ctrl+Z</code></td><td>Undo</td><td>Pipeline Builder</td></tr><tr><td><code>Ctrl+Shift+Z</code></td><td>Redo</td><td>Pipeline Builder</td></tr><tr><td><code>Delete</code> / <code>Backspace</code></td><td>Delete selected node</td><td>Pipeline Builder</td></tr><tr><td><code>Escape</code></td><td>Deselect / Close panel</td><td>Global</td></tr><tr><td><code>Ctrl+K</code></td><td>Open chat widget</td><td>Global</td></tr><tr><td>Mouse wheel</td><td>Canvas zoom</td><td>Pipeline Builder</td></tr><tr><td>Middle-click drag</td><td>Canvas pan</td><td>Pipeline Builder</td></tr></tbody></table>',
-      '<table><thead><tr><th>단축키</th><th>기능</th><th>범위</th></tr></thead><tbody><tr><td><code>Ctrl+Z</code></td><td>실행 취소</td><td>파이프라인 빌더</td></tr><tr><td><code>Ctrl+Shift+Z</code></td><td>다시 실행</td><td>파이프라인 빌더</td></tr><tr><td><code>Delete</code> / <code>Backspace</code></td><td>선택한 노드 삭제</td><td>파이프라인 빌더</td></tr><tr><td><code>Escape</code></td><td>선택 해제 / 패널 닫기</td><td>전체</td></tr><tr><td><code>Ctrl+K</code></td><td>채팅 위젯 열기</td><td>전체</td></tr><tr><td>마우스 휠</td><td>캔버스 줌</td><td>파이프라인 빌더</td></tr><tr><td>중간 클릭 드래그</td><td>캔버스 패닝</td><td>파이프라인 빌더</td></tr></tbody></table>',
-      '<table><thead><tr><th>ショートカット</th><th>機能</th><th>範囲</th></tr></thead><tbody><tr><td><code>Ctrl+Z</code></td><td>元に戻す</td><td>パイプラインビルダー</td></tr><tr><td><code>Ctrl+Shift+Z</code></td><td>やり直し</td><td>パイプラインビルダー</td></tr><tr><td><code>Delete</code></td><td>選択ノード削除</td><td>パイプラインビルダー</td></tr><tr><td><code>Escape</code></td><td>選択解除/パネル閉じ</td><td>全体</td></tr><tr><td><code>Ctrl+K</code></td><td>チャットウィジェット</td><td>全体</td></tr></tbody></table>',
-      '<table><thead><tr><th>快捷键</th><th>功能</th><th>范围</th></tr></thead><tbody><tr><td><code>Ctrl+Z</code></td><td>撤销</td><td>管道构建器</td></tr><tr><td><code>Ctrl+Shift+Z</code></td><td>重做</td><td>管道构建器</td></tr><tr><td><code>Delete</code></td><td>删除选中节点</td><td>管道构建器</td></tr><tr><td><code>Escape</code></td><td>取消选择/关闭面板</td><td>全局</td></tr><tr><td><code>Ctrl+K</code></td><td>打开聊天</td><td>全局</td></tr></tbody></table>',
-      '<table><thead><tr><th>快捷鍵</th><th>功能</th><th>範圍</th></tr></thead><tbody><tr><td><code>Ctrl+Z</code></td><td>復原</td><td>管線建置器</td></tr><tr><td><code>Ctrl+Shift+Z</code></td><td>重做</td><td>管線建置器</td></tr><tr><td><code>Delete</code></td><td>刪除選取節點</td><td>管線建置器</td></tr><tr><td><code>Escape</code></td><td>取消選取/關閉面板</td><td>全域</td></tr><tr><td><code>Ctrl+K</code></td><td>開啟聊天</td><td>全域</td></tr></tbody></table>'
-    ) }
+  { id:'keyboard-shortcuts', cat:'system', icon:'dev',
+    name:refL({en:'Keyboard Shortcuts',ko:'키보드 단축키',ja:'キーボードショートカット','zh-CN':'键盘快捷键','zh-TW':'鍵盤快捷鍵',es:'Atajos de teclado'}),
+    desc:refL({en:'Pipeline Builder keys',ko:'Pipeline Builder 키',ja:'Pipeline Builder のキー','zh-CN':'Pipeline Builder 按键','zh-TW':'Pipeline Builder 按鍵',es:'Teclas de Pipeline Builder'}),
+    tabs:{ overview:
+      _tbl([{en:'Key',ko:'키',ja:'キー','zh-CN':'按键','zh-TW':'按鍵',es:'Tecla'},{en:'Action (Pipeline Builder)',ko:'동작 (Pipeline Builder)',ja:'動作（Pipeline Builder）','zh-CN':'作用（Pipeline Builder）','zh-TW':'作用（Pipeline Builder）',es:'Acción (Pipeline Builder)'}],[
+        ['<code>Ctrl+Z</code> / <code>Ctrl+Shift+Z</code>',{en:'Undo / Redo',ko:'실행 취소 / 다시 실행',ja:'元に戻す / やり直し','zh-CN':'撤销 / 重做','zh-TW':'復原 / 重做',es:'Deshacer / Rehacer'}],
+        ['<code>Ctrl+C</code> / <code>Ctrl+V</code>',{en:'Copy / Paste nodes',ko:'노드 복사 / 붙여넣기',ja:'ノードのコピー / 貼り付け','zh-CN':'复制 / 粘贴节点','zh-TW':'複製 / 貼上節點',es:'Copiar / Pegar nodos'}],
+        ['<code>Ctrl+A</code>',{en:'Select all',ko:'모두 선택',ja:'すべて選択','zh-CN':'全选','zh-TW':'全選',es:'Seleccionar todo'}],
+        ['<code>Shift</code> + click',{en:'Add to the selection',ko:'선택에 추가',ja:'選択に追加','zh-CN':'加入选择','zh-TW':'加入選取',es:'Añadir a la selección'}],
+        ['<code>Delete</code>',{en:'Delete the selected node or connection',ko:'고른 노드나 연결 삭제',ja:'選択中のノードまたは接続を削除','zh-CN':'删除所选节点或连接','zh-TW':'刪除所選節點或連接',es:'Eliminar el nodo o la conexión seleccionados'}],
+        ['<code>Esc</code>',{en:'Clear the selection; also closes this detail panel',ko:'선택 해제, 이 상세 패널도 닫음',ja:'選択を解除。この詳細パネルも閉じる','zh-CN':'取消选择；也会关闭此详情面板','zh-TW':'取消選取；也會關閉此詳情面板',es:'Quitar la selección; también cierra este panel'}]]) }
   },
-  {
-    id:'api-endpoints', cat:'system', icon:'🌐',
-    name: _T5('API Endpoints','API 엔드포인트','APIエンドポイント','API端点','API端點'),
-    desc: _T5('Complete REST API list and usage','REST API 전체 목록 및 사용법','REST API全リストと使い方','REST API完整列表和用法','REST API完整列表與用法'),
-    tabs: { overview: _T5(
-      '<table><thead><tr><th>Group</th><th>Method</th><th>Path</th></tr></thead><tbody><tr><td>Status</td><td>GET</td><td><code>/api/status</code></td></tr><tr><td>Pipeline</td><td>POST</td><td><code>/api/pipeline/run</code></td></tr><tr><td>Pipeline</td><td>POST</td><td><code>/api/pipeline/stop</code></td></tr><tr><td>Pipeline</td><td>GET</td><td><code>/api/pipeline/status</code></td></tr><tr><td>Pipeline</td><td>POST</td><td><code>/api/pipeline/validate</code></td></tr><tr><td>Stream</td><td>GET</td><td><code>/api/stream/mjpeg</code></td></tr><tr><td>Stream</td><td>POST</td><td><code>/api/stream/webrtc/offer</code></td></tr><tr><td>Demo</td><td>GET</td><td><code>/api/demos</code></td></tr><tr><td>Demo</td><td>POST</td><td><code>/api/demo/run/:id</code></td></tr><tr><td>Models</td><td>GET</td><td><code>/api/models</code></td></tr><tr><td>Elements</td><td>GET</td><td><code>/api/elements</code></td></tr><tr><td>Custom</td><td>GET</td><td><code>/api/custom-library</code></td></tr><tr><td>Custom</td><td>POST</td><td><code>/api/custom-library/upload</code></td></tr></tbody></table>',
-      '<table><thead><tr><th>분류</th><th>메서드</th><th>경로</th></tr></thead><tbody><tr><td>상태</td><td>GET</td><td><code>/api/status</code></td></tr><tr><td>파이프라인</td><td>POST</td><td><code>/api/pipeline/run</code></td></tr><tr><td>파이프라인</td><td>POST</td><td><code>/api/pipeline/stop</code></td></tr><tr><td>파이프라인</td><td>GET</td><td><code>/api/pipeline/status</code></td></tr><tr><td>파이프라인</td><td>POST</td><td><code>/api/pipeline/validate</code></td></tr><tr><td>스트림</td><td>GET</td><td><code>/api/stream/mjpeg</code></td></tr><tr><td>스트림</td><td>POST</td><td><code>/api/stream/webrtc/offer</code></td></tr><tr><td>데모</td><td>GET</td><td><code>/api/demos</code></td></tr><tr><td>데모</td><td>POST</td><td><code>/api/demo/run/:id</code></td></tr><tr><td>모델</td><td>GET</td><td><code>/api/models</code></td></tr><tr><td>요소</td><td>GET</td><td><code>/api/elements</code></td></tr><tr><td>커스텀</td><td>GET</td><td><code>/api/custom-library</code></td></tr><tr><td>커스텀</td><td>POST</td><td><code>/api/custom-library/upload</code></td></tr></tbody></table>',
-      '<table><thead><tr><th>分類</th><th>メソッド</th><th>パス</th></tr></thead><tbody><tr><td>ステータス</td><td>GET</td><td><code>/api/status</code></td></tr><tr><td>パイプライン</td><td>POST</td><td><code>/api/pipeline/run</code></td></tr><tr><td>パイプライン</td><td>POST</td><td><code>/api/pipeline/stop</code></td></tr><tr><td>ストリーム</td><td>GET</td><td><code>/api/stream/mjpeg</code></td></tr><tr><td>デモ</td><td>GET</td><td><code>/api/demos</code></td></tr><tr><td>モデル</td><td>GET</td><td><code>/api/models</code></td></tr><tr><td>エレメント</td><td>GET</td><td><code>/api/elements</code></td></tr></tbody></table>',
-      '<table><thead><tr><th>分类</th><th>方法</th><th>路径</th></tr></thead><tbody><tr><td>状态</td><td>GET</td><td><code>/api/status</code></td></tr><tr><td>管道</td><td>POST</td><td><code>/api/pipeline/run</code></td></tr><tr><td>管道</td><td>POST</td><td><code>/api/pipeline/stop</code></td></tr><tr><td>流</td><td>GET</td><td><code>/api/stream/mjpeg</code></td></tr><tr><td>演示</td><td>GET</td><td><code>/api/demos</code></td></tr><tr><td>模型</td><td>GET</td><td><code>/api/models</code></td></tr><tr><td>元素</td><td>GET</td><td><code>/api/elements</code></td></tr></tbody></table>',
-      '<table><thead><tr><th>分類</th><th>方法</th><th>路徑</th></tr></thead><tbody><tr><td>狀態</td><td>GET</td><td><code>/api/status</code></td></tr><tr><td>管線</td><td>POST</td><td><code>/api/pipeline/run</code></td></tr><tr><td>管線</td><td>POST</td><td><code>/api/pipeline/stop</code></td></tr><tr><td>串流</td><td>GET</td><td><code>/api/stream/mjpeg</code></td></tr><tr><td>示範</td><td>GET</td><td><code>/api/demos</code></td></tr><tr><td>模型</td><td>GET</td><td><code>/api/models</code></td></tr><tr><td>元素</td><td>GET</td><td><code>/api/elements</code></td></tr></tbody></table>'
-    ) }
+  { id:'api-endpoints', cat:'system', icon:'globe',
+    name:'API Endpoints',
+    desc:refL({en:'The main HTTP endpoints',ko:'주요 HTTP 엔드포인트',ja:'主な HTTP エンドポイント','zh-CN':'主要 HTTP 端点','zh-TW':'主要 HTTP 端點',es:'Los endpoints HTTP principales'}),
+    tabs:{ overview:
+      _tbl([{en:'Group',ko:'구분',ja:'グループ','zh-CN':'分组','zh-TW':'分組',es:'Grupo'},'Method','Path'],[
+        ['Status','GET','<code>/api/status</code>'],
+        ['Demos','GET','<code>/api/demos</code>'],
+        ['Demos','POST','<code>/api/demos/:id/start</code> · <code>/api/demos/:id/stop</code>'],
+        ['Pipeline','POST','<code>/api/pipeline/run</code> · <code>/api/pipeline/stop</code> · <code>/api/pipeline/validate</code>'],
+        ['Pipeline','GET','<code>/api/pipeline/status</code> · <code>/api/pipeline/elements</code>'],
+        ['Stream','GET','<code>/api/stream/mjpeg</code> · <code>/api/stream/snapshot</code>'],
+        ['WebRTC','POST','<code>/api/webrtc/offer</code> · <code>/api/webrtc/ice</code>'],
+        ['Models','GET','<code>/api/models</code> · <code>/api/models/:file/metadata</code>'],
+        ['Elements','GET','<code>/api/elements</code>'],
+        ['Custom','GET / POST','<code>/api/custom-library</code> · <code>/api/custom-library/upload</code>'],
+        ['Setup','GET','<code>/api/setup/status</code> · <code>/api/diagnostics</code>']]) }
   },
-  {
-    id:'theme-language', cat:'system', icon:'🎨',
-    name: _T5('Theme & Language','테마 & 언어','テーマ & 言語','主题与语言','主題與語言'),
-    desc: _T5('Dark/light theme, 5 language switching','다크/라이트 테마, 5개 국어 전환','ダーク/ライトテーマ、5言語切替','深色/浅色主题、5种语言','深色/淺色主題、5種語言'),
-    tabs: { overview: _T5(
-      '<ul><li><b>Theme</b> — Toggle via toolbar icon, persisted in <code>localStorage</code></li><li><b>Languages (5)</b> — Korean(ko), English(en), Japanese(ja), Simplified Chinese(zh-CN), Traditional Chinese(zh-TW)</li><li><b>Switch</b> — Toolbar language button dropdown</li><li><b>Storage</b> — <code>localStorage(\'dx-lang\')</code></li><li><b>Scope</b> — All page UI text updates instantly</li></ul>',
-      '<ul><li><b>테마</b> — 툴바 아이콘으로 전환, <code>localStorage</code>에 저장</li><li><b>언어 (5개)</b> — 한국어(ko), English(en), 日本語(ja), 简体中文(zh-CN), 繁體中文(zh-TW)</li><li><b>전환 방법</b> — 툴바 언어 버튼 → 드롭다운</li><li><b>저장</b> — <code>localStorage(\'dx-lang\')</code></li><li><b>적용 범위</b> — 모든 페이지의 UI 텍스트가 즉시 업데이트</li></ul>',
-      '<ul><li><b>テーマ</b> — ツールバーアイコンで切替、<code>localStorage</code>に保存</li><li><b>言語（5つ）</b> — 韓国語、英語、日本語、簡体中国語、繁体中国語</li><li><b>切替方法</b> — ツールバー言語ボタン → ドロップダウン</li><li><b>保存</b> — <code>localStorage(\'dx-lang\')</code></li><li><b>適用範囲</b> — 全ページのUIテキストが即座に更新</li></ul>',
-      '<ul><li><b>主题</b> — 工具栏图标切换，<code>localStorage</code>保存</li><li><b>语言（5种）</b> — 韩语、英语、日语、简体中文、繁体中文</li><li><b>切换</b> — 工具栏语言下拉</li><li><b>存储</b> — <code>localStorage(\'dx-lang\')</code></li><li><b>范围</b> — 即时更新所有UI文本</li></ul>',
-      '<ul><li><b>主題</b> — 工具列圖示切換，<code>localStorage</code>儲存</li><li><b>語言（5種）</b> — 韓語、英語、日語、簡體中文、繁體中文</li><li><b>切換</b> — 工具列語言下拉</li><li><b>儲存</b> — <code>localStorage(\'dx-lang\')</code></li><li><b>範圍</b> — 即時更新所有UI文字</li></ul>'
-    ) }
+  { id:'theme-language', cat:'system', icon:'theme',
+    name:refL({en:'Theme & Language',ko:'테마 · 언어',ja:'テーマと言語','zh-CN':'主题与语言','zh-TW':'主題與語言',es:'Tema e idioma'}),
+    desc:refL({en:'Dark, light or system; six languages',ko:'어둡게 · 밝게 · 시스템, 6개 언어',ja:'ダーク・ライト・システムと 6 言語','zh-CN':'深色、浅色或跟随系统；六种语言','zh-TW':'深色、淺色或跟隨系統；六種語言',es:'Oscuro, claro o del sistema; seis idiomas'}),
+    tabs:{ overview: _ul([
+        {en:'The theme button cycles dark → light → system.',ko:'테마 단추는 어둡게 → 밝게 → 시스템 순으로 바뀝니다.',ja:'テーマボタンはダーク → ライト → システムの順に切り替わります。','zh-CN':'主题按钮按深色 → 浅色 → 跟随系统切换。','zh-TW':'主題按鈕依深色 → 淺色 → 跟隨系統切換。',es:'El botón de tema alterna oscuro → claro → del sistema.'},
+        {en:'The language menu offers English, 한국어, 日本語, Español, 简体中文 and 繁體中文.',ko:'언어 메뉴에는 English, 한국어, 日本語, Español, 简体中文, 繁體中文이 있습니다.',ja:'言語メニューには English・한국어・日本語・Español・简体中文・繁體中文 があります。','zh-CN':'语言菜单提供 English、한국어、日本語、Español、简体中文 和 繁體中文。','zh-TW':'語言選單提供 English、한국어、日本語、Español、简体中文 與 繁體中文。',es:'El menú de idioma ofrece English, 한국어, 日本語, Español, 简体中文 y 繁體中文.'},
+        {en:'Both are remembered in this browser and apply to every module.',ko:'두 설정 모두 이 브라우저에 기억되고 모든 모듈에 적용됩니다.',ja:'どちらもこのブラウザに記憶され、すべてのモジュールに適用されます。','zh-CN':'两项设置都会保存在此浏览器中并应用于所有模块。','zh-TW':'兩項設定都會保存在此瀏覽器中並套用到所有模組。',es:'Ambas preferencias se recuerdan en este navegador y se aplican a todos los módulos.'}]) }
   }
 ]; }
 
@@ -221,7 +228,7 @@ function renderRefContent(filter, search) {
     if (filter && filter !== 'all' && t.cat !== filter) return false;
     if (search) {
       var tmp = document.createElement('div');
-      tmp.innerHTML = t.name + ' ' + t.desc;
+      tmp.innerHTML = _refTopicName(t) + ' ' + t.desc;
       var text = tmp.textContent.toLowerCase();
       if (text.indexOf(search.toLowerCase()) < 0) return false;
     }
@@ -260,9 +267,9 @@ function renderRefContent(filter, search) {
       card.className = 'ref-topic-card';
       card.setAttribute('data-ref-id', topic.id);
       card.setAttribute('data-ref-cat', topic.cat);
-      card.innerHTML = '<span class="ref-section-icon">' + topic.icon + '</span>'
+      card.innerHTML = '<span class="ref-section-icon">' + _refIco(topic.icon) + '</span>'
         + '<span class="ref-section-info">'
-        + '<span class="ref-section-name">' + topic.name + '</span>'
+        + '<span class="ref-section-name">' + _refTopicName(topic) + '</span>'
         + '<span class="ref-section-desc">' + topic.desc + '</span>'
         + '</span>';
       grid.appendChild(card);
@@ -271,17 +278,25 @@ function renderRefContent(filter, search) {
   });
 }
 
+// Section · topic icons are sprite names; older glyph icons pass through unchanged.
+/* Topics named after screens (Demo Launcher · Pipeline Builder · API Endpoints) share the tab dictionary keys, so T() translates them */
+function _refTopicName(t) { return typeof T === 'function' ? T(t.name) : t.name; }
+
+function _refIco(name) {
+  return (/^[a-z0-9_-]+$/.test(name || '') && typeof DXIcon === 'function') ? DXIcon(name) : (name || '');
+}
+
 function buildDetailHtml(topic) {
   var tabKeys = Object.keys(topic.tabs);
   var tabLabels = {
-    overview: '📋 ' + _T5('Overview','개요','概要','概述','概述'),
-    params: '⚙️ ' + _T5('Parameters','파라미터','パラメータ','参数','參數'),
-    workflow: '🔄 ' + _T5('Workflow','워크플로우','ワークフロー','工作流','工作流程'),
-    tips: '💡 ' + _T5('Tips','팁','ヒント','提示','提示')
+    overview: ((typeof DXIcon === 'function') ? DXIcon('clipboard') : '') + ' ' + _T5('Overview','개요','概要','概述','概述','Descripción general'),
+    params: ((typeof DXIcon === 'function') ? DXIcon('gear') : '') + ' ' + _T5('Details','상세','詳細','详情','詳情','Detalles'),
+    workflow: ((typeof DXIcon === 'function') ? DXIcon('refresh') : '') + ' ' + _T5('Workflow','작업 순서','手順','操作流程','操作流程','Flujo de trabajo'),
+    tips: ((typeof DXIcon === 'function') ? DXIcon('info') : '') + ' ' + _T5('Tips','팁','ヒント','提示','提示','Consejos')
   };
   var html = '<div class="ref-detail-hd"><div><div class="ref-detail-kicker">'
-    + _T5('Reference','레퍼런스','リファレンス','参考','參考') + '</div><h2>'
-    + topic.icon + ' ' + topic.name + '</h2><p>' + topic.desc + '</p></div></div>';
+    + _T5('Reference','레퍼런스','リファレンス','参考','參考','Referencia') + '</div><h2>'
+    + _refIco(topic.icon) + ' ' + _refTopicName(topic) + '</h2><p>' + topic.desc + '</p></div></div>';
   html += '<div class="ref-tabs">';
   tabKeys.forEach(function(key, i) {
     html += '<div class="ref-tab' + (i === 0 ? ' active' : '') + '" data-tab="' + key + '" tabindex="0">'
@@ -321,7 +336,7 @@ function showDetail(topicId, cardEl) {
 
   var closeBtn = document.createElement('button');
   closeBtn.className = 'ref-expand-close';
-  closeBtn.textContent = '✕';
+  closeBtn.innerHTML = ((typeof DXIcon === 'function') ? DXIcon('x') : ''); closeBtn.setAttribute('aria-label', 'Close');
   expand.appendChild(closeBtn);
 
   var inner = document.createElement('div');
@@ -360,7 +375,7 @@ function renderFilterChips() {
   var allChip = document.createElement('button');
   allChip.className = 'chip active';
   allChip.setAttribute('data-ref-cat-filter', 'all');
-  allChip.textContent = _T5('All','전체','すべて','全部','全部');
+  allChip.textContent = _T5('All','전체','すべて','全部','全部','Todo');
   bar.appendChild(allChip);
 
   categories.forEach(function(cat) {

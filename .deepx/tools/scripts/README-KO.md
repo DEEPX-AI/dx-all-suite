@@ -10,6 +10,9 @@
 | 스크립트 | 목적 |
 |--------|---------|
 | `run_all.sh` | dx-all-suite의 5개 repo 전체에서 `dx-agent-gen <action>` 실행 |
+| `subrepo_check.sh` | 독립된 sub-repo checkout 내부에서 generator의 drift 검사를 실행 (CI의 sub-repo gate가 사용) |
+| `harness_gate.sh` | suite CI gate(`harness-gate`)를 CI와 로컬에서 동일한 명령 집합으로 실행 — `deps\|check\|lint\|tests\|e2e-sh\|all` |
+| `gate_mode.sh` | suite gate 모드 결정: push/PR 범위에 submodule gitlink 변경이 있거나(→ `pointer`) dispatch로 요청한 경우가 아니면 `branch-tip` |
 | `install-hooks.sh` | suite root와 모든 submodule에 pre-commit drift+lint hook 설치 |
 | `pre-commit-hook.sh` | pre-commit hook 본체 — git이 호출하며 사용자가 직접 호출하지 않음 |
 | `run-e2e-improvement-loop.sh` | 자가 개선 E2E loop (4개 CLI 병렬 실행 + 자동 수정) |
@@ -58,7 +61,130 @@ sys.exit(main(['<action>', '--repo', '<repo>']))
 
 ---
 
-## 3. `install-hooks.sh` — 일회성 pre-commit 설정
+## 3. `subrepo_check.sh` — Sub-Repo Drift Gate
+
+`dx-agent-gen` generator와 그것이 렌더링하는 공유 fragment
+(`.deepx/templates/fragments`)는 dx-all-suite root에만 존재한다. 따라서
+독립된 sub-repo checkout(dx-compiler, dx-runtime, dx_app, dx_stream — CI가 PR을
+보는 방식)은 그 자체로는 `dx-agent-gen check`를 실행할 수 없다: fragment를 찾을
+suite tree가 그 위에 없기 때문이다. `subrepo_check.sh`는 이 간극을 메운다 — suite
+checkout(`--suite-dir`로 지정한 기존 checkout, 또는 새로 shallow clone한 것)을
+확보한 뒤, 일회용 "shell" tree(`$WORK/suite/.deepx`는 실제 suite의 `.deepx`로의
+symlink이고, 여기에 sub-repo를 canonical한 중첩 경로에 복사)를 구성하여 generator의
+fragment lookup이 성공하도록 한다. 이를 통해 CI는 suite가 submodule pointer를
+bump하는 시점이 아니라 sub-repo의 commit/PR 시점에 `.deepx/` drift를 잡을 수 있다.
+
+### 사용법
+
+```
+subrepo_check.sh --subrepo-path <dx-compiler|dx-runtime|dx-runtime/dx_app|dx-runtime/dx_stream>
+                  [--repo-dir DIR]           # sub-repo checkout to check (default: $PWD)
+                  [--suite-dir DIR]          # existing suite checkout (skips clone); must
+                                             #   contain .deepx/tools/src/dx_agent_dev_gen/cli.py
+                                             #   AND .deepx/templates/fragments
+                  [--suite-url URL]          # default: origin URL of --repo-dir, last
+                                             #   path component swapped for dx-all-suite(.git)
+                  [--suite-ref REF]          # default: current branch of --repo-dir
+                                             #   (detached HEAD -> remote default branch)
+                  [--mode archive|worktree]  # archive (default) = committed HEAD via
+                                             #   `git archive` (requires --repo-dir to be a
+                                             #   git repo); worktree = working tree incl.
+                                             #   uncommitted changes, .git excluded
+                  [--work DIR]               # scratch dir (default: fresh mktemp -d). A
+                                             #   user-supplied --work dir is NEVER deleted
+                                             #   by this script, regardless of --keep.
+                  [--keep]                   # keep the mktemp'd scratch dir (only relevant
+                                             #   when --work is NOT given — a user-supplied
+                                             #   --work dir is already never deleted)
+                  [--strict-validator]       # validate_framework.py failures become fatal
+                  [--print-suite-url]        # print the derived/given suite URL and exit 0
+                                             #   (does not require --subrepo-path)
+                  [--help|-h]                # print this usage and exit 0
+```
+
+### 대표 실행 예시
+
+| 상황 | 명령 |
+|---------|---------|
+| CI (sub-repo gate workflow) | `bash suite/.deepx/tools/scripts/subrepo_check.sh --subrepo-path dx-compiler --repo-dir "$GITHUB_WORKSPACE/self" --suite-dir "$GITHUB_WORKSPACE/suite"` |
+| Local, suite checkout에서 실행 (같은 branch) | `bash .deepx/tools/scripts/subrepo_check.sh --subrepo-path dx-compiler --repo-dir /path/to/dx-compiler --suite-dir . --mode worktree` |
+| 독립 sub-repo clone (suite checkout 없음) | `bash .deepx/tools/scripts/subrepo_check.sh --subrepo-path dx-compiler` (기본값: dx-all-suite의 동일 이름 branch를 clone하며, 해당 branch가 없으면 default branch로 fallback) |
+
+### Exit code
+
+| 코드 | 의미 |
+|------|---------|
+| 0 | Clean — 생성된 파일이 `.deepx/` 소스와 일치 (`--strict-validator` 지정 시 `validate_framework.py`도 통과) |
+| 1 | drift 발견 (`dx-agent-gen check`가 `MISSING:`/`CHANGED:` 보고), 또는 `--strict-validator` 지정 상태에서 `validate_framework.py` 실패 |
+| 2 | 설정/사용/도구 오류 — 잘못된 `--subrepo-path`, suite 접근 불가/없음, `python3` 없음 또는 3.8 미만, 또는 generator 자체 crash (`Traceback` / rc ≥ 2 는 **drift가 아님**으로 보고 — 재생성할 것이 없으며 tool/runner를 고쳐야 함) |
+
+### 실패했을 때
+
+sub-repo와 **동일한 branch**의 suite checkout에서, sub-repo를 canonical한
+위치에 둔 채로:
+
+```bash
+bash .deepx/tools/scripts/run_all.sh generate
+bash .deepx/tools/scripts/run_all.sh check   # 반드시 clean해야 함
+```
+
+그런 다음 sub-repo에서 재생성된 파일을 commit한다. sub-repo 혼자서는 이를
+고칠 수 없다 — generator와 공유 fragment는 dx-all-suite에만 존재한다.
+
+### Validator
+
+`validate_framework.py`(sub-repo에 존재하는 경우)는 drift 검사 이후 실행되며
+**기본적으로 non-blocking**이다 — 실패해도 `WARNING`만 출력하고 exit code에는
+영향을 주지 않는다. `--strict-validator`를 넘기면 실패를 fatal(exit 1)로 만든다.
+
+### 호출 workflow
+
+`.github/workflows/dx-agent-dev-subrepo-gate-{ghes,cloud}.yml`(job `subrepo-gate`)에서
+호출하며, 4개 sub-repo(dx-compiler, dx-runtime, dx-runtime/dx_app,
+dx-runtime/dx_stream) 각각에 존재한다. 이 gate가 suite 수준의
+`dx-agent-dev-gate-{ghes,cloud}.yml`(`harness-gate`)과 어떻게 연관되는지는 §8 "관련 문서" —
+최상위 `.deepx/README.md`와 `dx-agent-dev-overview.md`를 참고할 것.
+
+---
+
+## 3b. `harness_gate.sh` — Suite Gate 로컬 실행
+
+suite 수준 CI gate(`harness-gate`, `.github/workflows/dx-agent-dev-gate-{ghes,cloud}.yml`)는
+모든 검사를 이 스크립트를 통해 실행하므로, 개발자 머신에서도 동일한 명령 집합이
+재현된다 — 로컬에서 `harness_gate.sh all`이 green이면 CI gate도 green이다.
+
+### 사용법
+
+```
+harness_gate.sh <stage> [--python PY]
+
+  deps     python is >= 3.8 and has jinja2 + pyyaml + pytest + rich (prints a hint if not)
+  check    bash .deepx/tools/scripts/run_all.sh check        (drift, all 5 levels)
+  lint     bash .deepx/tools/scripts/run_all.sh lint         (EN/KO fragment parity)
+  tests    python -m pytest --rootdir=<suite> .deepx/tests/conformance .deepx/tools/tests .deepx/e2e/tests
+  e2e-sh   bash .deepx/e2e/tests/test_run_model_eval.sh      (run_model_eval.sh dry-run tests)
+  all      deps, then check, lint, tests, e2e-sh — keeps going after a failure,
+           prints a summary, exits 1 if any stage failed
+
+  --python PY   interpreter to use (default: $DX_GATE_PYTHON, else python3); a path's
+                bin dir is prepended to PATH so run_all.sh's python3 matches
+```
+
+suite root는 스크립트 자신의 위치에서 찾으므로 어느 디렉터리에서든 호출할 수 있다.
+
+### Exit code
+
+| Code | 의미 |
+|------|---------|
+| 0 | 요청한 stage 모두 통과 |
+| 1 | stage 실패 (또는 `deps`가 누락 모듈을 발견) |
+| 2 | Usage / setup 오류 (알 수 없는 stage, 잘못된 `--python`) |
+
+CI 측(runner, token, 환경별 onboarding)은 [`../../docs/ci-gates-KO.md`](../../docs/ci-gates-KO.md)를 참고.
+
+---
+
+## 4. `install-hooks.sh` — 일회성 pre-commit 설정
 
 `pre-commit-hook.sh`를 모든 git hooks 디렉토리에 설치하여 drift나 EN/KO
 fragment lint 실패 시 commit이 차단되도록 한다.
@@ -95,7 +221,7 @@ drift 결과를 이해한 경우에만 사용 (예: WIP commit).
 
 ---
 
-## 4. `pre-commit-hook.sh` — Drift + Lint 가드
+## 5. `pre-commit-hook.sh` — Drift + Lint 가드
 
 매 `git commit`마다 git이 자동으로 실행한다. 세 가지 검사를 수행한다:
 
@@ -141,7 +267,7 @@ git commit --no-verify
 
 ---
 
-## 5. `run-e2e-improvement-loop.sh` — 자가 개선 E2E loop
+## 6. `run-e2e-improvement-loop.sh` — 자가 개선 E2E loop
 
 4개 CLI (Copilot, Cursor, OpenCode, Claude Code) 전체에 걸쳐 agent-driven E2E
 테스트를 병렬로 실행하고, 비교 리포트를 생성하며, orchestrator 에이전트를 통해
@@ -173,7 +299,7 @@ bash .deepx/tools/scripts/run-e2e-improvement-loop.sh --orchestrator copilot
 
 ---
 
-## 6. 운영 레시피
+## 7. 운영 레시피
 
 ### 공유 fragment 편집 후
 
@@ -199,7 +325,7 @@ git commit -m "fragments: <description>"
 git clone <suite-url>
 cd dx-all-suite
 git submodule update --init --recursive
-pip install -e .deepx/tools
+pipx install --force --editable .deepx/tools   # PEP 668-safe
 bash .deepx/tools/scripts/install-hooks.sh
 bash .deepx/tools/scripts/run_all.sh check   # sanity check
 ```
@@ -215,7 +341,7 @@ git commit
 
 ---
 
-## 7. 관련 문서
+## 8. 관련 문서
 
 | 주제 | 문서 |
 |-------|----------|
@@ -223,3 +349,5 @@ git commit
 | 최상위 `.deepx/` 인덱스 | [`../../README.md`](../../README.md) |
 | Fragment 작성 규칙 | [`../../docs/fragment-authoring-guide.md`](../../docs/fragment-authoring-guide.md) |
 | 내부 SWE 프로세스 gate | CLAUDE.md / AGENTS.md에 임베드됨 (fragment: `swe-process-gates-internal-dev`) |
+| Sub-repo gate 호출 workflow | `.github/workflows/dx-agent-dev-subrepo-gate-{ghes,cloud}.yml` (sub-repo별) |
+| Suite 수준 통합 gate | `.github/workflows/dx-agent-dev-gate-{ghes,cloud}.yml` (job `harness-gate`, suite root) |

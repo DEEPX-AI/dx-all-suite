@@ -42,7 +42,12 @@ def test_resolve_whitespace_explicit_falls_back(tmp_path):
 
 # --- version normalization (git-describe / dirty build policy) -------------
 
-@pytest.mark.parametrize("raw,expected", [
+# The canonical case table for the version-normalization rule. The dashboard
+# carries a second implementation of the same rule (`cleanVer` in
+# benchmark/dashboard/app.js), and
+# tests/test_dashboard_build.py::test_cleanver_parity_with_python_normalize_version
+# holds it to this very table -- so a case added here exercises both copies.
+NORMALIZE_CASES = [
     ("v3.4.0", "v3.4.0"),                              # clean release unchanged
     ("3.4.0", "3.4.0"),                                # no leading v preserved
     ("v3.4.0+9ef3f4c-dirty", "v3.4.0"),                # semver build metadata dropped
@@ -52,11 +57,34 @@ def test_resolve_whitespace_explicit_falls_back(tmp_path):
     ("v3.4.0-dirty", "v3.4.0"),                         # bare dirty marker
     ("v3.4.0-rc.4", "v3.4.0-rc.4"),                     # genuine pre-release preserved
     ("v3.4.0-rc.4+abc-dirty", "v3.4.0-rc.4"),           # pre-release kept, build meta dropped
+    # dx_rt v3.5.0 switched the stamp to a trailing parenthesised form. Measured
+    # from the real binary: `dxrt-cli --version` -> "DXRT v3.5.0 (build: 1.d0298f2)",
+    # which `_get_dxrt_version` hands over as the version part below.
+    ("v3.5.0 (build: 1.d0298f2)", "v3.5.0"),            # real v3.5.0 paren build stamp
+    ("v3.5.0 (build: 2.abc1234)", "v3.5.0"),            # a second build of the SAME release
+    ("v3.5.0(build: 1.d0298f2)", "v3.5.0"),             # stamp with no separating space
+    ("v3.5.0-rc.4", "v3.5.0-rc.4"),                     # pre-release still preserved
+    ("v3.5.0-rc.4 (build: 1.d0298f2)", "v3.5.0-rc.4"),  # pre-release kept, paren stamp dropped
     ("unknown", "unknown"),                             # sentinel unchanged
     ("", ""),                                           # empty unchanged
-])
+]
+
+
+@pytest.mark.parametrize("raw,expected", NORMALIZE_CASES)
 def test_normalize_version(raw, expected):
     assert _normalize_version(raw) == expected
+
+
+def test_normalize_version_groups_builds_of_one_release():
+    """The property the whole function exists for: two builds, one trend point.
+
+    Without this, the first two v3.5.0 campaigns would appear in the Version
+    Trend chart as two distinct versions and the dashboard label would read
+    "rt 3.5.0 (build: 1.d0298f2)" instead of "rt 3.5.0".
+    """
+    build_1 = _normalize_version("v3.5.0 (build: 1.d0298f2)")
+    build_2 = _normalize_version("v3.5.0 (build: 2.abc1234)")
+    assert build_1 == build_2 == "v3.5.0"
 
 
 def test_resolve_normalizes_dirty_explicit(tmp_path):
@@ -95,3 +123,38 @@ def test_get_npu_info_clean_version_has_no_raw_field(monkeypatch):
     info = env_fingerprint._get_npu_info()
     assert info["rt_version"] == "v3.4.0"
     assert "rt_version_raw" not in info
+
+
+# --- dx_rt v3.5.0 banner, end to end (subprocess boundary stubbed) ---------
+
+# Line 1 measured from the real v3.5.0 binary; `dxrt-cli --version` then prints
+# a minimum-driver/compiler requirements block, as the v3.4.0 output on the dev
+# host does, so the stub is multi-line to exercise the line-1 extraction too.
+_REAL_DXRT_CLI_V350 = (
+    "DXRT v3.5.0 (build: 1.d0298f2)\n"
+    "Minimum Driver Versions\n"
+    "  Device Driver: v2.5.0\n"
+)
+
+
+def test_get_dxrt_version_v350_banner_normalizes_to_clean_version(monkeypatch):
+    """The full real v3.5.0 banner must end up as a clean "v3.5.0".
+
+    Split of responsibility: `_get_dxrt_version` strips the "DXRT " prefix and
+    keeps line 1 verbatim -- the build stamp survives there so `_get_npu_info`
+    can still record it as `rt_version_raw`. `_normalize_version` is what makes
+    it clean. Asserting both halves pins that boundary.
+    """
+    _patch_dxrt(monkeypatch, _REAL_DXRT_CLI_V350, "* Device 0\n")
+    raw = env_fingerprint._get_dxrt_version()
+    assert raw == "v3.5.0 (build: 1.d0298f2)"
+    assert _normalize_version(raw) == "v3.5.0"
+
+
+def test_get_npu_info_normalizes_v350_paren_build_stamp(monkeypatch):
+    # The recorded value the version trend groups on must be the clean release,
+    # with the stamp kept beside it for auditing.
+    _patch_dxrt(monkeypatch, _REAL_DXRT_CLI_V350, "* Device 0\n")
+    info = env_fingerprint._get_npu_info()
+    assert info["rt_version"] == "v3.5.0"
+    assert info["rt_version_raw"] == "v3.5.0 (build: 1.d0298f2)"

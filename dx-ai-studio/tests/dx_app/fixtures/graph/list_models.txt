@@ -1,0 +1,22 @@
+model                                              task                            produces   consumes   input      published file     ready
+--------------------------------------------------------------------------------------------------------------------------------------------
+sfa3d_608x608                                      3d_object_detection             boxes3d    full_frame 608x608    yes       v9       yes
+efficientad-m-autoencoder_256x256                  anomaly_detection               boxes      full_frame 256x256    yes       missing  no  anomaly detection is not graph-ready in this release (companion engines: efficientad-m-student_256x256.dxnn, efficientad-m-teacher_256x256.dxnn)
+patchcore_224x224                                  anomaly_detection               boxes      full_frame 224x224    yes       v9       no  anomaly detection is not graph-ready in this release
+fastdepth_224x224                                  depth_estimation                densemap   full_frame 224x224    yes       v8       yes
+depthanythingv2-vitb_224x224                       depth_estimation                densemap   full_frame 224x224    yes       invalid  yes
+yolo26-depth-n_768x768                             depth_estimation                densemap   full_frame 768x768    yes       v8       yes
+scrfd-500m_640x640                                 face_detection                  boxes      full_frame 640x640    yes       v8       yes
+3ddfa-v2_mobilenet-0.5_120x120                     face_landmark                   keypoints  either     120x120    yes       v8       yes  ports: pose=vector
+resnet18_224x224                                   image_classification            scores     either     224x224    yes       v8       yes
+casvit-t_224x224                                   image_classification            vector     either     224x224    yes       v8       yes
+yolo26-n-seg_640x640                               instance_segmentation           instances  full_frame 640x640    yes       v9       yes
+yolo26-n_640x640                                   object_detection                boxes      full_frame 640x640    yes       v9       yes
+yolo26-s_640x640                                   object_detection                boxes      full_frame 640x640    yes       invalid  yes
+yolov8-n_640x640                                   object_detection                boxes      full_frame 640x640    yes       v9       yes
+yolo26-n_640x640_pre-optimized                     object_detection                boxes      full_frame 640x640    yes       missing  yes
+deepmar_resnet50_224x224                           person_attribute                scores     either     224x224    yes       v8       yes
+yolov8-s-pose_640x640                              pose_estimation                 keypoints  full_frame 640x640    yes       v9       yes
+bisenetv2_1024x2048                                semantic_segmentation           labelmap   full_frame 2048x1024  yes       v8       yes
+realesrgan-x2_192x192                              super_resolution                image      either     192x192    yes       v9       yes
+deit_base384_distilled                             alias of deit-b_384x384_distilled

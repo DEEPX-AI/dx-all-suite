@@ -1,11 +1,10 @@
-"""Process-lifecycle cleanup tests (F-13 / F-14).
+"""Process-lifecycle cleanup tests.
 
-F-13/14a: on server shutdown and on watchdog restart, dx_app must terminate
-          live-mode child processes (Xvfb, ffmpeg cam-mux, live inference) so
-          they do not linger as orphans.
-F-14b:    run_multi shares process handles across concurrent worker threads;
-          access must be guarded (lock/snapshot) so a concurrent stop terminates
-          every in-flight child, not just the last one written to the shared slot.
+On server shutdown and on watchdog restart, dx_app must terminate live-mode child processes (Xvfb, ffmpeg cam-mux,
+live inference) so they do not linger as orphans.
+
+run_multi shares process handles across concurrent worker threads; access must be guarded (lock/snapshot) so a
+concurrent stop terminates every in-flight child, not just the last one written to the shared slot.
 """
 import threading
 import time

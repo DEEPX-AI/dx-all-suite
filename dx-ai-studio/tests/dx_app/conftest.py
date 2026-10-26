@@ -33,7 +33,7 @@ _APP_CORE = str(Path(__file__).resolve().parent.parent.parent / "dx_app/core")
 _CORE_MODULES = (
     "dx_app_security", "filesystem", "assets",
     "performance", "run_config", "models", "modelzoo", "modelzoo_gateway",
-    "forum", "developer", "lab_portal", "setup_steps", "inference",
+    "developer", "lab_portal", "setup_steps", "inference",
     "inference_exec", "camera", "live",
 )
 

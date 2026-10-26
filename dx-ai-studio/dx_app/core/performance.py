@@ -74,3 +74,21 @@ def _cvt_video(src,dst):
             import shutil
             shutil.copy2(src,dst);return True
         except Exception:return False
+
+
+_ANSI_RE = __import__("re").compile(r"\x1b\[[0-9;]*[A-Za-z]")
+
+
+def runner_errors(stdout):
+    """`[DXAPP] [ERROR] …` lines printed by a dx_app runner (body without color codes or prefix). Their presence means
+    the result cannot be trusted even with exit 0: no input, output tensor ordering failed, postprocess error (every
+    [ERROR] in the dx_app source is of that kind)."""
+    out = []
+    for line in (stdout or "").splitlines():
+        clean = _ANSI_RE.sub("", line).strip()
+        if "[DXAPP] [ERROR]" in clean:
+            msg = clean.split("[DXAPP] [ERROR]", 1)[1].strip()
+            if msg and msg not in out:
+                out.append(msg)
+    return out
+

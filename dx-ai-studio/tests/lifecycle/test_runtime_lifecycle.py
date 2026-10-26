@@ -1,4 +1,5 @@
 """Fixture-local Managed Runtime Host lifecycle coverage."""
+import json
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -44,7 +45,10 @@ class TestRuntimeLifecycle:
         )
 
         assert result.status is BootstrapStatus.ACTIVE
-        assert result.plan.target.version == "2.4.1"
+        # The target is config's target_runtime_version; it moves with every dx-runtime release, so no number is hard-coded.
+        target = json.loads((Path(__file__).resolve().parents[2] / "config" / "runtime_profiles.json")
+                            .read_text(encoding="utf-8"))["target_runtime_version"]
+        assert result.plan.target.version == target
 
     def test_installed_runtime_accepted_as_is_preserves_studio_data(self, tmp_path):
         # Policy: an already-installed runtime that passes the launch contracts is accepted

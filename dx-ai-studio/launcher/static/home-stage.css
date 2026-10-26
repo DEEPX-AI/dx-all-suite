@@ -1,0 +1,883 @@
+/* ─── Launcher home — the stage ───────────────────────────────────────
+   One grid area per role: tour · hero · work · deck (widget · icons · widget) · bar.
+   No absolute or fixed positioning — the grid places the tour and the bar too.
+   Contract: tests/launcher/test_home_stage_contract.py, test_home_stage_browser.py */
+
+.landing.home-stage {
+  display: grid;
+  /* One column. The tour is a thin row above the hero, on the right. The title uses the full
+     hero width; only the subtitle and input are capped at 760 (a tour column beside the
+     hero would squeeze it and fold the 56px title onto two lines). */
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "tour" "hero" "deck" "bar";
+  align-content: space-between;
+  justify-content: stretch;
+  /* style.css's .landing leaves align-items: center, which centres grid items instead of
+     filling their cell: the Dock answer then overflows over the icons and the stage light
+     layer collapses to zero height. Make items fill their cell. */
+  align-items: stretch;
+  /* Vertical spacing follows the window height — one screen even at 1280×800. */
+  row-gap: clamp(var(--sp-3), 2vh, var(--sp-6));
+  width: min(100%, 1280px);
+  min-height: 100vh;
+  margin-inline: auto;
+  padding: calc(var(--launcher-topbar-h) + clamp(var(--sp-2), 1.5vh, var(--sp-5))) var(--sp-5) var(--sp-3);
+  box-sizing: border-box;
+}
+
+/* Tour: one row at the top right — Tutorial mode switch · Replay intro. tutorial.js injects
+   the card with its own styles, so #homeTour raises specificity to fold it into one row.
+   The description text is hidden but stays in the DOM. */
+.home-tour {
+  grid-area: tour;
+  max-width: 100%;
+  justify-self: end;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--sp-2) var(--sp-4);
+}
+#homeTour .dxt-launcher-card {
+  flex: 0 0 auto;
+  width: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+#homeTour .dxt-launcher-card .dxt-lc-desc { display: none; }
+/* The injected text cell is flex: 1 and would eat the remaining width, pushing Replay to a second line. */
+#homeTour .dxt-launcher-card .dxt-lc-text { flex: 0 0 auto; }
+#homeTour .dxt-launcher-card .dxt-lc-title { font-size: var(--fs-sm); font-weight: var(--fw-regular); color: var(--text-secondary); }
+#homeTour .replay-btn { font-size: var(--fs-sm); }
+
+.stage-hero {
+  grid-area: hero;
+  min-width: 0;
+  /* The title spans the hero width; subtitle, poster, input and hint are 760 (rules below). Each
+     sets its own width so the input does not stretch to the screen in the Dock's 2-column grid. */
+  justify-self: stretch;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  text-align: center;
+}
+/* ── hero ─────────────────────────────────────────────────────────────
+   The title uses Inter's Display optical size (opsz) — tighter letterforms at 56px. */
+.stage-title {
+  margin: 0;
+  font-size: 56px;
+  font-weight: var(--fw-semibold);
+  line-height: 1.05;
+  letter-spacing: 0;
+  font-optical-sizing: auto;
+  text-wrap: balance;
+  color: var(--text-primary);
+}
+.stage-sub {
+  margin: 0 auto;
+  max-width: 720px;
+  font-size: 21px;
+  line-height: 1.4;
+  letter-spacing: .01em;
+  text-wrap: balance;
+  color: var(--text-secondary);
+}
+
+/* Korean breaks between any two characters by default, splitting words mid-word in the
+   subtitle and placeholder. Break on word boundaries instead. */
+.stage-hero :is(.stage-title, .stage-sub, .ask-input) { word-break: keep-all; overflow-wrap: anywhere; }
+/* keep-all is for Korean, which breaks at spaces. Japanese and Chinese have no spaces, so a whole
+   phrase would become one unit and break anywhere, leaving "。" alone on a line — break between
+   characters but keep the line-break rules. */
+:root:is(:lang(ja), :lang(zh-CN), :lang(zh-TW)) .stage-hero :is(.stage-title, .stage-sub, .ask-input) { word-break: normal; line-break: strict; }
+
+/* "Watch the film" pill: thumbnail + title. Clicking opens the film overlay. */
+.stage-films { display: flex; justify-content: center; flex-wrap: wrap; gap: var(--sp-2); }
+.stage-film {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-1) var(--sp-3) var(--sp-1) var(--sp-1);
+  border-radius: 980px;
+  background: color-mix(in srgb, var(--text-primary) 6%, transparent);
+  color: var(--text-primary);
+  font-size: var(--fs-sm);
+  text-decoration: none;
+  cursor: pointer;
+}
+.stage-film:hover { background: color-mix(in srgb, var(--text-primary) 10%, transparent); }
+.stage-film:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.stage-film img { width: 36px; height: 24px; object-fit: cover; border-radius: 980px; }
+.stage-film span::before { content: "\25B6"; margin-right: var(--sp-1); font-size: .75em; color: var(--text-muted); }
+
+/* Input: the form is only a frame; the glass box holds the text area, the agent picker and Build.
+   backdrop-filter is used only here and on the bar below. */
+.stage-hero :is(.home-ask, .setup-degraded) { width: min(100%, 760px); margin-inline: auto; }
+.stage-hero .home-ask {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  text-align: start;
+}
+.stage-hero .home-ask:focus-within { outline: none; }
+.ask-box {
+  /* Grid so the ::after light ring becomes a grid item spanning both rows (overlaps without absolute). */
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  row-gap: var(--sp-2);
+  padding: var(--sp-4) var(--sp-4) var(--sp-3) var(--sp-5);
+  border-radius: 24px;
+  border: 1px solid color-mix(in srgb, var(--text-primary) 10%, transparent);
+  background: color-mix(in srgb, var(--surface-panel) 72%, transparent);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  backdrop-filter: blur(20px) saturate(1.4);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .30),
+    0 20px 40px -24px rgba(0, 0, 0, .35),
+    0 2px 6px rgba(0, 0, 0, .06);
+  transition: border-color var(--dur) var(--ap-ease), box-shadow var(--dur) var(--ap-ease);
+}
+.ask-box:focus-within {
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .30),
+    0 20px 40px -24px rgba(0, 0, 0, .35),
+    0 0 0 4px var(--accent-dim);
+}
+/* Two lines — a tall input would take most of the screen. */
+.stage-hero .ask-input { min-height: 0; padding: 0; font-size: 21px; line-height: 1.35; }
+.ask-foot { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3); }
+.ask-foot .setup-fold { margin: 0; }
+.ask-foot .setup-fold[open] { flex-basis: 100%; }
+.ask-foot .ask-go { margin-left: auto; }
+.stage-hero .ask-chips { justify-content: center; margin: 0; }
+.stage-hero .ask-chip { padding: var(--sp-1) var(--sp-3); }
+.ask-more {
+  border: 0;
+  border-radius: 980px;
+  padding: var(--sp-1) var(--sp-3);
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+.ask-more:hover { text-decoration: underline; }
+
+/* The stage behind the input. It takes space only while visible (Dock rules below). */
+.stage-work { grid-area: work; display: none; min-width: 0; }
+/* Close — an icon button like every other close, not a bare "×" in a default button. */
+.stage-close {
+  float: inline-end;
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.stage-close:hover { color: var(--text-primary); background: color-mix(in srgb, var(--text-primary) 8%, transparent); }
+.stage-close:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.stage-close .dx-ico { width: 16px; height: 16px; }
+
+/* deck: widget · icons · widget (width budget 264 · 48 · 520 · 48 · 264) */
+.stage-deck {
+  grid-area: deck;
+  display: grid;
+  grid-template-columns: 264px minmax(0, 1fr) 264px;
+  grid-template-areas: "dev grid meas";
+  gap: var(--sp-7);
+  align-items: start;
+}
+#homeDevice { grid-area: dev; }
+#homeMeasured { grid-area: meas; }
+.stage-deck .studio-grid {
+  grid-area: grid;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--sp-4);
+  align-items: start;
+}
+/* Nine modules fill a 3×3 block; the two books own the last column, centred across the three
+   rows. Each book spans two rows and centres in them, so SDK Library sits on the row 1/2 line
+   and About DEEPX on the row 2/3 line — no empty cell. */
+.stage-deck .studio-grid > .about-book-card { grid-column: 4; align-self: center; }
+.stage-deck .studio-grid > .sdk-card { grid-row: 1 / span 2; }
+.stage-deck .studio-grid > .about-book-card:not(.sdk-card) { grid-row: 2 / span 2; }
+.stage-widget { min-width: 0; display: flex; flex-direction: column; gap: var(--sp-2); }
+.stage-widget-title {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-md);
+  font-weight: var(--fw-semibold);
+}
+
+/* ── Widgets ─────────────────────────────────────────────────────────── */
+
+/* Status: click opens Monitor. With no device the light goes out — no alarm colour. */
+/* When the device goes away the light fades out over 0.8s. */
+.stage-device { cursor: pointer; border-radius: var(--radius); transition: opacity 800ms var(--ap-ease); }
+.stage-device:focus-visible { outline: 2px solid var(--accent); outline-offset: var(--sp-1); }
+.stage-device.is-off { opacity: .5; }
+.dev-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ap-green); }
+.stage-device.is-off .dev-dot { background: var(--ap-line); }
+.stage-device .ws-device { margin: 0; font-size: var(--fs-md); font-weight: var(--fw-regular); }
+.stage-device .ws-device.is-missing { color: var(--text-muted); }
+
+/* Core bars: a narrow vertical bar whose height is the usage % inside a 40px track. The track
+   is ::before, the bar is the i in the same cell. Sharing the cell width would make each bar
+   over 80px wide (a horizontal slab), and a surface-hover track is invisible in the light theme. */
+.dev-cores { display: flex; gap: var(--sp-3); }
+.dev-cores:empty { display: none; }
+.dev-core {
+  width: 12px;
+  display: grid;
+  grid-template-rows: 40px auto;
+  row-gap: var(--sp-1);
+  justify-items: center;
+}
+.dev-core::before {
+  content: "";
+  grid-area: 1 / 1;
+  width: 100%;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--text-primary) 8%, transparent);
+}
+/* Height via transform: a full-track bar scaled from the bottom (only transform animates).
+   Values arrive every second and are followed over 300ms. Keep corners small, scaleY squashes them. */
+.dev-core i {
+  grid-area: 1 / 1;
+  width: 100%;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--accent);
+  transform-origin: 50% 100%;
+  transform: scaleY(max(.05, calc(var(--u, 0) / 100)));
+  transition: transform 300ms var(--ap-ease);
+}
+/* Idle (every core < 5%): breathe every 4s — waiting, not off. */
+.stage-device.is-idle .dev-core i { animation: dev-breathe 4s var(--ap-ease) infinite; }
+@keyframes dev-breathe {
+  0%, 100% { opacity: .45; }
+  50% { opacity: 1; }
+}
+.dev-core b { font-size: var(--fs-2xs); font-weight: var(--fw-regular); color: var(--text-muted); }
+.dev-line { margin: 0; font-size: var(--fs-sm); color: var(--text-muted); font-variant-numeric: tabular-nums; }
+
+/* Values that never change (SDK · Studio · Gateway) show only on hover; the widget stays shorter than its cell so nothing shifts. */
+.stage-widget-more { display: none; margin: 0; }
+.stage-device:is(:hover, :focus-within) .stage-widget-more { display: block; }
+
+/* Proof: one big number, model and task, dots, Benchmark link. */
+.proof-body { display: flex; flex-direction: column; gap: var(--sp-1); }
+.proof-fps { margin: 0; display: flex; align-items: baseline; gap: var(--sp-1); }
+.proof-fps b {
+  font-size: var(--fs-5xl);
+  font-weight: var(--fw-semibold);
+  line-height: 1;
+  letter-spacing: -.03em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+.proof-unit { font-size: var(--fs-md); color: var(--text-muted); }
+.proof-model { margin: 0; font-size: var(--fs-sm); color: var(--text-secondary); }
+.proof-dots { display: flex; }
+/* 16px hit area, 6px visible dot. */
+.proof-dot {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.proof-dot::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--ap-line); }
+.proof-dot.is-on::before { background: var(--text-primary); }
+.stage-widget-link { font-size: var(--fs-sm); color: var(--accent); text-decoration: none; }
+.stage-widget-link:not(:empty)::after { content: " \203A"; }
+.stage-widget-link:hover { text-decoration: underline; }
+
+/* ── Cells: 9 icons + 2 books ─────────────────────────────────────────
+   Each cell is a 4-row grid: [tooltip 0px] [icon] [name] [status]. The tooltip sits in a
+   zero-height row and overflows upward — overlap without absolute positioning (nothing floats
+   on this home). .mod-text uses display:contents so name and description get their own rows. */
+.stage-deck { --icon: 72px; }
+.stage-deck .studio-grid > .orbital-card,
+.stage-deck .studio-grid > .about-book-card {
+  display: grid;
+  /* Pin the cell's column to the cell width. With auto, the tooltip (max-content, up to 200px)
+     widens the column, pushing icons with long descriptions to the right and misaligning the
+     rows. Only the tooltip overflows the cell, symmetrically on both sides. */
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: 0 auto auto auto;
+  justify-items: center;
+  align-content: start;
+  /* Spacing via each element's margin, not row-gap — grid keeps the gap for an empty status
+     row, adding 24px to every cell. */
+  row-gap: 0;
+  padding: 0;
+  min-width: 0;
+  text-align: center;
+  background: transparent;
+  border-radius: var(--radius);
+}
+.stage-deck .studio-grid > *:hover { background: transparent; }
+.stage-deck .studio-grid .mod-text { display: contents; }
+.stage-deck .studio-grid :is(.mod-chev, .orbital-status) { display: none; }
+/* Drop the separator line (inset box-shadow from style.css's .orbital-card + .orbital-card)
+   meant for the vertical list; in the grid it showed above only some cells. */
+.stage-deck .studio-grid > *,
+.stage-deck .studio-grid > *:focus-visible,
+.stage-deck .studio-grid > .about-book-card + .about-book-card { box-shadow: none; }   /* focus is drawn by outline */
+
+/* Icon — Liquid Glass. Colours mix from style.css's single --mod-tint (no new hex).
+   Gloss, edge light and shadow are neutral rgba (css_token_gate does not count them). */
+.stage-deck .mod-tile {
+  grid-row: 2;
+  margin-bottom: var(--sp-2);
+  width: var(--icon);
+  height: var(--icon);
+  border-radius: 22.37%;
+  color: white;
+  background:
+    radial-gradient(120% 70% at 50% 0%, rgba(255, 255, 255, .42), rgba(255, 255, 255, 0) 60%),
+    linear-gradient(170deg,
+      color-mix(in srgb, var(--mod-tint) 78%, white) 0%,
+      var(--mod-tint) 52%,
+      color-mix(in srgb, var(--mod-tint) 72%, black) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .55),
+    inset 0 0 0 1px rgba(255, 255, 255, .14),
+    inset 0 -2px 6px rgba(0, 0, 0, .18),
+    0 10px 24px -12px color-mix(in srgb, var(--mod-tint) 70%, transparent),
+    0 2px 4px rgba(0, 0, 0, .10);
+  transition: opacity var(--dur) var(--ap-ease), filter var(--dur) var(--ap-ease),
+              transform 120ms var(--ap-ease);
+  /* glyph · specular (::before) · arrival light (::after) stack in one cell. */
+  display: grid;
+  place-items: center;
+}
+.stage-deck .mod-tile > .mod-glyph { grid-area: 1 / 1; }
+.stage-deck .mod-tile::before,
+.stage-deck .mod-tile::after {
+  content: "";
+  grid-area: 1 / 1;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  pointer-events: none;
+}
+/* Edge specular — from the cursor side (--sx, --sy), as strong as it is near (--near). Set by home-effects.js. */
+.stage-deck .mod-tile::before {
+  background: radial-gradient(circle at var(--sx, 50%) var(--sy, 0%), rgba(255, 255, 255, .5), rgba(255, 255, 255, 0) 55%);
+  opacity: var(--near, 0);
+}
+/* Light that flashes when a sent request arrives (WAAPI, pseudoElement ::after). */
+.stage-deck .mod-tile::after {
+  background: radial-gradient(closest-side, rgba(255, 255, 255, .7), rgba(255, 255, 255, 0));
+  opacity: 0;
+}
+/* Two-layer glyph: back fill + front stroke — symbols from the shared icon sprite
+   (shared/static/dx-icons.svg, the same shapes as the rail and tabs). Selectors cannot reach inside
+   <use>, so the shape is driven by variables: --ico-stroke stroke width, --ico-fill fill opacity,
+   --ico-fill-o overall fill brightness. A module-coloured shadow lifts it off the plate. */
+@property --ico-fill-o { syntax: '<number>'; inherits: true; initial-value: 1; }
+.stage-deck .mod-glyph {
+  width: 56%;
+  height: 56%;
+  --ico-stroke: 2;
+  /* Inner fill lights up while running. A registered property, so it animates over 400ms. */
+  --ico-fill: .55;
+  --ico-fill-o: .44;
+  transition: --ico-fill-o 400ms var(--ap-ease);
+  filter: drop-shadow(0 1px 1.5px color-mix(in srgb, var(--mod-tint) 55%, black));
+}
+.stage-deck .orbital-card.is-up .mod-glyph { --ico-fill-o: 1; }
+
+/* Dim only modules confirmed down (is-down needs a health response). */
+.stage-deck .orbital-card.is-down .mod-tile { opacity: .42; filter: saturate(.25); }
+
+.stage-deck .studio-grid .orbital-name {
+  grid-row: 3;
+  font-size: var(--fs-base);
+  font-weight: var(--fw-medium);
+  line-height: 1.25;
+  letter-spacing: -.01em;
+  color: var(--text-primary);
+}
+.stage-deck .studio-grid .card-state { grid-row: 4; margin-top: var(--sp-1); font-size: var(--fs-xs); }
+.stage-deck .studio-grid .card-state:empty { display: none; }
+
+/* Tooltip — description and book subtitle. Stays in the DOM: _paintFacts writes numbers into it and screen readers read it. */
+.stage-deck .studio-grid :is(.card-desc, .orbital-port) {
+  grid-row: 1;
+  align-self: end;
+  z-index: 2;
+  width: max-content;
+  max-width: 200px;
+  margin-bottom: var(--sp-1);
+  padding: var(--sp-1) var(--sp-2);
+  border-radius: var(--radius-sm);
+  background: var(--text-primary);
+  color: var(--surface-page);
+  font-size: var(--fs-xs);
+  line-height: 1.35;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur) var(--ap-ease);
+}
+.stage-deck .studio-grid > :is(:hover, :focus-visible) :is(.card-desc, .orbital-port) { opacity: 1; }
+
+/* Books — cloth cover + silver foil. Physical objects, so the same in both themes. Cover bottom aligns with the icons. */
+.stage-deck .about-book-card .orbital-icon {
+  grid-row: 2;
+  margin-bottom: var(--sp-2);
+  align-self: end;
+  /* A cover as tall as an icon (56×72 at 72), so it shrinks with the icons on a short window. */
+  width: calc(var(--icon) * 7 / 9);
+  height: var(--icon);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px 6px 6px 3px;
+  color: rgba(255, 255, 255, .86);
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, .30) 0 5px, rgba(255, 255, 255, .10) 5px 6px, rgba(0, 0, 0, 0) 6px),
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, .04) 0 1px, rgba(255, 255, 255, 0) 1px 3px),
+    repeating-linear-gradient(-45deg, rgba(0, 0, 0, .06) 0 1px, rgba(0, 0, 0, 0) 1px 3px),
+    var(--cover);
+  /* Edge light: the graphite cover would vanish into the dark stage. */
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .20),
+    inset 0 0 0 1px rgba(255, 255, 255, .12),
+    0 10px 22px -12px rgba(0, 0, 0, .55),
+    0 2px 4px rgba(0, 0, 0, .12);
+}
+.stage-deck .about-book-card.sdk-card .orbital-icon { --cover: color-mix(in srgb, black 60%, var(--cat-1)); }
+.stage-deck .about-book-card:not(.sdk-card) .orbital-icon { --cover: color-mix(in srgb, black 80%, var(--cat-3)); }
+/* Foil: pressed silver — a top shadow and bottom reflection make it look stamped into the cover. */
+.stage-deck .about-book-card .mod-glyph {
+  width: 52%;
+  height: 52%;
+  /* Foil is stroke only — the cloth cover stands in for the fill. */
+  --ico-stroke: 1.8;
+  --ico-fill: 0;
+  filter: drop-shadow(0 -1px 0 rgba(0, 0, 0, .55)) drop-shadow(0 1px 0 rgba(255, 255, 255, .22));
+}
+
+/* ── Glass bar ───────────────────────────────────────────────────────
+   Three levels: title (where it goes) → 2 main pills (bordered) → the other 5 (text). The only
+   colour is the title's ↗. Same glass as the input — backdrop-filter only on these two. */
+.stage-bar {
+  grid-area: bar;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2) var(--sp-5);
+  padding: var(--sp-2) var(--sp-4) var(--sp-2) var(--sp-5);
+  border-radius: 20px;
+  border: 1px solid color-mix(in srgb, var(--text-primary) 8%, transparent);
+  background: color-mix(in srgb, var(--surface-panel) 60%, transparent);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  backdrop-filter: blur(20px) saturate(1.4);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .18),
+    0 16px 32px -24px rgba(0, 0, 0, .40);
+  /* Leave room for the shared chat button (fixed, right 24 · 56px), which would cover the legal notice.
+     By how far the bar's right edge, (100vw + min(100vw, 1280px)) / 2 - 24px, passes the button's left - 8px:
+     64px up to 1280, 704px - 50vw above that, 0 from 1408. */
+  margin-right: clamp(0px, calc(704px - 50vw), 64px);
+}
+#homeBar .deepx-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-1);
+}
+#homeBar .bar-title {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  margin-right: var(--sp-3);
+  color: var(--text-primary);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  letter-spacing: -.01em;
+  text-decoration: none;
+}
+#homeBar .bar-arrow { color: var(--accent); transition: transform var(--dur) var(--ap-ease); }
+#homeBar .bar-title:is(:hover, :focus-visible) .bar-arrow { transform: translate(2px, -2px); }
+
+/* Links are a 2-row grid — the description in the zero-height first row overflows upward (like the tile tooltips). */
+/* The text row sets the width: a max-content description would widen each link to ~220px and fold
+   the bar into three lines. .bar-desc's negative margin takes it out of the width calculation. */
+#homeBar .deepx-link {
+  display: inline-grid;
+  grid-template-rows: 0 auto;
+  justify-items: center;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-secondary);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  text-decoration: none;
+}
+#homeBar .deepx-link::after { content: none; }
+#homeBar .bar-line {
+  grid-row: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-1) var(--sp-3);
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  white-space: nowrap;
+  transition: color var(--dur) var(--ap-ease), box-shadow var(--dur) var(--ap-ease),
+              border-color var(--dur) var(--ap-ease);
+}
+/* The five borderless links only need side padding as hit area, so keep it narrow — en fits on one line. */
+#homeBar .deepx-link:not(.is-primary) .bar-line { padding-inline: var(--sp-2); }
+#homeBar .deepx-link.is-primary .bar-line {
+  color: var(--text-primary);
+  border-color: color-mix(in srgb, var(--text-primary) 18%, transparent);
+}
+/* hover: light under the link. */
+#homeBar .deepx-link:is(:hover, :focus-visible) .bar-line {
+  color: var(--text-primary);
+  box-shadow: 0 10px 18px -12px color-mix(in srgb, var(--accent) 80%, transparent);
+}
+#homeBar .deepx-link.is-primary:is(:hover, :focus-visible) .bar-line {
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+}
+#homeBar .bar-icon {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+#homeBar .bar-icon.is-mark { fill: currentColor; stroke: none; }
+#homeBar .bar-desc {
+  --tip-w: 260px;   /* 300px would push the tooltip of a line-end link off screen */
+  grid-row: 1;
+  align-self: end;
+  z-index: 2;
+  width: max-content;
+  max-width: var(--tip-w);
+  /* Equal negative margins on both sides: the cell gets zero width and centring is kept. */
+  margin-inline: calc(var(--tip-w) / -2);
+  margin-bottom: var(--sp-2);
+  padding: var(--sp-1) var(--sp-2);
+  border-radius: var(--radius-sm);
+  background: var(--text-primary);
+  color: var(--surface-page);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-regular);
+  line-height: 1.35;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur) var(--ap-ease);
+}
+#homeBar .deepx-link:is(:hover, :focus-visible) .bar-desc { opacity: 1; }
+
+/* Network closed: dimmed, not clickable, and the reason is shown (home-bar.js). */
+#homeBar.is-offline :is(.bar-title, .deepx-link) { opacity: .4; cursor: not-allowed; }
+#homeBar.is-offline .bar-desc { visibility: hidden; }
+#homeBar.is-offline .bar-line { box-shadow: none; }
+.bar-offline {
+  margin-right: var(--sp-2);
+  padding: 0 var(--sp-2);
+  border: 1px solid color-mix(in srgb, var(--status-warn) 45%, transparent);
+  border-radius: var(--radius-pill);
+  color: var(--status-warn);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+}
+/* In long languages (es · ja) it wraps to a second line but stays right-aligned. */
+.stage-legal {
+  margin: 0 0 0 auto;
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+  white-space: nowrap;
+}
+
+/* ── Dock: while an answer or console is visible ──────────────────────
+   Computed from visibility instead of toggling a class — there are several ways to open them,
+   and missing one class toggle would break the layout. :has() cannot be forgotten. */
+#landing:has(#homeAnswer:not([hidden])),
+#landing:has(#homeWork:not([hidden])) {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-areas: "hero hero" "dev meas" "work work" "dock dock" "bar bar";
+  /* Keep one screen: a long answer or console scrolls inside the middle cell only. */
+  grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+  height: 100vh;
+  align-content: stretch;
+}
+#landing:has(#homeAnswer:not([hidden])) .stage-work,
+#landing:has(#homeWork:not([hidden])) .stage-work { display: block; overflow: auto; }
+/* The starter chips and poster give up their space once an answer appears, so the answer
+   cell is not squeezed at 1280×800 (the input moves up a little; the route cards fit at a glance). */
+/* The row gap provides the bottom spacing on the stage; a margin here only causes scrolling in the cell. */
+.stage-work .home-answer { margin-bottom: 0; }
+#landing:has(#homeAnswer:not([hidden])) :is(#homeAskChips, #homeStage .stage-films),
+#landing:has(#homeWork:not([hidden])) :is(#homeAskChips, #homeStage .stage-films) { display: none; }
+#landing:has(#homeAnswer:not([hidden])) .stage-deck,
+#landing:has(#homeWork:not([hidden])) .stage-deck { display: contents; }
+#landing:has(#homeAnswer:not([hidden])) .studio-grid,
+#landing:has(#homeWork:not([hidden])) .studio-grid {
+  grid-area: dock;
+  grid-template-columns: repeat(11, minmax(0, 1fr));
+  gap: var(--sp-2);
+  --icon: 48px;
+}
+/* One row: the books leave the 3×3 block's last column and follow Cloud. */
+#landing:has(#homeAnswer:not([hidden])) .studio-grid > .about-book-card,
+#landing:has(#homeWork:not([hidden])) .studio-grid > .about-book-card { grid-column: auto; grid-row: auto; }
+#landing:has(#homeAnswer:not([hidden])) .about-book-card .orbital-icon,
+#landing:has(#homeWork:not([hidden])) .about-book-card .orbital-icon { width: 38px; height: 48px; }
+#landing:has(#homeAnswer:not([hidden])) .studio-grid :is(.card-desc, .card-state, .orbital-port),
+#landing:has(#homeWork:not([hidden])) .studio-grid :is(.card-desc, .card-state, .orbital-port),
+/* The device widget keeps its name ("DX-M1" and dot) — without it the Dock row would not say whose temperature it is. */
+#landing:has(#homeAnswer:not([hidden])) .stage-widget :is(.ws-facts, .proof-dots, .stage-widget-link),
+#landing:has(#homeWork:not([hidden])) .stage-widget :is(.ws-facts, .proof-dots, .stage-widget-link),
+#landing:has(#homeAnswer:not([hidden])) .stage-proof .stage-widget-title,
+#landing:has(#homeWork:not([hidden])) .stage-proof .stage-widget-title { display: none; }
+/* In the Dock each widget is one row: shorter core bars and smaller numbers — still visible while the agent works. */
+#landing:has(#homeAnswer:not([hidden])) .stage-widget,
+#landing:has(#homeWork:not([hidden])) .stage-widget { flex-direction: row; align-items: center; gap: var(--sp-3); }
+#landing:has(#homeAnswer:not([hidden])) .dev-core,
+#landing:has(#homeWork:not([hidden])) .dev-core { grid-template-rows: 16px; }
+#landing:has(#homeAnswer:not([hidden])) .dev-core b,
+#landing:has(#homeWork:not([hidden])) .dev-core b { display: none; }
+#landing:has(#homeAnswer:not([hidden])) .proof-body,
+#landing:has(#homeWork:not([hidden])) .proof-body { flex-direction: row; align-items: baseline; gap: var(--sp-2); }
+#landing:has(#homeAnswer:not([hidden])) .proof-fps b,
+#landing:has(#homeWork:not([hidden])) .proof-fps b { font-size: var(--fs-2xl); }
+#landing:has(#homeAnswer:not([hidden])) .home-tour,
+#landing:has(#homeWork:not([hidden])) .home-tour { display: none; }
+
+/* ── Narrow windows (breakpoints use scale values only) ── */
+@media (max-width: 1200px) {
+  .stage-deck {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas: "grid grid" "dev meas";
+  }
+}
+/* The 3×3 modules take three icon rows. A short window (1280×800, 1440×900 in a long language)
+   would push the bar below the fold, so the hero and the icons shrink there to keep one screen. */
+@media (max-height: 920px) and (min-width: 600px) {
+  .stage-deck { --icon: 64px; }
+}
+@media (max-height: 820px) and (min-width: 600px) {
+  .stage-hero { gap: var(--sp-2); }
+  .stage-title { font-size: 44px; }
+  .stage-sub { font-size: 18px; }
+  .ask-box { padding: var(--sp-3) var(--sp-4) var(--sp-2) var(--sp-5); }
+  .stage-hero .ask-input { font-size: 18px; }
+  .stage-deck { --icon: 56px; }
+  .stage-deck .studio-grid { row-gap: var(--sp-2); }
+}
+@media (max-width: 600px) {
+  .stage-deck { grid-template-columns: minmax(0, 1fr); grid-template-areas: "grid" "dev" "meas"; }
+  .stage-deck .studio-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  /* Phone: the books drop under the 3×3 modules as a fourth row. */
+  .stage-deck .studio-grid > .about-book-card { grid-column: auto; grid-row: auto; align-self: start; }
+}
+
+
+/* ═══ Effects — reacting ═════════════════════════════════════════════════════
+   Only transform and opacity move. Reduced motion: the global rule in dx-base.css sets
+   transitions to 0 so only the final state shows. Anything needing JS is in home-effects.js. */
+
+/* Stage lighting — a top light at the top centre plus an edge vignette. Static. Only while
+   home is visible (setVisibleView toggles body.home-visible). */
+:root {
+  --stage-toplight: color-mix(in srgb, var(--accent) 16%, transparent);
+  --stage-vignette: rgba(0, 0, 0, .55);
+}
+:root[data-theme="light"] {
+  --stage-toplight: color-mix(in srgb, var(--accent) 8%, white);
+  --stage-vignette: rgba(0, 0, 0, .05);
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --stage-toplight: color-mix(in srgb, var(--accent) 8%, white);
+    --stage-vignette: rgba(0, 0, 0, .05);
+  }
+}
+body.home-visible {
+  background:
+    radial-gradient(ellipse 70% 45% at 50% 0%, var(--stage-toplight), transparent 70%),
+    radial-gradient(ellipse 110% 90% at 50% 40%, transparent 60%, var(--stage-vignette) 100%),
+    var(--surface-page);
+  background-attachment: fixed;
+}
+
+/* Input light ring — off at rest, on with focus. The keystroke ripple is in home-effects.js (WAAPI). */
+.ask-box > .ask-input { grid-row: 1; grid-column: 1; }
+.ask-box > .ask-foot { grid-row: 2; grid-column: 1; }
+.ask-box::after {
+  content: "";
+  grid-row: 1 / -1;
+  grid-column: 1;
+  /* Covers the padding too (same value as .ask-box's padding). */
+  margin: calc(var(--sp-4) * -1) calc(var(--sp-4) * -1) calc(var(--sp-3) * -1) calc(var(--sp-5) * -1);
+  border-radius: inherit;
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--accent) 55%, transparent),
+    inset 0 0 28px color-mix(in srgb, var(--accent) 18%, transparent),
+    0 0 32px -8px color-mix(in srgb, var(--accent) 45%, transparent);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur) var(--ap-ease);
+}
+.ask-box:focus-within::after { opacity: .55; }
+
+/* Books — the cover tilts slightly and a sheen passes once over the foil. The sheen is the cover's ::after (grid item). */
+.stage-deck .about-book-card .orbital-icon {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  transition: transform 300ms var(--ap-ease);
+}
+.stage-deck .about-book-card .orbital-icon > .mod-glyph { grid-area: 1 / 1; }
+.stage-deck .about-book-card .orbital-icon::after {
+  content: "";
+  grid-area: 1 / 1;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, .32) 50%, transparent 65%);
+  opacity: 0;
+  transform: translateX(-60%);
+  pointer-events: none;
+  transition: opacity 300ms var(--ap-ease), transform 600ms var(--ap-ease);
+}
+.stage-deck .about-book-card:is(:hover, :focus-visible) .orbital-icon {
+  transform: perspective(480px) rotateY(-8deg);
+}
+.stage-deck .about-book-card:is(:hover, :focus-visible) .orbital-icon::after {
+  opacity: 1;
+  transform: translateX(60%);
+}
+
+/* Poster pill — the thumbnail moves slightly closer. */
+.stage-film img { transition: transform 240ms var(--ap-ease); }
+.stage-film:is(:hover, :focus-visible) img { transform: scale(1.06); }
+
+/* Theme and language cross-fade — View Transitions (_fade in shared dx-theme.js and i18n.js,
+   opt-in via <html data-dx-fade>). data-dx-fading, set only during the transition, picks the duration. */
+html[data-dx-fading="theme"]::view-transition-old(root),
+html[data-dx-fading="theme"]::view-transition-new(root) {
+  animation-duration: 600ms;
+  animation-timing-function: var(--ap-ease);
+}
+html[data-dx-fading="lang"]::view-transition-old(root),
+html[data-dx-fading="lang"]::view-transition-new(root) {
+  animation-duration: 200ms;
+  animation-timing-function: var(--ap-ease);
+}
+
+
+/* ═══ Effects — continuous ═════════════════════════════════════════════════════
+   Placeholder typing, count-up and cursor-light motion are JS (home-effects.js · home-widgets.js).
+   Core bars and pulse are in the widget section above. */
+
+/* Cursor light — a grid item spanning the whole stage (all rows and columns). Behind content
+   (z-index -1) and clipped to the stage — overflow would let the document scroll when the cursor
+   nears a corner. Widened to the window width and to the padding vertically (same formula as
+   .landing.home-stage's padding). */
+.stage-light {
+  grid-row: 1 / -1;
+  grid-column: 1 / -1;
+  z-index: -1;
+  margin:
+    calc((var(--launcher-topbar-h) + clamp(var(--sp-2), 1.5vh, var(--sp-5))) * -1)
+    calc((100vw - 100%) / -2)
+    calc(var(--sp-3) * -1);
+  overflow: clip;
+  pointer-events: none;
+}
+.stage-light > i {
+  --r: 320px;
+  display: block;
+  width: calc(var(--r) * 2);
+  height: calc(var(--r) * 2);
+  /* Adds nothing to the cell height — growing a stage row would break the one-screen layout. */
+  margin-bottom: calc(var(--r) * -2);
+  border-radius: 50%;
+  background: radial-gradient(circle closest-side, var(--cursor-light), transparent);
+  opacity: 0;
+  will-change: transform;
+  transition: opacity 400ms var(--ap-ease);
+}
+.stage-light.is-on > i { opacity: 1; }
+:root { --cursor-light: rgba(255, 255, 255, .06); }
+:root[data-theme="light"] { --cursor-light: rgba(255, 255, 255, .75); }
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) { --cursor-light: rgba(255, 255, 255, .75); }
+}
+
+
+/* ═══ Effects — motion ═════════════════════════════════════════════════════════
+   First-entry stagger and sweep, the send orb and Dock growth are in home-effects.js (WAAPI · rAF). */
+
+/* Back to home: a 200ms fade instead of the 0.4s slide (other views unchanged). */
+.landing.home-stage.view-slide-in { animation: stage-fade-in 200ms var(--ap-ease) both; }
+@keyframes stage-fade-in { from { opacity: 0; } }
+
+/* sweep and orb are siblings on the cursor-light layer — they add nothing to the cell height (negative margin). */
+.stage-light > b {
+  display: block;
+  border-radius: 50%;
+  opacity: 0;
+  will-change: transform, opacity;
+}
+.stage-sweep {
+  --h: 180px;
+  width: 420px;
+  height: var(--h);
+  margin-bottom: calc(var(--h) * -1);
+  background: radial-gradient(closest-side, var(--sweep-light), transparent);
+}
+.stage-orb {
+  --h: 56px;
+  width: var(--h);
+  height: var(--h);
+  margin-bottom: calc(var(--h) * -1);
+  background: radial-gradient(closest-side,
+    color-mix(in srgb, var(--accent) 35%, white),
+    color-mix(in srgb, var(--accent) 45%, transparent) 45%,
+    transparent);
+}
+:root { --sweep-light: color-mix(in srgb, var(--accent) 32%, transparent); }
+:root[data-theme="light"] { --sweep-light: color-mix(in srgb, var(--accent) 16%, transparent); }
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) { --sweep-light: color-mix(in srgb, var(--accent) 16%, transparent); }
+}

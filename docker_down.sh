@@ -19,6 +19,8 @@ OS_VERSION=""
 
 DEV_MODE=0
 INTEL_GPU_HW_ACC=0
+NVIDIA_GPU_MODE=0
+CUDA_VERSION=""
 
 # Function to display help message
 show_help() {
@@ -44,6 +46,9 @@ show_help() {
     echo -e "                                   Note: ${COLOR_CYAN}dx-runtime${COLOR_RESET} and ${COLOR_CYAN}dx-modelzoo${COLOR_RESET} support Ubuntu and Debian only"
     echo -e ""
     echo -e "${COLOR_BOLD}Optional:${COLOR_RESET}"
+    echo -e "  ${COLOR_GREEN}[--nvidia_gpu]${COLOR_RESET}                 Stop containers built with --nvidia_gpu (GPU image tag suffix)"
+    echo -e "  ${COLOR_GREEN}[--cuda_version=<version>]${COLOR_RESET}     CUDA version used at build time (default: 12.8.1)"
+    echo -e "  ${COLOR_GREEN}[--intel_gpu_hw_acc]${COLOR_RESET}           Stop containers built with --intel_gpu_hw_acc (vaapi image tag suffix)"
     echo -e "  ${COLOR_GREEN}[--help]${COLOR_RESET}                       Show this help message"
     echo -e ""
     echo -e "${COLOR_BOLD}Examples:${COLOR_RESET}"
@@ -284,6 +289,23 @@ main() {
         IMAGE_TAG_SUFFIX="centos-${CENTOS_VERSION}"
     fi
 
+    if [ ${INTEL_GPU_HW_ACC} -eq 1 ] && [ ${NVIDIA_GPU_MODE} -eq 1 ]; then
+        show_help "error" "--intel_gpu_hw_acc and --nvidia_gpu are mutually exclusive."
+    fi
+
+    # NVIDIA GPU mode: match the GPU image tag suffix used by build/run
+    if [ ${NVIDIA_GPU_MODE} -eq 1 ]; then
+        export CUDA_VERSION=${CUDA_VERSION:-12.8.1}
+        export IMAGE_TAG_SUFFIX="cuda${CUDA_VERSION}-${BASE_IMAGE_NAME}-${OS_VERSION}"
+        print_colored_v2 "INFO" "NVIDIA_GPU_MODE is set. (image tag suffix: ${IMAGE_TAG_SUFFIX})"
+    fi
+
+    # Intel GPU (VA-API) mode: match the vaapi image tag suffix used by build/run
+    if [ ${INTEL_GPU_HW_ACC} -eq 1 ]; then
+        export IMAGE_TAG_SUFFIX="vaapi-${BASE_IMAGE_NAME}-${OS_VERSION}"
+        print_colored_v2 "INFO" "INTEL_GPU_HW_ACC is set. (image tag suffix: ${IMAGE_TAG_SUFFIX})"
+    fi
+
     print_colored_v2 "INFO" "BASE_IMAGE_NAME($BASE_IMAGE_NAME) is set."
     print_colored_v2 "INFO" "OS_VERSION($OS_VERSION) is set."
     print_colored_v2 "INFO" "TARGET_ENV($TARGET_ENV) is set."
@@ -344,6 +366,12 @@ for i in "$@"; do
             ;;
         --intel_gpu_hw_acc)
             INTEL_GPU_HW_ACC=1
+            ;;
+        --nvidia_gpu)
+            NVIDIA_GPU_MODE=1
+            ;;
+        --cuda_version=*)
+            CUDA_VERSION="${1#*=}"
             ;;
         *)
             show_help "error" "Invalid option '$1'"

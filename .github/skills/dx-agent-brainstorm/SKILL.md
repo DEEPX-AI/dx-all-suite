@@ -20,9 +20,9 @@ in a single sub-project, prefer the project-level version:
 
 | Working on... | Use this skill |
 |---|---|
-| dx_app (standalone inference) | `dx-runtime/dx_app/.github/skills/dx-brainstorm-and-plan.md` |
-| dx_stream (GStreamer pipelines) | `dx-runtime/dx_stream/.github/skills/dx-brainstorm-and-plan.md` |
-| Cross-project integration | `dx-runtime/.github/skills/dx-brainstorm-and-plan.md` |
+| dx_app (standalone inference) | `dx-runtime/dx_app/.github/skills/dx-agent-brainstorm/SKILL.md` |
+| dx_stream (GStreamer pipelines) | `dx-runtime/dx_stream/.github/skills/dx-agent-brainstorm/SKILL.md` |
+| Cross-project integration | `dx-runtime/.github/skills/dx-agent-brainstorm/SKILL.md` |
 
 ## When to Use
 
@@ -41,9 +41,9 @@ any DEEPX-specific concern:
 ### Step 1: Route to Sub-Project
 
 Determine which sub-project(s) are involved:
-1. If **only dx_app** → delegate to `dx-runtime/dx_app/.github/skills/dx-brainstorm-and-plan.md`
-2. If **only dx_stream** → delegate to `dx-runtime/dx_stream/.github/skills/dx-brainstorm-and-plan.md`
-3. If **cross-project** → use the integration version at `dx-runtime/.github/skills/dx-brainstorm-and-plan.md`
+1. If **only dx_app** → delegate to `dx-runtime/dx_app/.github/skills/dx-agent-brainstorm/SKILL.md`
+2. If **only dx_stream** → delegate to `dx-runtime/dx_stream/.github/skills/dx-agent-brainstorm/SKILL.md`
+3. If **cross-project** → use the integration version at `dx-runtime/.github/skills/dx-agent-brainstorm/SKILL.md`
 4. If **unclear** → ask the user which sub-project they're targeting
 
 ### Step 2: Context Check

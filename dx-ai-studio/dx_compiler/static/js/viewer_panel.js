@@ -1,4 +1,11 @@
 // viewer_panel.js — Manages the embedded model viewer panel with phase tabs
+
+/* Translate a server error right before showing it. If shared/static/server-error-i18n.js
+   is not loaded, show the original text — never silently blank it. */
+function _srvErr(msg) {
+  return (typeof window.translateServerError === 'function')
+    ? window.translateServerError(msg) : msg;
+}
 (function() {
     'use strict';
 
@@ -53,7 +60,7 @@
         if (!empty) return;
         empty.style.display = '';
         empty.innerHTML =
-            '<span class="viewer-empty-icon">⏳</span>' +
+            '<span class="viewer-empty-icon">' + ((typeof DXIcon === 'function') ? DXIcon('spinner') : '') + '</span>' +
             '<span>' + tr('Waiting for {phase} model...').replace('{phase}', phaseLabel(phase)) + '</span>';
     }
 
@@ -62,7 +69,7 @@
         if (!empty) return;
         empty.style.display = '';
         empty.innerHTML =
-            '<span class="viewer-empty-icon">⬡</span>' +
+            '<span class="viewer-empty-icon">' + ((typeof DXIcon === 'function') ? DXIcon('models') : '') + '</span>' +
             '<span>' + tr('Load a model to visualize') + '</span>';
     }
 
@@ -83,7 +90,7 @@
         if (!text) return renderDefaultEmpty();
         empty.style.display = '';
         empty.innerHTML =
-            '<span class="viewer-empty-icon">⬇️</span>' +
+            '<span class="viewer-empty-icon">' + ((typeof DXIcon === 'function') ? DXIcon('download') : '') + '</span>' +
             '<span>' + tr(text) + '</span>';
     }
 
@@ -214,7 +221,6 @@
                     var cy = py + ph / 2;
                     var tx = svgW * 0.35 - cx * scale;
                     var ty = svgH * 0.25 - cy * scale;
-                    console.log('[TensorZoom] zooming to', _tid, 'tx='+tx.toFixed(0), 'ty='+ty.toFixed(0), 'scale='+scale.toFixed(2));
                     zp.setTransform(tx, ty, scale);
                 } catch (e) { console.warn('[TensorZoom] error:', e); }
             }, 50);
@@ -246,6 +252,12 @@
                 svg.dispatchEvent(evt);
             },
         });
+    }
+
+    // A phase tab with no graph yet: the class dims it, aria-disabled tells screen readers.
+    function setTabEnabled(tab, on) {
+        tab.classList.toggle('disabled', !on);
+        if (on) tab.removeAttribute('aria-disabled'); else tab.setAttribute('aria-disabled', 'true');
     }
 
     function init() {
@@ -351,6 +363,9 @@
         setupSearch();
         setupExplorer();
         setupKeyboardShortcuts();
+        // Render the status bar in the chosen language even before a model is opened.
+        updateStatusBar(null, null);
+        updateZoomDisplay();
 
         // Deep-link: /compiler/?viewer_path=<absolute .onnx path>  → auto-parse + render
         // the model's graph on the "input" tab. Lets other Studio modules (dx_app, modelzoo)
@@ -425,7 +440,8 @@
                         zoomPanState.setTransform(saved.x, saved.y, saved.scale);
                     } else {
                         requestAnimationFrame(function() {
-                            zoomPanState.fitToView();
+                            zoomPanState.initialView();
+                            updateZoomDisplay();
                         });
                     }
                 }
@@ -450,8 +466,8 @@
 
     function updateZoomDisplay() {
         var sz = document.getElementById('status-zoom');
-        if (!sz || !zoomPanState) return;
-        var t = zoomPanState.getTransform();
+        if (!sz) return;
+        var t = zoomPanState ? zoomPanState.getTransform() : { scale: 1 };
         sz.textContent = tr('Zoom') + ': ' + Math.round(t.scale * 100) + '%';
     }
 
@@ -490,7 +506,7 @@
         // (prefer fitting over restoring the previous transform when layout changed)
         if (zoomPanState && typeof zoomPanState.fitToView === 'function') {
             requestAnimationFrame(function() {
-                try { zoomPanState.fitToView(); } catch(e) { /* ignore */ }
+                try { zoomPanState.initialView(); } catch(e) { /* ignore */ }
                 updateZoomDisplay();
             });
         }
@@ -515,7 +531,7 @@
         // After expand, fit the graph to view so focus remains correct
         if (zoomPanState && typeof zoomPanState.fitToView === 'function') {
             requestAnimationFrame(function() {
-                try { zoomPanState.fitToView(); } catch(e) { /* ignore */ }
+                try { zoomPanState.initialView(); } catch(e) { /* ignore */ }
                 updateZoomDisplay();
             });
         }
@@ -535,7 +551,7 @@
             }
             graphCache[phase] = graphData;
             var tab = document.querySelector('.viewer-tab[data-phase="' + phase + '"]');
-            if (tab) tab.classList.remove('disabled');
+            if (tab) setTabEnabled(tab, true);
             // Only auto-switch for the input model; intermediate phases just enable the tab
             if (phase === 'input') switchTab(phase);
         })
@@ -578,7 +594,7 @@
             // In-memory graph data from GUI callback (no file saved)
             graphCache[tabPhase] = data.graph;
             var tab = document.querySelector('.viewer-tab[data-phase="' + tabPhase + '"]');
-            if (tab) tab.classList.remove('disabled');
+            if (tab) setTabEnabled(tab, true);
             if (tabPhase === 'prepared') switchTab('prepared');
         } else if (data.path) {
             loadModel(tabPhase, data.path);
@@ -595,7 +611,7 @@
         currentQxnnPath = (data && data.qxnn_path) || null;
         currentQxnnSuggestedOutputDir = (data && data.suggested_output_dir) || null;
         var tab = document.querySelector('.viewer-tab[data-phase="qxnn"]');
-        if (tab && (hasDiagnosisReport || diagnosisRequested)) tab.classList.remove('disabled');
+        if (tab && (hasDiagnosisReport || diagnosisRequested)) setTabEnabled(tab, true);
         if (activePhase === 'qxnn') updateQxnnViewVisibility('qxnn');
     }
 
@@ -716,7 +732,7 @@
         deepLinkNotice = null;
         document.querySelectorAll('.viewer-tab').forEach(function(t) {
             t.classList.remove('active');
-            if (t.dataset.phase !== 'input') t.classList.add('disabled');
+            if (t.dataset.phase !== 'input') setTabEnabled(t, false);
         });
         var inputTab = document.querySelector('.viewer-tab[data-phase="input"]');
         if (inputTab) inputTab.classList.add('active');
@@ -747,8 +763,11 @@
         return fallback;
     }
 
+    var lastCapabilities = null;   // Re-applied when the language changes
+
     function applyCompilerCapabilities(data) {
         if (!data || !data.capabilities) return;
+        lastCapabilities = data;
         var nodeSelection = document.getElementById('node-selection');
         if (!nodeSelection) return;
         var unsupported = data.capabilities.node_selection === false;
@@ -809,9 +828,9 @@
             toolbar.id = 'ns-toolbar';
             toolbar.innerHTML =
                 '<button id="ns-input-btn" class="ns-toolbar-btn ns-toolbar-input active">' +
-                '● ' + tr('Set Input Nodes') + '</button>' +
+                '<span class="ns-dot"></span>' + tr('Set Input Nodes') + '</button>' +
                 '<button id="ns-output-btn" class="ns-toolbar-btn ns-toolbar-output">' +
-                '● ' + tr('Set Output Nodes') + '</button>';
+                '<span class="ns-dot"></span>' + tr('Set Output Nodes') + '</button>';
             canvasWrap.appendChild(toolbar);
 
             document.getElementById('ns-input-btn').addEventListener('click', function() {
@@ -847,7 +866,7 @@
                 '    ' + tr('Calculate Range') + '</button>' +
                 '  <div id="ns-range-info" class="ns-range-info"></div>' +
                 '  <button id="ns-resume-btn" class="ns-action-btn ns-resume-btn">' +
-                '    ' + tr('▶ Resume Compilation') + '</button>' +
+                '    ' + ((typeof DXIcon === 'function') ? DXIcon('play') : '') + ' ' + tr('Resume Compilation') + '</button>' +
                 '</div>';
             sidebar.appendChild(panel);
 
@@ -1005,7 +1024,7 @@
         .then(function(data) {
             if (data.error) {
                 var info = document.getElementById('ns-range-info');
-                if (info) info.textContent = 'Error: ' + data.error;
+                if (info) info.textContent = 'Error: ' + _srvErr(data.error);
                 return;
             }
             excludedNodesSet = new Set(data.excluded_nodes);
@@ -1043,7 +1062,7 @@
         })
         .catch(function(err) {
             console.error('Resume failed:', err);
-            if (btn) { btn.textContent = tr('▶ Resume Compilation'); btn.disabled = false; }
+            if (btn) { DXIcon.label(btn, 'play', tr('Resume Compilation')); btn.disabled = false; }
         });
     }
 
@@ -1414,7 +1433,7 @@
             var catHeader = document.createElement('div');
             catHeader.className = 'explorer-category-header';
             catHeader.innerHTML =
-                '<span class="cat-chevron">▶</span>' +
+                '<span class="cat-chevron">' + ((typeof DXIcon === 'function') ? DXIcon('chev') : '') + '</span>' +
                 '<span class="cat-dot" style="background:' + cfg.color + '"></span>' +
                 '<span class="cat-label">' + tr(cfg.label) + '</span>' +
                 '<span class="cat-count">' + catTotal + '</span>';
@@ -1441,7 +1460,7 @@
                 var opHeader = document.createElement('div');
                 opHeader.className = 'explorer-optype-header';
                 opHeader.innerHTML =
-                    '<span class="op-chevron">▶</span>' +
+                    '<span class="op-chevron">' + ((typeof DXIcon === 'function') ? DXIcon('chev') : '') + '</span>' +
                     '<span class="op-label">' + opKey + '</span>' +
                     '<span class="op-count">' + opNodes.length + '</span>';
 
@@ -1555,6 +1574,9 @@
         if (lastSearchCount !== null) {
             updateStatusSearchCount(lastSearchCount);
         }
+        updateZoomDisplay();
+        if (lastCapabilities) applyCompilerCapabilities(lastCapabilities);
+        if (selectedNode) showNodeInfo(selectedNode);
         if (nodeSelectionMode) {
             hideNodeSelectionUI();
             showNodeSelectionUI();

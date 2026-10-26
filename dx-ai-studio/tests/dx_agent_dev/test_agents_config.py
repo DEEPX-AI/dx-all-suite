@@ -1,4 +1,4 @@
-"""에이전트 설정 테이블 계약."""
+"""Agent config table contract."""
 import sys
 from pathlib import Path
 

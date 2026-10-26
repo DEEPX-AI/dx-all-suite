@@ -7,6 +7,8 @@ sys.path.insert(0, os.path.join(_root, 'shared'))
 class TestCppPostprocessFlags(unittest.TestCase):
     def test_yolov7_has_cpp_postprocess_flags(self):
         from dx_app.core import models
+        from tests.installed_sdk import require_dx_app
+        require_dx_app("src/python_example/object_detection")   # discovery reads the installed example tree
 
         # The registry deliberately hides models whose optional DXNN assets have
         # not been installed. This test verifies source-runner discovery only.
@@ -14,7 +16,7 @@ class TestCppPostprocessFlags(unittest.TestCase):
             models,
             "_required_dxnn_exists",
             side_effect=lambda model_file: model_file == "assets/models/yolov7_640x640.dxnn",
-        ):
+        ), patch.object(models, "_python_runtime_ready", return_value=True):
             discovered = models.get_models()
 
         y = next((m for m in discovered if m['name'].startswith('yolov7')

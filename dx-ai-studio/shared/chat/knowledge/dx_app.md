@@ -1,16 +1,18 @@
-# DX App — AI 추론 및 개발 플랫폼 (v3.1.0)
+# DX App — AI 추론 및 개발 플랫폼
 
 ## [section:overview,소개] DX App 개요
 
-DX App (포트 8080)은 DX AI Studio의 핵심 앱이자, **production-ready AI 추론 템플릿 스위트**입니다.
+DX App (Studio 경로 `/app/`)은 DX AI Studio에서 추론 예제를 준비·실행하고 결과를 확인하는 앱입니다.
 - NPU를 활용한 **이미지/영상/카메라/RTSP 추론** 실행
-- **280+ 모델 × 17 태스크**, C++/Python 듀얼 언어 지원
+- 태스크별 모델 예제, C++/Python 듀얼 언어 지원
 - **Sync/Async 실행 패러다임** — 비동기(RunAsync)로 FPS 극대화
 - **Unified Post-Processing Engine** — C++ 최적화, pybind11(dx_postprocess)로 Python에서도 C++ 속도
-- ONNX → `.dxnn` **컴파일** (DX-COM 연동)
-- **NPU 하드웨어 모니터링** (온도, 전압, 클럭)
 - **개발자 도구**: 모델 스캐폴딩, Git 연동, 배포
-- **커뮤니티 포럼**: 질문/답변, 태그 기반 검색
+- 상단 탭: Setup · Models · Run Inference · Run Demo · Benchmark · A/B Compare · ModelZoo · Graph Composer · Lab · Outputs · Reference
+- ONNX → `.dxnn` 컴파일은 **DX Compiler** (`/compiler/`), NPU 하드웨어 모니터링은 **DX Monitor** (`/dx_monitor/`)에서 합니다
+- **Graph Composer는 DX App 내부 기능**이며 별도 제품이나 독립 module이 아닙니다.
+- 기준: dx_app dev `2e20108a5`, **canonical variant 497개 / task 29개**. 크기·입력·학습 변형을 포함한 수이며 architecture 497개가 아닙니다. Studio internal snapshot은 2026-10-13 기준 348 → 497개(+149)이며, 실제 표시는 연결된 app과 catalog revision을 확인합니다.
+- NPU 없이 UI를 둘러볼 수 있지만 모든 페이지가 자동 mock으로 실행되지는 않습니다. 실제 실행은 runtime·모델·binary·입력 준비가 필요하며, 미준비 상태는 오류나 unavailable로 안내합니다.
 
 ## [section:inference,run,predict,추론,실행] 추론 실행
 
@@ -25,10 +27,13 @@ DX App (포트 8080)은 DX AI Studio의 핵심 앱이자, **production-ready AI 
 > 입력 미지정 시 태스크에 맞는 기본 샘플 이미지 자동 선택 (예: 객체감지 → `sample_street.jpg`)
 
 ### 추론 실행 방법 (웹 UI)
-1. 모델 선택 (레지스트리에서 카테고리별 필터)
-2. 입력 유형 선택 (이미지/영상/카메라/RTSP)
-3. 파라미터 조절 (Confidence, NMS threshold) — `config.json`으로 모델별 튜닝
-4. **Run** 클릭 → 결과 이미지 + FPS/Latency 표시
+**Run Inference** 탭에는 **Single** / **Continuous** 두 모드가 있습니다.
+1. Category → Model 선택, Code Language · Mode (Sync/Async) 선택
+2. 입력 유형 선택
+   - **Single**: Image (샘플 이미지 또는 **Upload image**) / Video
+   - **Continuous**: Video / Camera / RTSP — 카메라 · RTSP 입력은 Continuous 모드에서만 가능 (Model Slots 최대 8개, **Start Continuous**로 시작)
+3. 파라미터 조절 (Confidence, NMS threshold) — 모델의 `config.json` score_threshold / nms_threshold 로 전달
+4. **Run Inference** 클릭 → 결과 이미지 + FPS/Latency 표시
 
 ### CLI 추론 (터미널)
 ```bash
@@ -42,32 +47,36 @@ python src/python_example/object_detection/yolov7/yolov7_sync.py --model assets/
 ./bin/yolov9s_sync -m assets/models/YoloV9S.dxnn -i sample/img/sample_kitchen.jpg --save
 ```
 
-### Interactive Demo (18개 데모 태스크)
-```bash
-./run_demo.sh                          # 인터랙티브 메뉴
-./run_demo.sh --task 0 --mode 1 --input 2  # 비인터랙티브 (YOLOv7, C++ sync, image)
-```
+### 예제 폴더 모양 — 두 가지 (2026-10)
+dx_app 은 두 모양 중 하나다. **per-model** 은 예제를 model 마다 한 폴더로 두고 폴더 · 파일 · binary 이름이 `.dxnn` 이름 (stem)
+과 같다. **legacy** 는 model 이름 폴더다. 한 PC 에는 한 모양만 있다 — 어느 쪽인지는 prompt 의 "이 PC 의 dx_app" 사실을 따른다.
+Python 예제의 입력 옵션은 `--image/-i` · `--video/-v` · `--camera/-c` · `--rtsp/-r` 이다 (`--input` 은 없다).
 
-| 데모 # | 태스크 | 모델 | 크기 |
-|--------|--------|------|------|
-| 0 | Object Detection | YoloV7.dxnn | 74 MB |
-| 1 | Object Detection | YOLOV11N.dxnn | 7 MB |
-| 2 | Face Detection | SCRFD500M.dxnn | 2.1 MB |
-| 3 | OBB Detection | yolo26n-obb.dxnn | 7.5 MB |
-| 4 | Pose Estimation | yolov8s_pose.dxnn | 25 MB |
-| 5 | Hand Landmark | HandLandmarkLite_1.dxnn | 2.5 MB |
-| 6 | Face Alignment | 3ddfa_v2_mobilnetv1_120x120.dxnn | 6.5 MB |
-| 7 | Instance Segmentation | yolov8n_seg.dxnn | 8.9 MB |
-| 8 | Semantic Segmentation | DeepLabV3PlusMobilenet.dxnn | 13 MB |
-| 9 | Classification | ResNet50.dxnn | 50 MB |
-| 10 | Depth Estimation | scdepthv3.dxnn | 29 MB |
-| 11 | Image Denoising | DnCNN_50.dxnn | 4.1 MB |
-| 12 | Super Resolution | ESPCN_X4.dxnn | 83 KB |
-| 13 | Image Enhancement | zero_dce.dxnn | 9.7 MB |
-| 14 | Embedding | arcface_mobilefacenet.dxnn | 29 MB |
-| 15 | Attribute Recognition | deepmar_resnet50.dxnn | 46 MB |
-| 16 | Person Re-ID | casvit_t.dxnn | 82 MB |
-| 17 | PPU Pipeline | YoloV7_PPU.dxnn | 74 MB |
+| | legacy | per-model |
+|---|---|---|
+| Python 예제 | `src/python_example/object_detection/yolo26n/yolo26n_sync.py` | `src/python_example/object_detection/yolo26/yolo26-n_640x640/yolo26-n_640x640_sync.py` |
+| C++ binary | `./bin/yolo26n_sync` | `./bin/yolo26-n_640x640_sync` |
+| task 폴더 | `classification` · `obb_detection` · `ppu` · `face_alignment` · `embedding` … (22) | `image_classification` · `oriented_object_detection` · `face_landmark` · `face_recognition` … (29, ppu 는 `object_detection/yolo_ppu` 등으로) |
+| 새 task | — | anomaly_detection (EfficientAD · PatchCore), zero_shot_image_classification (CLIP), zero_shot_instance_segmentation (FastSAM), image_matting (PP-Matting), image_retrieval, visual_place_recognition, face_attribute |
+| model 수 | 해당 legacy checkout의 registry 확인 | 497 canonical variants (dev `2e20108a5`) |
+
+- per-model 의 `config.json` 은 중첩 spec 이고 threshold 는 `config` 안에 있다. 늘 `-m <model>.dxnn` 을 준다.
+- Model Zoo **2_5_0** 의 `.dxnn` 은 container **v9** 이고 **DX-RT 3.5.0 이상**이 필요하다. DX-RT 3.4.x 는 v6–8 만 읽는다
+  ("Model file format version 9 is not supported"). DX AI Studio 는 오래된 DX-RT 에서 같은 이름의 2_4_0 (v8) 을 받고,
+  2_5_0 에만 있는 model 은 "Needs DX-RT 3.5" 로 표시한다.
+- model 파일은 `assets/models` 다음에 suite 의 `workspace/res/models` 에서도 찾는다.
+
+### Interactive Demo (`run_demo.sh`)
+```bash
+./run_demo.sh                              # 인터랙티브 메뉴 (태스크 → 모드 → 입력)
+./run_demo.sh --task 0 --mode 1 --input 2  # 비인터랙티브 (0번 태스크, cpp_sync, image)
+./run_demo.sh --help                       # 데모 개수 · 옵션 확인
+```
+- `--task NUM`: 데모 태스크 번호 (0부터)
+- `--mode NUM`: 언어 + 실행 모드 (최대 6개: cpp_sync, cpp_async, py_sync, py_async, py_sync_cpp_postprocess, py_async_cpp_postprocess — 태스크에 따라 일부만)
+- `--input NUM`: 1 = video, 2 = image (image-only 태스크는 자동으로 image)
+- 데모 목록(태스크 · 모델 파일)은 `run_demo.sh` 안의 배열이 기준이며 버전마다 바뀝니다. 정확한 목록은 DX App의 **Run Demo** 탭(같은 `run_demo.sh`를 읽어 표시)이나 `./run_demo.sh`의 첫 메뉴에서 확인하세요.
+- 없는 데모 모델은 `run_demo.sh`가 자동으로 다운로드합니다.
 
 ### Sync vs Async 실행 패러다임
 - **Synchronous (`*_sync`)**: 순차 실행 (Input → Inference → Output). 디버깅/단일 이미지에 적합.
@@ -98,11 +107,11 @@ python src/python_example/object_detection/yolov7/yolov7_sync.py --model assets/
 - 핫 리로드: 새 모델 추가 시 서버 재시작 불필요
 - 모델별: NPU 코어 수, 데이터셋, 입력 해상도, score/NMS threshold
 
-### 지원 카테고리 (17+)
+### 주요 카테고리 예시 (전체 29 tasks 중 일부)
 | 카테고리 | 대표 모델 |
 |----------|-----------|
 | object_detection | YOLOv3~v12, YOLOX, NanoDet, SSD, DAMO-YOLO, EfficientDet |
-| classification | EfficientNet (Lite/V2), ResNet/ResNeXt, MobileNet, ViT/DeiT, FastViT |
+| image_classification | EfficientNet (Lite/V2), ResNet/ResNeXt, MobileNet, ViT/DeiT, FastViT |
 | face_detection | SCRFD, RetinaFace, ULFGED, YOLOv5/v7Face |
 | face_recognition | ArcFace (IResNet50/100, MobileFaceNet, R50) |
 | face_landmark | TDDFA v2 (MobileNet variants) |
@@ -114,12 +123,16 @@ python src/python_example/object_detection/yolov7/yolov7_sync.py --model assets/
 | depth_estimation | FastDepth, SCDepthV3 |
 | super_resolution | ESPCN (x2/x3/x4) |
 | image_denoising | DnCNN variants |
-| image_enhancement | ZeroDCE |
-| obb_detection | YOLO26-OBB |
-| embedding | ArcFace |
+| low_light_enhancement | ZeroDCE |
+| oriented_object_detection | YOLO26-OBB |
 | person_attribute | DeepMAR (ResNet18/50) |
-| reid | CasViT, OSNet |
-| ppu | PPU 파이프라인 (YOLOv7-PPU 등) |
+| person_reid | CasViT, OSNet |
+| mainbody_detection | PP-ShiTu mainbody detectors |
+
+PPU 예제는 별도 canonical task 수로 더하지 않고 `object_detection` 등 해당 task에서 찾습니다.
+Model Zoo 카드의 FPS·정확도는 게시된 metric·dataset·quantization tier 기준이며 로컬 성능 보장이 아닙니다.
+모델별 artifact와 Q-Lite / Q-Pro / Q-Master 제공 여부도 다릅니다. 기존 모델 이미지는 재사용하며,
+화면에서 이미지가 없다는 이유만으로 전체 모델을 재촬영·재추론하라고 안내하지 않습니다.
 
 ### 모델 다운로드 (`setup.sh`)
 ```bash
@@ -141,29 +154,8 @@ python src/python_example/object_detection/yolov7/yolov7_sync.py --model assets/
 
 ## [section:compile,build,onnx,dxnn,컴파일] ONNX 컴파일
 
-DX App 내장 컴파일 기능 (DX-COM 연동):
-
-1. **ONNX 업로드**: 웹 UI에서 `.onnx` 파일 업로드
-2. **그래프 분석**: ONNX Inspector로 입력/출력 Shape, Opset 확인
-3. **컴파일 옵션**: 최적화 레벨 (0~3), Aggressive Partitioning
-4. **컴파일 실행**: ONNX → `.dxnn` 변환
-5. **테스트 위자드**: Preprocessor + Postprocessor 조합 테스트
-6. **Quick Deploy**: 컴파일 결과를 모델 레지스트리에 즉시 등록
-7. **DX-TRON**: 웹 기반 그래프 시각화 (NPU/CPU 파티션 컬러 코딩)
-
-## [section:hardware,npu,device,하드웨어] NPU 하드웨어 모니터링
-
-### 실시간 모니터링 항목
-| 항목 | 단위 | 설명 |
-|------|------|------|
-| 온도 | °C | NPU 다이 온도 (코어별, 최대 4코어) |
-| 전압 | mV | NPU 공급 전압 |
-| 클럭 | MHz | NPU 동작 주파수 |
-| DRAM | MB | NPU 전용 메모리 사용량 |
-
-- SSE 스트리밍으로 60초+ 실시간 데이터 제공
-- 시스템 정보: CPU 모델, 메모리, 디스크, OS, Python 버전
-- NPU 미감지 시 **Mock 데이터**로 동작 (개발/데모용)
+DX App에는 ONNX → `.dxnn` 컴파일 화면이 없습니다. 컴파일은 **DX Compiler** 앱 (Studio 경로 `/compiler/`)에서 합니다.
+컴파일된 `.dxnn`은 DX App의 Models / Run Inference에서 실행합니다.
 
 ## [section:developer,개발자] 개발자 도구 & CLI
 
@@ -209,6 +201,34 @@ artifacts/cpp_example/
 - C++ 템플릿: Factory, Processor, Visualizer, Runner (동기/비동기)
 - Python 템플릿: Postprocessor, Visualizer 모듈
 
+### Graph Composer 탭
+- 여러 model을 하나의 graph로 연결한다: source, task별 model (설치 상태 표시, 없으면 Download), CPU op (headpose, volume), dx_app 예제 graph.
+- 지원 범위: 기준 revision의 497개 중 **492개**가 graph 실행 가능. anomaly_detection 4개는 graph-ready가 아니며, `sfa3d_608x608`은 LiDAR source가 필요해 거부된다. 전체 catalog 모델이 Graph에서 실행 가능하다고 답하지 않는다.
+- 시작 예: Templates → intrusion 예제 → 필요한 model Download / 준비 → Source에 로컬 이미지·비디오 지정 → Inspector 확인 → Validate → Run once → 결과 / Layers / Events 확인. 연결 오류·모델 미준비·메모리 초과·다른 NPU job이 있으면 해당 사유를 해결하고 재시도한다. graph runner binary가 없으면 연결된 dx_app에서 `./build.sh`로 준비한다.
+- 편집할 때마다 dx_app `multi_model_graph_sync --check` 가 graph를 검사하고, 오류는 해당 node / edge 에 표시된다.
+- NPU memory bar: model마다 `parse_model` 의 Total 을 더한 값과 장치 여유 메모리. 넘치면 engine 공유, buffer 수 줄이기를 제안한다.
+- Run once: 이미지 / 비디오 입력, Sync / Async, 진행률, FPS, node별 시간, 결과 이미지, node별 결과, event 목록.
+- Logic 블록 (`"type": "logic", "op"`, dx_app `--list-ops --json` 이 목록과 parameter schema 를 준다): filter, zone, line, count, dwell, condition (→ event), gallery, user (Studio 에서는 pass-through, export 하면 function stub). model 결과는 `"carry": "result"` edge 로 받고, zone / filter 가 넘기는 boxes 는 다른 model 에 ROI edge 로 이어진다. line / dwell 은 tracking 이 켜진 detector 가 필요하다.
+- 구역 / 선: Inspector 의 "프레임 위에서 편집…" 이 입력의 첫 프레임 위에 그린다 (점 끌기, 변 가운데 점으로 추가, 구역 여러 개, 선 방향 뒤집기, 키보드 [ ] / 화살표 / Insert / Delete, Ctrl+Z 는 canvas 기록과 같다). 좌표는 기본으로 frame 대비 0..1 (normalized).
+- Event: dx_app 이 stdout 에 `[EVENT] {json}` 을, `--events <file.jsonl>` 에 같은 객체를 한 줄씩 쓴다 (`frame, time, stream, node, event, track_id, data`). 실행 패널에서 node / event / track ID / 시간으로 거르고, 행을 누르면 결과 비디오가 그 시점으로 이동하며, JSONL 로 내려받는다. node 에는 event 수가 표시된다.
+- Template: Logic 블록이 들어간 dx_app 예제 graph 9개를 NPU 실제 실행 결과 그림과 함께 연다. 이름과 설명은 화면 언어로 나온다: 출입 금지 구역 침입, 선 통과 계수, 보호구 확인, 배회 감지, 구역별 인원 계수, 등록된 인물 확인 (Gallery), 운전자 주의 상태 (headpose 의 yaw / pitch 로 looking_away, head_down event), 다중 카메라 인원 계수 (source 2개, camera 마다 count, 5명 이상이면 crowded event), 화물 부피 경보 (volume 의 volume_proxy 합이 100 을 넘으면 load_high event). 엔진 예제 13개도 화면 언어로 이름과 설명이 나온다.
+- 결과: source 마다 한 칸 (2개는 나란히, 3-4개는 2x2), node 마다 layer 체크 상자. 멈춘 결과 비디오는 "이 프레임의 레이어" 로 그 frame 을 한 번 더 실행한다. 이는 NPU 재실행이며 원래 tracker / zone / dwell / condition / gallery 상태를 복원하지 않으므로 track ID·event 시간·결과가 원 영상과 다를 수 있다.
+- Tutorial: Tutorial → Graph Composer 가 palette, Template, canvas, Inspector, Logic 블록, 구역 / 선 그리기, 검사와 NPU memory, Run once, 결과, event, Live, C++ project export, project 를 차례로 보여 준다. 결과와 event 단계는 기록해 둔 실행 결과를 보여 줄 뿐 NPU 를 쓰지 않고, 저장하지 않은 graph 는 바꾸지 않는다.
+- Live: camera, RTSP, 반복 재생 비디오로 Stop까지 실행. Graph Live는 하나만 가능하며 Run once / Run 페이지 Continuous·Live / gallery build와 배타적이다. 일반 Continuous slot 여러 개는 함께 실행 가능하지만 Graph 전에 중지해야 한다. 페이지를 떠나면 Graph Live가 멈춘다. Graph Live에는 Xvfb·libxcb·Pillow가 필요하며, 파일 frame 편집에는 Pillow, 비디오 frame 추출에는 ffmpeg도 필요하다. Studio 기본 Python 3.8+ 표준 라이브러리 runtime의 필수 의존성과 구분한다.
+- Project: Studio host workspace (`outputs/dx_app/graph/projects/`) 에 저장하며 **project마다 최신 50 version만 보관**한다. JSON export / import는 편집 가능한 graph 정의의 이동이며 model bundle이나 실행용 C++ project zip과 다르다.
+- C++ project export: 상단의 "C++ 프로젝트 내보내기" 가 dx_app `scripts/export_graph_project.py` 로 graph 를 독립 CMake 프로젝트로 만든다 (`CMakeLists.txt`, `main.cpp`, `graph.json`, 사용한 model 의 factory 만 담은 engine, `models/`, `user_logic/<name>.{hpp,cpp}` stub, `setup.sh`, `run.sh`, `README.md`). 사용자 Logic 블록은 C++ class stub 이 되고 채우기 전에는 pass-through. 필요한 것은 DEEPX runtime (dx_rt), CMake, C++17 compiler, OpenCV 4 뿐이다. model 파일은 기본으로 빠지고 ("모델 파일 포함" 을 고르면 들어감, 모든 model 이 설치돼 있을 때만 가능), 빠진 model 은 `./setup.sh` 가 Model Zoo 에서 내려받는다. `./setup.sh` 가 빌드, `./run.sh` 가 `results/` 에 결과 이미지·`events.jsonl`·`report.json` 을 쓴다. 결과는 `outputs/dx_app/graph/exports/` (최근 5개) 와 zip.
+
+내보낸 project는 README에 따라 대상 host에서 의존성·모델을 준비하고 검증한다.
+export 성공만으로 다른 host에서의 실행 성공이나 stateful event 동일성을 보장하지 않는다.
+
+### Studio Lab 탭
+- **Add Model**: category 의 기존 예제 하나(**Start from**)를 새 이름으로 복사한다 (`add_model.sh --base-model`).
+  C++ / Python / 둘 다. Python 사본은 `python3 <name>_sync.py --model <내 모델>.dxnn` 으로 실행, C++ 사본은 `build.sh` 로 빌드.
+- **Create Task**: 새 task type 의 skeleton 코드.
+- **Experiment**: 컴파일된 `.dxnn` 을 보드에서 점검 — parse_model 로 읽기 → run_model 1회 추론 → 처리량(FPS) 측정.
+- **Generated Files / Safety Center**: 변경마다 쓴 파일. 새 파일만 만든 변경은 `rollback:<이름>` 을 입력하면 되돌린다.
+  기존 파일을 덮어쓴 변경은 직접 복구해야 한다.
+
 ## [section:install,setup,설치] 설치 및 셋업
 
 ### Quick Start (3단계)
@@ -221,7 +241,7 @@ artifacts/cpp_example/
 
 # Step 3: 빌드 & 실행
 ./build.sh                      # C++ 바이너리 + dx_postprocess
-./run_demo.sh                   # 18개 데모 실행
+./run_demo.sh                   # 인터랙티브 데모 실행
 ```
 
 ### 빌드 옵션
@@ -237,26 +257,31 @@ artifacts/cpp_example/
 - 컴파일된 모델 포맷 ≥ v7
 - 호환되지 않으면 명확한 에러 메시지 출력
 
-### 6단계 설치 마법사 (웹 UI)
-| 단계 | 설명 |
-|------|------|
-| 1. Dependencies | 필수 패키지 설치 |
-| 2. Build | 프로젝트 빌드 |
-| 3. Assets | 샘플 모델/이미지 다운로드 |
-| 4. Runtime | DX Runtime SDK 설치 |
-| 5. Driver | NPU 리눅스 드라이버 설치 |
-| 6. Compiler | DX-COM 컴파일러 설치 |
+### 6단계 설치 (웹 UI Setup 탭)
+| 단계 | 설명 | 실행 명령 |
+|------|------|-----------|
+| 1. DX-APP Dependencies | C++ 빌드용 시스템 패키지 (cmake, gcc, ninja, OpenCV …) | `install.sh --all` |
+| 2. DX-Runtime Dependencies | NPU runtime 용 패키지 (cmake, ONNX Runtime …) | `dx_rt/install.sh --all` |
+| 3. DX-Runtime Build | DX-RT 빌드 + `dx_engine` Python API를 venv-dx-runtime에 설치 | `dx-runtime/install.sh --target=dx_rt` |
+| 4. NPU Linux Driver | DEEPX NPU 커널 드라이버 설치 (sudo 필요) | `dx-runtime/install.sh --target=dx_rt_npu_linux_driver` |
+| 5. DX-APP Build | C++ 데모 바이너리 빌드 | `build.sh --type Release` |
+| 6. Sample Assets Setup | Run / Benchmark 용 샘플 모델 · 비디오 다운로드 | `setup.sh` |
+
+- **Set up the rest**: 남은 단계를 순서대로 실행 (이미 끝난 단계는 그대로 둠)
+- **Demo Quick Start → Start Demo Setup**: 데모에 필요한 항목을 준비하고 상태 확인 후 **Try demo**로 이동하여 입력을 고른 뒤 실행
+- **Deep Diagnostics** (**Run Diagnostics**): PCIe link, 커널 모듈, DKMS, 서비스, CLI 도구, Python venv, 디스크, 메모리, 모델 무결성 점검
+- DX-COM 컴파일러 설치 단계는 없습니다 (컴파일은 DX Compiler 앱)
 
 ### 스토리지 제약 환경 (RPi, Edge)
 | 항목 | 수량 | 크기 |
 |------|------|------|
-| 데모 모델 (18개) | 18 | ~470 MB |
-| 전체 모델 | 280 | 수 GB |
+| 전체 모델 | 497 canonical variants (기준 revision) | 선택한 artifact에 따라 다름 |
 | 샘플 비디오 | 20 | ~1.1 GB |
 | 샘플 이미지 (번들) | — | ~5 MB |
 
 **절약 전략:**
-- `run_demo.sh`만 실행 → 18개 데모 모델만 자동 다운로드 (~470 MB)
+- `run_demo.sh`만 실행 → 없는 데모 모델만 자동 다운로드
+- `./setup.sh --demo-models` → `run_demo.sh`가 쓰는 모델만 다운로드
 - `--input 2` (이미지 모드) → 비디오 다운로드 불필요
 - `./setup.sh --category "Face Detection"` → 최소 카테고리만
 
@@ -269,8 +294,7 @@ artifacts/cpp_example/
 | "Model format < v7" | 모델 포맷 구식 | DX-COM 최신 버전으로 재컴파일 |
 | 카메라 인식 안됨 | `/dev/video*` 없음 | 드라이버 점검, `v4l2-ctl --list-devices` |
 | RTSP 연결 실패 | 네트워크/URL 오류 | URL 확인, ffmpeg 300초 타임아웃 |
-| 컴파일러 미설치 | dxcom 경로 없음 | Setup → Compiler 단계 실행 |
-| NPU 미감지 | 드라이버 미설치 | Setup → Driver 단계 실행 |
+| NPU 미감지 | 드라이버 미설치 | Setup → NPU Linux Driver 단계 실행 |
 | 메모리 부족 | RAM/DRAM 포화 | 입력 해상도 줄이기, 불필요 프로세스 종료 |
 | 추론 속도 느림 | Sync 모드 사용 중 | Async + cpp_postprocess 변형 사용 |
 | 후처리 느림(Python) | Pure Python 후처리 | `*_cpp_postprocess.py` 변형으로 전환 |
@@ -298,5 +322,4 @@ artifacts/cpp_example/
 ```bash
 DXAPP_VERIFY=1 python src/python_example/object_detection/yolov7/yolov7_sync.py --model assets/models/YoloV7.dxnn
 # → logs/verify/YoloV7.json 생성
-python scripts/verify_inference_output.py  # 태스크별 검증 규칙 적용
 ```

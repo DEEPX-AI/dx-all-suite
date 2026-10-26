@@ -49,7 +49,7 @@
       // and land on the real launcher home (harmless no-op when not framed).
       root.target = '_top';
     }
-    root.style.setProperty('--dx-brand-accent', opts.accent || 'var(--accent, #638cff)');
+    root.style.setProperty('--dx-brand-accent', opts.accent || 'var(--accent, #2997ff)');
     root.innerHTML = [
       '<span class="dx-brand-prefix">DX</span>',
       '<span class="dx-brand-copy">',

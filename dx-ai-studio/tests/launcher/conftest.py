@@ -1,4 +1,4 @@
-"""tests/launcher conftest — launcher 모듈 테스트용 경로 설정."""
+"""tests/launcher conftest: import paths for the launcher module tests."""
 import sys
 from pathlib import Path
 

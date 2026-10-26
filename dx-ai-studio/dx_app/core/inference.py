@@ -11,17 +11,19 @@ circular imports:
                                                 call sites (dx_app/server.py) keep working.
 """
 
-import os, json, time, base64, subprocess, threading, tempfile, shutil
+import os, json, time, base64, signal, subprocess, threading, tempfile, shutil
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dx_app.core import config
 from dx_app.core.config import (DX_APP_ROOT, CPP_DIR, PY_DIR, BUILD_DIR, ASSETS_DIR,
                     SAMPLE_DIR, OUTPUTS_DIR, SCRIPTS_DIR, CAT_IMAGE, CAT_VIDEO,
-                    _RUNTIME_PYTHON, _RUNTIME_PYTHONPATH)
+                    _RUNTIME_PYTHON, _RUNTIME_PYTHONPATH, resolve_model_path)
 from shared.runtime import ld_library_path
+from shared import dxrt
 from shared import debug_log
+from shared.media import MediaError, run_media
 from dx_app.core.dx_app_security import resolve_existing_file
-from dx_app.core.performance import _parse_perf, _cvt_video
+from dx_app.core.performance import _parse_perf, _cvt_video, runner_errors
 from shared.hardware import get_hw
 from dx_app.core.run_config import build_run_config
 
@@ -85,6 +87,41 @@ def _video_has_frames(path) -> bool:
             return False
 
 
+def _model_default_input(category, model_name, kind):
+    """A per-model layout config.json knows its own default input (default_image / default_video), which is more
+    precise than the task table (e.g. a classification model that uses person_pair)."""
+    from shared import dx_app_layout as _layout
+    spec = _layout.load_config(DX_APP_ROOT, category, model_name)
+    return (spec.get(f"default_{kind}") or "") if "variant" in spec else ""
+
+
+# The Python runner logs this right before its frame loop (after the model loads and the source opens).
+_PY_LOOP_STARTED = "Starting inference"
+
+
+def _end_live_python_run(proc, stdout_file, budget_s, timeout):
+    """A live Python run (camera · RTSP) has no frame limit and ends on SIGINT, printing its summary. Run it for
+    budget_s counted from the start of its frame loop: model load and the RTSP connect would use up most of a
+    budget counted from launch."""
+    t0 = time.time()
+    started = None
+    while proc.poll() is None:
+        now = time.time()
+        if started is None:
+            try:
+                with open(stdout_file, "r", errors="ignore") as f:
+                    if _PY_LOOP_STARTED in f.read():
+                        started = now
+            except OSError:
+                pass
+            if started is None and now - t0 > timeout:
+                return
+        elif now - started >= budget_s:
+            proc.send_signal(signal.SIGINT)
+            return
+        time.sleep(0.1)
+
+
 def run_inference(model_name, category, model_file, lang="cpp", variant="sync",
                   input_type="image", image_path=None, video_path=None,
                   device_id=None, conf_threshold=None, nms_threshold=None,
@@ -106,8 +143,12 @@ def run_inference(model_name, category, model_file, lang="cpp", variant="sync",
                     return _err("model_not_found", f"Model file not found: {arg}")
                 model_args[i] = str(mfp)
     else:
-        mp = DX_APP_ROOT / model_file
+        mp = resolve_model_path(model_file, DX_APP_ROOT)
         if not mp.exists(): return _err("model_not_found", f"Model file not found: {model_file}")
+        _need = dxrt.needs_for_file(mp)
+        if _need:
+            return _err("needs_dxrt", f"This model needs DX-RT {_need} or later (.dxnn container v9) — "
+                        f"the installed DX-RT reads up to v8.", needs_dxrt=_need)
     _b64_tmp = None
     if input_type == "image" and image_base64:
         try:
@@ -137,8 +178,10 @@ def run_inference(model_name, category, model_file, lang="cpp", variant="sync",
             inp = resolve_existing_file(upload_path, RUN_UPLOAD_ROOTS, None)
         except ValueError as e:
             return _err("path_outside_allowed_roots", f"Path is outside allowed roots: {upload_path}")
-    elif input_type == "image": inp = DX_APP_ROOT / (image_path or CAT_IMAGE.get(category, "sample/img/sample_street.jpg"))
-    else: inp = DX_APP_ROOT / (video_path or CAT_VIDEO.get(category, "assets/videos/dance-group.mov"))
+    elif input_type == "image": inp = DX_APP_ROOT / (image_path or _model_default_input(category, model_name, "image")
+                                                      or CAT_IMAGE.get(category, "sample/img/sample_street.jpg"))
+    else: inp = DX_APP_ROOT / (video_path or _model_default_input(category, model_name, "video")
+                               or CAT_VIDEO.get(category, "assets/videos/dance-group.mov"))
     if not _is_live and not inp.exists(): return _err("input_not_found", f"Input not found: {inp}")
     # DXAPP_SAVE_IMAGE forces per-frame render even with --no-display; skip for video (perf + no still needed).
     res_img = None if input_type == "video" else tempfile.mktemp(suffix=".jpg", dir=_TMP)
@@ -151,7 +194,7 @@ def run_inference(model_name, category, model_file, lang="cpp", variant="sync",
         tmp_config = tempfile.mktemp(suffix=".json", dir=_TMP)
         Path(tmp_config).write_text(json.dumps(merged_cfg))
     _ld = ld_library_path()
-    env = {**os.environ, "QT_QPA_PLATFORM": "offscreen", "LD_LIBRARY_PATH": _ld}
+    env = dxrt.run_env({**os.environ, "QT_QPA_PLATFORM": "offscreen", "LD_LIBRARY_PATH": _ld})
     if res_img:
         env["DXAPP_SAVE_IMAGE"] = res_img
     # dx_engine lives on PYTHONPATH (not pip-installed); the python_example subprocess needs it.
@@ -164,9 +207,14 @@ def run_inference(model_name, category, model_file, lang="cpp", variant="sync",
         env.pop("DISPLAY", None)
     if input_type == "image":
         inf = "-i"
+    elif input_type == "camera":
+        inf = "-c"
+    elif input_type == "rtsp":
+        inf = "-r"  # -v only takes files on disk; a URL goes through rtsp_url
     else:
-        inf = "-v"  # video, camera, rtsp all use -v flag
-    _inp_str = rtsp_url if input_type == "rtsp" else str(inp)
+        inf = "-v"
+    _inp_str = (str(_cam_idx) if input_type == "camera" else
+                rtsp_url if input_type == "rtsp" else str(inp))
     _loop = loop or (100 if _is_live else 1)
     # embedding/reid: pair-folder demo needs 2+ images (1st = reference, 2nd+ = compare canvas)
     if not _is_live and input_type == "image" and category in _PAIR_COMPARE_CATS and inp.is_dir():
@@ -183,13 +231,17 @@ def run_inference(model_name, category, model_file, lang="cpp", variant="sync",
     if _async_video_hang_risk:
         timeout = min(timeout, 60)
     _video_save_dir = None
+    _live_py_budget = None
     _img_save_dir = None
     run_lang = _effective_run_lang(lang, category, model_name, variant, input_type)
     tag_extra = ["--show-log"] if category in _STDOUT_TAG_CATS else []
     if run_lang == "cpp":
         bp = BUILD_DIR / f"{model_name}_{variant}"
         if not _is_executable_file(bp):
-            bp = _find_fallback_binary(category, variant, build_dir=BUILD_DIR)
+            # per-model layout: a model with its own example has a binary for that model only; do not borrow one
+            from shared import dx_app_layout as _layout
+            _own = _layout.detect(DX_APP_ROOT) == _layout.PER_MODEL and _layout.find(DX_APP_ROOT, category, model_name)
+            bp = None if _own else _find_fallback_binary(category, variant, build_dir=BUILD_DIR)
             if not bp:
                 if _b64_tmp:
                     try: os.unlink(_b64_tmp)
@@ -228,10 +280,21 @@ def run_inference(model_name, category, model_file, lang="cpp", variant="sync",
         if input_type == "video":
             _video_save_dir = tempfile.mkdtemp(prefix="dxapp_video_", dir=_TMP)
             py_extra += ["--save", "--save-dir", _video_save_dir]
-        if _loop != 1:
+        # A live source (camera · RTSP) has no --loop ("--loop is not valid with --camera or --rtsp"): it runs until
+        # SIGINT, then prints the performance summary and exits. The requested frame count becomes time at 30 FPS.
+        if _is_live:
+            _live_py_budget = max(1.0, _loop / 30.0)
+        elif _loop != 1:
             py_extra += ["-l", str(_loop)]
-        cmd = [_RUNTIME_PYTHON, str(pf), "--model", str(mp),
-               f"--{'image' if input_type=='image' else 'video'}", _inp_str, "--no-display"] + py_extra
+        # Python's video source opens only files on disk: RTSP passed as --video ends with "Input file not found:
+        # rtsp://…". Use the runner's --rtsp / --camera.
+        if input_type == "rtsp":
+            py_input = ["--rtsp", _inp_str]
+        elif input_type == "camera":
+            py_input = ["--camera", str(_cam_idx)]
+        else:
+            py_input = [f"--{'image' if input_type=='image' else 'video'}", _inp_str]
+        cmd = [_RUNTIME_PYTHON, str(pf), "--model", str(mp)] + py_input + ["--no-display"] + py_extra
     hw0 = get_hw(); t0 = time.time()
     _stdout_file = tempfile.mktemp(suffix=".log", dir=_TMP)
     proc = None
@@ -251,17 +314,18 @@ def run_inference(model_name, category, model_file, lang="cpp", variant="sync",
                     _total = None
                     try:
                         if input_type == "video" and not _is_live and inp.exists():
-                            import cv2 as _cv2t
-                            _vc = _cv2t.VideoCapture(str(inp))
-                            _fc = int(_vc.get(_cv2t.CAP_PROP_FRAME_COUNT)); _vc.release()
+                            _fc = run_media("frame_count", source=str(inp))["count"]
                             _total = _fc * _loop if _fc > 0 else None
                         else:
                             _total = _loop  # image/pair: one tag line per loop iteration
-                    except Exception:
+                    except (MediaError, OSError, ValueError) as error:
+                        print(f"[MEDIA] Video progress unavailable: {error}")
                         _total = None
                     _rp.register(job_id, _stdout_file, _loop, _total, proc, t0)
                 except Exception:
                     pass
+            if _live_py_budget:
+                _end_live_python_run(proc, _stdout_file, _live_py_budget, timeout)
             proc.wait(timeout=timeout); elapsed = time.time() - t0
         if _multi: _multi_unregister(proc)
         with config._proc_lock: config._running_proc = None
@@ -316,31 +380,15 @@ def run_inference(model_name, category, model_file, lang="cpp", variant="sync",
                     os.unlink(output_only)
                 except OSError:
                     has_output_only = False
-            try:
-                import cv2 as _cv2
-                _inp_img = _cv2.imread(str(inp))
-                _res_img = _cv2.imread(res_img)
-                if _inp_img is not None and _res_img is not None:
-                    _ih, _iw = _inp_img.shape[:2]
-                    _rh, _rw = _res_img.shape[:2]
-                    # Side-by-side canvas (e.g. SR = Bicubic|model output): the result is
-                    # two panels laid horizontally, so its aspect ratio is ~2x the input's
-                    # (holds whether or not the model upscales — the old abs(rh-ih) check
-                    # broke for SR because the panels are also 4x taller). Crop to the right
-                    # panel (model output). Skip embedding/reid, which use their own layout.
-                    _inp_ar = _iw / _ih if _ih else 0
-                    _res_ar = _rw / _rh if _rh else 0
-                    if (not has_output_only and category not in _PAIR_COMPARE_CATS and _inp_ar
-                            and abs(_res_ar - _inp_ar * 2) < _inp_ar * 0.3):
-                        _res_img = _res_img[:, _rw // 2 + 2:]
-                        _rh, _rw = _res_img.shape[:2]
-                    # Only resize-back if result is SMALLER than original (denoising/etc.)
-                    # For SR, keep the high-res result — CMP slider handles it via object-fit:contain
-                    if (_rw, _rh) != (_iw, _ih) and not (_rw > _iw and _rh > _ih):
-                        _res_img = _cv2.resize(_res_img, (_iw, _ih), interpolation=_cv2.INTER_LANCZOS4)
-                    _cv2.imwrite(res_img, _res_img)
-            except Exception:
-                pass
+            if input_type == "image":
+                try:
+                    run_media(
+                        "normalize", source=str(inp), output=res_img,
+                        crop_panel=not has_output_only and category not in _PAIR_COMPARE_CATS,
+                    )
+                except MediaError as error:
+                    print(f"[MEDIA] Preview normalization unavailable: {error}")
+                    res["preview_warning"] = str(error)
             # For video input, skip returning result_image (video is the real result)
             if input_type == "video":
                 res["result_image"] = None
@@ -388,6 +436,14 @@ def run_inference(model_name, category, model_file, lang="cpp", variant="sync",
         if proc.returncode != 0 and not res.get("fps"):
                 res["error"] = f"Process exited with code {proc.returncode}: {(res.get('output') or '')[-200:].strip()}"
                 res["error_key"] = "process_exit"
+        # Even with exit 0, a runner that printed [ERROR] cannot be trusted: a single-image result becomes an error,
+        # a video only a warning since the FPS still stands
+        _runner_errs = runner_errors(stdout)
+        if _runner_errs:
+            res["runner_errors"] = _runner_errs[:5]
+            if input_type == "image" and not res.get("error"):
+                res["error"] = _runner_errs[0]
+                res["error_key"] = "runner_error"
         with config._history_lock:
             config._recent_runs.appendleft({"model": model_name, "category": category, "lang": lang,
              "variant": variant, "input_type": input_type, "fps": res["fps"], "latency": res["latency"],
@@ -497,38 +553,44 @@ def run_pipeline(steps, input_path, input_type="image", mode="chain"):
             for di, det in enumerate(dets):
                 bbox = det["bbox"]  # x1,y1,x2,y2 in display coords
                 dw, dh = det.get("disp_w", 1), det.get("disp_h", 1)
+                tmp = None
                 try:
-                    import cv2
-                    orig_img = cv2.imread(str(DX_APP_ROOT / orig_path) if not os.path.isabs(str(orig_path)) else str(orig_path))
-                    if orig_img is None: continue
-                    oh, ow = orig_img.shape[:2]
-                except Exception: continue
-                # Scale bbox from display coords to original coords
-                sx, sy = ow / dw, oh / dh
-                x1 = max(0, int(bbox[0] * sx)); y1 = max(0, int(bbox[1] * sy))
-                x2 = min(ow, int(bbox[2] * sx)); y2 = min(oh, int(bbox[3] * sy))
-                if x2 <= x1 or y2 <= y1: continue
-                crop = orig_img[y1:y2, x1:x2]
-                if crop.size == 0: continue
-                tmp = tempfile.mktemp(suffix=".jpg", dir=_TMP)
-                cv2.imwrite(tmp, crop)
-                cr = run_inference(step.get("model_name", ""), step.get("category", ""), step.get("model_file", ""),
-                 step.get("lang", "cpp"), step.get("variant", "sync"), "image", image_path=tmp)
-                cr.update({"step_index": si, "step_model": step.get("model_name", ""),
-                           "crop_index": di, "crop_class": det.get("class", ""),
-                           "crop_conf": det.get("conf", 0),
-                           "crop_bbox": [x1, y1, x2, y2]})
-                crop_results.append(cr)
-                try: os.unlink(tmp)
-                except Exception: pass
+                    fd, tmp = tempfile.mkstemp(suffix=".jpg", dir=_TMP)
+                    os.close(fd)
+                    source = str(DX_APP_ROOT / orig_path) if not os.path.isabs(str(orig_path)) else str(orig_path)
+                    crop = run_media(
+                        "crop", source=source, output=tmp, bbox=bbox,
+                        display_width=dw, display_height=dh,
+                    )
+                    if not crop["written"]:
+                        continue
+                    cr = run_inference(step.get("model_name", ""), step.get("category", ""), step.get("model_file", ""),
+                     step.get("lang", "cpp"), step.get("variant", "sync"), "image", image_path=tmp)
+                    cr.update({"step_index": si, "step_model": step.get("model_name", ""),
+                               "crop_index": di, "crop_class": det.get("class", ""),
+                               "crop_conf": det.get("conf", 0),
+                               "crop_bbox": crop["bbox"]})
+                    crop_results.append(cr)
+                except (MediaError, OSError) as error:
+                    results.append({"step_index": si, "step_model": step.get("model_name", ""),
+                                    "error": str(error), "error_key": "media_failed",
+                                    "cascade_crops": crop_results, "crop_count": len(crop_results)})
+                    return results
+                finally:
+                    if tmp is not None:
+                        Path(tmp).unlink(missing_ok=True)
             results.append({"step_index": si, "step_model": step.get("model_name", ""),
                            "cascade_crops": crop_results, "crop_count": len(crop_results)})
         return results
     for i, step in enumerate(steps):
         actual = cur
         if step.get("crop_bbox") and input_type == "image" and os.path.exists(str(cur)):
-            c = _crop_roi(Path(cur), step["crop_bbox"])
-            if c: actual = c
+            try:
+                actual = _crop_roi(Path(cur), step["crop_bbox"])
+            except (MediaError, OSError) as error:
+                results.append({"step_index": i, "step_model": step.get("model_name", ""),
+                                "error": str(error), "error_key": "media_failed"})
+                return results
         r = run_inference(step.get("model_name", ""), step.get("category", ""), step.get("model_file", ""),
          step.get("lang", "cpp"), step.get("variant", "sync"), input_type,
          image_path=str(actual) if input_type == "image" else None,

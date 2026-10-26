@@ -16,6 +16,10 @@ COMPONENT_KEYS = (
     "dx-stream",
     "dx-app",
 )
+# Cells that may hold "-" / "—" (not listed / not included in that release);
+# such columns are omitted from the expected versions instead of failing.
+OPTIONAL_KEYS = {"dx-modelzoo", "dxtron"}
+SUITE_COLSPAN = 8
 
 
 class CompatibilityTableParser(HTMLParser):
@@ -81,7 +85,7 @@ def parse_version_matrix_text(
     parser.feed(content)
 
     for index, row in enumerate(parser.rows):
-        if any(cell["text"] == suite_version and cell["colspan"] == 7 for cell in row):
+        if any(cell["text"] == suite_version and cell["colspan"] == SUITE_COLSPAN for cell in row):
             return _parse_suite_rows(parser.rows, index, suite_version)
 
     raise ValueError(f"Version {suite_version} not found in {source}")
@@ -107,25 +111,26 @@ def _parse_suite_rows(
 
     parent_row = rows[suite_row_index + 1]
     component_row = rows[suite_row_index + 2]
-    if len(parent_row) < 2 or len(component_row) < len(COMPONENT_KEYS):
+    if len(parent_row) < 3 or len(component_row) < len(COMPONENT_KEYS):
         raise ValueError(f"Invalid compatibility matrix row shape for {suite_version}")
 
-    expected = {
-        "dx-compiler": _cell_version(parent_row[0], suite_version),
-        "dx-runtime": _cell_version(parent_row[1], suite_version),
-    }
-    expected.update(
-        {
-            component: _cell_version(cell, suite_version)
-            for component, cell in zip(COMPONENT_KEYS, component_row)
-        }
-    )
+    cells = list(zip(("dx-compiler", "dx-runtime", "dx-modelzoo"), parent_row))
+    cells += list(zip(COMPONENT_KEYS, component_row))
+    expected = {}
+    for component, cell in cells:
+        version = _cell_version(cell, suite_version, optional=component in OPTIONAL_KEYS)
+        if version:
+            expected[component] = version
     return expected
 
 
-def _cell_version(cell: dict[str, str | int], suite_version: str) -> str:
+def _cell_version(
+    cell: dict[str, str | int], suite_version: str, optional: bool = False
+) -> str:
     match = VERSION_RE.search(str(cell["text"]))
     if match is None:
+        if optional:
+            return ""
         raise ValueError(f"Missing version in compatibility matrix row for {suite_version}")
     return normalize_version(match.group(0))
 

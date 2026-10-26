@@ -31,6 +31,8 @@ ERROR_KEYS = (
     "failed_camera_mux",
     "live_mode_unsupported",
     "live_cpp_only",
+    "live_image_only",
+    "live_runner_failed",
     "invalid_payload",
 )
 
@@ -203,7 +205,8 @@ def test_continuous_grid_shows_waiting_copy_for_queued_slots():
     assert match, "contRenderGrid() not found"
     grid_body = match.group(1)
 
-    assert "T('⏳ Waiting…')" in grid_body, (
+    # The mark before the text is a sprite icon; the key holds only the words.
+    assert "T('Waiting…')" in grid_body, (
         "contRenderGrid must show explicit Waiting copy while sequential inference is running"
     )
     assert "CONT.running" in grid_body, (
@@ -225,7 +228,9 @@ def test_continuous_live_start_errors_use_translated_error_key():
     source = _read(JS_DIR / "inference.js")
     body = _extract_braced_body(source, "async function contStartLive")
 
-    assert "translatedError(res)" in body, (
+    assert "contLiveStartupError(" in body
+    diagnostic = _extract_braced_body(source, "function contLiveStartupError")
+    assert "translatedError(response)" in diagnostic, (
         "continuous live start errors must use translated error_key before raw error"
     )
     assert "+res.error" not in body

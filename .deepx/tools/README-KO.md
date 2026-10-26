@@ -241,13 +241,15 @@ KO 카운터파트가 없으면 **KO 출력이 조용히 망가진다** (플레�
 
 ```bash
 # CLI 설치 (editable 모드 — src/ 변경 사항이 즉시 반영됨)
-pip install -e .deepx/tools
+# (shim은 선택 사항이다 — run_all.sh, pre-commit hook, pytest 모두 in-tree
+# source로 동작한다)
+pipx install --force --editable .deepx/tools   # PEP 668-safe; --force also repoints a stale install; or: python3 -m venv .venv && .venv/bin/pip install -e .deepx/tools
 
 # 설치 검증
-dx-agent-gen --help
+.venv/bin/dx-agent-gen --help  # or: source .venv/bin/activate
 ```
 
-Python 3.10+ 필요. 의존성 (자동 설치됨):
+Python 3.8+ 필요 (GHES self-hosted runner는 3.8 — 모든 모듈에 `from __future__ import annotations` 유지). 의존성 (자동 설치됨):
 - `jinja2 >= 3.1` — 템플릿 렌더링
 - `pyyaml >= 6.0` — YAML frontmatter
 
@@ -278,9 +280,8 @@ Python 3.10+ 필요. 의존성 (자동 설치됨):
 ## 9. Generator 테스트
 
 ```bash
-# 스위트 전반의 conformance 테스트 (~700개, ~1초)
-cd .deepx/e2e
-./test.sh agent-driven
+# 스위트 전반의 conformance 테스트 (~600개, ~1초; suite root에서 실행; PYTHONPATH 불필요)
+python3 -m pytest --rootdir=. .deepx/tests/conformance -q
 
 # 이것이 검사하는 것 (generator 관련):
 # - 가이드 문서 구조: 존재 여부, 헤딩, 시나리오 번호 매김

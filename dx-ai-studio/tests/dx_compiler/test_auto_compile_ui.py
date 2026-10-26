@@ -1,4 +1,5 @@
 import pathlib
+from tests.i18n_markup import assert_translatable
 
 H = (pathlib.Path(__file__).resolve().parents[2] / "dx_compiler" / "templates" / "index.html").read_text()
 
@@ -17,7 +18,7 @@ def test_agentic_has_llm_model_and_effort_pickers():
     """Mirror dx_agent_dev console: agentic compile exposes Model + Effort selectors."""
     for el in (
         'id="agentic-model-select"',       # LLM/coding model picker
-        'id="agentic-effort-control"',     # 사고 강도 wrapper (hidden until populated)
+        'id="agentic-effort-control"',     # reasoning-effort wrapper (hidden until populated)
         'id="agentic-effort-select"',      # effort picker
         'id="agentic-model-quality-hint"', # low-quality-model warning box
     ):
@@ -26,12 +27,6 @@ def test_agentic_has_llm_model_and_effort_pickers():
 
 def test_agentic_labels_six_langs():
     seg = H.split('id="agentic-compile"', 1)[1][:4000]
-    for lang in (
-        'class="ko"',
-        'class="en"',
-        'class="es"',
-        'class="ja"',
-        'class="zh-CN"',
-        'class="zh-TW"',
-    ):
-        assert lang in seg, lang
+    assert_translatable(
+        seg, "dx_compiler/static/js/compiler-i18n.js", "agentic-compile"
+    )

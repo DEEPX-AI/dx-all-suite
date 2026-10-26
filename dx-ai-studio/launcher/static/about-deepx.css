@@ -2,21 +2,23 @@
 
 /* ── 1. CSS Variables (Dark theme default) ── */
 #about-view {
-  --about-bg: var(--bg-0);
-  --about-bg-alt: var(--bg-1);
-  --about-text: var(--text-1);
-  --about-text-muted: var(--text-3);
-  --about-heading: var(--text-1);
-  --about-card-bg: var(--surface-raised-bg);
-  --about-card-border: var(--border);
+  --about-bg: var(--surface-page);
+  --about-bg-alt: var(--surface-panel);
+  --about-text: var(--text-primary);
+  --about-text-muted: var(--text-muted);
+  --about-heading: var(--text-primary);
+  --about-card-bg: var(--surface-raised);
+  --about-card-border: var(--border-subtle);
   --about-accent: var(--accent);
-  --about-accent-glow: rgba(99,140,255,0.15);
+  --about-accent-glow: rgba(var(--accent-rgb),0.15);
   --about-accent-strong: var(--accent-strong);
-  --about-divider: var(--border);
-  --about-hero-grad-1: #1a0533;
-  --about-hero-grad-2: #0a1628;
+  --about-divider: var(--border-subtle);
+  /* The hero tints the panel colour with the theme accent in both themes, so it follows the
+     Studio accent instead of a hue of its own. */
+  --about-hero-grad-1: color-mix(in srgb, var(--accent) 12%, var(--surface-panel));
+  --about-hero-grad-2: color-mix(in srgb, var(--accent) 6%, var(--surface-panel));
   /* Bottom stop matches the Developer Hub's top colour (--about-bg-alt) so the hero melts
-     into the section below with no seam and no purple→blue hue jump at the boundary. */
+     into the section below with no seam. */
   --about-hero-grad-3: var(--about-bg-alt);
 }
 
@@ -73,14 +75,14 @@
   flex: 0 0 auto;
   gap: 10px;
 }
-/* About header brand now uses the shared .dx-brand component (brand.css); the bespoke
-   .about-logo-* rules were removed. */
+/* The About header brand uses the shared .dx-brand component (brand.css). */
 .about-nav {
   display: flex;
   flex: 1 1 auto;
   min-width: 0;
   gap: var(--sp-1);
-  justify-content: flex-end;
+  /* safe: on overflow the start stays visible; plain flex-end pushes the first tabs off the left edge, out of scroll reach */
+  justify-content: safe flex-end;
   overflow-x: auto;
   overflow-y: hidden;
   white-space: nowrap;
@@ -103,7 +105,7 @@
   text-decoration: none;
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s var(--ease);
   white-space: nowrap;
 }
 .about-nav-tab:hover {
@@ -210,7 +212,7 @@
   font: 600 16px/1.35 var(--font);
   white-space: nowrap;
   text-align: left;
-  transition: color 0.2s, border-color 0.2s, transform 0.2s;
+  transition: color 0.2s var(--ease), border-color 0.2s var(--ease), transform 0.2s var(--ease);
 }
 .about-dot:hover { color: var(--about-heading); }
 .about-dot.active {
@@ -264,7 +266,7 @@
   width: 100%;
   height: 0%;
   background: linear-gradient(180deg, var(--about-accent), var(--about-accent-strong));
-  transition: height 0.15s ease-out;
+  transition: height 0.15s var(--ease);
 }
 .about-leftrail-count {
   font: 800 15px/1 var(--font);
@@ -291,8 +293,8 @@
 .about-hero {
   position: relative;
   /* Same centered 1680 column as .about-section so the hero's coloured band lines up in
-     width with every section below it (on wide screens the hero used to bleed full-width
-     while the sections stayed 1680, leaving the edges misaligned). */
+     width with every section below it (a full-bleed hero on wide screens
+     while the sections stay 1680 would leave the edges misaligned). */
   max-width: 1680px;
   margin: 0 auto;
   width: 100%;
@@ -341,7 +343,9 @@
 }
 .about-hero-stats {
   display: flex;
-  gap: var(--sp-7);
+  flex-wrap: wrap;            /* otherwise both ends clip on narrow screens */
+  justify-content: center;
+  gap: var(--sp-5) var(--sp-7);
   position: relative;
   z-index: 1;
 }
@@ -375,7 +379,7 @@
 
 /* ── 7. Company Section ── */
 .about-quote {
-  background: var(--surface-raised-bg);
+  background: var(--surface-raised);
   border-left: 3px solid var(--about-accent);
   padding: 24px 28px;
   border-radius: 0 8px 8px 0;
@@ -406,12 +410,12 @@
   margin-bottom: 48px;
 }
 .about-value-card {
-  background: var(--surface-raised-bg);
+  background: var(--surface-raised);
   border: 1px solid var(--about-card-border);
   border-radius: var(--radius-lg);
   padding: var(--sp-5);
   box-shadow: var(--surface-raised-shadow);
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: transform 0.2s var(--ease), box-shadow 0.2s var(--ease);
 }
 .about-value-card:hover {
   transform: translateY(-2px);
@@ -664,8 +668,8 @@ ul.about-timeline-list li::before {
      Each flex-grow is set to the image's aspect ratio and flex-basis is 0, so the column
      widths come out proportional to aspect — which makes width/aspect (the rendered height)
      identical for both. Each gets a blue highlight frame so the two read as distinct figures.
-     The environments graphic is transparent (designed for the dark page); the architecture
-     diagram has black text so it sits on white inside its frame. */
+     Both graphics are transparent; the architecture diagram is a light/dark pair
+     (.theme-img-light / .theme-img-dark) so only one of the two is ever displayed. */
   margin: 20px 0 32px;
   display: flex;
   gap: 16px;
@@ -680,7 +684,7 @@ ul.about-timeline-list li::before {
   box-shadow: 0 0 0 4px var(--about-accent-glow);
 }
 .about-sdk-env-fig img:nth-of-type(1) { flex: 2054 1 0; }  /* environments 1150×560 (aspect 2.054) */
-.about-sdk-env-fig img:nth-of-type(2) { flex: 1473 1 0; }  /* architecture 1608×1092 (aspect 1.473) */
+.about-sdk-env-fig img:nth-of-type(n+2) { flex: 1389 1 0; }  /* architecture 1500×1080 (aspect 1.389) — light/dark pair, only one displayed */
 
 /* ── 9. Products Section ── */
 .about-product-category {
@@ -723,7 +727,7 @@ ul.about-timeline-list li::before {
   border: 1px solid var(--about-card-border);
   border-radius: var(--radius-lg);
   padding: var(--sp-5);
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: transform 0.2s var(--ease), box-shadow 0.2s var(--ease);
 }
 .about-product-card:hover {
   transform: translateY(-3px);
@@ -788,7 +792,7 @@ ul.about-timeline-list li::before {
   margin: -4px -4px 12px;
   border-radius: var(--radius);
   overflow: hidden;
-  /* All product shots are now on a white studio background, so give the band a white backing
+  /* All product shots are on a white studio background, so give the band a white backing
      and use object-fit:contain — the whole product shows, letterbox padding is white and
      therefore invisible, and every card top reads as a clean product-on-white photo. */
   background: #ffffff;
@@ -815,7 +819,7 @@ ul.about-timeline-list li::before {
   font: 600 12px/1 var(--font);
   border-radius: var(--radius);
   text-decoration: none;
-  transition: opacity 0.2s, background 0.2s;
+  transition: opacity 0.2s var(--ease), background 0.2s var(--ease);
   white-space: nowrap;
 }
 .about-product-spec-link {
@@ -854,7 +858,7 @@ ul.about-timeline-list li::before {
 }
 .about-round-status {
   font: 500 12px/1 var(--font);
-  color: var(--success);
+  color: var(--status-ok);
 }
 .about-round-note {
   margin-top: 8px;
@@ -945,7 +949,7 @@ ul.about-timeline-list li::before {
   padding: 8px 16px;
   font: 500 13px/1 var(--font);
   color: var(--about-text);
-  transition: border-color 0.2s;
+  transition: border-color 0.2s var(--ease);
 }
 .about-partner-chip:hover {
   border-color: var(--about-accent);
@@ -963,7 +967,7 @@ ul.about-timeline-list li::before {
   border: 1px solid var(--about-card-border);
   border-radius: 10px;
   padding: 20px;
-  transition: border-color 0.2s;
+  transition: border-color 0.2s var(--ease);
 }
 .about-news-card:hover {
   border-color: var(--about-accent);
@@ -1060,7 +1064,7 @@ ul.about-timeline-list li::before {
   border-radius: 10px;
   text-decoration: none;
   color: inherit;
-  transition: border-color 0.2s, transform 0.2s;
+  transition: border-color 0.2s var(--ease), transform 0.2s var(--ease);
 }
 .about-action-card:hover {
   border-color: var(--about-accent);
@@ -1091,7 +1095,7 @@ ul.about-timeline-list li::before {
   border: 1px solid var(--about-card-border);
   color: var(--about-heading);
   background: var(--about-card-bg);
-  transition: border-color 0.2s, background 0.2s;
+  transition: border-color 0.2s var(--ease), background 0.2s var(--ease);
 }
 .about-cta-btn:hover { border-color: var(--about-accent); }
 .about-cta-btn--primary {
@@ -1121,7 +1125,7 @@ ul.about-timeline-list li::before {
   border-radius: var(--radius);
   text-decoration: none;
   color: inherit;
-  transition: border-color 0.2s;
+  transition: border-color 0.2s var(--ease);
   min-width: 140px;
 }
 .about-distribution-card:hover { border-color: var(--about-accent); }
@@ -1172,7 +1176,7 @@ ul.about-timeline-list li::before {
   background: var(--about-accent);
   border-radius: var(--radius);
   text-decoration: none;
-  transition: opacity 0.2s;
+  transition: opacity 0.2s var(--ease);
 }
 .about-start-here:hover { opacity: 0.9; }
 .about-sdk-links {
@@ -1219,7 +1223,7 @@ ul.about-timeline-list li::before {
 .about-fade-in {
   opacity: 0;
   transform: translateY(20px);
-  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+  transition: opacity 0.6s var(--ease), transform 0.6s ease-out;
 }
 .about-fade-in.visible {
   opacity: 1;
@@ -1233,4 +1237,21 @@ ul.about-timeline-list li::before {
   color: var(--about-text-muted);
   font: 400 12px/1.5 var(--font);
   border-top: 1px solid var(--about-divider);
+}
+
+/* Solution, value, award and link icons (sprite; names come from the icon fields in about-data.json) */
+.about-value-icon .dx-ico, .about-solution-icon .dx-ico, .about-award-icon .dx-ico { width: 28px; height: 28px; color: var(--accent); }
+.about-action-icon .dx-ico { width: 22px; height: 22px; color: var(--accent); }
+.about-scroll-hint .dx-ico { width: 20px; height: 20px; }
+.about-round-status .dx-ico { width: 14px; height: 14px; vertical-align: -2px; }
+
+/* Phone width: the section nav would shrink to 0px, so it wraps to its own row and scrolls sideways */
+@media (max-width: 600px) {
+  .about-topbar { flex-wrap: wrap; height: auto; padding: var(--sp-2) var(--sp-4); }
+  .about-nav {
+    order: 3; flex: 1 0 100%; overflow-x: auto; justify-content: flex-start;
+    /* fade the right edge to hint that more tabs sit off screen */
+    -webkit-mask-image: linear-gradient(90deg, rgba(0,0,0,1) calc(100% - var(--sp-6)), rgba(0,0,0,0));
+    mask-image: linear-gradient(90deg, rgba(0,0,0,1) calc(100% - var(--sp-6)), rgba(0,0,0,0));
+  }
 }

@@ -189,6 +189,10 @@ class NpuMonitor:
         # Force a large PTY size so dxtop renders all rows (Core info, etc.).
         # Without this, the PTY may default to very few rows and dxtop
         # truncates output, losing utilization data.
+        # dxtop (ncurses) exits when TERM is unset or "dumb", as in detached runs (nohup/cron/CI).
+        env = dict(os.environ)
+        if env.get("TERM", "dumb") in ("", "dumb", "unknown"):
+            env["TERM"] = "xterm"
         self._proc = subprocess.Popen(
             ["script", "-q", "-f", "-c",
              "stty rows 50 cols 200 2>/dev/null; exec dxtop",
@@ -196,6 +200,7 @@ class NpuMonitor:
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             preexec_fn=os.setsid,
+            env=env,
         )
         time.sleep(self.warmup_sec)
 
@@ -340,3 +345,18 @@ class NpuMonitor:
             pass
 
         return stats
+
+
+def probe_npu_monitor(core_ids: tuple = (0, 1, 2), seconds: float = 2.0) -> dict:
+    """Briefly start the real NPU monitor and report whether it yields clock samples."""
+    mon = NpuMonitor(list(core_ids), warmup_sec=0.3, drain_sec=0.2)
+    if not mon.available:
+        return {"ok": True, "reason": "dxtop/script not installed; NPU monitor skipped"}
+    mon.start()
+    time.sleep(seconds)
+    stats = mon.stop()
+    if stats.core_clock_min_mhz and stats.core_clock_max_mhz:
+        return {"ok": True, "reason": ""}
+    return {"ok": False,
+            "reason": "dxtop started but produced no clock samples "
+                      "(is TERM set? does dxtop run on this host?)"}

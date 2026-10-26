@@ -63,3 +63,13 @@ def test_sort_unknown_name_sinks_to_end():
     out = _sort_models_by_size(names)
     assert out[0] == "yolo26-n_640x640.dxnn"
     assert out[-1] == "mystery-model.dxnn"
+
+
+def test_sort_cls_names_without_stamped_size():
+    names = ["yolo26-cls-x_224x224.dxnn", "yolo26-cls-n_224x224.dxnn",
+             "yolo26-cls-l_224x224.dxnn", "yolo26-cls-s_224x224.dxnn",
+             "yolo26-cls-m_224x224.dxnn"]
+    assert _sort_models_by_size(names) == [
+        "yolo26-cls-n_224x224.dxnn", "yolo26-cls-s_224x224.dxnn",
+        "yolo26-cls-m_224x224.dxnn", "yolo26-cls-l_224x224.dxnn",
+        "yolo26-cls-x_224x224.dxnn"]

@@ -500,9 +500,13 @@ def get_sysinfo():
     i = {"os": platform.platform(), "hostname": platform.node(),
          "arch": platform.machine(), "python": sys.version.split()[0],
          "dx_engine_available": False}
-    try: import cv2; i["opencv"] = cv2.__version__
-    except Exception: i["opencv"] = "N/A"
-    # F-16: release.ver lives in the runtime repo, not the studio tree. _APP_ROOT is
+    from shared.media import MediaError, run_media
+    try:
+        i["opencv"] = run_media("probe")["opencv"]
+    except MediaError as error:
+        i["opencv"] = "N/A"
+        i["opencv_error"] = str(error)
+    # release.ver lives in the runtime repo, not the studio tree. _APP_ROOT is
     # <suite>/dx-ai-studio/dx_app, so the suite root is two levels up and the real files
     # are <suite>/dx-runtime/{dx_rt,dx_app}/release.ver.
     _runtime = _APP_ROOT.parent.parent / "dx-runtime"
@@ -598,7 +602,7 @@ def get_sysinfo():
         i["cpu_model"] = ms[0].strip() if ms else "N/A"
         i["cpu_cores"] = len(re.findall(r'^processor', ci, re.M))
     except Exception: i.update({"cpu_model": "N/A", "cpu_cores": 0})
-    # 임계치 (프론트엔드 전달용)
+    # Thresholds (passed to the frontend)
     try:
         from dx_monitor.core.config import THRESHOLDS
         cpu_cores = i.get("cpu_cores", 4) or 4

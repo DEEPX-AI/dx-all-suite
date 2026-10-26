@@ -155,7 +155,7 @@ def test_static_report_includes_modelzoo_optimized_image_coverage():
 
 
 def test_modelzoo_optimized_images_empty_dirs(tmp_path):
-    """빈/누락 디렉터리 → 0 카운트, manifest_present=False."""
+    """Empty/missing directory → zero counts, manifest_present=False."""
     perf_audit = load_tool()
     analyser = perf_audit.StaticAnalyser()
     result = analyser.analyse_modelzoo_optimized_images(tmp_path)
@@ -166,7 +166,7 @@ def test_modelzoo_optimized_images_empty_dirs(tmp_path):
 
 
 def test_modelzoo_optimized_images_coverage_ratio(tmp_path):
-    """원본 1 + 최적화 파생 1 → ratio 0.5 (divisor = originals * 2)."""
+    """1 original + 1 optimized derivative → ratio 0.5 (divisor = originals * 2)."""
     perf_audit = load_tool()
     data = tmp_path / "dx_modelzoo" / "data"
     (data / "thumbnails").mkdir(parents=True)
@@ -182,7 +182,7 @@ def test_modelzoo_optimized_images_coverage_ratio(tmp_path):
 
 
 def test_modelzoo_optimized_images_manifest_present(tmp_path):
-    """manifest.json 파일이 있으면 manifest_present=True."""
+    """manifest_present=True when a manifest.json file exists."""
     perf_audit = load_tool()
     data = tmp_path / "dx_modelzoo" / "data" / "optimized"
     data.mkdir(parents=True)

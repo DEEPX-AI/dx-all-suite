@@ -27,6 +27,8 @@ def pytest_configure(config):
         "sanity: Quick prerequisite validation tests",
         "compiler: Compiler-related tests",
         "runtime: Runtime-related tests",
+        "kubernetes_static: Offline checks of the K8s chart, samples, and docs",
+        "kubernetes: K8s Quickstart acceptance on a DX-M1 node (DX_K8S_QA=1 for the full flow)",
     ]
     for marker in markers:
         config.addinivalue_line("markers", marker)
@@ -560,8 +562,52 @@ def pytest_collection_modifyitems(config, items):
 
 
 # ============================================================================
+# local_install cleanup: container-mode install.sh links <component>/venv-<component>
+# to ${DOCKER_VOLUME_PATH}/venv/<component>. The mounted volume is the host checkout,
+# so after the run those links dangle on the host.
+# ============================================================================
+
+_ran_local_install = False
+
+
+def pytest_runtest_logreport(report):
+    global _ran_local_install
+    if "test_local_install" in report.nodeid:
+        _ran_local_install = True
+
+
+def pytest_sessionfinish(session, exitstatus):
+    # Workers share the host checkout, so clean up once: on the xdist controller
+    # (which still receives worker reports) or in a non-xdist run.
+    # ponytail: a concurrent local_install session on the same checkout would lose its
+    # links too; add a cross-session lock if that ever becomes a real setup.
+    if hasattr(session.config, "workerinput") or not _ran_local_install:
+        return
+    # `or`: an empty DOCKER_VOLUME_PATH would make the prefix "/" and match every link
+    volume = (os.getenv("DOCKER_VOLUME_PATH") or "/deepx/workspace").rstrip("/")
+    checkout = Path(os.getenv("LOCAL_VOLUME_PATH") or str(REPO_ROOT))
+    for link in checkout.glob("*/venv-*"):
+        if link.is_symlink() and not link.exists() and os.readlink(link).startswith(volume + "/"):
+            link.unlink()
+            print(f"\n[local_install cleanup] removed dangling container venv link: {link}")
+
+
+# ============================================================================
 # Reusable local-install docker helpers (image build + container start)
 # ============================================================================
+
+def apparmor_profile(os_type: str) -> str:
+    """AppArmor profile for the local-install container.
+
+    A privileged container runs unconfined, so the host's `unix-chkpwd` profile
+    (Ubuntu 24.04 apparmor 4.0.x: no dac_read_search) attaches to the container's
+    /usr/sbin/unix_chkpwd and blocks reading RHEL's mode-000 /etc/shadow -> sudo
+    fails with a PAM account error. docker-default keeps the helper confined.
+    DX_APPARMOR_PROFILE in the environment overrides the per-OS default.
+    """
+    return os.environ.get("DX_APPARMOR_PROFILE") or (
+        "docker-default" if os_type in ("rhel", "centos") else "unconfined")
+
 
 def compose_env(component: str, os_type: str, version: str) -> dict:
     """Build the environment dict used by the local-install docker-compose file."""
@@ -578,6 +624,7 @@ def compose_env(component: str, os_type: str, version: str) -> dict:
     env["COMPONENT"] = component
     env["BASE_IMAGE"] = get_base_image(os_type, version)
     env["COMPOSE_PROJECT_NAME"] = compose_project_name(component, os_type, version)
+    env["DX_APPARMOR_PROFILE"] = apparmor_profile(os_type)
     env["LOCAL_VOLUME_PATH"] = os.getenv("LOCAL_VOLUME_PATH", str(PROJECT_ROOT))
     env["DOCKER_VOLUME_PATH"] = os.getenv("DOCKER_VOLUME_PATH", "/deepx/workspace")
 

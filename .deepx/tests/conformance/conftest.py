@@ -48,6 +48,21 @@ class GuidePair:
     label: str  # human-readable label
 
 
+def find_guide(directory: Path, pattern: str) -> Path:
+    """Locate a guide by glob *pattern* (e.g. '*_DX-APP_Agent_Driven_Development.md').
+
+    Chapter numbers are sub-repo release decisions (dx_app moved 12_ → 13_ in
+    v3.2.0), so never hard-code them. Exactly one match is expected; on zero or
+    multiple matches return a non-existent sentinel path (embedding the pattern,
+    which cannot itself match a real file) so callers fail with a clear
+    "not found" message instead of a stack trace.
+    """
+    matches = [p for p in directory.glob(pattern) if p.is_file()]
+    if len(matches) == 1:
+        return matches[0]
+    return directory / f"<UNRESOLVED:{pattern}>"
+
+
 GUIDE_PAIRS: List[GuidePair] = [
     GuidePair(
         project="suite",
@@ -57,8 +72,12 @@ GUIDE_PAIRS: List[GuidePair] = [
     ),
     GuidePair(
         project="compiler",
-        en_path=COMPILER_ROOT / "source/docs/05_DX-COMPILER_Agent_Driven_Development.md",
-        ko_path=COMPILER_ROOT / "source/docs/05_DX-COMPILER_Agent_Driven_Development-KO.md",
+        en_path=find_guide(
+            COMPILER_ROOT / "source/docs", "*_DX-COMPILER_Agent_Driven_Development.md"
+        ),
+        ko_path=find_guide(
+            COMPILER_ROOT / "source/docs", "*_DX-COMPILER_Agent_Driven_Development-KO.md"
+        ),
         label="DX-COMPILER",
     ),
     GuidePair(
@@ -69,14 +88,22 @@ GUIDE_PAIRS: List[GuidePair] = [
     ),
     GuidePair(
         project="app",
-        en_path=APP_ROOT / "docs/source/docs/12_DX-APP_Agent_Driven_Development.md",
-        ko_path=APP_ROOT / "docs/source/docs/12_DX-APP_Agent_Driven_Development-KO.md",
+        en_path=find_guide(
+            APP_ROOT / "docs/source/docs", "*_DX-APP_Agent_Driven_Development.md"
+        ),
+        ko_path=find_guide(
+            APP_ROOT / "docs/source/docs", "*_DX-APP_Agent_Driven_Development-KO.md"
+        ),
         label="DX-APP",
     ),
     GuidePair(
         project="stream",
-        en_path=STREAM_ROOT / "docs/source/docs/08_DX-STREAM_Agent_Driven_Development.md",
-        ko_path=STREAM_ROOT / "docs/source/docs/08_DX-STREAM_Agent_Driven_Development-KO.md",
+        en_path=find_guide(
+            STREAM_ROOT / "docs/source/docs", "*_DX-STREAM_Agent_Driven_Development.md"
+        ),
+        ko_path=find_guide(
+            STREAM_ROOT / "docs/source/docs", "*_DX-STREAM_Agent_Driven_Development-KO.md"
+        ),
         label="DX-STREAM",
     ),
 ]
@@ -146,6 +173,15 @@ def read_markdown(path: Path) -> str:
     if not path.exists():
         pytest.fail(f"Guide file not found: {path}")
     return path.read_text(encoding="utf-8")
+
+
+def iter_markdown_files(root: Path, pattern: str = "**/*.md") -> list[Path]:
+    """Glob markdown files under *root*, keeping only regular files.
+
+    Broken symlinks and directories are skipped so content scanners cannot
+    crash on them; broken symlinks are reported by test_docs_integrity.py.
+    """
+    return sorted(p for p in root.glob(pattern) if p.is_file())
 
 
 def extract_headings(text: str, level: int = 2) -> List[str]:

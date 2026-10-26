@@ -1,37 +1,344 @@
 /* Shared DeepX UI components — canonical, token-built. Loaded after module-chrome,
    before each module's own style.css so modules may still override.
 
-   This file holds the component foundation that was previously copy-pasted across
-   modules. Start: the button system (base + disabled + ghost), byte-identical to the
-   dx_app / dx_monitor / dx_stream definitions it replaces. Module-specific button
-   variants still live in each module until reconciled (see docs/design-system.html). */
+   Holds the components every module shares: buttons, fields, cards, toasts, modals, stat
+   tiles, the Reference page, icons and the Setup step list (see docs/design-system.html). */
 
 /* ═══ Buttons ═══ */
 .btn{
-  display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border-radius:var(--radius);
-  border:none;cursor:pointer;font-size:var(--fs-base);font-weight:600;transition:var(--transition);font-family:var(--font);
-  position:relative;
+  display:inline-flex;align-items:center;gap:4px;padding:8px 16px;border-radius:var(--radius);
+  /* A transparent 1px border up front: variants only change border-color, and
+     outlined (.btn-ghost) and borderless (.btn-primary) buttons stay the same size. */
+  border:1px solid transparent;
+  cursor:pointer;white-space:nowrap;
+  font-size:var(--fs-base);font-weight:600;font-family:var(--font);
+  transition:var(--transition);position:relative;
 }
 .btn:hover{transform:translateY(-1px)}
 .btn:active{transform:translateY(0);filter:brightness(.92)}
 .btn:disabled{opacity:.35;cursor:not-allowed;pointer-events:none;transform:none!important;filter:none!important}
 
-/* Ghost / secondary outline button */
-.btn-ghost{background:transparent;color:var(--text-3);border:1px solid var(--border)}
+/* Ghost / secondary outline button.
+   The base already reserves the border, so only the colour changes here. */
+.btn-ghost{background:transparent;color:var(--text-muted);border-color:var(--border-subtle)}
 .btn-ghost:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
 
-/* Small size modifier */
-.btn-sm{padding:5px 12px;font-size:var(--fs-sm);border-radius:var(--radius-sm)}
+/* Destructive. Red is kept for destructive actions only, as a tinted background with
+   red text rather than solid red: clear in meaning, but quiet where it is easy to misclick. */
+.btn-danger{
+  background:rgba(var(--error-rgb),.15);
+  color:var(--status-error);
+  border-color:rgba(var(--error-rgb),.3);
+}
+.btn-danger:hover{background:rgba(var(--error-rgb),.24);border-color:var(--status-error)}
+
+/* Neutral filled button — the third option, neither accent nor ghost. */
+.btn-neutral{
+  background:var(--control-bg);
+  color:var(--text-primary);
+  border-color:var(--border-strong);
+}
+.btn-neutral:hover{border-color:var(--accent);color:var(--accent)}
+
+/* Small size modifier. Size only: background and border colour belong to the variant,
+   so .btn-sm never hides .btn-ghost. */
+.btn-sm{padding:4px 12px;font-size:var(--fs-sm);border-radius:var(--radius-sm)}
 
 /* ═══ Form fields (.fg = field group) ═══ */
 .fg{margin-bottom:12px}
-.fg label{display:block;font-size:var(--fs-xs);color:var(--text-3);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.fg label{display:block;font-size:var(--fs-xs);color:var(--text-muted);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
 .fg select,.fg input[type=text],.fg input[type=password],.fg textarea{
-  width:100%;background:var(--bg-2);border:1px solid var(--border);color:var(--text-1);
+  width:100%;background:var(--control-bg);border:1px solid var(--border-subtle);color:var(--text-primary);
   border-radius:var(--radius);padding:8px 12px;font-size:var(--fs-base);outline:none;font-family:var(--font);
 }
-.fg select:focus,.fg input:focus,.fg textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(99,140,255,.12),0 0 12px rgba(99,140,255,.06)}
+.fg select:focus,.fg input:focus,.fg textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(var(--accent-rgb),.12),0 0 12px rgba(var(--accent-rgb),.06)}
 .fg textarea{resize:vertical;min-height:60px}
 
 /* ═══ Badge ═══ */
 .badge{display:inline-block;padding:2px 8px;border-radius:var(--radius-xs);font-size:var(--fs-xs);font-weight:600;letter-spacing:.2px}
+
+/* ═══ Card ═══
+   --card-padding names the padding so it is not repeated as a literal.
+   A card has no outer margin: it would stack with grid gaps. Containers space cards.
+   The shadow comes from the shared depth token. */
+:root{ --card-padding:16px; }
+
+.card{
+  background:var(--surface-raised);
+  border:1px solid var(--border-subtle);
+  border-radius:var(--radius-lg);
+  padding:var(--card-padding);
+  transition:var(--transition);
+  box-shadow:var(--surface-raised-shadow);
+}
+.card:hover{
+  transform:translateY(-2px);
+  box-shadow:var(--surface-hover-shadow);
+  border-color:var(--border-strong);
+}
+.card-header{
+  display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;
+}
+
+/* ═══ Primary / accent button ═══
+   Text uses --text-on-accent: white on the accent gradient is 3.15:1 and fails WCAG AA (4.5),
+   the dark text is 6.2:1.
+   .btn-acc is an alias kept for existing markup; new markup uses .btn-primary. */
+.btn-primary,
+.btn-acc{
+  background:var(--gradient-accent);
+  color:var(--text-on-accent);
+  border-color:transparent;
+  box-shadow:0 4px 16px rgba(var(--accent-rgb),.15);
+}
+.btn-primary:hover,
+.btn-acc:hover{ box-shadow:var(--glow-accent);filter:brightness(1.08); }
+
+
+/* ═══ Toast ═══
+   Bottom right: clear of the header, and column-reverse stacks new toasts at the bottom
+   where the eye already is. */
+.toast-wrap{position:fixed;bottom:20px;right:20px;z-index:300;display:flex;flex-direction:column-reverse;gap:var(--sp-2);pointer-events:none}
+.toast{padding:8px 16px;border-radius:10px;font-size:var(--fs-base);box-shadow:var(--shadow);
+  transform:translateX(120%);transition:.3s var(--ease);max-width:420px;
+  display:flex;align-items:center;gap:var(--sp-2);backdrop-filter:blur(12px);pointer-events:auto;}
+.toast.show{transform:none}
+.toast-icon{flex-shrink:0;font-size:15px}
+.toast-msg{flex:1;line-height:1.4}
+.toast-action{background:var(--accent-fill);border:none;color:var(--text-on-accent);padding:4px 12px;border-radius:var(--radius-sm);font-size:var(--fs-xs);font-weight:600;cursor:pointer;white-space:nowrap;text-decoration:none}
+.toast-action:hover{background:var(--accent-fill);filter:brightness(1.15)}
+.toast-close{background:none;border:none;color:var(--text-faint);font-size:var(--fs-md);cursor:pointer;padding:0 2px;margin-left:4px;line-height:1}
+.toast-close:hover{color:var(--text-primary)}
+.toast-ok{background:rgba(var(--surface-panel-rgb),.92);border:1px solid rgba(var(--success-rgb),.4);color:var(--status-ok)}
+.toast-err{background:rgba(var(--surface-panel-rgb),.92);border:1px solid rgba(var(--error-rgb),.4);color:var(--status-error)}
+.toast-warn{background:rgba(var(--surface-panel-rgb),.92);border:1px solid rgba(var(--warning-rgb),.4);color:var(--status-warn)}
+.toast-info{background:rgba(var(--surface-panel-rgb),.92);border:1px solid rgba(var(--info-rgb),.4);color:var(--status-info)}
+
+/* ═══ Modal ═══ */
+.modal-overlay{border:none;background:transparent;padding:0;max-width:100%;max-height:100%;
+  width:100%;height:100%;}
+.modal-overlay[open]{display:flex;align-items:center;justify-content:center;}
+.modal-overlay::backdrop{background:rgba(6,9,15,.8);backdrop-filter:blur(6px)}
+.modal{background:var(--surface-overlay);backdrop-filter:var(--glass-blur);border:1px solid var(--glass-border);border-radius:var(--radius-lg);
+  padding:var(--sp-5);width:680px;max-width:92vw;max-height:85vh;overflow-y:auto;
+  box-shadow:var(--shadow-lg),0 0 60px rgba(var(--accent-rgb),.04);
+  color:var(--text-primary);animation:modalIn .2s ease;}
+.modal h2{margin-top:0;font-size:var(--fs-lg)}
+.modal-x{float:right;cursor:pointer;font-size:22px;color:var(--text-muted);background:none;border:none;line-height:1}
+.modal-x:hover{color:var(--text-primary);background:rgba(var(--accent-rgb),.08);border-radius:var(--radius-sm)}
+.modal-x svg{width:18px;height:18px}
+
+/* ═══ Stat tile ═══
+   Layout (flex or not) belongs to the container, so it is not set here. */
+.stat{background: var(--surface-raised);border:1px solid var(--border-subtle);border-radius:var(--radius);
+  padding:16px 16px;position:relative;overflow:hidden;transition:var(--transition);
+  box-shadow: var(--surface-raised-shadow);}
+
+.stat:hover{transform:translateY(-1px);box-shadow:var(--surface-hover-shadow);border-color:var(--border-strong)}
+.stat::before{content:'';position:absolute;inset:-1px;border-radius:inherit;background:linear-gradient(135deg,rgba(var(--accent-rgb),.06),transparent 60%);pointer-events:none;z-index:0}
+.stat::after{content:'';position:absolute;top:0;left:0;width:100%;height:2px;
+  background:linear-gradient(90deg,var(--accent),var(--accent-light),transparent);}
+.stat .val{font-size:26px;font-weight:700;color:var(--accent);text-shadow:0 0 12px rgba(var(--accent-rgb),.2)}
+.stat .label{font-size:var(--fs-xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px;margin-top:2px}
+
+/* ═══ Small shared components ═══ */
+.card-glow{box-shadow:0 0 0 1px var(--accent),0 0 30px rgba(var(--accent-rgb),.06)}
+.chip{padding:4px 12px;border:1px solid var(--border-subtle);border-radius:20px;font-size:var(--fs-sm);
+  cursor:pointer;transition:var(--transition);color:var(--text-muted);background:transparent;font-family:var(--font);}
+.chip-bar{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px}
+.comp-status-badge{display:inline-flex;align-items:center;gap:var(--sp-1);padding:4px 8px;border-radius:var(--radius-lg);font-size:var(--fs-xs);font-weight:700}
+.npu-metric{display:flex;justify-content:space-between;font-size:var(--fs-sm);padding:4px 0;border-bottom:1px solid rgba(42,52,65,.4)}
+.setup-card-desc{font-size:var(--fs-sm);color:var(--text-muted);line-height:1.5}
+.setup-card-header{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.setup-card-title{font-weight:600;font-size:var(--fs-md);margin-bottom:4px}
+.setup-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+
+/* ═══ Reference page ═══ (the .ref-* screen shared by dx_app and dx_stream) */
+.ref-box{display:flex;align-items:flex-start;gap:8px;padding:12px 16px;border-radius:var(--radius);margin:12px 0;font-size:var(--fs-base);line-height:1.6}
+.ref-box-icon{font-size:var(--fs-lg);flex-shrink:0;margin-top:1px}
+.ref-card-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(280px,100%),1fr));gap:var(--sp-3)}
+.ref-card-row>*{min-width:0}
+.ref-cat{margin:4px 0 0;padding:2px 2px 0}
+.ref-cat-desc{font-size:var(--fs-xs);color:var(--text-muted);margin-top:1px}
+.ref-cat-title{font-size:var(--fs-base);font-weight:700;color:var(--text-primary)}
+.ref-detail-hd{display:flex;justify-content:space-between;align-items:flex-start;gap:var(--sp-4);margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--border-subtle)}
+.ref-detail-kicker{font-size:var(--fs-2xs);text-transform:uppercase;letter-spacing:1px;color:var(--accent);font-weight:700;margin-bottom:4px}
+.ref-expand{position:relative;width:100%;background:var(--surface-panel);
+  border:1px solid var(--accent);border-radius:var(--radius-lg);
+  overflow:hidden;animation:refExpandOpen .3s ease-out;}
+.ref-expand-arrow{position:absolute;top:-8px;left:50px;width:16px;height:16px;
+  background:var(--surface-panel);border:1px solid var(--accent);
+  border-right:none;border-bottom:none;transform:rotate(45deg);z-index:1;}
+.ref-expand-close{position:absolute;top:12px;right:12px;width:28px;height:28px;
+  border-radius:50%;border:1px solid var(--border-subtle);background:var(--control-bg);
+  color:var(--text-muted);cursor:pointer;display:flex;align-items:center;
+  justify-content:center;font-size:var(--fs-md);z-index:2;}
+.ref-expand-inner{padding:24px;max-height:60vh;overflow-y:auto}
+.ref-flow{display:flex;align-items:center;gap:var(--sp-2);flex-wrap:wrap;margin:12px 0;padding:var(--sp-3);background:var(--control-bg);border-radius:var(--radius);border:1px solid var(--border-subtle)}
+.ref-flow-arrow{color:var(--text-faint);font-size:var(--fs-md)}
+.ref-flow-step{padding:4px 12px;background:var(--accent-dim);border:1px solid rgba(var(--accent-rgb),.2);
+  border-radius:var(--radius);font-size:var(--fs-sm);font-weight:600;color:var(--accent-light);}
+.ref-grid{display:flex;flex-direction:column;gap:var(--sp-4)}
+.ref-layout{display:flex;flex-direction:column;gap:var(--sp-4);width:100%;flex:1}
+/* Text starts at icon left (12) + icon (16) + gap (8) */
+.ref-search{width:100%;padding:8px 12px 8px calc(12px + 16px + 8px);background:var(--control-bg);border:1px solid var(--border-subtle);
+  border-radius:var(--radius);color:var(--text-primary);font-size:var(--fs-base);transition:var(--transition);}
+.ref-search-bar{margin-bottom:12px}
+.ref-search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:var(--fs-md);opacity:.5}
+.ref-search-wrap{position:relative;max-width:600px;margin:0 auto}
+.ref-section-desc{font-size:var(--fs-sm);color:var(--text-muted);margin-top:4px;line-height:1.4}
+/* tutorial.css has a one-line nowrap rule of the same name; let Reference cards wrap so they fit a phone */
+.ref-topic-card .ref-section-desc{white-space:normal;overflow-wrap:anywhere}
+.ref-section-icon{font-size:var(--fs-3xl);flex-shrink:0}
+.ref-section-info{display:flex;flex-direction:column;flex:1;min-width:0}
+.ref-section-name{font-size:var(--fs-md);font-weight:700;color:var(--text-primary)}
+.ref-tab{padding:4px 12px;font-size:var(--fs-sm);font-weight:500;color:var(--text-muted);
+  border-radius:var(--radius) var(--radius) 0 0;cursor:pointer;transition:var(--transition);}
+.ref-tab-content{display:none}
+.ref-tabs{display:flex;gap:var(--sp-1);margin-bottom:12px;border-bottom:1px solid var(--border-subtle);padding-bottom:8px;flex-wrap:wrap}
+.ref-tbl{width:100%;border-collapse:collapse;font-size:var(--fs-sm);margin:12px 0}
+.ref-toolbar{margin-bottom:0;padding:16px 16px}
+.ref-topic-card{display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px;
+  width:100%;padding:12px 12px 12px;
+  background: var(--surface-raised);border:1px solid var(--border-subtle);
+  border-radius:var(--radius-lg);cursor:pointer;transition:var(--transition);font-family:var(--font);
+  box-shadow: var(--surface-raised-shadow);}
+
+/* ═══ More shared components ═══ */
+.setup-card{background: var(--surface-raised);border:1px solid var(--border-subtle);border-radius:10px;
+  padding:var(--sp-4);display:flex;flex-direction:column;gap:8px;transition:var(--transition);
+  box-shadow: var(--surface-raised-shadow);}
+.chart-box{position:relative;width:100%;height:200px;background:var(--control-bg);border:1px solid var(--border-subtle);border-radius:var(--radius);overflow:hidden;box-shadow:var(--inset-highlight)}
+.npu-card{background: var(--surface-raised);border:1px solid var(--border-subtle);border-radius:var(--radius);padding:var(--sp-4);
+  position:relative;overflow:hidden;transition:var(--transition);
+  box-shadow: var(--surface-raised-shadow);}
+
+/* ─── Icons ───────────────────────────────────────────────────────────────
+   <use> symbols from shared/static/dx-icons.svg (DXIcon helper). They follow the font size (1em) and
+   currentColor. Shape comes from inherited variables: --ico-fill (fill, .24) · --ico-fill-o · --ico-stroke (stroke, 2). */
+.dx-ico {
+  width: 1em;
+  height: 1em;
+  flex: none;
+  vertical-align: -.125em;
+  overflow: visible;
+}
+/* Spinners turn, except when the user asks for reduced motion. */
+.dx-ico--spin { animation: dx-spin 1s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .dx-ico--spin { animation: none; } }
+/* Fold chevron points the way the content goes (open = down, closed = right). */
+.dx-ico--fold { transition: transform .15s; }
+.is-collapsed > .dx-ico--fold, .collapsed .dx-ico--fold, [aria-expanded="false"] > .dx-ico--fold { transform: rotate(-90deg); }
+.dx-ico--sm { font-size: var(--fs-sm); }
+.dx-ico--lg { width: 1.5em; height: 1.5em; }
+
+/* ─── Setup step list ─────────────────────────────────────────────────────
+   Shared by the app and stream Setup pages and the compiler Setup panel (shared/static/dx-steps.js).
+   Finished steps are one line, only the next step is open. State shows as shape + colour + words. */
+/* Inside the component hidden wins — otherwise .btn's display overrides the attribute. */
+.dx-steps [hidden] { display: none !important; }
+.dx-steps { --step-ok: var(--status-ok); --step-warn: var(--status-warn); --step-err: var(--status-error);
+  --step-dot: 36px; color: var(--text-primary); }
+.dx-steps-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--sp-3) var(--sp-6);
+  align-items: end; margin-bottom: var(--sp-5); }
+.dx-steps-head h1, .dx-steps-head h2 { margin: 0; font-size: var(--fs-3xl); font-weight: var(--fw-semibold); letter-spacing: -.01em; }
+.dx-steps-lede { margin: var(--sp-1) 0 0; color: var(--text-secondary); font-size: var(--fs-md); }
+.dx-steps-progress { grid-column: 1 / -1; display: flex; align-items: center; gap: var(--sp-4); }
+.dx-steps-count { font-size: var(--fs-sm); color: var(--text-secondary); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.dx-steps-bar { flex: 1; display: flex; gap: var(--sp-1); min-width: 64px; }
+.dx-steps-bar > i { flex: 1; height: 6px; border-radius: 3px; background: color-mix(in srgb, var(--text-primary) 12%, transparent); }
+.dx-steps-bar > i.is-done { background: var(--step-ok); }
+.dx-steps-bar > i.is-next { background: var(--accent); }
+.dx-steps-bar > i.is-failed { background: var(--step-err); }
+.dx-steps-run { display: inline-flex; align-items: center; gap: var(--sp-2); }
+/* Narrow screens: stack the run buttons under the intro so it is not squeezed into a thin column. */
+@media (max-width: 600px) {
+  .dx-steps-head { grid-template-columns: minmax(0, 1fr); align-items: start; }
+  .dx-steps-run { flex-wrap: wrap; }
+}
+
+.dx-steps-list { list-style: none; margin: 0; padding: 0; position: relative; }
+.dx-steps-list::before { content: ""; position: absolute; left: calc(var(--step-dot) / 2 - 1px); top: var(--sp-5); bottom: var(--sp-5);
+  width: 2px; background: color-mix(in srgb, var(--text-primary) 10%, transparent); }
+.dx-step { position: relative; display: grid; grid-template-columns: var(--step-dot) minmax(0, 1fr); gap: 0 var(--sp-4);
+  padding: var(--sp-2) 0; }
+.dx-step-dot { position: relative; z-index: 1; width: var(--step-dot); height: var(--step-dot); border-radius: 50%;
+  display: grid; place-items: center; font-size: var(--fs-sm); font-weight: var(--fw-semibold);
+  background: var(--surface-page); border: 2px solid color-mix(in srgb, var(--text-primary) 18%, transparent); color: var(--text-secondary); }
+/* Size comes from the dot: a % height on a grid item has nothing to resolve against. */
+.dx-step-dot .dx-ico { width: calc(var(--step-dot) * .5); height: calc(var(--step-dot) * .5); }
+.dx-step[data-state="done"] .dx-step-dot { color: var(--step-ok); border-color: color-mix(in srgb, var(--step-ok) 60%, transparent);
+  background: color-mix(in srgb, var(--step-ok) 16%, var(--surface-page)); }
+.dx-step[data-state="failed"] .dx-step-dot { color: var(--step-err); border-color: color-mix(in srgb, var(--step-err) 60%, transparent); }
+.dx-step[data-state="running"] .dx-step-dot { color: var(--accent); border-color: var(--accent); }
+.dx-step[data-state="running"] .dx-step-dot .dx-ico { animation: dx-spin 1s linear infinite; }
+.dx-step.is-next .dx-step-dot { color: var(--accent); border-color: var(--accent);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 18%, transparent); }
+.dx-step-body { min-width: 0; }
+.dx-step-row { display: flex; align-items: center; flex-wrap: wrap; gap: var(--sp-2) var(--sp-3); min-height: var(--step-dot); cursor: pointer; border-radius: var(--radius-sm); }
+.dx-step.is-next .dx-step-row { cursor: default; }
+.dx-step-row:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.dx-step-title { margin: 0; font-size: var(--fs-md); font-weight: var(--fw-semibold); }
+.dx-step-facts { display: inline-flex; flex-wrap: wrap; gap: var(--sp-1); }
+.dx-step-facts > span { font-size: var(--fs-xs); color: var(--text-secondary); padding: 2px var(--sp-2); border-radius: var(--radius-xs);
+  background: color-mix(in srgb, var(--text-primary) 7%, transparent); font-variant-numeric: tabular-nums; }
+.dx-step-facts > span:empty { display: none; }
+.dx-step-state { margin-left: auto; display: inline-flex; align-items: center; gap: var(--sp-1); padding: 2px var(--sp-2);
+  border-radius: var(--radius-pill); font-size: var(--fs-xs); font-weight: var(--fw-semibold); white-space: nowrap; }
+.dx-step-state .dx-ico { width: 1.1em; height: 1.1em; }
+.dx-step-state.is-done { color: var(--step-ok); background: color-mix(in srgb, var(--step-ok) 12%, transparent); }
+.dx-step-state.is-todo { color: var(--step-warn); background: color-mix(in srgb, var(--step-warn) 14%, transparent); }
+.dx-step-state.is-running { color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.dx-step-state.is-running .dx-ico { animation: dx-spin 1s linear infinite; }
+.dx-step-state.is-failed { color: var(--step-err); background: color-mix(in srgb, var(--step-err) 12%, transparent); }
+.dx-step-state.is-blocked { color: var(--text-muted); }
+.dx-step-more { display: none; padding: var(--sp-2) 0 var(--sp-1); }
+.dx-step.is-open .dx-step-more { display: block; }
+.dx-step.is-next { margin: var(--sp-2) 0; padding: var(--sp-4) var(--sp-4) var(--sp-4) 0;
+  border-radius: var(--radius-xl); background: color-mix(in srgb, var(--accent) 6%, transparent); }
+.dx-step-desc { margin: 0; color: var(--text-secondary); font-size: var(--fs-sm); }
+.dx-step-detail { margin: var(--sp-2) 0 0; color: var(--text-secondary); font-size: var(--fs-sm); font-variant-numeric: tabular-nums; }
+.dx-step-detail:empty { display: none; }
+.dx-step-cmd { display: inline-flex; align-items: center; gap: var(--sp-1); margin-top: var(--sp-2);
+  font: var(--fs-xs)/1.4 var(--font-mono, ui-monospace, monospace); color: var(--text-muted); }
+.dx-step-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); margin-top: var(--sp-3); }
+.dx-step-log { margin-top: var(--sp-3); }
+/* Only the next step gets the blue button; on an opened finished step the same button looks like a quiet "redo". */
+.dx-step:not(.is-next) .dx-step-actions .btn-primary {
+  background: transparent; color: var(--text-secondary);
+  border: 1px solid color-mix(in srgb, var(--text-primary) 16%, transparent); }
+.dx-step-log:empty { display: none; }
+
+/* compact: the compiler's right-hand panel. Folds to one line ("Setup ready") when everything is done. */
+.dx-steps--compact { --step-dot: 28px; padding: var(--sp-4); border-radius: var(--radius-xl); background: var(--surface-panel);
+  border: 1px solid color-mix(in srgb, var(--text-primary) 8%, transparent); }
+.dx-steps--compact .dx-steps-head { grid-template-columns: auto 1fr auto; align-items: center; margin-bottom: var(--sp-2); }
+.dx-steps--compact .dx-steps-head h2 { font-size: var(--fs-md); }
+.dx-steps--compact .dx-steps-progress { grid-column: auto; justify-content: flex-end; }
+.dx-steps--compact .dx-steps-bar { flex: none; width: 88px; }
+.dx-steps--compact .dx-step.is-next { padding: var(--sp-3) var(--sp-3) var(--sp-3) 0; }
+.dx-steps-summary { display: none; width: 100%; align-items: center; gap: var(--sp-3); border: 0; background: none; padding: 0;
+  color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.dx-steps-summary .dx-step-dot { --step-dot: 26px; color: var(--step-ok); border-color: color-mix(in srgb, var(--step-ok) 60%, transparent);
+  background: color-mix(in srgb, var(--step-ok) 16%, var(--surface-page)); }
+.dx-steps-summary small { color: var(--text-muted); }
+.dx-steps-summary .dx-ico:last-child { margin-left: auto; color: var(--text-muted); }
+.dx-steps--compact.is-complete:not(.is-expanded) .dx-steps-summary { display: flex; }
+/* !important: module JS sets an inline display when it expands the panel (compiler setup_panel.js _expand); the one-line fold must win. */
+.dx-steps--compact.is-complete:not(.is-expanded) > :not(.dx-steps-summary) { display: none !important; }
+/* One-line shortcut for users who only want the demo — above the step list, quietly highlighted. */
+.dx-steps-quick { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3) var(--sp-4); margin-bottom: var(--sp-5);
+  padding: var(--sp-3) var(--sp-4); border-radius: var(--radius-xl);
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface-panel)); border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent); }
+.dx-steps-quick > .dx-ico { width: 22px; height: 22px; color: var(--accent); }
+.dx-steps-quick-text { flex: 1; min-width: 220px; }
+.dx-steps-quick-text b { display: block; font-size: var(--fs-md); }
+.dx-steps-quick-text p { margin: var(--sp-1) 0 0; color: var(--text-secondary); font-size: var(--fs-sm); }
+/* An optional requirement below the list — reported, never part of Run All (e.g. Xvfb for Live). */
+.dx-steps-optional { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-4); margin-top: var(--sp-4);
+  padding: var(--sp-3) var(--sp-4); border-radius: var(--radius-xl); border: 1px dashed var(--border-subtle); }
+.dx-steps-optional > .dx-ico { width: 20px; height: 20px; color: var(--text-secondary); }
+.dx-steps-optional-text { flex: 1; min-width: 220px; }
+.dx-steps-optional-text b { display: block; font-size: var(--fs-sm); }
+.dx-steps-optional-text p { margin: var(--sp-1) 0 0; color: var(--text-secondary); font-size: var(--fs-sm); }
+.dx-steps-run { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--sp-2); }

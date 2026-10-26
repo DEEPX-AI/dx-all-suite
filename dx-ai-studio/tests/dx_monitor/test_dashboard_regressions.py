@@ -2,10 +2,11 @@
 
 from pathlib import Path
 import re
-import shutil
 import subprocess
 
 import pytest
+from tests.css_rules import css_rule
+from tests.browser_support import resolve_node_executable
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -88,7 +89,7 @@ assert.strictEqual(elements['mock-banner'].style.display, 'none');
 apply({npus: [npu()], cpu_load: 2.0, mem_pct: 30.0, telemetry: {source_mode: 'stale'}});
 assert.strictEqual(state().mode, 'stale');
 assert(elements['telemetry-status'].className.includes('degraded stale'));
-assert.strictEqual(elements['telemetry-status'].textContent, '⚠ NPU telemetry is not current.');
+assert.strictEqual(elements['telemetry-status'].textContent, 'NPU telemetry is not current');
 assert.strictEqual(elements['telemetry-status'].style.display, 'inline');
 assert(elements['status-bar'].innerHTML.includes('NPU telemetry is not current'));
 
@@ -121,7 +122,7 @@ assert.strictEqual(state().isMock, false);
 assert.strictEqual(elements['telemetry-status'].style.display, 'none');
 assert.strictEqual(elements['mock-banner'].style.display, 'none');
 assert(elements['status-bar'].innerHTML.includes('Mock') === false);
-assert.strictEqual(elements['npu-status-label'].textContent, '1 NPU(s)');
+assert.strictEqual(elements['npu-status-label'].textContent, '1 NPU');
 assert.strictEqual(state().samples, 5);
 
 console.log('OK: dashboard telemetry transitions');
@@ -129,7 +130,7 @@ console.log('OK: dashboard telemetry transitions');
 
 
 def run_dashboard_telemetry_vm() -> str:
-        node = shutil.which("node")
+        node = resolve_node_executable()
         if not node:
                 pytest.skip("node is required for dashboard runtime test")
         result = subprocess.run(
@@ -158,12 +159,6 @@ def extract_braced_body(source: str, anchor: str) -> str:
             if depth == 0:
                 return source[open_pos + 1:pos]
     raise AssertionError(f"unmatched braces after {anchor!r}")
-
-
-def css_rule(css: str, selector: str) -> str:
-    match = re.search(rf"{re.escape(selector)}\s*\{{([^}}]+)\}}", css)
-    assert match, f"{selector} rule not found"
-    return match.group(1)
 
 
 def test_dashboard_never_renders_negative_npu_dram_percent():
@@ -224,18 +219,20 @@ def test_shared_line_chart_skips_missing_metric_samples():
 
 
 def test_monitor_language_menu_parent_stacks_above_monitor_content():
+    # The header/toolbar stacking order belongs to the shared shell (dx-shell.css).
+    shell_css = read_text(MONITOR.parent / "shared" / "static" / "dx-shell.css")
     css = read_text(MONITOR / "static" / "css" / "style.css")
-    top_bar = css_rule(css, ".top-bar")
-    toolbar = css_rule(css, ".toolbar")
+    top_bar = css_rule(shell_css, ".dx-shell-header")
+    toolbar = css_rule(shell_css, ".dx-shell-header-right")
     monitor_main = css_rule(css, ".monitor-main")
 
     z_match = re.search(r"z-index\s*:\s*(\d+)\s*;", top_bar)
-    assert z_match, ".top-bar must declare an explicit z-index"
-    assert int(z_match.group(1)) >= 1000
-    assert "overflow: visible" in top_bar
-    assert "position: relative" in toolbar
+    assert z_match, ".dx-shell-header must declare an explicit z-index"
+    assert int(z_match.group(1)) > 100, "헤더는 페이지 콘텐츠 위에 있어야 한다"
+    assert "overflow:visible" in top_bar.replace(" ", "")
+    assert "position:relative" in toolbar.replace(" ", "")
     toolbar_z = re.search(r"z-index\s*:\s*(\d+)\s*;", toolbar)
-    assert toolbar_z, ".toolbar must stack language dropdown above toolbar siblings"
+    assert toolbar_z, "toolbar must stack language dropdown above toolbar siblings"
     assert int(toolbar_z.group(1)) >= 1
     # Must not tie with shared popup layer (10000)
     assert int(toolbar_z.group(1)) != 10000
@@ -360,8 +357,9 @@ def test_monitor_z_index_ladder_no_shared_toolbar_conflict():
     .toolbar should position children but NOT use the same z-index as the shared
     lang-menu popup (10000 in toolbar.css).
     """
-    css = read_text(MONITOR / "static" / "css" / "style.css")
-    toolbar_rule = css_rule(css, ".toolbar")
+    # .toolbar belongs to the shared shell (the same element as .dx-shell-header-right).
+    shell_css = read_text(MONITOR.parent / "shared" / "static" / "dx-shell.css")
+    toolbar_rule = css_rule(shell_css, ".toolbar")
 
     # Shared toolbar.css .dx-lang-menu uses z-index:10000
     # Monitor .toolbar must NOT also declare z-index:10000
@@ -431,7 +429,7 @@ def test_mock_banner_show_overrides_css_display_none():
 
 
 def test_dashboard_shows_no_data_for_npu_with_no_valid_temperature_sensors():
-    """F-15: a dead temperature sensor (cores==0, all channels == -32768 sentinel) must
+    """A dead temperature sensor (cores==0, all channels == -32768 sentinel) must
     NOT render as '0.0°C' with an OK/green badge. The temp card must guard on cores/
     temperatures and fall back to a no-data state."""
     dashboard = read_text(MONITOR / "static" / "js" / "dashboard.js")
@@ -451,7 +449,8 @@ def test_telemetry_status_template_and_clock_control_contract():
     assert template.index('id="sse-status"') < template.index('id="telemetry-status"')
     assert "cm-clock" in template
     assert "🔄" not in template
-    assert 'class="icon-clock"' in template
+    # The icon is the sprite's clock symbol.
+    assert 'dx-icons.svg#clock' in template
     assert 'aria-hidden="true"' in template
     assert "��" not in template
 
@@ -464,11 +463,11 @@ def test_clock_controls_use_deterministic_accessibility_icon():
 
     assert "🔄" not in template
     assert "🔄" not in dashboard
-    assert 'class="icon-clock"' in template
-    assert 'class="icon-clock"' in dashboard
-    assert 'aria-hidden="true"' in dashboard
-    assert ".icon-clock" in css
-    assert "currentColor" in css
+    # Static and dynamic Clock labels both use the sprite's clock (DXIcon draws it aria-hidden).
+    assert 'dx-icons.svg#clock' in template
+    assert "_mIco('clock')" in dashboard
+    assert "aria-hidden" in (MONITOR.parent / "shared" / "static" / "dx-icon.js").read_text(encoding="utf-8")
+    assert "currentColor" in (MONITOR.parent / "shared" / "static" / "dx-icons.svg").read_text(encoding="utf-8")
 
 
 def test_dashboard_tracks_telemetry_mode_and_safely_updates_visible_status():
@@ -583,3 +582,18 @@ def test_charts_redraw_on_resize_and_visibility():
     assert "'resize'" in dashboard or '"resize"' in dashboard
     # each hook must trigger a chart redraw
     assert "requestAnimationFrame(drawCharts)" in dashboard
+
+
+def test_single_chart_value_carries_its_unit():
+    """The big number beside each chart must carry its unit, not read a bare "38.0"."""
+    utils = DASHBOARD_UTILS.read_text(encoding="utf-8")
+    dashboard = (MONITOR / "static" / "js" / "dashboard.js").read_text(encoding="utf-8")
+    assert "temp: '°C'" in utils and "clock: ' MHz'" in utils
+    assert dashboard.count("metricValue(mode,r.val)") == 2
+    assert "r.val.toFixed(1)" not in dashboard
+
+
+def test_telemetry_state_messages_are_translated():
+    dashboard = (MONITOR / "static" / "js" / "dashboard.js").read_text(encoding="utf-8")
+    assert "?'NPU telemetry" not in dashboard and ":'NPU telemetry" not in dashboard
+    assert "'alert','NPU telemetry" not in dashboard

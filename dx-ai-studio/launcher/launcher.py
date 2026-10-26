@@ -19,6 +19,7 @@ from __future__ import annotations
 import http.client
 import json
 import os
+import secrets
 import signal
 import socket
 import subprocess
@@ -43,6 +44,7 @@ from shared.auth_policy import map_launcher_proxy
 from shared.chat import ChatEngine
 from shared.runtime_gate import module_start_policy as _runtime_module_start_policy
 from shared import debug_log
+from shared import remote_access as _ra
 
 # Ports are env-overridable so the studio can coexist with other services on a
 # shared host (defaults unchanged → release behavior + tests unaffected). Set e.g.
@@ -62,6 +64,7 @@ PLANNER_PORT  = _port("DX_PLANNER_PORT", 8096)
 BENCHMARK_PORT = _port("DX_BENCHMARK_PORT", 8097)
 MONITOR_PORT  = _port("DX_MONITOR_PORT", 8098)
 AGENT_PORT    = _port("DX_AGENT_PORT", 8099)
+EDGE_PORT     = _port("DX_EDGE_PORT", 8100)
 _LAUNCHER_PROXY_PORTS = {
     "dx_app": APP_PORT,
     "dx_stream": STREAM_PORT,
@@ -71,6 +74,7 @@ _LAUNCHER_PROXY_PORTS = {
     "dx_benchmark": BENCHMARK_PORT,
     "dx_monitor": MONITOR_PORT,
     "dx_agent_dev": AGENT_PORT,
+    "dx_edge": EDGE_PORT,
 }
 
 # Short JS keys → canonical dx_* keys (dx_monitor is the same in both)
@@ -82,6 +86,7 @@ MODULE_KEY_ALIASES = {
     "planner": "dx_planner",
     "benchmark": "dx_benchmark",
     "agent": "dx_agent_dev",
+    "edge": "dx_edge",
 }
 
 _MODULE_PROXY_PATHS = {
@@ -93,6 +98,7 @@ _MODULE_PROXY_PATHS = {
     "dx_benchmark": "/benchmark/",
     "dx_monitor": "/dx_monitor/",
     "dx_agent_dev": "/agent/",
+    "dx_edge": "/cloud/",
 }
 
 
@@ -105,7 +111,7 @@ def _debug_routes_enabled() -> bool:
     return os.environ.get("DX_DEBUG_MODE", "").lower() in {"1", "true", "yes", "on"}
 
 
-# Display name → canonical key mapping for _procs cleanup (I-2)
+# Display name → canonical key mapping for _procs cleanup
 _DISPLAY_NAME_TO_CANONICAL = {
     "DX App": "dx_app",
     "DX Stream": "dx_stream",
@@ -115,6 +121,7 @@ _DISPLAY_NAME_TO_CANONICAL = {
     "DX Benchmark": "dx_benchmark",
     "DX Monitor": "dx_monitor",
     "DX Agent Dev": "dx_agent_dev",
+    "DX Cloud": "dx_edge",
 }
 
 _CANONICAL_TO_DISPLAY_NAME = {v: k for k, v in _DISPLAY_NAME_TO_CANONICAL.items()}
@@ -127,7 +134,10 @@ def _resolve_module_key(key):
 BASE_DIR  = Path(__file__).resolve().parent
 STUDIO_DIR = BASE_DIR.parent           # dx-ai-studio/
 SUITE_ROOT = STUDIO_DIR.parent         # <suite> root — holds the DX-AllSuite release.ver
-PORTS_DIR = BASE_DIR / ".ports"        # sub-servers report their OS-assigned (:0) port here
+# Run state (port handshake files, pid file) lives next to the launcher unless DX_LAUNCHER_RUN_DIR moves it, so a
+# second launcher from the same checkout (the acceptance suite's own instance) leaves a running studio's state alone.
+RUN_DIR = Path(os.environ.get("DX_LAUNCHER_RUN_DIR") or BASE_DIR)
+PORTS_DIR = RUN_DIR / ".ports"         # sub-servers report their OS-assigned (:0) port here
 APP_DIR    = STUDIO_DIR / "dx_app"
 
 # Fallback shown only if <suite>/release.ver is missing/unreadable (e.g. a partial checkout).
@@ -137,7 +147,6 @@ _SDK_VERSION_FALLBACK = "v2.4.0"
 def _suite_sdk_version() -> str:
     """The DX-AllSuite (DXNN SDK) version, read live from <suite>/release.ver.
 
-    The hub used to hard-code "v2.3.0", which drifted out of date (the tree ships v2.4.0).
     release.ver is the single source of truth the release tooling writes, so read it at serve
     time and normalize to a leading-'v' tag. Any failure falls back to a known-good constant.
     """
@@ -155,6 +164,7 @@ PLANNER_DIR  = STUDIO_DIR / "dx_planner"
 BENCHMARK_DIR  = STUDIO_DIR / "dx_benchmark"
 MONITOR_DIR   = STUDIO_DIR / "dx_monitor"
 AGENT_DIR     = STUDIO_DIR / "dx_agent_dev"
+EDGE_DIR      = STUDIO_DIR / "dx_edge"
 
 _procs = {}
 
@@ -222,6 +232,10 @@ def _watchdog_check_once():
 
             if proc_alive and port_open:
                 entry["status"] = "alive"
+                # A module that missed one check and answered again drops its pending restart. Left in place, the
+                # next blip would find the deadline already past and kill a healthy module with no grace period.
+                # A manual restart is synchronous and has already finished by now.
+                entry["restart_at"] = None
                 continue
 
             # Module is down — re-check status was not changed concurrently
@@ -237,13 +251,14 @@ def _watchdog_check_once():
                 continue
 
             entry["status"] = "dead"
-            # Only schedule restart_at if not already pending (C-1/C-2 fix)
+            # Only schedule restart_at if not already pending
             if entry["restart_at"] is None:
                 deadline = _WATCHDOG_RESTART_DEADLINE_SECONDS()
                 entry["restart_at"] = now + deadline
-            entry["last_error"] = (
-                f"Process exited (pid={proc.pid})" if proc else "No process"
-            )
+            if entry.get("last_error_pid") != (proc.pid if proc else None):
+                entry["last_error"] = _exit_description(name, proc)
+                entry["last_error_pid"] = proc.pid if proc else None
+                print(f"  [Launcher] {name}: {entry['last_error']}", file=sys.stderr)
 
 
 def _watchdog_do_restarts():
@@ -293,7 +308,7 @@ def _do_module_restart(name, entry):
 
     server_id = name  # module keys are already server_ids like "dx_app"
 
-    # Clean up stale display-name _procs entry before restart (I-2 fix)
+    # Clean up stale display-name _procs entry before restart
     display_name = _CANONICAL_TO_DISPLAY_NAME.get(name)
     if display_name and display_name in _procs and display_name != name:
         del _procs[display_name]
@@ -451,7 +466,7 @@ def _get_widget_cache():
     return _WIDGET_CACHE
 
 # PID file for tracking sub-servers across restarts
-_PIDFILE = BASE_DIR / ".launcher_pids"
+_PIDFILE = RUN_DIR / ".launcher_pids"
 
 
 def _save_pids():
@@ -466,6 +481,28 @@ def _save_pids():
         pass
 
 
+def _is_our_sub_server(pid):
+    """Whether pid looks like a server start_sub_server spawned (`python <STUDIO_DIR>/<module>/server.py ...`).
+
+    False when it cannot be checked (no /proc, no permission, already gone): never kill what we cannot identify.
+    """
+    try:
+        raw = Path(f"/proc/{pid}/cmdline").read_bytes()
+    except OSError:
+        return False
+    studio = Path(STUDIO_DIR).resolve()
+    for arg in raw.split(b"\0")[1:]:
+        if not arg.endswith(b"server.py"):
+            continue
+        try:
+            script = Path(os.fsdecode(arg)).resolve()
+        except (OSError, ValueError):
+            continue
+        if script.parent.parent == studio:
+            return True
+    return False
+
+
 def _cleanup_old_pids():
     """Kill sub-servers left behind by a previous crashed launcher."""
     if not _PIDFILE.exists():
@@ -475,19 +512,27 @@ def _cleanup_old_pids():
     except Exception:
         _PIDFILE.unlink(missing_ok=True)
         return
+    if not isinstance(data, dict):  # a corrupt file must not block launcher startup
+        _PIDFILE.unlink(missing_ok=True)
+        return
 
     for name, pid in data.items():
+        # PIDs get reused (after a reboot, or when the server died first). Only kill a process that
+        # still looks like one of our sub-servers. Contract: tests/launcher/test_cleanup_old_pids.py
+        if not isinstance(pid, int) or not _is_our_sub_server(pid):
+            continue
         try:
-            os.kill(pid, 0)  # check if alive
-            try:
-                os.killpg(os.getpgid(pid), signal.SIGTERM)
-            except (ProcessLookupError, PermissionError):
+            # start_sub_server uses setsid, so our server leads its own group. Otherwise the group
+            # belongs to someone else (e.g. the shell that started the launcher): signal the pid only.
+            if os.getpgid(pid) == pid:
+                os.killpg(pid, signal.SIGTERM)
+            else:
                 os.kill(pid, signal.SIGTERM)
             time.sleep(0.3)
-            # Force kill if still alive
+            # Force kill if still alive — re-check, the pid may have been reused within 0.3 s
             try:
-                os.kill(pid, 0)
-                os.kill(pid, signal.SIGKILL)
+                if _is_our_sub_server(pid):
+                    os.kill(pid, signal.SIGKILL)
             except (ProcessLookupError, PermissionError):
                 pass
         except (ProcessLookupError, PermissionError):
@@ -619,6 +664,7 @@ def _build_health_status():
         "benchmark": st("dx_benchmark"),
         "monitor":   st("dx_monitor"),
         "agent":     st("dx_agent_dev"),
+        "edge":      st("dx_edge"),
     }
 
 
@@ -632,6 +678,49 @@ def _get_health_status():
         _health_cache_data = _build_health_status()
         _health_cache_ts = time.time()
         return _health_cache_data
+
+
+# Remote access: pairing code and sessions. main() creates it, so a bare import never prints a code
+# or writes to ~/.config.
+REMOTE_ACCESS = None
+_PAIR_PAGE = Path(__file__).resolve().parent / "static" / "pair.html"
+
+
+def _lan_addresses():
+    """IPv4 addresses other computers reach this board on, shown in the connected-browsers view and the console.
+
+    Read per interface with SIOCGIFADDR, which sends no packets (the studio must work offline). Loopback,
+    link-local and container/virtual bridges are skipped. Empty when not on Linux or nothing can be read."""
+    import fcntl
+    import ipaddress
+    import struct
+    out = []
+    try:
+        names = [n for _, n in socket.if_nameindex()]
+    except (AttributeError, OSError):
+        return out
+    skip = ("lo", "docker", "br-", "veth", "virbr", "cni", "flannel", "tun", "tap")
+    for name in names:
+        if name.startswith(skip):
+            continue
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            packed = fcntl.ioctl(s.fileno(), 0x8915, struct.pack("256s", name[:15].encode()))  # SIOCGIFADDR
+            ip = ipaddress.ip_address(socket.inet_ntoa(packed[20:24]))
+        except OSError:
+            continue
+        finally:
+            s.close()
+        if ip.is_loopback or ip.is_link_local or ip.is_unspecified:
+            continue
+        if str(ip) not in out:
+            out.append(str(ip))
+    return out
+# Modules listen on loopback only; requests the launcher relays carry this secret in X-DX-Proxy (passed to
+# children via env). It is also set in the launcher's own env so modules running in the same process (the browser
+# suite's tests/server_helpers) read the same value and a reload keeps it. Local processes are trusted anyway, so
+# this grants nothing new.
+PROXY_SECRET = os.environ.setdefault("DX_PROXY_SECRET", secrets.token_hex(32))
 
 
 def start_sub_server(name, directory, port=0, server_id=None):
@@ -659,21 +748,34 @@ def start_sub_server(name, directory, port=0, server_id=None):
     # (repo root on PYTHONPATH). Its own package dir is already on sys.path via the script path.
     env["PYTHONPATH"] = _REPO_ROOT + (os.pathsep + env["PYTHONPATH"] if env.get("PYTHONPATH") else "")
     env["DX_PORT_FILE"] = pf
+    # Modules always bind loopback — DX_BIND_HOST/LOCAL given for the launcher must not reach them
+    env.pop("DX_BIND_LOCAL", None)
+    env["DX_BIND_HOST"] = "127.0.0.1"
+    env["DX_PROXY_SECRET"] = PROXY_SECRET
     if server_id:
         env["DX_SERVER_ID"] = server_id
     # modelzoo's inference proxy reads DX_APP_PORT at import — feed it the already-discovered
     # dx_app port (dx_app is started before modelzoo in main()).
     if _LAUNCHER_PROXY_PORTS.get("dx_app") is not None:
         env["DX_APP_PORT"] = str(_LAUNCHER_PROXY_PORTS["dx_app"])
+    # dx_app gets a new port when it restarts — pass the file holding it so the Zoo reads it per request
+    env["DX_APP_PORT_FILE"] = str(PORTS_DIR / "dx_app.port")
+    # DX Monitor runs the suite's one NPU telemetry worker; DX App reads it from here per request
+    # (shared/telemetry_client.py) instead of polling the device with a second worker.
+    env["DX_MONITOR_PORT_FILE"] = str(PORTS_DIR / "dx_monitor.port")
 
+    # stdout is dropped: some modules print a line per request. stderr (tracebacks, warnings, faulthandler dumps
+    # of native crashes) goes to a size-capped log per module, so a module that dies leaves a reason behind.
+    env["PYTHONFAULTHANDLER"] = "1"
     proc = subprocess.Popen(
         cmd,
         cwd=str(directory),
         stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
         env=env,
         preexec_fn=os.setsid,
     )
+    _start_module_log(server_id or name, proc)
     _procs[name] = proc
     _save_pids()
 
@@ -681,7 +783,7 @@ def start_sub_server(name, directory, port=0, server_id=None):
     if actual is None:
         print(f"  [Launcher] WARNING: {server_id or name} did not report a port in time", file=sys.stderr)
         # Clear the stale default (e.g. 8080) so the proxy/health never route to a
-        # foreign process squatting on that port (F-01). port=None → proxy falls
+        # foreign process squatting on that port. port=None → proxy falls
         # through to 404 and health reports alive=false.
         if server_id:
             _LAUNCHER_PROXY_PORTS[server_id] = None
@@ -689,6 +791,73 @@ def start_sub_server(name, directory, port=0, server_id=None):
     if server_id:
         _LAUNCHER_PROXY_PORTS[server_id] = actual
     return True
+
+
+_MODULE_LOG_CAP_BYTES = 1024 * 1024
+_module_log_threads = {}
+
+
+def _module_log_path(server_id):
+    base = os.environ.get("XDG_STATE_HOME") or str(Path.home() / ".local" / "state")
+    return Path(base) / "dx-ai-studio" / "logs" / f"{server_id}.log"
+
+
+def _pump_module_stderr(pipe, log_path, cap_bytes=_MODULE_LOG_CAP_BYTES):
+    """Copy a module's stderr into log_path; past cap_bytes the log becomes <log>.1 and a new one starts."""
+    log_path = Path(log_path)
+    try:
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        out = open(log_path, "ab")
+    except OSError:
+        for _ in iter(pipe.readline, b""):
+            pass
+        return
+    try:
+        for line in iter(pipe.readline, b""):
+            out.write(line)
+            out.flush()
+            if out.tell() > cap_bytes:
+                out.close()
+                os.replace(log_path, log_path.with_name(log_path.name + ".1"))
+                out = open(log_path, "ab")
+    except (OSError, ValueError):
+        pass
+    finally:
+        try:
+            out.close()
+        except OSError:
+            pass
+
+
+def _start_module_log(server_id, proc):
+    pipe = getattr(proc, "stderr", None)
+    if pipe is None:
+        return
+    path = _module_log_path(server_id)
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with open(path, "ab") as f:
+            f.write(f"\n=== {time.strftime('%Y-%m-%d %H:%M:%S')} start pid={proc.pid} ===\n".encode())
+    except OSError:
+        pass
+    t = threading.Thread(target=_pump_module_stderr, args=(pipe, path), name=f"log-{server_id}", daemon=True)
+    t.start()
+    _module_log_threads[server_id] = t
+
+
+def _exit_description(name, proc):
+    if proc is None:
+        return "No process"
+    code = proc.poll()
+    if code is None:
+        return f"Port closed (pid={proc.pid})"
+    detail = f"Process exited (pid={proc.pid}, code {code}"
+    if isinstance(code, int) and code < 0:
+        try:
+            detail += f" {signal.Signals(-code).name}"
+        except ValueError:
+            pass
+    return detail + f"); log: {_module_log_path(name)}"
 
 
 def stop_all():
@@ -773,7 +942,9 @@ def _proxy(handler, target_port, path, inject_widget=True):
         headers = {}
         skip = {"host", "connection", "transfer-encoding", "keep-alive",
                 "proxy-authenticate", "proxy-authorization", "te", "trailers",
-                "upgrade"}
+                "upgrade",
+                # drop client-forged values — only the launcher's own values are set below
+                "x-dx-proxy", "x-forwarded-for"}
         for key, val in handler.headers.items():
             if key.lower() not in skip:
                 headers[key] = val
@@ -784,6 +955,7 @@ def _proxy(handler, target_port, path, inject_widget=True):
             headers["X-Forwarded-Host"] = handler.headers.get("Host", "")
         headers["Host"] = f"127.0.0.1:{target_port}"
         headers["X-Forwarded-For"] = handler.client_address[0]
+        headers["X-DX-Proxy"] = PROXY_SECRET   # tells the module the launcher already authenticated it (shared/dx_server._is_local)
 
         conn.request(handler.command, path, body=body, headers=headers)
         resp = conn.getresponse()
@@ -810,10 +982,19 @@ def _proxy(handler, target_port, path, inject_widget=True):
         widget_cache = _get_widget_cache() if may_inject else b""
         is_html_inject = bool(widget_cache)
 
+        # http.client de-chunks the module's response. Relaying a body of unknown length (SSE, chunked) as is over an
+        # HTTP/1.1 keep-alive connection leaves the browser unable to see where it ends (a Chat answer would hang
+        # after [DONE]), so such responses are re-chunked.
+        bodyless = handler.command == "HEAD" or resp.status in (204, 304) or 100 <= resp.status < 200
+        rechunk = (not is_html_inject and not bodyless and resp.getheader("Content-Length") is None)
+
         handler.send_response(resp.status)
         for key, val in resp.getheaders():
             low = key.lower()
-            if low in ("connection", "transfer-encoding"):
+            # send_response already writes Server and Date — copying them would send them twice
+            if low in ("connection", "transfer-encoding", "server", "date"):
+                continue
+            if is_sse and low in ("cache-control", "x-accel-buffering"):
                 continue
             if low == "x-dx-no-widget":
                 continue  # internal signal — do not leak to the browser
@@ -823,11 +1004,21 @@ def _proxy(handler, target_port, path, inject_widget=True):
         if is_sse:
             handler.send_header("Cache-Control", "no-cache")
             handler.send_header("X-Accel-Buffering", "no")
+        if rechunk:
+            handler.send_header("Transfer-Encoding", "chunked")
+
+        def _relay(data):
+            if rechunk:
+                handler.wfile.write(b"%x\r\n%s\r\n" % (len(data), data))
+            else:
+                handler.wfile.write(data)
 
         if is_html_inject:
             body = resp.read()
             if widget_cache:
-                body = _inject_before_body_close(body, widget_cache)
+                # the module page was hash-rewritten by its own server; this snippet was not
+                snippet = DXBaseHandler.version_sprite_refs(widget_cache.decode("utf-8", "ignore"))
+                body = _inject_before_body_close(body, snippet.encode("utf-8"))
             handler.send_header('Content-Length', len(body))
             handler.end_headers()
             handler.wfile.write(body)
@@ -839,16 +1030,23 @@ def _proxy(handler, target_port, path, inject_widget=True):
                 line = resp.readline()
                 if not line:
                     break
-                handler.wfile.write(line)
+                _relay(line)
                 if line in (b"\n", b"\r\n") or line.startswith(b"data:"):
                     handler.wfile.flush()
+            if rechunk:
+                handler.wfile.write(b"0\r\n\r\n")
+            handler.wfile.flush()
         else:
             handler.end_headers()
             while True:
-                chunk = resp.read(65536)
+                chunk = resp.read1(65536) if rechunk else resp.read(65536)
                 if not chunk:
                     break
-                handler.wfile.write(chunk)
+                _relay(chunk)
+                if rechunk:
+                    handler.wfile.flush()
+            if rechunk:
+                handler.wfile.write(b"0\r\n\r\n")
             handler.wfile.flush()
 
     except Exception as e:
@@ -922,31 +1120,62 @@ class LauncherHandler(DXBaseHandler):
     _sdk_doc_paths_mtime: float | None = None
     _sdk_doc_paths_lock = threading.Lock()
 
+    _sdk_library_cache: tuple | None = None   # (json mtime, built at, augmented catalog)
+
+    @classmethod
+    def _sdk_library(cls):
+        """sdk-library-data.json + the suite's md on disk (live sizes, new docs, no duplicates —
+        launcher/sdk_library.py). Rebuilt when the JSON changes or every 30 s (a new md file)."""
+        from launcher import sdk_library as _lib
+        data_path = BASE_DIR / "static" / "sdk-library-data.json"
+        try:
+            mtime = data_path.stat().st_mtime
+        except Exception:
+            return None
+        with cls._sdk_doc_paths_lock:
+            c = cls._sdk_library_cache
+            if c is not None and c[0] == mtime and time.time() - c[1] < 30:
+                return c[2]
+            try:
+                data = json.loads(data_path.read_text(encoding="utf-8"))
+            except Exception:
+                return None
+            out = _lib.augment(data, BASE_DIR.parent.parent)
+            cls._sdk_library_cache = (mtime, time.time(), out)
+            return out
+
     @classmethod
     def _load_sdk_doc_paths(cls) -> set:
-        """Return the set of relative paths registered in sdk-library-data.json."""
+        """Return the set of relative paths the SDK Library lists (registered + picked up from disk)."""
+        from launcher import sdk_library as _lib
         data_path = BASE_DIR / "static" / "sdk-library-data.json"
         try:
             mtime = data_path.stat().st_mtime
         except Exception:
             return set()
+        data = cls._sdk_library()
+        if data is None:
+            return set()
         with cls._sdk_doc_paths_lock:
-            if cls._sdk_doc_paths_cache is not None and cls._sdk_doc_paths_mtime == mtime:
+            if cls._sdk_doc_paths_cache is not None and cls._sdk_doc_paths_mtime == (mtime, id(data)):
                 return cls._sdk_doc_paths_cache
-            try:
-                data = json.loads(data_path.read_text(encoding="utf-8"))
-            except Exception:
-                return set()
-            allowed = set()
-            for drawer in data.get("drawers", []):
-                for section in drawer.get("sections", []):
-                    for file_info in section.get("files", []):
-                        path = file_info.get("path")
-                        if isinstance(path, str) and path:
-                            allowed.add(path)
+            allowed = _lib.allowed_paths(data)
             cls._sdk_doc_paths_cache = allowed
-            cls._sdk_doc_paths_mtime = mtime
+            cls._sdk_doc_paths_mtime = (mtime, id(data))
             return allowed
+
+    def _serve_sdk_library(self):
+        data = self._sdk_library()
+        if data is None:
+            self.send_error(404, "Not found")
+            return
+        body = json.dumps(data, ensure_ascii=False).encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Cache-Control", "no-cache")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
 
     def _serve_sdk_doc(self, parsed):
         """Serve a markdown file from dx-all-suite by relative path."""
@@ -1023,7 +1252,8 @@ class LauncherHandler(DXBaseHandler):
 
                 return _inc_re.sub(_repl, txt)
 
-            data = _expand(text, rel).encode("utf-8")
+            from launcher import sdk_library as _lib
+            data = _lib.expand_snippets(_expand(text, rel), rel, safe_root).encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "text/plain; charset=utf-8")
             self.send_header("Content-Length", str(len(data)))
@@ -1130,6 +1360,7 @@ class LauncherHandler(DXBaseHandler):
         ("/benchmark", "dx_benchmark", True),
         ("/dx_monitor", "dx_monitor", False),
         ("/agent", "dx_agent_dev", False),
+        ("/cloud", "dx_edge", False),
         ("/app", "dx_app", True),
     )
 
@@ -1137,7 +1368,10 @@ class LauncherHandler(DXBaseHandler):
         "/static/shared/",
         "/static/sdk-library-data",
         "/static/about-data",
-        "/static/img/",
+        # launcher/static/img's own entries only: a module keeps its /static/img/... (DX App's graph thumbnails)
+        "/static/img/about/",
+        "/static/img/intro/",
+        "/static/img/deepx-logo.svg",
         "/static/fonts/",
         "/static/pdfs/",
         "/assets/",
@@ -1226,6 +1460,8 @@ class LauncherHandler(DXBaseHandler):
         return False
 
     def _is_launcher_owned_static_path(self, path: str) -> bool:
+        if path.startswith("/static/img/graph-examples/"):
+            return False
         return any(path.startswith(prefix) for prefix in self._LAUNCHER_OWNED_STATIC_PREFIXES)
 
     def _is_launcher_chat_request(self, path: str) -> bool:
@@ -1257,29 +1493,30 @@ class LauncherHandler(DXBaseHandler):
         # Inject the live DX-AllSuite version (from release.ver) into the hub, instead of a
         # stale hard-coded string.
         html = html.replace("{{SDK_VERSION}}", _suite_sdk_version())
-        html = self.render_html_with_asset_hashes(
-            html,
-            asset_scope=None,
-            extra_static_roots=[BASE_DIR / "static"],
-        )
         # Inject the shared NPU Monitor float into the launcher shell so the launcher-native
         # views (About DEEPX, SDK Library) show the same collapsible monitor as the proxied
         # module pages. Visibility is gated client-side (setVisibleView adds .hw-native-visible
         # only on those views), so it never doubles up with a module iframe's own widget nor
-        # clutters the home splash.
+        # clutters the home splash. Injected before the hash rewrite so its asset and sprite
+        # URLs get the content hash too.
         widget = _get_widget_cache()
         if widget:
             snippet = widget.decode("utf-8", "ignore")
             low = html.lower()
             idx = low.rfind("</body>")
             html = (html[:idx] + snippet + html[idx:]) if idx != -1 else (html + snippet)
+        html = self.render_html_with_asset_hashes(
+            html,
+            asset_scope=None,
+            extra_static_roots=[BASE_DIR / "static"],
+        )
         self.send_html_no_cache(html)
 
     def _client_id(self) -> str:
         return self.client_address[0]
 
     def _read_json_body(self) -> dict | None:
-        """제한된 크기의 JSON body 파싱. 실패 시 400 반환 후 None."""
+        """Parse a size-limited JSON body. On failure, send 400 and return None."""
         try:
             length = int(self.headers.get("Content-Length", 0))
         except (ValueError, TypeError):
@@ -1303,34 +1540,83 @@ class LauncherHandler(DXBaseHandler):
         return body
 
     def _send_auth_json(self, payload, status=200):
-        """Auth 응답은 CSRF nonce 노출 방지를 위해 wildcard CORS를 쓰지 않는다."""
+        """Auth responses never use wildcard CORS, so the CSRF nonce cannot leak."""
         resp = json.dumps(payload).encode()
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
-        origin = self.headers.get("Origin", "")
-        self.send_header("Vary", "Origin")
-        if origin and self._check_same_origin():
-            self.send_header("Access-Control-Allow-Origin", origin)
-            self.send_header("Access-Control-Allow-Credentials", "true")
+        self.send_header("Cache-Control", "no-store")
+        for c in getattr(self, "_set_cookies", ()):
+            self.send_header("Set-Cookie", c)
+        self._set_cookies = ()   # so they don't stick to the next response on a keep-alive connection
         self.send_header("Content-Length", len(resp))
         self.end_headers()
         if self._is_head_request():
             return
         self.wfile.write(resp)
 
+    # ── Remote access — pairing and sessions ───────────────────────────────────
+    def _remote(self):
+        return REMOTE_ACCESS
+
+    _AUTH_OPEN = {("GET", "/api/auth/status"), ("HEAD", "/api/auth/status"),
+                  ("POST", "/api/auth/unlock"), ("GET", "/favicon.ico")}
+
+    def _auth_exempt(self):
+        return (self.command, self.url_path) in self._AUTH_OPEN
+
+    def _send_unauthorized(self):
+        """The pairing page for a remote browser's page request, 401 JSON otherwise."""
+        accept = self.headers.get("Accept", "")
+        if self.command in ("GET", "HEAD") and ("text/html" in accept or self.url_path == "/"):
+            body = _PAIR_PAGE.read_bytes() if _PAIR_PAGE.is_file() else b"<h1 id=\"dx-pair\">Pairing required</h1>"
+            self.send_response(401)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            if self.command != "HEAD":
+                self.wfile.write(body)
+            return
+        self._send_auth_json({"error": "Unauthorized", "pairing": REMOTE_ACCESS is not None}, 401)
+
+    def _cookie(self, value, max_age):
+        secure = "; Secure" if self.headers.get("X-Forwarded-Proto", "").lower() == "https" else ""
+        return (f"{_ra.SESSION_COOKIE}={value}; Path=/; HttpOnly; SameSite=Strict; "
+                f"Max-Age={int(max_age)}{secure}")
+
     def _handle_auth_status(self):
-        self._send_auth_json({
+        local = self._is_local()
+        payload = {
             "ok": True,
-            "auth_enabled": False,
+            "auth_enabled": not local,
             "locked": False,
-            "authenticated": True,
-        })
+            "local": local,
+            "authenticated": local or getattr(self, "auth_kind", None) in ("token", "session")
+            or bool(self._session()),
+            "pairing": REMOTE_ACCESS is not None and REMOTE_ACCESS.pairing is not None,
+        }
+        # Board only: addresses other computers can open (connected-browsers view). Never the code (console only).
+        if local and REMOTE_ACCESS is not None:
+            port = self.server.server_address[1]
+            payload["addresses"] = [f"http://{ip}:{port}" for ip in _lan_addresses()]
+        self._send_auth_json(payload)
 
     def _handle_auth_unlock(self):
         body = self._read_json_body()
         if body is None:
             return
-        self._send_auth_json({"ok": True, "auth_enabled": False, "csrf": ""})
+        ra = REMOTE_ACCESS
+        if ra is None or ra.pairing is None:
+            return self._send_auth_json({"error": "Pairing is not available"}, 403)
+        result = ra.pairing.verify(body.get("code"))
+        if result == "locked":
+            return self._send_auth_json({"error": "Too many attempts — a new code is on the board console."}, 429)
+        if result != "ok":
+            return self._send_auth_json({"error": "Wrong code"}, 401)
+        token, sid = ra.sessions.create(user_agent=self.headers.get("User-Agent", ""), ip=self._peer_ip())
+        self._set_cookies = [self._cookie(token, ra.sessions.ttl)]
+        print(f"  [Launcher] Remote browser paired ({self._peer_ip()}).", flush=True)
+        self._send_auth_json({"ok": True, "id": sid})
 
     def _send_no_content(self):
         self.send_response(204)
@@ -1338,10 +1624,39 @@ class LauncherHandler(DXBaseHandler):
         self.end_headers()
 
     def _handle_auth_logout(self):
-        self._send_no_content()
+        ra = REMOTE_ACCESS
+        token = ra.cookie_value(self.headers.get("Cookie", "")) if ra is not None else ""
+        if not token:
+            return self._send_no_content()   # no session: 204 without a cookie
+        ra.sessions.revoke_token(token)
+        self._set_cookies = [self._cookie("", 0)]
+        self._send_auth_json({"ok": True})
 
     def _handle_auth_relock(self):
-        self._send_no_content()
+        self._handle_auth_logout()
+
+    def _handle_auth_sessions(self):
+        ra = REMOTE_ACCESS
+        items = [] if ra is None else sorted(ra.sessions.list(), key=lambda v: -float(v.get("last_seen", 0)))
+        mine = (self._session() or {}).get("id")
+        # Full list on the board only — a remote browser sees its own row, never other computers' IPs
+        if not self._is_local():
+            items = [v for v in items if v.get("id") == mine]
+        self._send_auth_json({"sessions": [
+            {"id": v.get("id"), "created": v.get("created"), "last_seen": v.get("last_seen"),
+             "user_agent": v.get("user_agent", ""), "ip": v.get("ip", ""), "current": v.get("id") == mine}
+            for v in items]})
+
+    def _handle_auth_revoke(self):
+        body = self._read_json_body()
+        if body is None:
+            return
+        ra = REMOTE_ACCESS
+        if not self._is_local():
+            # Only the board disconnects other browsers. A remote browser disconnects itself via /api/auth/logout.
+            return self._send_auth_json({"error": "Only the studio computer can disconnect other browsers"}, 403)
+        ok = ra is not None and isinstance(body.get("id"), str) and ra.sessions.revoke(body["id"])
+        self._send_auth_json({"ok": bool(ok)}, 200 if ok else 404)
 
     def route(self):
         path = self.url_path
@@ -1355,6 +1670,10 @@ class LauncherHandler(DXBaseHandler):
             return self._handle_auth_logout()
         if path == "/api/auth/relock" and self.command == "POST":
             return self._handle_auth_relock()
+        if path == "/api/auth/sessions" and self.command in ("GET", "HEAD"):
+            return self._handle_auth_sessions()
+        if path == "/api/auth/sessions/revoke" and self.command == "POST":
+            return self._handle_auth_revoke()
 
         # Always serve launcher health for /api/health
         # (sub-app iframes have their own status endpoints)
@@ -1391,9 +1710,7 @@ class LauncherHandler(DXBaseHandler):
                 if parsed.query:
                     sub_path += "?" + parsed.query
                 # Inject the NPU Monitor float into every proxied module EXCEPT dx_monitor
-                # itself (it already shows full hardware telemetry). Agent Dev used to be
-                # excluded too, but it should carry the same floating monitor as the other
-                # modules, so it now receives the widget.
+                # itself (it already shows full hardware telemetry).
                 _proxy(self, port, sub_path, inject_widget=(target_id != "dx_monitor"))
                 return
 
@@ -1405,7 +1722,8 @@ class LauncherHandler(DXBaseHandler):
             if ambiguous and self._proxy_by_referer(path, parsed):
                 return
 
-        if path in ("/api/chat/config", "/api/chat/config/test"):
+        # Every shared chat route but the chat stream itself (its referer rule is below).
+        if path in self._CHAT_ROUTES and path != "/api/chat":
             if self.handle_chat_routes(_chat_engine):
                 return
             return self.send_error_json(405, "Method not allowed")
@@ -1416,6 +1734,10 @@ class LauncherHandler(DXBaseHandler):
 
         if path == "/" or path == "/index.html" or path == "/sdk-library" or path == "/about":
             self._serve_index()
+        elif path == "/design-system":
+            # Live token/component catalog. It loads only the shared foundation,
+            # so what shows here is what the product shows.
+            self._send_shell_asset(BASE_DIR.parent / "docs/design-system.html", "text/html")
         elif path == "/style.css":
             self._send_shell_asset(BASE_DIR / "static/style.css", "text/css")
         elif path == "/launcher.js":
@@ -1426,16 +1748,44 @@ class LauncherHandler(DXBaseHandler):
             self._send_shell_asset(BASE_DIR / "static/launcher-language.js", "application/javascript")
         elif path == "/launcher-splash.js":
             self._send_shell_asset(BASE_DIR / "static/launcher-splash.js", "application/javascript")
+        elif path == "/intro-stream.js":
+            self._send_shell_asset(BASE_DIR / "static/intro-stream.js", "application/javascript")
+        elif path == "/intro-app.js":
+            self._send_shell_asset(BASE_DIR / "static/intro-app.js", "application/javascript")
+        elif path == "/intro-compile.js":
+            self._send_shell_asset(BASE_DIR / "static/intro-compile.js", "application/javascript")
         elif path == "/platform-info.js":
             self._send_shell_asset(BASE_DIR / "static/platform-info.js", "application/javascript")
         elif path == "/launcher-app-frame.js":
             self._send_shell_asset(BASE_DIR / "static/launcher-app-frame.js", "application/javascript")
+        elif path == "/home-router.js":
+            self._send_shell_asset(BASE_DIR / "static/home-router.js", "application/javascript")
+        elif path == "/home-prompts.js":
+            self._send_shell_asset(BASE_DIR / "static/home-prompts.js", "application/javascript")
+        elif path == "/home-answer.js":
+            self._send_shell_asset(BASE_DIR / "static/home-answer.js", "application/javascript")
+        elif path == "/home-console.js":
+            self._send_shell_asset(BASE_DIR / "static/home-console.js", "application/javascript")
+        elif path == "/home-agent-setup.js":
+            self._send_shell_asset(BASE_DIR / "static/home-agent-setup.js", "application/javascript")
+        elif path == "/home-widgets.js":
+            self._send_shell_asset(BASE_DIR / "static/home-widgets.js", "application/javascript")
+        elif path == "/remote-access.js":
+            self._send_shell_asset(BASE_DIR / "static/remote-access.js", "application/javascript")
+        elif path == "/home-bar.js":
+            self._send_shell_asset(BASE_DIR / "static/home-bar.js", "application/javascript")
+        elif path == "/home-effects.js":
+            self._send_shell_asset(BASE_DIR / "static/home-effects.js", "application/javascript")
+        elif path == "/home-sections.js":
+            self._send_shell_asset(BASE_DIR / "static/home-sections.js", "application/javascript")
         elif path == "/tutorial.js":
             self._send_shell_asset(BASE_DIR / "static/tutorial.js", "application/javascript")
         elif path == "/about-deepx.css":
             self._send_shell_asset(BASE_DIR / "static/about-deepx.css", "text/css")
         elif path == "/about-deepx.js":
             self._send_shell_asset(BASE_DIR / "static/about-deepx.js", "application/javascript")
+        elif path == "/home-stage.css":
+            self._send_shell_asset(BASE_DIR / "static/home-stage.css", "text/css")
         elif path == "/sdk-library.css":
             self._send_shell_asset(BASE_DIR / "static/sdk-library.css", "text/css")
         elif path == "/sdk-library.js":
@@ -1444,6 +1794,8 @@ class LauncherHandler(DXBaseHandler):
             self._send_shell_asset(BASE_DIR / "static/sdk-tutorial.js", "application/javascript")
         elif path.startswith("/static/sdk-library-data"):
             self._send_contained_file(BASE_DIR / "static", path[len("/static/"):])
+        elif path == "/api/sdk-library":
+            self._serve_sdk_library()
         elif path == "/api/sdk-doc":
             self._serve_sdk_doc(parsed)
         elif path == "/api/sdk-doc-image":
@@ -1511,7 +1863,7 @@ class LauncherHandler(DXBaseHandler):
                 "/api/recent_runs", "/api/hb", "/api/models", "/api/chat",
                 "/api/run", "/api/runner", "/api/history",
                 "/api/file", "/file/", "/outputs/",
-                "/api/images", "/api/videos", "/api/forum",
+                "/api/images", "/api/videos",
             )
             if any(path.startswith(p) for p in _DX_MONITOR_APIS):
                 _proxy(self, _LAUNCHER_PROXY_PORTS.get("dx_monitor"), full_path, inject_widget=False)
@@ -1543,7 +1895,7 @@ def _open_browser(url):
 def main():
     # Declared global up-front: these are reassigned below by the free-port resolver,
     # and Python requires the global declaration before any use within the function.
-    global APP_PORT, STREAM_PORT, ZOO_PORT, COMPILER_PORT, PLANNER_PORT, BENCHMARK_PORT, MONITOR_PORT, AGENT_PORT, _LAUNCHER_BOOT_ID, _STUDIO_READY
+    global APP_PORT, STREAM_PORT, ZOO_PORT, COMPILER_PORT, PLANNER_PORT, BENCHMARK_PORT, MONITOR_PORT, AGENT_PORT, EDGE_PORT, _LAUNCHER_BOOT_ID, _STUDIO_READY
     _STUDIO_READY = False
     port = LAUNCHER_PORT
     if "--port" in sys.argv:
@@ -1553,7 +1905,7 @@ def main():
 
     # Pre-sync the shared SDK chat knowledge ONCE, here in the launcher process. This is the
     # single writer: knowledge_sync.generate() writes atomically (temp file + os.replace), but
-    # we still want exactly one process regenerating it rather than all 8 module servers racing
+    # we still want exactly one process regenerating it rather than all 9 module servers racing
     # to lazily resync on first chat. Module servers just read the already-fresh file (see
     # shared/chat/engine.py's env-gated lazy fallback for the standalone-without-launcher case).
     #
@@ -1581,6 +1933,7 @@ def main():
         "DX Benchmark": BENCHMARK_PORT,
         "DX Monitor": MONITOR_PORT,
         "DX Agent Dev": AGENT_PORT,
+        "DX Cloud": EDGE_PORT,
     }
 
     from .boot_animation import show_logo, show_boot_progress, show_system_check, show_completion_banner
@@ -1639,11 +1992,21 @@ def main():
     # thread so the cosmetic boot below runs while the port already accepts connections.
     threading.Thread(target=srv.serve_forever, name="launcher-http", daemon=True).start()
 
+    # Remote browser pairing — skipped when bound to loopback only, since nothing remote can connect
+    global REMOTE_ACCESS
+    if not (_bind_host in ("127.0.0.1", "::1", "localhost")):
+        REMOTE_ACCESS = _ra.RemoteAccess()
+
     # Unmissable, now-LIVE URL banner — safe to surface here because the port is bound.
     _studio_url = f"http://localhost:{port}"
-    print("\n  ┌────────────────────────────────────────────────┐")
+    print("\n  ┌──────────────────────────────────────────────────┐")
     print(f"  │  👉  OPEN THE STUDIO:  {_studio_url:<25} │")
-    print("  └────────────────────────────────────────────────┘\n")
+    if REMOTE_ACCESS is not None:
+        # Addresses for other computers — the first visit asks for the remote access code
+        for _ip in _lan_addresses()[:3]:
+            _lan_url = f"http://{_ip}:{port}"
+            print(f"  │      other computers:  {_lan_url:<25} │")
+    print("  └──────────────────────────────────────────────────┘\n")
 
     show_logo(animate=not _fast)
     show_system_check(module_count=len(boot_modules), animate=not _fast)
@@ -1664,6 +2027,7 @@ def main():
         ("DX Benchmark", BENCHMARK_DIR, "dx_benchmark"),
         ("DX Monitor",   MONITOR_DIR,   "dx_monitor"),
         ("DX Agent Dev", AGENT_DIR,     "dx_agent_dev"),
+        ("DX Cloud",      EDGE_DIR,      "dx_edge"),
     ]
     for _name, _dir, _sid in _SUBS:
         start_sub_server(_name, _dir, server_id=_sid)

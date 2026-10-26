@@ -1,17 +1,15 @@
 site_name: DXNN All Suite (DX-AllSuite) User Manual
+site_url: 'https://developer.deepx.ai/'
 use_directory_urls: false
-docs_dir: source # markdown 원문 폴더
-site_dir: docs # html로 변환된 폴더
+docs_dir: source # markdown original file folder
+site_dir: docs # html target folder
 theme: 
   name : material
   language: en
   font:
     text: Noto Sans Display
-    #text: Noto Serif
-    #code: Noto Sans 
     code: Roboto Mono 
   logo: img/deepx.png
-  #favicon: img/favicon.png
   palette:
     # Palette toggle for light mode
     - scheme: default
@@ -33,7 +31,6 @@ theme:
      - navigation.tabs.sticky
      - content.tabs.link
      - content.code.copy
-site_url: 'https://developer.deepx.ai/'
 nav:
   - Home: index.md
   - Agent-Driven Development (Beta): 00_Agent_Driven_Development.md
@@ -57,9 +54,11 @@ nav:
       - DX Benchmark: ai-studio/08_DX_Benchmark.md
       - DX EdgeGuide: ai-studio/09_DX_EdgeGuide.md
       - DX Agent Dev: ai-studio/10_DX_Agent_Dev.md
+      - DX Cloud (AWS): ai-studio/13_DX_Edge_AWS.md
       - SDK Library & About: ai-studio/11_SDK_Library_and_About.md
       - Third-Party License: ai-studio/12_Appendix_Third_Party_License.md
-      - Change Log: ai-studio/Appendix_Change_Log.md
+  - Kubernetes Quickstart: 06_Kubernetes_Quickstart.md
+  - Kubernetes Beginner Guide: 07_Kubernetes_Beginner_Guide.md
 
 plugins:
   - search
@@ -68,26 +67,24 @@ plugins:
       author: DEEPX.ai
       copyright: ⓒ Copyright 2026 DEEPX All Rights Reserved.
       cover_title: DXNN All Suite (DX-AllSuite) User Manual
-      cover_subtitle: 2026/08/14 (v2.4.2)
-      cover_logo : img/deepx.png
+      cover_subtitle: 2026/10/23 (v2.5.0)
+      cover_logo: img/deepx.png
       custom_template_path: source/stylesheets
-      output_path: ../DEEPX_DX-AllSuite_UM_v2.4.2_AUG_2026.pdf
-
+      output_path: ../DEEPX_DX-AllSuite_UM_v2.5.0_OCT_2026.pdf
 extra:
-  homepage: https://developer.deepx.ai
   generator: false
   social:
-     - icon: fontawesome/brands/linkedin
-       link: https://www.linkedin.com/company/deepx-corporation/
+    - icon: fontawesome/brands/linkedin
+      link: https://www.linkedin.com/company/deepx-corporation/
 extra_css: 
   - stylesheets/extra.css
 markdown_extensions:
   - admonition
   - def_list
+  - attr_list
   - toc:
         permalink: "true"
         baselevel: 1
-        separator: ">_"
         toc_depth: 3
   - pymdownx.critic
   - pymdownx.caret
@@ -103,6 +100,5 @@ markdown_extensions:
   - pymdownx.superfences
   - pymdownx.tabbed:
       alternate_style: true 
-  - attr_list
   - md_in_html
 copyright: ⓒ Copyright 2026 <a href="http://deepx.ai">DEEPX</a>. All Rights Reserved.

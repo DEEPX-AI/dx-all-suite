@@ -156,14 +156,12 @@ def test_path_helpers(tmp_path):
     )
 
 
-def test_download_command_dev_full_setup_only(tmp_path):
-    from core.runtime import setup_assets_command, setup_single_model_command
+def test_downloads_never_go_through_the_sdk_setup_script():
+    """Samples are installed by Studio (shared.asset_setup), never by the SDK's setup.sh /
+    setup_sample_models.sh (SR-847) — tests/shared/test_no_sdk_download_scripts.py pins all paths."""
+    import core.runtime as runtime
+    from core import setup
 
-    root = _write_dev_runtime(tmp_path)
-
-    assert setup_assets_command(root) == ["bash", str(root / "setup.sh")]
-    assert "--models-only" not in setup_assets_command(root)
-    assert "--videos-only" not in setup_assets_command(root)
-    assert setup_single_model_command(root, "yolo26n.dxnn") == [
-        "bash", str(root / "setup.sh"), "--model=yolo26n.dxnn"
-    ]
+    assert not hasattr(runtime, "setup_assets_command")
+    assert not hasattr(runtime, "setup_single_model_command")
+    assert setup._base_command_args("download-models")[1:4] == ["-m", "shared.asset_setup", "stream"]

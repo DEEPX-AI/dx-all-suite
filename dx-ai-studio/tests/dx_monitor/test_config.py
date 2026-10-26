@@ -1,4 +1,4 @@
-"""dx_monitor core/config.py 단위 테스트."""
+"""Unit tests for dx_monitor core/config.py."""
 import sys
 from pathlib import Path
 
@@ -6,7 +6,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "dx_monit
 
 
 def test_constants_defined():
-    """핵심 상수가 정의되어 있어야 한다."""
+    """The core constants must be defined."""
     from core.config import DEFAULT_PORT, STATIC_DIR, TEMPLATES_DIR, SERVER_NAME
     assert DEFAULT_PORT == 8098
     assert SERVER_NAME == "DX Monitor"
@@ -15,7 +15,7 @@ def test_constants_defined():
 
 
 def test_paths_exist():
-    """SCRIPT_DIR, STUDIO_DIR 경로가 실제로 존재해야 한다."""
+    """SCRIPT_DIR and STUDIO_DIR must exist on disk."""
     from core.config import SCRIPT_DIR, STUDIO_DIR
     assert SCRIPT_DIR.is_dir()
     assert STUDIO_DIR.is_dir()
@@ -23,7 +23,7 @@ def test_paths_exist():
 
 
 def test_thresholds_defined():
-    """THRESHOLDS 딕셔너리가 올바른 구조로 정의되어 있어야 한다."""
+    """The THRESHOLDS dict must have the expected structure."""
     from core.config import THRESHOLDS
     assert isinstance(THRESHOLDS, dict)
     for key in ("npu_temp", "core_temp", "npu_dram", "memory", "cpu_load"):

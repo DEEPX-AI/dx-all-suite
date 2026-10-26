@@ -6,6 +6,16 @@ Registers agent-driven-specific pytest markers and prevents pytest from crawling
 into sub-project test directories that have unrelated dependencies.
 """
 
+import sys
+from pathlib import Path
+
+# Make dx_agent_dev_gen importable without an editable install — test_kb_counts.py
+# reuses its counts.py as the single source of truth for model/task counts.
+# Mirrors .deepx/tools/tests/conftest.py's sys.path insert for the same package.
+_SRC = Path(__file__).resolve().parents[1] / "tools" / "src"
+if _SRC.is_dir() and str(_SRC) not in sys.path:
+    sys.path.insert(0, str(_SRC))
+
 # Prevent pytest from descending into sub-project test directories when
 # running from .deepx/tests/.  These directories belong to their respective
 # sub-projects and have their own dependency trees.

@@ -1,11 +1,14 @@
-"""Composer asset-grid thumbnail generation (dx_app.core.assets.sample_thumbnail).
+"""Asset-picker thumbnail generation (dx_app.core.assets.sample_thumbnail).
 
-The composer palette shows 82x54px previews; sample_thumbnail serves a small cached JPEG
+An asset picker shows 82x54px previews; sample_thumbnail serves a small cached JPEG
 instead of the full-resolution original. The `f` argument is a user-supplied query param on
 /api/asset-thumb, so the path-traversal guard is security-relevant and locked here.
 """
-import cv2
 import pytest
+
+# opencv is an optional test dep (not in requirements-ci.txt); skip rather than
+# breaking whole-suite collection.
+cv2 = pytest.importorskip("cv2")
 
 from dx_app.core.assets import sample_thumbnail, _scan_sample_img
 from dx_app.core.config import DX_APP_ROOT

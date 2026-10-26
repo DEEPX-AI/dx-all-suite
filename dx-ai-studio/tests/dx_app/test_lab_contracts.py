@@ -15,16 +15,24 @@ def _read(path: Path) -> str:
 
 
 def test_lab_nav_is_between_modelzoo_and_outputs():
-    # The in-app DX-COM compiler nav was removed (dx-compiler is the single source);
-    # Lab now sits between ModelZoo and Outputs.
+    # There is no in-app DX-COM compiler nav (dx-compiler is the single source);
+    # Lab sits between ModelZoo and Outputs.
+    #
+    # In the unified shell the nav is a top tab row, and the page order comes from
+    # DX_APP_PAGES in dx_app/server.py, not from the template.
+    from dx_app.server import DX_APP_PAGES
+
+    order = [page_id for page_id, _label, _icon in DX_APP_PAGES]
+    assert order.index("modelzoo") < order.index("lab") < order.index("outputs")
+    assert "compiler" not in order
+
+    labels = {page_id: label for page_id, label, _icon in DX_APP_PAGES}
+    assert labels["lab"] == "Lab", "탭 라벨은 i18n 사전 키(영문 원문)여야 한다"
+
+    # The page bodies still belong to the template.
     html = _read(INDEX)
-    modelzoo = html.index('data-page="modelzoo"')
-    lab = html.index('data-page="lab"')
-    outputs = html.index('data-page="outputs"')
-    assert modelzoo < lab < outputs
-    assert 'data-page="compiler"' not in html
-    assert '<span class="en">Lab</span>' in html
-    assert '<span class="ko">실험실</span>' in html
+    for page_id in order:
+        assert f'id="page-{page_id}"' in html, f"page-{page_id} 본문이 사라졌다"
 
 
 def test_lab_has_no_password_gate_or_dev_auth_modal():
@@ -62,7 +70,7 @@ def test_lab_session_tokens_expire_after_ttl(monkeypatch):
 
 
 def test_no_nav_opendev_recursion():
-    """nav('lab') → openDev() → nav('lab') 무한 재귀가 없어야 한다."""
+    """nav('lab') → openDev() → nav('lab') must not recurse forever."""
     js = _read(DEV_JS)
     utils = _read(UTILS_JS)
     # openDev must NOT unconditionally call nav('lab')
@@ -106,9 +114,10 @@ def test_devNewTask_handles_overwrite_confirm():
 
 
 def test_cors_preflight_uses_x_lab_token_not_x_dev_token():
-    """CORS preflight must allow X-Lab-Token, not X-Dev-Token."""
+    """The retired X-Dev-Token is never re-admitted by a CORS allow-list.
+
+    Preflight is same-origin only and sends no allow-list at all
+    (tests/shared/test_remote_access.py), so X-Lab-Token travels as a same-origin header."""
     server_src = (ROOT / "shared" / "dx_server.py").read_text()
-    assert "X-Lab-Token" in server_src, "CORS must allow X-Lab-Token"
-    # X-Dev-Token should not appear in CORS allow-headers
-    assert 'X-Dev-Token' not in server_src.split("Access-Control-Allow-Headers")[1].split("\n")[0], \
-        "CORS preflight must not allow X-Dev-Token"
+    assert "Access-Control-Allow-Headers" not in server_src
+    assert "X-Dev-Token" not in server_src

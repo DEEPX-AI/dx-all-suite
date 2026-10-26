@@ -1,0 +1,355 @@
+{
+ "avg_fps": 5.7,
+ "elapsed": 1.8,
+ "error_frames": 0,
+ "errors": [],
+ "event_counts": {
+  "crowded": {
+   "crowded": 1
+  }
+ },
+ "event_total": 1,
+ "events": [
+  {
+   "data": {
+    "threshold": 5,
+    "value": 15
+   },
+   "event": "crowded",
+   "frame": 0,
+   "node": "crowded",
+   "seq": 1,
+   "stream": "cam2",
+   "time": 0.0,
+   "track_id": -1
+  }
+ ],
+ "events_partial": false,
+ "events_truncated": false,
+ "events_url": null,
+ "exit_code": 0,
+ "fps": 5.7,
+ "frames": 2,
+ "node_ms": {
+  "count": 0.01,
+  "crowded": 0.02,
+  "od": 98.17
+ },
+ "nodes": {
+  "count": {
+   "crops_total": 0,
+   "frames": 2,
+   "items_total": 2,
+   "last_items": [
+    {}
+   ],
+   "last_records": [
+    {
+     "numbers": {
+      "person": 15.0,
+      "total": 15.0
+     },
+     "text": {
+      "node": "od"
+     }
+    }
+   ],
+   "shape": "records"
+  },
+  "crowded": {
+   "crops_total": 0,
+   "frames": 2,
+   "items_total": 2,
+   "last_items": [
+    {}
+   ],
+   "last_records": [
+    {
+     "numbers": {
+      "active": 1.0,
+      "value": 15.0
+     },
+     "text": {}
+    }
+   ],
+   "shape": "records"
+  },
+  "od": {
+   "crops_total": 0,
+   "frames": 2,
+   "items_total": 20,
+   "last_items": [
+    {
+     "box": [
+      18.384841918945312,
+      479.105712890625,
+      272.94622802734375,
+      595.07958984375
+     ],
+     "class_id": 0,
+     "class_name": "person",
+     "score": 0.878939151763916,
+     "track_id": -1
+    },
+    {
+     "box": [
+      422.5168762207031,
+      527.6883544921875,
+      185.67294311523438,
+      550.69775390625
+     ],
+     "class_id": 0,
+     "class_name": "person",
+     "score": 0.8254490494728088,
+     "track_id": -1
+    },
+    {
+     "box": [
+      995.9396362304688,
+      745.6364135742188,
+      315.01556396484375,
+      326.45452880859375
+     ],
+     "class_id": 0,
+     "class_name": "person",
+     "score": 0.7992857098579407,
+     "track_id": -1
+    },
+    {
+     "box": [
+      623.9026489257812,
+      834.8530883789062,
+      167.4144287109375,
+      244.71710205078125
+     ],
+     "class_id": 0,
+     "class_name": "person",
+     "score": 0.7138307094573975,
+     "track_id": -1
+    },
+    {
+     "box": [
+      1731.41015625,
+      704.3490600585938,
+      120.3218994140625,
+      320.40411376953125
+     ],
+     "class_id": 0,
+     "class_name": "person",
+     "score": 0.6076631546020508,
+     "track_id": -1
+    },
+    {
+     "box": [
+      882.0185546875,
+      778.8327026367188,
+      136.285400390625,
+      287.23309326171875
+     ],
+     "class_id": 0,
+     "class_name": "person",
+     "score": 0.6039318442344666,
+     "track_id": -1
+    },
+    {
+     "box": [
+      1600.361572265625,
+      749.9672241210938,
+      114.494384765625,
+      214.701416015625
+     ],
+     "class_id": 0,
+     "class_name": "person",
+     "score": 0.5229331254959106,
+     "track_id": -1
+    },
+    {
+     "box": [
+      1633.740234375,
+      624.2850952148438,
+      94.286865234375,
+      206.7498779296875
+     ],
+     "class_id": 0,
+     "class_name": "person",
+     "score": 0.5122045874595642,
+     "track_id": -1
+    },
+    {
+     "box": [
+      1324.87060546875,
+      806.356201171875,
+      189.5780029296875,
+      272.09765625
+     ],
+     "class_id": 0,
+     "class_name": "person",
+     "score": 0.5078118443489075,
+     "track_id": -1
+    },
+    {
+     "box": [
+      803.554931640625,
+      874.0772094726562,
+      101.5997314453125,
+      175.00225830078125
+     ],
+     "class_id": 24,
+     "class_name": "backpack",
+     "score": 0.48620954155921936,
+     "track_id": -1
+    },
+    {
+     "box": [
+      731.4722900390625,
+      756.814453125,
+      173.5806884765625,
+      313.52783203125
+     ],
+     "class_id": 0,
+     "class_name": "person",
+     "score": 0.4239349365234375,
+     "track_id": -1
+    },
+    {
+     "box": [
+      691.9081420898438,
+      586.8118286132812,
+      54.76287841796875,
+      176.6759033203125
+     ],
+     "class_id": 0,
+     "class_name": "person",
+     "score": 0.40450745820999146,
+     "track_id": -1
+    },
+    {
+     "box": [
+      1566.0517578125,
+      665.4635009765625,
+      63.8616943359375,
+      213.0296630859375
+     ],
+     "class_id": 0,
+     "class_name": "person",
+     "score": 0.39770448207855225,
+     "track_id": -1
+    },
+    {
+     "box": [
+      1782.533935546875,
+      779.5090942382812,
+      136.197509765625,
+      295.93316650390625
+     ],
+     "class_id": 0,
+     "class_name": "person",
+     "score": 0.38861802220344543,
+     "track_id": -1
+    },
+    {
+     "box": [
+      1469.5291748046875,
+      738.3543090820312,
+      110.7861328125,
+      195.7767333984375
+     ],
+     "class_id": 0,
+     "class_name": "person",
+     "score": 0.3812195956707001,
+     "track_id": -1
+    },
+    {
+     "box": [
+      1095.097900390625,
+      986.7017211914062,
+      203.671142578125,
+      93.18231201171875
+     ],
+     "class_id": 24,
+     "class_name": "backpack",
+     "score": 0.37903356552124023,
+     "track_id": -1
+    },
+    {
+     "box": [
+      302.5853576660156,
+      876.1259765625,
+      191.5224609375,
+      203.8740234375
+     ],
+     "class_id": 0,
+     "class_name": "person",
+     "score": 0.36251774430274963,
+     "track_id": -1
+    }
+   ],
+   "shape": "boxes"
+  }
+ },
+ "ok": true,
+ "outputs": [
+  {
+   "kind": "image",
+   "layers": {
+    "base": "/static/img/graph-tutorial/cam1_base.jpg",
+    "height": 640,
+    "layers": [
+     {
+      "model": "yolov8-n_640x640",
+      "node": "od",
+      "url": "/static/img/graph-tutorial/cam1_od.png"
+     },
+     {
+      "node": "count",
+      "op": "count",
+      "url": "/static/img/graph-tutorial/cam1_count.png"
+     },
+     {
+      "node": "crowded",
+      "op": "condition",
+      "url": "/static/img/graph-tutorial/cam1_crowded.png"
+     }
+    ],
+    "width": 640
+   },
+   "name": "result_cam1.jpg",
+   "stream": "cam1",
+   "url": "/static/img/graph-tutorial/cam1.jpg"
+  },
+  {
+   "kind": "image",
+   "layers": {
+    "base": "/static/img/graph-tutorial/cam2_base.jpg",
+    "height": 360,
+    "layers": [
+     {
+      "model": "yolov8-n_640x640",
+      "node": "od",
+      "url": "/static/img/graph-tutorial/cam2_od.png"
+     },
+     {
+      "node": "count",
+      "op": "count",
+      "url": "/static/img/graph-tutorial/cam2_count.png"
+     },
+     {
+      "node": "crowded",
+      "op": "condition",
+      "url": "/static/img/graph-tutorial/cam2_crowded.png"
+     },
+     {
+      "panel": "events",
+      "url": "/static/img/graph-tutorial/cam2_panel-events.png"
+     }
+    ],
+    "width": 640
+   },
+   "name": "result_cam2.jpg",
+   "stream": "cam2",
+   "url": "/static/img/graph-tutorial/cam2.jpg"
+  }
+ ],
+ "preview": true,
+ "run_id": null
+}

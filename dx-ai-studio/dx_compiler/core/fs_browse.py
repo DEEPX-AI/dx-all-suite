@@ -81,7 +81,10 @@ def make_directory(parent: str, name: str) -> dict:
     """Create sub-directory *name* under *parent*. Returns {ok, path}.
 
     Raises ValueError for an unsafe parent or an invalid name (empty, dotfile,
-    containing a path separator, or attempting traversal).
+    containing a path separator, attempting traversal, or rejected by the OS —
+    e.g. ENAMETOOLONG). The OS case matters: this docstring promises ValueError,
+    but ``mkdir()`` raises OSError, and server.py only catches ValueError — so a
+    300-character name escaped as a 500. The promise is now kept.
     """
     if not parent or not is_safe_path(parent):
         raise ValueError("unsafe parent")
@@ -98,5 +101,11 @@ def make_directory(parent: str, name: str) -> dict:
     if target.parent != base or not is_safe_path(str(target)):
         raise ValueError("invalid target")
 
-    target.mkdir(parents=False, exist_ok=True)
+    try:
+        target.mkdir(parents=False, exist_ok=True)
+    except OSError as exc:
+        # A well-formed name can still be refused by the OS (ENAMETOOLONG,
+        # read-only filesystem, permissions). These come from user input, so
+        # raise ValueError as this function promises; letting it escape is a 500.
+        raise ValueError(f"cannot create directory: {exc.strerror or exc}") from exc
     return {"ok": True, "path": str(target)}

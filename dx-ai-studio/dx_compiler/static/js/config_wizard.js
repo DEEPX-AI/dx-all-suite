@@ -1,4 +1,11 @@
 /* Config Builder Wizard */
+
+/* Translate a server error right before showing it. If shared/static/server-error-i18n.js
+   is not loaded, show the original text — never silently blank it. */
+function _srvErr(msg) {
+  return (typeof window.translateServerError === 'function')
+    ? window.translateServerError(msg) : msg;
+}
 (function() {
     let currentStep = 1;
     const totalSteps = 4;
@@ -73,7 +80,7 @@
         document.getElementById('wiz-prev').style.display = step > 1 ? '' : 'none';
         const nextBtn = document.getElementById('wiz-next');
         if (step === totalSteps) {
-            nextBtn.textContent = T('✅ Use This Config');
+            DXIcon.label(nextBtn, 'check', T('Use This Config'));
             updateJsonPreview();
         } else {
             nextBtn.textContent = T('Next →');
@@ -105,9 +112,9 @@
             .then(r => r.json())
             .then(data => {
                 btn.disabled = false;
-                btn.textContent = T('🔍 Auto Detect from Model');
+                DXIcon.label(btn, 'search', T('Auto Detect from Model'));
                 if (data.error) {
-                    if (wizWarn) { wizWarn.style.display = ''; wizWarn.textContent = T('Auto-detect skipped:') + ' ' + data.error; }
+                    if (wizWarn) { wizWarn.style.display = ''; wizWarn.textContent = T('Auto-detect skipped:') + ' ' + _srvErr(data.error); }
                     return;
                 }
                 // Clear existing rows
@@ -157,7 +164,7 @@
             })
             .catch(err => {
                 btn.disabled = false;
-                btn.textContent = T('🔍 Auto Detect from Model');
+                DXIcon.label(btn, 'search', T('Auto Detect from Model'));
                 if (wizWarn) { wizWarn.style.display = ''; wizWarn.textContent = T('Auto-detect failed:') + ' ' + (err.message || String(err)); }
             });
     }
@@ -184,8 +191,12 @@
         fetch('/validate/path?kind=dir&path=' + encodeURIComponent(path))
             .then(r => r.json())
             .then(data => {
+                // Show rejections too (403 {error}, e.g. outside the allowed folders), not only warnings
+                const err = data && data.error;
                 const warnings = (data && data.warnings) || [];
-                showDatasetWarning(warnings.length ? warnings.join(' ') : '');
+                const msgs = (err ? [err] : []).concat(warnings)
+                    .map(m => (window.translateServerError ? window.translateServerError(m) : m));
+                showDatasetWarning(msgs.join(' '));
             })
             .catch(() => { /* best-effort, non-blocking */ });
     }
@@ -202,6 +213,91 @@
         } else if (!isNaN(n) && n > 100000) {
             msg = T('Calibration sample count is very large and may make calibration extremely slow.');
         }
+        el.style.display = msg ? '' : 'none';
+        el.textContent = msg;
+    }
+
+    /* Immediate feedback on dimensions: better to say it while typing than to
+       return a 400 after Generate — calibration_num already works this way.
+       Valid range per .deepx/toolsets/config-schema.md: positive integers only, no -1 or 0.
+       Whether batch is 1 is not checked here — nor on the server (it does not know the model).
+       Contract: tests/dx_compiler/test_config_wizard_shape_input.py */
+    function validateInputShapes() {
+        const el = document.getElementById('wiz-shape-warning');
+        if (!el) return;
+        const bad = [];
+        document.querySelectorAll('.input-shape-row').forEach(row => {
+            const raw = (row.querySelector('.shape-dims').value || '').trim();
+            if (!raw) return;
+            raw.split(',').forEach(tok => {
+                const t = tok.trim();
+                if (t === '') return;
+                const n = Number(t);
+                if (!Number.isInteger(n) || n < 1) bad.push(t);
+            });
+        });
+        const msg = bad.length
+            ? T('Dimensions must be positive whole numbers: ') + bad.join(', ')
+            : '';
+        el.style.display = msg ? '' : 'none';
+        el.textContent = msg;
+    }
+
+    /* Immediate feedback on preprocessing values, in the same style and place as validateInputShapes.
+       Rules must match the server (validation.validate_preprocessings):
+       sizes (width/height/size/scale) are positive, std may not be 0.
+       Arithmetic x accepts numeric scalars/lists of either sign, but div excludes 0.
+       axis and pad_value remain unrestricted. */
+    var PREP_POSITIVE = ['width', 'height', 'size', 'scale'];
+    var PREP_ARITHMETIC = ['div', 'mul', 'subtract', 'add'];
+
+    function parseArithmeticOperand(raw) {
+        const parse = part => {
+            const text = part.trim();
+            const n = Number(text);
+            return text !== '' && Number.isFinite(n) ? n : text;
+        };
+        return raw.includes(',') ? raw.split(',').map(parse) : parse(raw);
+    }
+
+    function validatePreprocessings() {
+        const el = document.getElementById('wiz-prep-warning');
+        if (!el) return;
+        const problems = [];
+        document.querySelectorAll('.prep-item').forEach(item => {
+            const tName = item.dataset.transform;
+            item.querySelectorAll('.prep-input').forEach(inp => {
+                const key = inp.dataset.param;
+                const raw = (inp.value || '').trim();
+                if (key === 'x' && PREP_ARITHMETIC.indexOf(tName) !== -1) {
+                    const value = parseArithmeticOperand(raw);
+                    const values = Array.isArray(value) ? value : [value];
+                    if (values.some(n => typeof n !== 'number' || (tName === 'div' && n === 0))) {
+                        problems.push(tName + '.x = ' + raw);
+                    }
+                    return;
+                }
+                if (raw === '') return;
+                if (PREP_POSITIVE.indexOf(key) !== -1) {
+                    const n = Number(raw);
+                    if (!isFinite(n) || n <= 0) {
+                        problems.push(tName + '.' + key + ' = ' + raw);
+                    }
+                    return;
+                }
+                if (key === 'std') {
+                    const parts = raw.split(',').map(t => t.trim()).filter(t => t !== '');
+                    parts.forEach(t => {
+                        const n = Number(t);
+                        if (!isFinite(n)) problems.push(tName + '.std = ' + t);
+                        else if (n === 0) problems.push(tName + '.std = 0');
+                    });
+                }
+            });
+        });
+        const msg = problems.length
+            ? T('Check these preprocessing values: ') + problems.join('; ')
+            : '';
         el.style.display = msg ? '' : 'none';
         el.textContent = msg;
     }
@@ -228,7 +324,7 @@
         const removeBtn = document.createElement('button');
         removeBtn.type = 'button';
         removeBtn.className = 'btn-remove';
-        removeBtn.textContent = '✕';
+        removeBtn.innerHTML = ((typeof DXIcon === 'function') ? DXIcon('x') : ''); removeBtn.setAttribute('aria-label', T('Remove'));
         removeBtn.addEventListener('click', function() { row.remove(); });
 
         row.appendChild(nameInput);
@@ -287,7 +383,7 @@
         const removeBtn = document.createElement('button');
         removeBtn.type = 'button';
         removeBtn.className = 'btn-remove';
-        removeBtn.textContent = '✕';
+        removeBtn.innerHTML = ((typeof DXIcon === 'function') ? DXIcon('x') : ''); removeBtn.setAttribute('aria-label', T('Remove'));
         removeBtn.addEventListener('click', function() { item.remove(); });
         header.appendChild(title);
         header.appendChild(removeBtn);
@@ -313,7 +409,7 @@
 
             const modeDesc = document.createElement('span');
             modeDesc.className = 'resize-mode-desc';
-            modeDesc.textContent = RESIZE_MODES['default'].desc;
+            modeDesc.textContent = (typeof T === 'function' ? T : String)(RESIZE_MODES['default'].desc);
             modeRow.appendChild(modeDesc);
             item.appendChild(modeRow);
 
@@ -325,7 +421,7 @@
 
             modeSelect.addEventListener('change', function() {
                 renderResizeParams(paramsDiv, this.value);
-                modeDesc.textContent = RESIZE_MODES[this.value].desc;
+                modeDesc.textContent = (typeof T === 'function' ? T : String)(RESIZE_MODES[this.value].desc);
             });
         } else {
             const defaults = TRANSFORM_DEFAULTS[name];
@@ -355,8 +451,12 @@
         const inputShapes = {};
         document.querySelectorAll('.input-shape-row').forEach(row => {
             const name = row.querySelector('.shape-name').value.trim();
+            /* Do not drop bad values: `1,3,abc,224` must not silently become `[1,3,224]`.
+               Send them as typed and let validateInputShapes report them;
+               the server rejects them with a 400 as well. */
             const dims = row.querySelector('.shape-dims').value.trim()
-                .split(',').map(d => parseInt(d.trim())).filter(d => !isNaN(d));
+                .split(',').filter(t => t.trim() !== '')
+                .map(d => { const n = Number(d.trim()); return Number.isInteger(n) ? n : d.trim(); });
             if (name && dims.length) inputShapes[name] = dims;
         });
         config.input_shapes = inputShapes;
@@ -409,7 +509,9 @@
                 item.querySelectorAll('.prep-input').forEach(inp => {
                     const key = inp.dataset.param;
                     const raw = inp.value.trim();
-                    if (raw.includes(',')) {
+                    if (key === 'x' && PREP_ARITHMETIC.indexOf(tName) !== -1) {
+                        params[key] = parseArithmeticOperand(raw);
+                    } else if (raw.includes(',')) {
                         params[key] = raw.split(',').map(v => parseFloat(v.trim()));
                     } else {
                         const num = parseFloat(raw);
@@ -454,9 +556,9 @@
         .then(r => r.json())
         .then(data => {
             nextBtn.disabled = false;
-            nextBtn.textContent = T('✅ Use This Config');
+            DXIcon.label(nextBtn, 'check', T('Use This Config'));
             if (data.error) {
-                alert(T('Config generation failed: ') + data.error);
+                alert(T('Config generation failed: ') + _srvErr(data.error));
                 return;
             }
             // Set config_path and close wizard
@@ -466,7 +568,7 @@
         })
         .catch(err => {
             nextBtn.disabled = false;
-            nextBtn.textContent = T('✅ Use This Config');
+            DXIcon.label(nextBtn, 'check', T('Use This Config'));
             alert(T('Config generation failed: ') + err.message);
         });
     }
@@ -487,6 +589,17 @@
 
         if (prevBtn) prevBtn.addEventListener('click', function() { wizGoTo(currentStep - 1); });
         if (nextBtn) nextBtn.addEventListener('click', function() {
+            // Dataset Path is required — without it the config has no dataset_path and fails only at compile time.
+            // Only an empty field blocks; a missing folder or disallowed path still just warns (the server decides).
+            if (currentStep === 3) {
+                const mode = document.querySelector('input[name="loader_mode"]:checked');
+                const ds = document.getElementById('wiz-dataset-path');
+                if (mode && mode.value === 'default' && ds && !ds.value.trim()) {
+                    showDatasetWarning(T('Enter the dataset folder used for calibration, or go back and choose Dummy Loader.'));
+                    ds.focus();
+                    return;
+                }
+            }
             if (currentStep === totalSteps) {
                 generateConfig();
             } else {
@@ -515,6 +628,20 @@
         if (calibNum) {
             calibNum.addEventListener('input', validateCalibNum);
             calibNum.addEventListener('change', validateCalibNum);
+        }
+        /* Dimension rows are added dynamically, so delegate to the list — binding per
+           row would silently miss rows added later. */
+        const shapeList = document.getElementById('input-shapes-list');
+        if (shapeList) {
+            shapeList.addEventListener('input', validateInputShapes);
+            shapeList.addEventListener('change', validateInputShapes);
+        }
+        /* Same for preprocessing: items keep being added and removed, so delegate to
+           the container — binding per input would silently miss ones added later. */
+        const prepPipeline = document.getElementById('prep-pipeline');
+        if (prepPipeline) {
+            prepPipeline.addEventListener('input', validatePreprocessings);
+            prepPipeline.addEventListener('change', validatePreprocessings);
         }
     });
 

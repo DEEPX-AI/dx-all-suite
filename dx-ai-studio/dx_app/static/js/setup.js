@@ -27,29 +27,106 @@ function compRenderLogAppend(logEl,text,state){
   logEl.scrollTop=logEl.scrollHeight;
 }
 function setupInit(){setupCheckAll();setupLoadVersions();}
+/* ── Shared step list and icons ──
+   This only reports status (no hand-painted badges or emoji); next step, bar and collapsing are done by DXSteps. */
+function _setupIco(n){return (typeof window.DXIcon==='function')?window.DXIcon(n):'';}
+function _setupStepState(id,state,facts){
+  var root=document.getElementById('setup-steps');
+  if(root&&window.DXSteps&&id)window.DXSteps.set(root,id,state,facts?{facts:facts}:undefined);
+}
+/* Backend detail ("cmake · gcc · ninja") as short facts on one line. */
+function _setupFacts(detail){
+  if(!detail)return[];
+  return String(detail).split(/\s+·\s+/).filter(Boolean).slice(0,4).map(_setupFactText);
+}
+/* The server sends facts (detail) in English only; known shapes are shown in the chosen language
+   (e.g. "18 model(s), 24 video(s)", "Loaded"). Unknown words, names and versions stay as they are. Matched top-down. */
+var _SETUP_FACTS=[
+  [/^(\d+) model\(s\), (\d+) video\(s\)$/,{ko:'모델 $1개, 영상 $2개',ja:'モデル $1 件、動画 $2 件','zh-CN':'$1 个模型，$2 个视频','zh-TW':'$1 個模型，$2 部影片',es:'$1 modelos, $2 videos'}],
+  [/^(\d+) model\(s\) — all OK$/,{ko:'모델 $1개 — 모두 정상',ja:'モデル $1 件 — すべて正常','zh-CN':'$1 个模型 — 全部正常','zh-TW':'$1 個模型 — 全部正常',es:'$1 modelos — todos correctos'}],
+  [/^(\d+) model\(s\), (\d+) corrupted \(0 bytes\): (.+)$/,{ko:'모델 $1개, 손상 $2개 (0 바이트): $3',ja:'モデル $1 件、破損 $2 件 (0 バイト): $3','zh-CN':'$1 个模型，$2 个损坏 (0 字节): $3','zh-TW':'$1 個模型，$2 個損毀 (0 位元組): $3',es:'$1 modelos, $2 dañados (0 bytes): $3'}],
+  [/^([\d.]+) GB free \/ (\d+) GB total$/,{ko:'$1 GB 남음 / 전체 $2 GB',ja:'空き $1 GB / 合計 $2 GB','zh-CN':'可用 $1 GB / 共 $2 GB','zh-TW':'可用 $1 GB / 共 $2 GB',es:'$1 GB libres / $2 GB en total'}],
+  [/^(\d+) MB available \/ (\d+) MB total$/,{ko:'$1 MB 사용 가능 / 전체 $2 MB',ja:'利用可能 $1 MB / 合計 $2 MB','zh-CN':'可用 $1 MB / 共 $2 MB','zh-TW':'可用 $1 MB / 共 $2 MB',es:'$1 MB disponibles / $2 MB en total'}],
+  [/^Found: (.+) \| Missing: (.+)$/,{ko:'있음: $1 | 없음: $2',ja:'あり: $1 | なし: $2','zh-CN':'已找到: $1 | 缺少: $2','zh-TW':'已找到: $1 | 缺少: $2',es:'Encontrado: $1 | Falta: $2'}],
+  [/^Found: (.+)$/,{ko:'있음: $1',ja:'あり: $1','zh-CN':'已找到: $1','zh-TW':'已找到: $1',es:'Encontrado: $1'}],
+  [/^missing: (.+)$/,{ko:'없음: $1',ja:'なし: $1','zh-CN':'缺少: $1','zh-TW':'缺少: $1',es:'falta: $1'}],
+  // DX-APP Build (setup_steps._app_build_status) and Sample Assets (shared/asset_setup.sample_assets_status)
+  [/^demo C\+\+ (\d+)\/(\d+)$/,{ko:'데모 C++ $1/$2',ja:'デモ C++ $1/$2','zh-CN':'演示 C++ $1/$2','zh-TW':'示範 C++ $1/$2',es:'C++ de demo $1/$2'}],
+  [/^all C\+\+ (\d+)\/(\d+)$/,{ko:'전체 C++ $1/$2',ja:'C++ 全体 $1/$2','zh-CN':'全部 C++ $1/$2','zh-TW':'全部 C++ $1/$2',es:'C++ en total $1/$2'}],
+  [/^demo models (\d+)\/(\d+) \((\d+) unverified\)$/,{ko:'데모 모델 $1/$2 (검증 안 됨 $3)',ja:'デモモデル $1/$2 (未検証 $3)','zh-CN':'演示模型 $1/$2（未验证 $3）','zh-TW':'示範模型 $1/$2（未驗證 $3）',es:'modelos de demo $1/$2 ($3 sin verificar)'}],
+  [/^demo models (\d+)\/(\d+)$/,{ko:'데모 모델 $1/$2',ja:'デモモデル $1/$2','zh-CN':'演示模型 $1/$2','zh-TW':'示範模型 $1/$2',es:'modelos de demo $1/$2'}],
+  [/^models (\d+)\/(\d+) \((\d+) unverified\)$/,{ko:'모델 $1/$2 (검증 안 됨 $3)',ja:'モデル $1/$2 (未検証 $3)','zh-CN':'模型 $1/$2（未验证 $3）','zh-TW':'模型 $1/$2（未驗證 $3）',es:'modelos $1/$2 ($3 sin verificar)'}],
+  [/^models (\d+)\/(\d+)$/,{ko:'모델 $1/$2',ja:'モデル $1/$2','zh-CN':'模型 $1/$2','zh-TW':'模型 $1/$2',es:'modelos $1/$2'}],
+  [/^videos (\d+)\/(\d+) \((\d+) unverified\)$/,{ko:'영상 $1/$2 (검증 안 됨 $3)',ja:'動画 $1/$2 (未検証 $3)','zh-CN':'视频 $1/$2（未验证 $3）','zh-TW':'影片 $1/$2（未驗證 $3）',es:'videos $1/$2 ($3 sin verificar)'}],
+  [/^videos (\d+)\/(\d+)$/,{ko:'영상 $1/$2',ja:'動画 $1/$2','zh-CN':'视频 $1/$2','zh-TW':'影片 $1/$2',es:'videos $1/$2'}],
+  [/^Unverified sample assets: (.+)$/,{ko:'샘플 자산을 확인할 수 없음: $1',ja:'サンプルを確認できません: $1','zh-CN':'无法确认示例资源: $1','zh-TW':'無法確認範例資源: $1',es:'No se pudieron comprobar los recursos de ejemplo: $1'}],
+  [/^probe failed: (.+)$/,{ko:'확인 실패: $1',ja:'確認に失敗: $1','zh-CN':'检测失败: $1','zh-TW':'檢測失敗: $1',es:'falló la comprobación: $1'}],
+  [/^No DeepX device found on PCIe bus$/,{ko:'PCIe 버스에서 DeepX 장치를 찾지 못했습니다',ja:'PCIe バスに DeepX デバイスがありません','zh-CN':'PCIe 总线上未找到 DeepX 设备','zh-TW':'PCIe 匯流排上未找到 DeepX 裝置',es:'No se encontró ningún dispositivo DeepX en el bus PCIe'}],
+  [/^(?:No )?\/dev\/dxrt\* or \/dev\/deepx\* (?:not )?found$/,{ko:'/dev/dxrt* · /dev/deepx* 없음',ja:'/dev/dxrt* · /dev/deepx* なし','zh-CN':'未找到 /dev/dxrt* · /dev/deepx*','zh-TW':'未找到 /dev/dxrt* · /dev/deepx*',es:'No se encontró /dev/dxrt* ni /dev/deepx*'}],
+  [/^No DKMS entry for dxrt\/deepx$/,{ko:'dxrt/deepx의 DKMS 항목 없음',ja:'dxrt/deepx の DKMS エントリなし','zh-CN':'没有 dxrt/deepx 的 DKMS 条目','zh-TW':'沒有 dxrt/deepx 的 DKMS 項目',es:'No hay entrada DKMS para dxrt/deepx'}],
+  [/^Loaded$/,{ko:'로드됨',ja:'ロード済み','zh-CN':'已加载','zh-TW':'已載入',es:'Cargado'}],
+  [/^Not loaded$/,{ko:'로드 안 됨',ja:'未ロード','zh-CN':'未加载','zh-TW':'未載入',es:'No cargado'}],
+  [/^active$/,{ko:'실행 중',ja:'稼働中','zh-CN':'运行中','zh-TW':'執行中',es:'activo'}],
+  [/^Not installed$/,{ko:'설치 안 됨',ja:'未インストール','zh-CN':'未安装','zh-TW':'未安裝',es:'No instalado'}],
+  [/^Install required$/,{ko:'설치 필요',ja:'インストールが必要','zh-CN':'需要安装','zh-TW':'需要安裝',es:'Requiere instalación'}],
+  [/^(\S+) not installed$/,{ko:'$1 미설치',ja:'$1 未インストール','zh-CN':'未安装 $1','zh-TW':'未安裝 $1',es:'$1 no instalado'}],
+  [/^(\S+) not available$/,{ko:'$1 사용 불가',ja:'$1 は利用できません','zh-CN':'$1 不可用','zh-TW':'$1 無法使用',es:'$1 no disponible'}],
+  [/^(\S+) failed$/,{ko:'$1 실패',ja:'$1 に失敗','zh-CN':'$1 失败','zh-TW':'$1 失敗',es:'$1 falló'}],
+  [/^(\S+) not found$/,{ko:'$1 없음',ja:'$1 なし','zh-CN':'未找到 $1','zh-TW':'未找到 $1',es:'$1 no encontrado'}],
+  [/^(\S+) found$/,{ko:'$1 있음',ja:'$1 あり','zh-CN':'已找到 $1','zh-TW':'已找到 $1',es:'$1 encontrado'}]
+];
+function _setupFactText(text){
+  text=String(text==null?'':text);
+  var lang=(window.DXI18n&&window.DXI18n.lang)||'en';
+  if(lang==='en')return text;
+  for(var i=0;i<_SETUP_FACTS.length;i++){
+    var m=text.match(_SETUP_FACTS[i][0]);
+    if(!m)continue;
+    var tpl=_SETUP_FACTS[i][1][lang];
+    return tpl?tpl.replace(/\$(\d)/g,function(_,n){return m[+n]||'';}):text;
+  }
+  return text;
+}
+/* Status next to the run log, in the same shape as the step list's status (icon + words). */
+function _setupRunStatus(el,state,text){
+  var icon={running:'spinner',done:'check',failed:'x',todo:'stop'}[state]||'info';
+  el.className='dx-step-state is-'+state;
+  el.innerHTML=_setupIco(icon)+'<span>'+esc(text)+'</span>';
+}
 async function setupCheckAll(){
   try{
     var r=await api('/api/setup/status');
     ['dx-app-deps','dx-rt-deps','dx-rt-build','dx-driver','dx-app-build','dx-app-setup'].forEach(function(id){
       var s=r[id];if(!s)return;
       var locallyDone=SETUP.completedSteps&&SETUP.completedSteps[id];
-      var badge=$('setup-badge-'+id);
-      if(badge){
-        if(s.ok||locallyDone){badge.className='comp-status-badge cs-ok';badge.textContent='✅ '+_T5('완료','Done','完了','完成','完成');}
-        else{badge.className='comp-status-badge cs-warn';badge.textContent='⚠️ '+_T5('필요','Required','必要','必需','必需');}
-      }
       var det=$('setup-detail-'+id);
-      if(det)det.textContent=(locallyDone&&!s.ok)?_T5('방금 완료됨','Completed just now','完了したばかり','刚刚完成','剛剛完成'):(s.detail||'');
+      /* Facts (s.detail) show as chips in the row; the line below holds only other words (just completed). */
+      if(det)det.textContent=(locallyDone&&!s.ok)?_T5('방금 완료됨','Completed just now','完了したばかり','刚刚完成','剛剛完成','Completado ahora mismo'):'';
+      /* Badge, next step and bar are painted by the shared step list (shared/static/dx-steps.js). One row holds short facts only. */
+      _setupStepState(id,(s.ok||locallyDone)?'done':'todo',_setupFacts(s.detail));
+      /* Present files without a Studio record are installed but unverified: offer Verify
+         (the same step checks each file's size against the server and keeps a matching one). */
+      if(id==='dx-app-setup'){
+        var vb=$('setup-verify-dx-app-setup');
+        if(vb)vb.style.display=(s.ok&&s.verified===false)?'':'none';
+      }
     });
+    _setupLiveDisplay(r['live-display']);
   }catch(e){console.error('setupCheckAll error:',e);}
+}
+/* Optional Live display capture (Xvfb): reported, never installed by a step (setup_steps.live_display_status). */
+function _setupLiveDisplay(s){
+  var box=$('setup-live-display'), st=$('setup-live-display-state');
+  if(!box||!st||!s)return;
+  box.setAttribute('data-ok',s.ok?'true':'false');
+  _setupRunStatus(st,s.ok?'done':'todo',_setupFactText(s.ok?'Xvfb found':'Xvfb not installed'));
 }
 function setupMarkStepDone(stepId){
   if(!stepId)return;
   SETUP.completedSteps[stepId]=true;
-  var badge=$('setup-badge-'+stepId);
-  if(badge){badge.className='comp-status-badge cs-ok';badge.textContent='✅ '+_T5('완료','Done','完了','完成','完成');}
+  _setupStepState(stepId,'done');
   var det=$('setup-detail-'+stepId);
-  if(det)det.textContent=_T5('방금 완료됨','Completed just now','完了したばかり','刚刚完成','剛剛完成');
+  if(det)det.textContent=_T5('방금 완료됨','Completed just now','完了したばかり','刚刚完成','剛剛完成','Completado ahora mismo');
 }
 async function setupRun(stepId){
   var params={};
@@ -57,7 +134,7 @@ async function setupRun(stepId){
     var authFailed=false;
     while(true){
       var pw=await setupPromptSudoPassword(authFailed);
-      if(pw===null){toast(_T5('취소됨','Cancelled','キャンセル','已取消','已取消'),'warn');return;}
+      if(pw===null){toast(_T5('취소됨','Cancelled','キャンセル','已取消','已取消','Cancelado'),'warn');return;}
       params.password=pw;
       var res=await _setupDoRun(stepId,params);
       if(res&&res.sudo_auth){authFailed=true;continue;}  // wrong password → re-prompt
@@ -73,14 +150,14 @@ function setupPromptSudoPassword(authFailed){
     overlay.id='setup-sudo-modal';
     overlay.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:20px';
     var box=document.createElement('div');
-    box.style.cssText='width:min(420px,100%);background:var(--bg-1,var(--bg-2));border:1px solid var(--border);border-radius:12px;padding:18px;box-shadow:0 20px 60px rgba(0,0,0,.35)';
-    box.innerHTML='<h3 style="margin:0 0 8px">🔒 '+_T5('sudo 인증','sudo Authentication','sudo認証','sudo 认证','sudo 認證')+'</h3>'
-      +(authFailed?('<p class="txt-sm" style="margin:0 0 8px;color:var(--danger,#e5484d)">'+_T5('비밀번호가 올바르지 않습니다. 다시 입력하세요.','Incorrect password. Please try again.','パスワードが正しくありません。もう一度入力してください。','密码不正确，请重新输入。','密碼不正確，請重新輸入。')+'</p>'):'')
-      +'<p class="txt-sm txt-dim" style="margin:0 0 12px">'+_T5('이 설치 단계는 관리자 권한이 필요합니다. 비밀번호는 이 실행 요청에만 사용됩니다.','This setup step requires administrator privileges. The password is used only for this run.','この設定ステップには管理者権限が必要です。パスワードはこの実行にのみ使用されます。','此安装步骤需要管理员权限。密码仅用于本次运行。','此安裝步驟需要管理員權限。密碼僅用於本次執行。')+'</p>'
-      +'<input id="setup-sudo-password" type="password" style="width:100%;box-sizing:border-box;padding:9px 11px;border-radius:8px;border:1px solid var(--border);background:var(--bg-0);color:var(--text-1)" placeholder="sudo password">'
+    box.style.cssText='width:min(420px,100%);background:var(--surface-panel,var(--control-bg));border:1px solid var(--border-subtle);border-radius:12px;padding:18px;box-shadow:0 20px 60px rgba(0,0,0,.35)';
+    box.innerHTML='<h3 style="margin:0 0 8px">'+_setupIco('lock')+' '+_T5('sudo 인증','sudo Authentication','sudo認証','sudo 认证','sudo 認證','Autenticación sudo')+'</h3>'
+      +(authFailed?('<p class="txt-sm" style="margin:0 0 8px;color:var(--danger,#e5484d)">'+_T5('비밀번호가 올바르지 않습니다. 다시 입력하세요.','Incorrect password. Please try again.','パスワードが正しくありません。もう一度入力してください。','密码不正确，请重新输入。','密碼不正確，請重新輸入。','Contraseña incorrecta. Inténtelo de nuevo.')+'</p>'):'')
+      +'<p class="txt-sm txt-dim" style="margin:0 0 12px">'+_T5('이 설치 단계는 관리자 권한이 필요합니다. 비밀번호는 이 실행 요청에만 사용됩니다.','This setup step requires administrator privileges. The password is used only for this run.','この設定ステップには管理者権限が必要です。パスワードはこの実行にのみ使用されます。','此安装步骤需要管理员权限。密码仅用于本次运行。','此安裝步驟需要管理員權限。密碼僅用於本次執行。','Este paso de configuración requiere privilegios de administrador. La contraseña se usa solo para esta ejecución.')+'</p>'
+      +'<input id="setup-sudo-password" type="password" style="width:100%;box-sizing:border-box;padding:9px 11px;border-radius:8px;border:1px solid var(--border-subtle);background:var(--surface-page);color:var(--text-primary)" placeholder="sudo password">'
       +'<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px">'
-      +'<button class="btn btn-ghost btn-sm" id="setup-sudo-cancel">'+_T5('취소','Cancel','キャンセル','取消','取消')+'</button>'
-      +'<button class="btn btn-primary btn-sm" id="setup-sudo-ok">'+_T5('계속','Continue','続行','继续','繼續')+'</button>'
+      +'<button class="btn btn-ghost btn-sm" id="setup-sudo-cancel">'+_T5('취소','Cancel','キャンセル','取消','取消','Cancelar')+'</button>'
+      +'<button class="btn btn-primary btn-sm" id="setup-sudo-ok">'+_T5('계속','Continue','続行','继续','繼續','Continuar')+'</button>'
       +'</div>';
     overlay.appendChild(box);document.body.appendChild(overlay);
     var input=document.getElementById('setup-sudo-password');
@@ -96,9 +173,10 @@ async function _setupDoRun(stepId,params){
   SETUP.running=true;SETUP.activeStep=stepId;
   var stopBtn=$('setup-stop-btn');if(stopBtn)stopBtn.style.display='';
   SETUP._renderedLogText='';
-  var logEl=$('setup-log');if(logEl)logEl.textContent=_T5('준비 중…\n','Preparing…\n','準備中…\n','准备中…\n','準備中…\n');
+  var logEl=$('setup-log');if(logEl)logEl.textContent=_T5('준비 중…\n','Preparing…\n','準備中…\n','准备中…\n','準備中…\n','Preparando…\n');
   var rs=$('setup-run-status');
-  if(rs){rs.style.display='';rs.className='comp-status-badge cs-run';rs.textContent='⏳ '+_T5('실행 중…','Running…','実行中…','运行中…','執行中…');}
+  if(rs){rs.style.display='';_setupRunStatus(rs,'running',_T5('실행 중…','Running…','実行中…','运行中…','執行中…','En ejecución…'));}
+  _setupStepState(stepId,'running');
   var body=Object.assign({step:stepId},params);
   var r=await postJ('/api/setup/run',body);
   if(r&&r.sudo_auth){
@@ -107,13 +185,15 @@ async function _setupDoRun(stepId,params){
     if(stopBtn)stopBtn.style.display='none';
     if(rs)rs.style.display='none';
     if(logEl)logEl.textContent='';
+    setupCheckAll();
     return{sudo_auth:true};
   }
   if(!r.ok&&!r.started){
     SETUP.running=false;
     if(stopBtn)stopBtn.style.display='none';
     toast(_T6('실행 실패: ','Run failed: ','実行失敗: ','运行失败: ','執行失敗: ','Error al ejecutar: ')+(r.error||''),'err');
-    if(rs){rs.className='comp-status-badge cs-err';rs.textContent='❌ '+_T5('실패','Failed','失敗','失败','失敗');}
+    if(rs)_setupRunStatus(rs,'failed',_T5('실패','Failed','失敗','失败','失敗','Falló'));
+    _setupStepState(stepId,'failed');
     return{error:r.error||'failed'};
   }
   if(SETUP.pollTimer)clearInterval(SETUP.pollTimer);
@@ -135,16 +215,17 @@ function setupPollLog(){
       var rs=$('setup-run-status');
       var completedStep=SETUP.activeStep;
       if(r.exit_code===0){
-        toast('✅ '+(SETUP.activeStep||'task')+_T6(' 완료!',' complete!',' 完了!',' 完成!',' 完成!',' ¡completo!'),'ok');
-        if(rs){rs.className='comp-status-badge cs-ok';rs.textContent='✅ '+_T5('완료','Done','完了','完成','完成');}
+        toast((SETUP.activeStep||'task')+_T6(' 완료!',' complete!',' 完了!',' 完成!',' 完成!',' ¡completo!'),'ok');
+        if(rs)_setupRunStatus(rs,'done',_T5('완료','Done','完了','完成','完成','Completado'));
         setupMarkStepDone(completedStep);
         SETUP._lastExitCode=0;
       }else if(r.exit_code===130){
-        if(rs){rs.className='comp-status-badge cs-warn';rs.textContent='⏹ '+_T5('중단됨','Stopped','中断','已中断','已中斷');}
+        if(rs)_setupRunStatus(rs,'todo',_T5('중단됨','Stopped','中断','已中断','已中斷','Detenido'));
         SETUP._lastExitCode=130;
       }else{
-        toast(_T6('❌ 실패 (종료 ','❌ Failed (exit ','❌ 失敗 (終了 ','❌ 失败 (退出 ','❌ 失敗 (結束 ','❌ Error (salida ')+r.exit_code+')','err');
-        if(rs){rs.className='comp-status-badge cs-err';rs.textContent='❌ '+_T5('실패','Failed','失敗','失败','失敗')+' (exit '+r.exit_code+')';}
+        toast(_T6('실패 (종료 ','Failed (exit ','失敗 (終了 ','失败 (退出 ','失敗 (結束 ','Error (salida ')+r.exit_code+')','err');
+        if(rs)_setupRunStatus(rs,'failed',_T5('실패','Failed','失敗','失败','失敗','Falló')+' (exit '+r.exit_code+')');
+        _setupStepState(completedStep,'failed');
         SETUP._lastExitCode=r.exit_code;
       }
       if(r.exit_code===0)setupCheckAll().then(function(){setupMarkStepDone(completedStep);});
@@ -169,7 +250,7 @@ function setupToggleStdin(){
 function _setupStdinBtnUpdate(on){
   var btn=$('setup-stdin-toggle-btn');
   if(!btn)return;
-  if(on){btn.style.background='var(--accent)';btn.style.color='var(--text-1)';}
+  if(on){btn.style.background='var(--accent)';btn.style.color='var(--text-primary)';}
   else{btn.style.background='';btn.style.color='';}
 }
 function setupDetectPrompt(log){
@@ -197,10 +278,10 @@ function setupSendInput(){
   var inp=$('setup-stdin-input');if(!inp)return;
   var val=inp.value;inp.value='';
   // Keep row open for further input
-  var pr=$('setup-stdin-prompt');if(pr)pr.textContent=_T5('프로세스에 보낼 입력을 입력하세요 (Enter 키)','Type input to send to the process (press Enter)','プロセスに送信する入力を入力 (Enter キー)','输入要发送到进程的内容 (按 Enter)','輸入要傳送至程序的內容 (按 Enter)');
+  var pr=$('setup-stdin-prompt');if(pr)pr.textContent=_T5('프로세스에 보낼 입력을 입력하세요 (Enter 키)','Type input to send to the process (press Enter)','プロセスに送信する入力を入力 (Enter キー)','输入要发送到进程的内容 (按 Enter)','輸入要傳送至程序的內容 (按 Enter)','Escriba la entrada para enviar al proceso (pulse Enter)');
   if(inp)inp.type='text';
   postJ('/api/setup/input',{text:val}).then(function(r){
-    if(!r.ok)toast(_T5('입력 전송 실패: ','Failed to send input: ','入力送信失敗: ','输入发送失败: ','輸入傳送失敗: ')+(r.error||''),'err');
+    if(!r.ok)toast(_T5('입력 전송 실패: ','Failed to send input: ','入力送信失敗: ','输入发送失败: ','輸入傳送失敗: ','No se pudo enviar la entrada: ')+(r.error||''),'err');
   });
 }
 function setupHideStdin(){
@@ -209,38 +290,45 @@ function setupHideStdin(){
   SETUP._stdinManual=false;
 }
 
+/* Diagnostics result, redrawn on a language switch (SETUP._diag). True if it passed. */
+function _setupRenderDiag(r){
+  var sum=$('diag-summary');
+  sum.style.display='';
+  var allOk=r.all_ok;
+  sum.innerHTML='<div class="diag-summary-bar '+(allOk?'diag-pass':'diag-fail')+'">'+_setupIco(allOk?'check':'alert')+' <strong>'+r.passed+'/'+r.total+'</strong> '+_T5('검사 통과','checks passed','検査合格','检查通过','檢查通過','comprobaciones superadas')+'</div>';
+  $('diag-results').innerHTML=(r.checks||[]).map(function(c){
+    var cls=c.ok?'diag-card-ok':'diag-card-fail';
+    var icon=_setupIco(c.ok?'check':'x');
+    var lang=(window.DXI18n&&window.DXI18n.lang)||localStorage.getItem('dx-lang')||'en';
+    var langKey=lang.replace('-','');
+    var label=typeof c.label==='object'?(c.label[langKey]||c.label.en):c.label;
+    var html='<div class="diag-card '+cls+'">';
+    html+='<div class="diag-card-title">'+icon+' '+esc(label)+'</div>';
+    html+='<div class="diag-card-detail">'+esc(_setupFactText(c.detail||''))+'</div>';
+    if(!c.ok&&c.fix){
+      var fixText=typeof c.fix==='object'?(c.fix[langKey]||c.fix.en):c.fix;
+      html+='<div class="diag-card-fix">'+_setupIco('info')+' '+esc(fixText)+'</div>';
+    }
+    html+='</div>';
+    return html;
+  }).join('');
+  return allOk;
+}
+
 async function runDiagnostics(){
-  var btn=$('diag-run-btn');btn.disabled=true;btn.textContent=_T5('⏳ 실행 중...','⏳ Running...','⏳ 実行中...','⏳ 运行中...','⏳ 執行中...');
-  $('diag-results').innerHTML='<p class="txt-dim">'+_T5('진단 실행 중…','Running diagnostics…','診断実行中…','诊断运行中…','診斷執行中…')+'</p>';
+  var btn=$('diag-run-btn');btn.disabled=true;btn.innerHTML=_setupIco('spinner')+' '+_T5('실행 중...','Running...','実行中...','运行中...','執行中...','En ejecución...');
+  $('diag-results').innerHTML='<p class="txt-dim">'+_T5('진단 실행 중…','Running diagnostics…','診断実行中…','诊断运行中…','診斷執行中…','Ejecutando diagnóstico…')+'</p>';
   try{
     var r=await api('/api/setup/diagnostics');
-    btn.disabled=false;btn.textContent=_T5('▶ 진단 실행','▶ Run Diagnostics','▶ 診断実行','▶ 运行诊断','▶ 執行診斷');
+    btn.disabled=false;btn.innerHTML=_setupIco('play')+' '+_T5('진단 실행','Run Diagnostics','診断実行','运行诊断','執行診斷','Ejecutar diagnóstico');
     if(r.error){toast(r.error,'err');return;}
-    var sum=$('diag-summary');
-    sum.style.display='';
-    var allOk=r.all_ok;
-    sum.innerHTML='<div class="diag-summary-bar '+(allOk?'diag-pass':'diag-fail')+'">'+(allOk?'✅':'\u26a0\ufe0f')+' <strong>'+r.passed+'/'+r.total+'</strong> '+_T5('검사 통과','checks passed','検査合格','检查通过','檢查通過')+'</div>';
-    $('diag-results').innerHTML=(r.checks||[]).map(function(c){
-      var cls=c.ok?'diag-card-ok':'diag-card-fail';
-      var icon=c.ok?'✅':'❌';
-      var lang=(window.DXI18n&&window.DXI18n.lang)||localStorage.getItem('dx-lang')||'en';
-      var langKey=lang.replace('-','');
-      var label=typeof c.label==='object'?(c.label[langKey]||c.label.en):c.label;
-      var html='<div class="diag-card '+cls+'">';
-      html+='<div class="diag-card-title">'+icon+' '+esc(label)+'</div>';
-      html+='<div class="diag-card-detail">'+esc(c.detail||'')+'</div>';
-      if(!c.ok&&c.fix){
-        var fixText=typeof c.fix==='object'?(c.fix[langKey]||c.fix.en):c.fix;
-        html+='<div class="diag-card-fix">💡 '+esc(fixText)+'</div>';
-      }
-      html+='</div>';
-      return html;
-    }).join('');
-    if(!allOk)toast(_T5('일부 검사 실패 — 진단 확인','Some checks failed — see diagnostics','一部の検査が失敗 — 診断を確認','部分检查失败 — 查看诊断','部分檢查失敗 — 查看診斷'),'warn');
-    else toast(_T5('모든 진단 통과!','All diagnostics passed!','すべての診断に合格!','所有诊断通过!','所有診斷通過!'),'ok');
+    SETUP._diag=r;
+    var allOk=_setupRenderDiag(r);
+    if(!allOk)toast(_T5('일부 검사 실패 — 진단 확인','Some checks failed — see diagnostics','一部の検査が失敗 — 診断を確認','部分检查失败 — 查看诊断','部分檢查失敗 — 查看診斷','Algunas comprobaciones fallaron — revise el diagnóstico'),'warn');
+    else toast(_T5('모든 진단 통과!','All diagnostics passed!','すべての診断に合格!','所有诊断通过!','所有診斷通過!','¡Todos los diagnósticos superados!'),'ok');
   }catch(e){
-    btn.disabled=false;btn.textContent=_T5('▶ 진단 실행','▶ Run Diagnostics','▶ 診断実行','▶ 运行诊断','▶ 執行診斷');
-    toast(_T5('진단 오류: ','Diagnostics error: ','診断エラー: ','诊断错误: ','診斷錯誤: ')+e.message,'err');
+    btn.disabled=false;btn.innerHTML=_setupIco('play')+' '+_T5('진단 실행','Run Diagnostics','診断実行','运行诊断','執行診斷','Ejecutar diagnóstico');
+    toast(_T5('진단 오류: ','Diagnostics error: ','診断エラー: ','诊断错误: ','診斷錯誤: ','Error de diagnóstico: ')+e.message,'err');
   }
 }
 
@@ -330,9 +418,11 @@ async function setupRunAll() {
  * (GET /api/setup/quick-start-plan → quick_start_plan(), the single source of
  * truth — see dx_app/core/setup_steps.py), then reuses the exact same sudo
  * prompt + sequencing + #setup-log as Run All via _setupRunSequence. Only
- * 'dx-app-setup' gets demo_only:true so the backend (setup_run) downloads the
- * small demo asset set instead of --all.
+ * 'dx-app-build' and 'dx-app-setup' get demo_only:true so the backend (setup_steps.step_argv)
+ * builds --minimal and downloads only the run_demo models plus the sample videos.
  */
+/* Demo form of the build and asset steps (setup_steps.step_argv): build.sh --minimal and the run_demo models only. */
+function _setupDemoParams(id){return (id==='dx-app-setup'||id==='dx-app-build')?{demo_only:true}:{};}
 async function setupDemoQuickStart() {
   if(SETUP.running){toast(_T6('다른 작업이 이미 실행 중입니다','Another task is already running','別のタスクが実行中です','另一个任务正在运行','另一個任務正在執行','Otra tarea ya está en ejecución'),'err');return;}
   var btn=$('setup-quickstart-btn');
@@ -348,7 +438,7 @@ async function setupDemoQuickStart() {
     }
     var res=await _setupRunSequence(plan,{
       progressEl:prog,
-      extraParamsFor:function(id){return id==='dx-app-setup'?{demo_only:true}:{};}
+      extraParamsFor:_setupDemoParams
     });
     if(res&&res.completed){
       toast(_T6('데모 준비 완료!','Demo ready!','デモの準備ができました!','演示已就绪！','示範已就緒！','¡Demo lista!'),'ok');
@@ -388,7 +478,7 @@ async function setupLoadVersions() {
       var labels={dx_app:'DX-APP',dx_runtime:'DX-Runtime',npu_driver:'NPU Driver',compiler:'DX-COM',kernel:'Kernel',python:'Python'};
       vg.innerHTML='';
       Object.keys(st.versions).forEach(function(k){
-        vg.innerHTML+='<div style="padding:6px 10px;background:var(--bg-2);border-radius:var(--radius);font-size:12px">'
+        vg.innerHTML+='<div style="padding:6px 10px;background:var(--control-bg);border-radius:var(--radius);font-size:12px">'
           +'<div class="txt-dim" style="font-size:10px">'+(labels[k]||k)+'</div>'
           +'<div style="font-family:var(--mono)">'+esc(st.versions[k])+'</div></div>';
       });
@@ -399,5 +489,6 @@ async function setupLoadVersions() {
 if (typeof registerLangRefresher === 'function') {
   registerLangRefresher(function refreshSetupLanguage() {
     if (document.querySelector('#page-setup.active') && typeof setupInit === 'function') setupInit();
+    if (SETUP._diag && document.getElementById('diag-results')) _setupRenderDiag(SETUP._diag);
   });
 }

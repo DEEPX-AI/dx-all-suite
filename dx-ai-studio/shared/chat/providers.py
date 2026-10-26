@@ -6,14 +6,19 @@ Uses only Python standard library (urllib.request, json, ssl).
 from __future__ import annotations
 
 import json
+import os
+import re
 import shutil
+import socket
 import ssl
 import subprocess
+import tempfile
 import threading
 import time
 import urllib.error
 import urllib.request
 from typing import Generator
+from urllib.parse import urlsplit
 
 
 class ChatAPIError(Exception):
@@ -237,7 +242,9 @@ _AGENT_CHAT = {
                + _model_flag("--model", m) + (["--effort", e] if e else [])),
     "opencode": ("opencode", lambda p, m, e: ["run", p] + _model_flag("-m", m)),
     "copilot": ("copilot", lambda p, m, e: ["-p", p] + _model_flag("--model", m)),
-    "cursor": ("cursor-agent", lambda p, m, e: ["-p", p] + _model_flag("--model", m)),
+    # --trust: the neutral chat dir is new to cursor, which otherwise stops at "Workspace Trust Required". It trusts the
+    # folder only — -f/--yolo would also auto-run commands.
+    "cursor": ("cursor-agent", lambda p, m, e: ["-p", p, "--trust"] + _model_flag("--model", m)),
     "codex": ("codex", lambda p, m, e: ["exec", p] + _model_flag("-m", m)),
 }
 
@@ -261,6 +268,25 @@ def _flatten_prompt(messages: list[dict]) -> str:
         else:
             parts.append("User: " + content)
     return "\n\n".join(parts)
+
+
+def _neutral_cwd() -> str:
+    """Where a chat CLI runs: outside any project, so it does not pick up a repo's CLAUDE.md / AGENTS.md. Run inside
+    dx-all-suite, copilot answered a Chat question with "[DX-AGENT-DEV: START]" and the DEEPX banner.
+    Chat's knowledge travels in the prompt, not the working directory."""
+    d = os.path.join(tempfile.gettempdir(), "dx-studio-chat")
+    os.makedirs(d, exist_ok=True)
+    return d
+
+
+def _is_real_install(path: str) -> bool:
+    """A CLI that exists outside the temp dir — the user's own install, not a test's fake script."""
+    real = os.path.realpath(path)
+    tmp = os.path.realpath(tempfile.gettempdir()) + os.sep
+    return os.path.exists(real) and not real.startswith(tmp)
+
+
+_LIMIT_WORDS = re.compile(r"usage limit|rate[ -]?limit|quota|too many requests|limit (?:has been )?reached", re.I)
 
 
 # How often to emit a keepalive token while the CLI subprocess runs silently.
@@ -305,10 +331,14 @@ def stream_agent_cli(
                 break
     if not cli:
         raise ChatAPIError("cli_missing", "No coding-agent CLI found on PATH (claude/copilot/cursor/codex/opencode)")
+    if os.environ.get("DX_AGENT_NO_REAL_RUN") == "1" and _is_real_install(cli):
+        # Tests must not spend the user's account (tests/conftest.py). With nothing saved, Chat now answers through
+        # the logged-in CLI, so a test without a config would otherwise reach the real one.
+        raise ChatAPIError("api_error", f"real {bin_name} runs are disabled under tests", 0)
     prompt = _flatten_prompt(messages)
     cmd = [cli] + build_tail(prompt, model, effort)
     try:
-        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, cwd=_neutral_cwd())
     except OSError as exc:
         raise ChatAPIError("api_error", f"launch failed: {exc}") from exc
 
@@ -349,12 +379,52 @@ def stream_agent_cli(
 
     if proc.returncode != 0:
         detail = (result.get("stderr") or result.get("stdout") or "agent CLI failed").strip()
-        raise ChatAPIError("api_error", detail[:300], proc.returncode)
+        # A spent account is a limit, not a broken login: don't tell the user to sign in again when cursor says
+        # "Your team has reached its usage limit".
+        etype = "rate_limit" if _LIMIT_WORDS.search(detail) else "api_error"
+        raise ChatAPIError(etype, detail[:300], proc.returncode)
     out = (result.get("stdout") or "").strip()
     if out:
         yield out
 
 
+
+
+# Connecting (TCP, TLS, response headers) must finish within this, so a host blocked by a firewall fails fast instead
+# of hanging for the full read timeout. Once connected, the gap between tokens waits on the read timeout.
+_CONNECT_TIMEOUT = 15.0
+
+
+def _error_reason(body: bytes) -> str:
+    """The provider's own reason from an error body. OpenAI, Anthropic and Google all send {"error": {"message": …}}."""
+    try:
+        obj = json.loads(body.decode("utf-8", errors="replace"))
+    except (ValueError, AttributeError):
+        text = body.decode("utf-8", errors="replace").strip() if isinstance(body, bytes) else ""
+        return text[:200]
+    if isinstance(obj, list) and obj:          # Google sometimes wraps the error in a list
+        obj = obj[0]
+    if not isinstance(obj, dict):
+        return ""
+    err = obj.get("error")
+    if isinstance(err, dict):
+        return str(err.get("message") or err.get("type") or "")[:300]
+    if isinstance(err, str):
+        return err[:300]
+    return str(obj.get("message") or "")[:300]
+
+
+def _unreachable(host: str, exc: BaseException) -> ChatAPIError:
+    reason = getattr(exc, "reason", exc)
+    if isinstance(reason, socket.gaierror):
+        why = "the name could not be resolved (DNS)"
+    elif isinstance(reason, ConnectionRefusedError):
+        why = "the connection was refused"
+    elif isinstance(reason, (TimeoutError, socket.timeout)):
+        why = f"no answer within {int(_CONNECT_TIMEOUT)} s — a firewall or proxy may be blocking it"
+    else:
+        why = str(reason)
+    return ChatAPIError("unreachable", f"Could not reach {host}: {why}", 0)
 
 
 def _http_stream(
@@ -370,32 +440,55 @@ def _http_stream(
         headers=headers,
         method="POST",
     )
+    host = urlsplit(url).hostname or url
     ctx = ssl.create_default_context()
     try:
-        resp = urllib.request.urlopen(req, timeout=timeout, context=ctx)
+        resp = urllib.request.urlopen(req, timeout=_CONNECT_TIMEOUT, context=ctx)
     except urllib.error.HTTPError as exc:
         status = exc.code
+        try:
+            reason = _error_reason(exc.read(4096))
+        except Exception:
+            reason = ""
+        detail = f"HTTP {status}" + (f": {reason}" if reason else "")
         if status == 401:
-            raise ChatAPIError("invalid_api_key", "Invalid API key", 401) from exc
+            raise ChatAPIError("invalid_api_key", detail, 401) from exc
         if status == 429:
-            raise ChatAPIError("rate_limit", "Rate limit exceeded", 429) from exc
-        raise ChatAPIError("api_error", f"HTTP {status}", status) from exc
-    except (TimeoutError, urllib.error.URLError) as exc:
-        if isinstance(exc, urllib.error.URLError) and isinstance(
-            exc.reason, TimeoutError
-        ):
-            raise ChatAPIError("timeout", "Request timed out", 0) from exc
-        if isinstance(exc, TimeoutError):
-            raise ChatAPIError("timeout", "Request timed out", 0) from exc
-        raise ChatAPIError("api_error", str(exc), 0) from exc
+            raise ChatAPIError("rate_limit", detail, 429) from exc
+        raise ChatAPIError("api_error", detail, status) from exc
+    except (TimeoutError, socket.timeout, urllib.error.URLError, OSError) as exc:
+        raise _unreachable(host, exc) from exc
 
+    # Connected: from here the gap between tokens waits on the read timeout.
+    try:
+        resp.fp.raw._sock.settimeout(timeout)
+    except AttributeError:
+        pass
     try:
         for raw in resp:
             line = raw.decode("utf-8", errors="replace").rstrip("\n\r")
             if line:
                 yield line
+    except (TimeoutError, socket.timeout) as exc:
+        raise ChatAPIError("timeout", f"{host} stopped answering for {timeout} s", 0) from exc
     finally:
         resp.close()
+
+
+def _stream_error(line: str) -> str | None:
+    """An error the provider sends inside a 200 stream: Anthropic `{"type": "error", …}`, OpenAI `{"error": …}`."""
+    if not line.startswith("data: "):
+        return None
+    payload = line[len("data: "):]
+    if '"error"' not in payload:
+        return None
+    try:
+        obj = json.loads(payload)
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(obj, dict) or not (obj.get("type") == "error" or "error" in obj):
+        return None
+    return _error_reason(payload.encode("utf-8")) or "stream error"
 
 
 
@@ -448,6 +541,9 @@ def stream_chat(
     parser = _PARSERS[provider]
 
     for line in _http_stream(req["url"], req["headers"], req["body"]):
+        failed = _stream_error(line)
+        if failed:
+            raise ChatAPIError("api_error", failed, 0)
         token = parser(line)
         if token is None:
             return

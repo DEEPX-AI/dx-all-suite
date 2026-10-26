@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""DXBaseHandler + DXServer — 모든 DX 서버의 공통 베이스 클래스.
+"""DXBaseHandler + DXServer — the common base for every DX server.
 
-DX App, DX Sandbox, DX Stream, DX Model Zoo, DX Compiler, Launcher의
-35개 장점을 통합한 단일 베이스. 서브클래스는 route()만 오버라이드하면 된다.
+One base for DX App, DX Sandbox, DX Stream, DX Model Zoo, DX Compiler and the
+Launcher. A subclass only overrides route().
 
 Usage:
     from shared.dx_server import DXBaseHandler, DXServer
@@ -32,6 +32,7 @@ import email.utils
 import gzip
 import hashlib
 import hmac
+import ipaddress
 import io
 import json
 import math
@@ -51,6 +52,8 @@ from pathlib import Path
 from urllib.parse import urlparse, parse_qs, parse_qsl, unquote, urlencode, urlunsplit, urlsplit
 
 from shared.paths import is_safe_path as _shared_is_safe_path
+
+from shared import shell as _shell
 
 
 # Behind a TLS-inspecting proxy (e.g. FortiGate) the OS trust store holds the
@@ -76,15 +79,27 @@ _bridge_system_ca_trust()
 
 
 def _resolve_bind_host() -> str | None:
-    """Return explicit bind host, or None for dual-stack all interfaces (default).
+    """Bind address for a module server — loopback by default.
 
-    DX_BIND_LOCAL=1 → 127.0.0.1 only (LAN exposure off).
-    DX_BIND_HOST=<host> → explicit override.
+    Modules (dx_app, dx_compiler, …) are reached through the launcher on 127.0.0.1, so there is no reason to expose
+    them. The launcher sets DX_BIND_HOST=127.0.0.1 in the child env. To widen a standalone run, set
+    DX_BIND_HOST=<host>; the server then refuses to start without DX_API_TOKEN (`DXServer._create_server`).
+    DX_BIND_LOCAL=1 also means 127.0.0.1.
     """
     if os.environ.get("DX_BIND_LOCAL", "").strip().lower() in ("1", "true", "yes"):
         return "127.0.0.1"
     explicit = os.environ.get("DX_BIND_HOST", "").strip()
-    return explicit or None
+    return explicit or "127.0.0.1"
+
+
+def _is_loopback_host(host: str | None) -> bool:
+    h = (host or "").strip().strip("[]").lower()
+    if h == "localhost":
+        return True
+    try:
+        return ipaddress.ip_address(h).is_loopback
+    except ValueError:
+        return False
 
 
 def _configured_api_token() -> str | None:
@@ -92,8 +107,39 @@ def _configured_api_token() -> str | None:
     return token or None
 
 
+class _BodyCounter:
+    """Wraps rfile for one request and counts the body bytes the handler read (`DXBaseHandler._dispatch_request`)."""
+
+    def __init__(self, raw):
+        self.raw = raw
+        self.count = 0
+
+    def read(self, n=-1):
+        data = self.raw.read(n)
+        self.count += len(data)
+        return data
+
+    def read1(self, n=-1):
+        data = self.raw.read1(n)
+        self.count += len(data)
+        return data
+
+    def readline(self, limit=-1):
+        data = self.raw.readline(limit)
+        self.count += len(data)
+        return data
+
+    def readinto(self, b):
+        n = self.raw.readinto(b) or 0
+        self.count += n
+        return n
+
+    def __getattr__(self, name):
+        return getattr(self.raw, name)
+
+
 class RequestBodyError(Exception):
-    """요청 body 파싱 실패를 HTTP status와 함께 전달한다."""
+    """A request body that failed to parse, with the HTTP status to answer."""
 
     def __init__(self, status_code: int, message: str):
         super().__init__(message)
@@ -103,7 +149,7 @@ class RequestBodyError(Exception):
 
 
 class DXBaseHandler(SimpleHTTPRequestHandler):
-    """HTTP 요청 핸들러 베이스 — 응답 헬퍼, SSE, 캐시, 보안, 라우팅 통합."""
+    """Base HTTP handler — response helpers, SSE, caching, security and routing."""
 
     protocol_version = "HTTP/1.1"
 
@@ -111,25 +157,30 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
     server_name: str = "DXServer"
     static_dir: Path | None = None
     templates_dir: Path | None = None
+    # shared.shell.ShellSpec — set only by modules that use the shared App Shell.
+    # When None, serve_template passes the template through unchanged.
+    shell_spec: "_shell.ShellSpec | None" = None
 
-    # 로깅: 해당 경로 포함 시 로그 생략
+    # Logging: skip requests whose path contains one of these
     log_filter: list[str] | None = None
     log_silent: bool = False
 
-    # 캐시 (opt-in)
+    # Cache (opt-in)
     cache_enabled: bool = False
     cache_max: int = 512
     cache_ttl: int = 3600
 
-    # 업로드 크기 제한 (바이트)
+    # Upload size limits (bytes)
     upload_max_bytes: int = 500 * 1024 * 1024  # 500MB
     json_max_bytes: int = 1024 * 1024  # 1MB
+    # Per-path overrides of json_max_bytes, for the few routes that carry an upload inside their JSON body.
+    json_max_bytes_by_path: dict = {}
 
-    # 공유 캐시 저장소 (클래스 레벨)
+    # Shared cache store (class level)
     _cache: dict = {}
     _cache_lock = threading.Lock()
 
-    # 에셋 콘텐츠 해시 캐시 (클래스 레벨)
+    # Asset content hash cache (class level)
     _asset_hash_cache: dict = {}
     _asset_hash_lock = threading.Lock()
     _ASSET_ATTR_RE = re.compile(
@@ -144,16 +195,18 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
 
 
     def _parse_request_url(self):
-        """URL 파싱 → self.parsed, self.url_path, self.query 설정."""
+        """Parse the URL into self.parsed, self.url_path and self.query."""
         self.parsed = urlparse(self.path)
         self.url_path = unquote(self.parsed.path).rstrip("/") or "/"
         self.query = parse_qs(self.parsed.query)
 
     def read_json_body(self) -> dict:
-        """POST/PUT body를 JSON으로 파싱. 빈 body → {}."""
+        """Parse a POST/PUT body as JSON. An empty body gives {}."""
         length = self._content_length_or_error()
-        if length > self.json_max_bytes:
-            raise RequestBodyError(413, "JSON body too large")
+        limit = self.json_max_bytes_by_path.get(getattr(self, "url_path", None), self.json_max_bytes)
+        if length > limit:
+            size = f"{limit // (1024 * 1024)} MB" if limit >= 1024 * 1024 else f"{limit} bytes"
+            raise RequestBodyError(413, f"JSON body too large (at most {size})")
         if length == 0:
             return {}
         raw = self.rfile.read(length)
@@ -178,14 +231,14 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
         return length
 
     def read_query_param(self, key: str, default: str = "") -> str:
-        """query string에서 단일 파라미터 추출."""
+        """One parameter from the query string."""
         return self.query.get(key, [default])[0]
 
     def _is_head_request(self) -> bool:
         return getattr(self, "command", "GET") == "HEAD"
 
     def parse_multipart(self):
-        """multipart/form-data 파싱. Returns (fields_dict, files_dict).
+        """Parse multipart/form-data. Returns (fields_dict, files_dict).
 
         files_dict: {name: {"filename": str, "data": bytes}}
         """
@@ -291,42 +344,84 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
             spool.close()
 
 
+    # 200 JSON larger than this gets gzip and a content ETag (the launcher would otherwise refetch a 2.5 MB catalog)
+    _JSON_TRANSPORT_MIN = 8 * 1024
+    _json_gzip_cache: dict[str, bytes] = {}
+
     def send_json(self, data, code: int = 200):
-        """JSON 응답 + CORS + charset + Content-Length."""
+        """JSON response with charset and Content-Length.
+
+        A large 200 response carries a content-hash ETag and no-cache, so a repeat request for the same content ends
+        in 304, and it is gzipped for clients that accept it. Small and error responses are sent as-is."""
         body = json.dumps(data, ensure_ascii=False, default=str).encode("utf-8")
-        self.send_response(code)
+        if code != 200 or len(body) < self._JSON_TRANSPORT_MIN:
+            self.send_response(code)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", len(body))
+            self.end_headers()
+            if self._is_head_request():
+                return
+            self.wfile.write(body)
+            return
+
+        etag = '"' + hashlib.blake2b(body, digest_size=12).hexdigest() + '"'
+        inm = self.headers.get("If-None-Match")
+        if inm is not None and etag in [t.strip() for t in inm.split(",")]:
+            self.send_response(304)
+            self.send_header("ETag", etag)
+            self.send_header("Cache-Control", "no-cache")
+            self.send_header("Vary", "Accept-Encoding")
+            self.end_headers()
+            return
+
+        payload = body
+        gz = "gzip" in self.headers.get("Accept-Encoding", "")
+        if gz:
+            cache = DXBaseHandler._json_gzip_cache
+            payload = cache.get(etag)
+            if payload is None:
+                payload = gzip.compress(body, compresslevel=5)
+                if len(cache) >= 8:
+                    try:
+                        cache.pop(next(iter(cache)), None)
+                    except (StopIteration, RuntimeError):   # another thread changed it; trim next time
+                        pass
+                cache[etag] = payload
+        self.send_response(200)
         self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Content-Length", len(body))
-        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("ETag", etag)
+        self.send_header("Cache-Control", "no-cache")
+        self.send_header("Vary", "Accept-Encoding")
+        if gz:
+            self.send_header("Content-Encoding", "gzip")
+        self.send_header("Content-Length", len(payload))
         self.end_headers()
         if self._is_head_request():
             return
-        self.wfile.write(body)
+        self.wfile.write(payload)
 
     def send_html(self, html, code: int = 200):
-        """HTML 응답."""
+        """HTML response."""
         if isinstance(html, str):
             html = html.encode("utf-8")
         self.send_response(code)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Content-Length", len(html))
-        self.send_header("Access-Control-Allow-Origin", "*")
         self.end_headers()
         if self._is_head_request():
             return
         self.wfile.write(html)
 
     def send_error_json(self, code: int, message: str):
-        """구조화된 에러 JSON 응답: {"error": message}."""
+        """Structured JSON error response: {"error": message}."""
         self.send_json({"error": message}, code)
 
     def send_bytes(self, data: bytes, content_type: str, code: int = 200,
                    filename: str | None = None):
-        """바이너리 응답. filename이 있으면 Content-Disposition: attachment."""
+        """Binary response. With a filename, sends Content-Disposition: attachment."""
         self.send_response(code)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", len(data))
-        self.send_header("Access-Control-Allow-Origin", "*")
         if filename:
             self.send_header("Content-Disposition", f'attachment; filename="{filename}"')
         self.end_headers()
@@ -334,12 +429,18 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
             return
         self.wfile.write(data)
 
-    # 장기 캐시 대상 확장자
+    # Extensions cached long-term
     _IMMUTABLE_SUFFIXES = frozenset((
         ".woff", ".woff2", ".ttf", ".otf", ".eot",
         ".png", ".jpg", ".jpeg", ".gif", ".webp", ".ico",
     ))
-    # gzip 대상 MIME 타입 (text/html, text/event-stream 제외)
+    # Static file whose ?v=<content hash> matches (URLs added by render_html_with_asset_hashes)
+    _HASHED_CACHE = "public, max-age=31536000, immutable"
+    # Icon sprite — <use href> and dx-icon.js must use the same hashed URL
+    _SPRITE_URL = "/static/shared/dx-icons.svg"
+    _SPRITE_REF_RE = re.compile(r'(?P<q>["\'])/static/shared/dx-icons\.svg(?:\?[^"\'#]*)?#')
+    _SPRITE_META_RE = re.compile(r'<meta name="dx-icons" content="[^"]*">')
+    # MIME types to gzip (text/html and text/event-stream excluded)
     _GZIP_MIME_TYPES = frozenset((
         "application/javascript", "application/x-javascript",
         "application/json", "application/xml", "image/svg+xml",
@@ -362,14 +463,14 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
         etag = f'W/"{mtime_ns:x}-{file_size:x}"'
         last_modified = email.utils.formatdate(mtime_sec, usegmt=True)
 
-        # Cache-Control 정책 (override via cache_control= for shell assets)
+        # Cache-Control policy (override via cache_control= for shell assets)
         #
-        # JS/CSS/JSON/SVG는 no-cache(매 요청 재검증, ETag로 304). max-age로 캐시하면
-        # 삭제/이동된 비버전 리소스를 옛 캐시가 참조해 첫 로드에서 404 → 화면 blank가
-        # 되고, 일반 새로고침은 max-age 만료 전이라 캐시를 그대로 써 고쳐지지 않는다
-        # (하드 리프레시만 회피). launcher가 자기 에셋에 이미 쓰는 정책과 일치.
-        # 폰트/이미지(immutable)는 내용이 안정적이고 무거우며, 프레시 HTML/CSS/JSON이
-        # 참조할 때만 로드되므로 장기 캐시 유지.
+        # JS/CSS/JSON/SVG are no-cache (revalidated every request, 304 via ETag). With
+        # max-age, a stale cache can point at an unversioned resource that was deleted
+        # or moved: the first load 404s, the screen goes blank, and a normal reload
+        # keeps the cache until max-age expires. Same policy the launcher uses for its
+        # own assets. Fonts/images are stable and heavy, and only load when fresh
+        # HTML/CSS/JSON refers to them, so they keep a long cache.
         base_ct = content_type.split(";")[0].strip().lower()
         suffix = p.suffix.lower()
         if cache_control is None:
@@ -379,20 +480,24 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
                 cache_control = "public, max-age=86400, must-revalidate"
             else:
                 cache_control = "no-cache, must-revalidate"
+        # When ?v= equals the current content hash, the URL is the content: no need to revalidate. HTML is
+        # always refetched (no-cache) and writes the new hash, so changed content means a changed URL. An
+        # old hash does not match and gets the policy above (never stale). Wins over an explicit cache_control=.
+        if base_ct != "text/html" and self._request_asset_version_matches(p):
+            cache_control = self._HASHED_CACHE
 
         gzip_eligible = False
         if base_ct not in ("text/html", "text/event-stream"):
             if base_ct.startswith("text/") or base_ct in self._GZIP_MIME_TYPES:
                 gzip_eligible = True
 
-        # 조건부 요청 처리 (304) — Content-Length 생략 (RFC 7232 §4.1)
+        # Conditional request (304) — no Content-Length (RFC 7232 §4.1)
         inm = self.headers.get("If-None-Match")
         if inm is not None and inm.strip() == etag:
             self.send_response(304)
             self.send_header("Cache-Control", cache_control)
             self.send_header("ETag", etag)
             self.send_header("Last-Modified", last_modified)
-            self.send_header("Access-Control-Allow-Origin", "*")
             if gzip_eligible:
                 self.send_header("Vary", "Accept-Encoding")
             self.end_headers()
@@ -407,7 +512,6 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
                     self.send_header("Cache-Control", cache_control)
                     self.send_header("ETag", etag)
                     self.send_header("Last-Modified", last_modified)
-                    self.send_header("Access-Control-Allow-Origin", "*")
                     if gzip_eligible:
                         self.send_header("Vary", "Accept-Encoding")
                     self.end_headers()
@@ -423,7 +527,6 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
         self.send_header("Cache-Control", cache_control)
         self.send_header("ETag", etag)
         self.send_header("Last-Modified", last_modified)
-        self.send_header("Access-Control-Allow-Origin", "*")
         if content_disposition:
             self.send_header("Content-Disposition", content_disposition)
         if gzip_eligible:
@@ -459,7 +562,7 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
                 f.close()
 
     def send_download(self, filepath, filename: str):
-        """Content-Disposition: attachment 파일 다운로드."""
+        """File download with Content-Disposition: attachment."""
         p = Path(filepath)
         if not p.exists() or not p.is_file():
             self.send_error(404)
@@ -469,7 +572,7 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
         self.send_bytes(data, content_type, filename=filename)
 
     def serve_static(self, rel_path: str, base_dir: Path | None = None):
-        """static/ 디렉토리에서 안전하게 파일 서빙 (path traversal 차단)."""
+        """Serve a file from static/ safely (path traversal blocked)."""
         base = base_dir or self.static_dir
         if base is None:
             self.send_error(404)
@@ -486,7 +589,7 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
         self.send_file(safe_path, ct)
 
     def serve_template(self, name: str):
-        """templates/ 디렉토리에서 HTML 읽기 → 에셋 해시 리라이트 → no-cache 응답."""
+        """Read HTML from templates/, rewrite asset hashes, answer with no-cache."""
         if self.templates_dir is None:
             self.send_error(404)
             return
@@ -495,6 +598,10 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
             self.send_error(404)
             return
         html = filepath.read_text(encoding="utf-8")
+        # Shared App Shell: when a module declares shell_spec, the template's
+        # {{DX_SHELL_*}} slots are filled with shared/shell.py markup.
+        # Modules without one pass through unchanged.
+        html = _shell.apply(html, self.shell_spec)
         asset_scope = None
         if self.static_dir is not None:
             asset_scope = self.static_dir.parent.name
@@ -509,12 +616,11 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
 
     @classmethod
     def asset_content_hash(cls, filepath) -> str:
-        """파일 콘텐츠의 SHA-256 해시 앞 8자를 반환.
+        """First 8 hex chars of the file content's SHA-256.
 
-        해시는 콘텐츠에서 직접 계산한다. 예전엔 (path, st_mtime_ns, st_size)로 캐시했으나,
-        일부 파일시스템은 mtime_ns 해상도가 거칠어 '같은 크기·같은 mtime_ns로 내용만 바뀐'
-        경우(빠른 재기록/배포 스왑)를 놓쳐 stale 해시를 반환했다. 정적 자산은 작으므로
-        매 호출 콘텐츠를 읽어 정확성을 보장하고, 캐시는 경로당 최신 1개만 유지한다."""
+        Hashed from the content on every call: some filesystems have coarse mtime_ns, so a
+        key of (path, mtime_ns, size) misses a same-size rewrite and returns a stale hash.
+        Static assets are small; the cache keeps only the latest entry per path."""
         p = Path(filepath).resolve()
         data = p.read_bytes()
         digest = hashlib.sha256(data).hexdigest()[:8]
@@ -525,7 +631,7 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
         return digest
 
     def _resolve_asset_path(self, url_path: str, extra_static_roots=None):
-        """URL 경로를 로컬 파일로 안전하게 해석. 없으면 None."""
+        """Resolve a URL path to a local file safely. None when there is none."""
         shared_static = self._shared_static.resolve()
         if url_path.startswith("/static/shared/"):
             rel = url_path[len("/static/shared/"):]
@@ -547,8 +653,47 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
                     return candidate, False
         return None, False
 
+    def _request_asset_version_matches(self, p: Path) -> bool:
+        """Whether the request's v query equals the file's content hash."""
+        try:
+            versions = parse_qs(urlsplit(getattr(self, "path", "") or "").query).get("v")
+            return bool(versions) and versions[-1] == self.asset_content_hash(p)
+        except (OSError, ValueError):
+            return False
+
+    @classmethod
+    def sprite_url(cls) -> str | None:
+        """Sprite URL with its content hash. None when there is no sprite."""
+        try:
+            return f"{cls._SPRITE_URL}?v={cls.asset_content_hash(cls._shared_static / 'dx-icons.svg')}"
+        except (OSError, PermissionError):
+            return None
+
+    @classmethod
+    def version_sprite_refs(cls, text: str) -> str:
+        """Add the hash to sprite references (static <use>, inline script strings); the fragment (#id) stays.
+        Snippets inserted after the rewrite (the launcher's NPU Monitor widget) go through this too."""
+        url = cls.sprite_url()
+        if url is None:
+            return text
+        return cls._SPRITE_REF_RE.sub(lambda m: f"{m.group('q')}{url}#", text)
+
+    def _render_sprite_refs(self, html: str) -> str:
+        """Hash the sprite references and tell dx-icon.js the same URL via <meta name="dx-icons">."""
+        url = self.sprite_url()
+        if url is None:
+            return html
+        html = self.version_sprite_refs(html)
+        meta = f'<meta name="dx-icons" content="{url}">'
+        if self._SPRITE_META_RE.search(html):
+            return self._SPRITE_META_RE.sub(meta, html, count=1)
+        idx = html.lower().find("</head>")
+        if idx == -1:
+            return html
+        return html[:idx] + meta + html[idx:]
+
     def render_html_with_asset_hashes(self, html: str, asset_scope=None, extra_static_roots=None) -> str:
-        """HTML 내 로컬 CSS/JS URL에 콘텐츠 해시 v= 쿼리를 추가."""
+        """Add a content-hash v= query to local CSS/JS URLs in the HTML (icon sprite references included)."""
         def _replace_url(match):
             prefix = match.group("prefix")
             raw_url = match.group("url")
@@ -566,7 +711,7 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
             except (OSError, PermissionError):
                 return match.group(0)
 
-            # 기존 쿼리 파싱 → v, m 제거 후 재구성
+            # Rebuild the query without any existing v and m
             params = [(k, v) for k, v in parse_qsl(parts.query) if k not in ("v", "m")]
             if is_module_local and asset_scope:
                 params.append(("m", asset_scope))
@@ -575,16 +720,15 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
             new_url = urlunsplit(("", "", url_path, new_query, ""))
             return f"{prefix}{new_url}{suffix}"
 
-        return self._ASSET_ATTR_RE.sub(_replace_url, html)
+        return self._render_sprite_refs(self._ASSET_ATTR_RE.sub(_replace_url, html))
 
     def send_html_no_cache(self, html: str, status: int = 200):
-        """HTML 응답 + Cache-Control: no-cache."""
+        """HTML response with Cache-Control: no-cache."""
         data = html.encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Content-Length", str(len(data)))
         self.send_header("Cache-Control", "no-cache")
-        self.send_header("Access-Control-Allow-Origin", "*")
         self.end_headers()
         if self._is_head_request():
             return
@@ -592,30 +736,29 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
 
 
     def start_sse(self):
-        """SSE 응답 헤더 전송. 이후 send_sse()로 이벤트 전송."""
+        """Send SSE response headers. Events follow via send_sse()."""
         self.send_response(200)
         self.send_header("Content-Type", "text/event-stream")
         self.send_header("Cache-Control", "no-cache")
         self.send_header("X-Accel-Buffering", "no")
-        self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Transfer-Encoding", "chunked")
         self.end_headers()
         self._sse_chunked = True
 
     def _write_chunk(self, data: bytes):
-        """HTTP/1.1 chunked transfer-encoding으로 한 프레임 기록 후 flush."""
+        """Write one HTTP/1.1 chunked transfer-encoding frame and flush."""
         self.wfile.write(f"{len(data):x}\r\n".encode("ascii"))
         self.wfile.write(data)
         self.wfile.write(b"\r\n")
         self.wfile.flush()
 
     def _end_chunked(self):
-        """종단 청크(0\\r\\n\\r\\n) 전송."""
+        """Send the terminating chunk (0\\r\\n\\r\\n)."""
         self.wfile.write(b"0\r\n\r\n")
         self.wfile.flush()
 
     def end_sse(self):
-        """SSE 스트림 종료. chunked 모드일 때 종단 청크 전송 (멱등)."""
+        """End the SSE stream. In chunked mode, send the terminating chunk (idempotent)."""
         if not getattr(self, "_sse_chunked", False):
             return
         self._sse_chunked = False
@@ -625,9 +768,9 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
             pass
 
     def send_sse(self, event: str, data):
-        """SSE 이벤트 전송. data는 자동으로 JSON 직렬화.
+        """Send an SSE event. data is JSON-serialized automatically.
 
-        BrokenPipeError / ConnectionResetError 시 False 반환.
+        Returns False on BrokenPipeError / ConnectionResetError.
         """
         try:
             if not isinstance(data, str):
@@ -643,7 +786,7 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
             return False
 
     def send_sse_data(self, data):
-        """event 없이 data만 전송 (기존 패턴 호환)."""
+        """Send data without an event name."""
         try:
             if not isinstance(data, str):
                 data = json.dumps(data, ensure_ascii=False, default=str)
@@ -659,7 +802,7 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
 
 
     def cache_get(self, prefix: str, data: dict):
-        """SHA256 해시 키로 캐시 조회. TTL 만료 시 None."""
+        """Look up the cache by SHA-256 key. None when missing or past the TTL."""
         if not self.cache_enabled:
             return None
         key = self._make_cache_key(prefix, data)
@@ -674,7 +817,7 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
             return result
 
     def cache_set(self, prefix: str, data: dict, result):
-        """캐시 저장 + LRU 제거 (max 초과 시)."""
+        """Store in the cache, evicting the oldest entry when full."""
         if not self.cache_enabled:
             return
         key = self._make_cache_key(prefix, data)
@@ -685,14 +828,14 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
             self._cache[key] = (result, time.time())
 
     def cache_clear(self):
-        """전체 캐시 무효화."""
+        """Invalidate the whole cache."""
         with self._cache_lock:
             count = len(self._cache)
             self._cache.clear()
             return count
 
     def cache_stats(self) -> dict:
-        """캐시 통계 반환."""
+        """Cache statistics."""
         with self._cache_lock:
             return {
                 "cached_entries": len(self._cache),
@@ -701,7 +844,7 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
             }
 
     def send_cached_json(self, prefix: str, data: dict, producer):
-        """캐시된 결과가 있으면 반환, 없으면 producer()를 실행하고 캐시."""
+        """Send the cached result, or run producer(), cache it and send that."""
         cached = self.cache_get(prefix, data)
         if cached is not None:
             self.send_json(cached)
@@ -718,15 +861,15 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
 
     @staticmethod
     def is_safe_path(path: str, allowed_dir: str | Path | None = None) -> bool:
-        """경로가 allowed_dir 범위 안에 있는지 검증.
+        """Whether path lies inside allowed_dir.
 
-        allowed_dir가 None이면 path가 유효한지만 검사
-        (상대경로 트래버설 '..' 검출).
+        When allowed_dir is None, only check that path is valid
+        (no '..' traversal).
         """
         try:
             if allowed_dir is not None:
                 return _shared_is_safe_path(path, [allowed_dir])
-            # allowed_dir 없으면 '..' 없는지 확인 (resolve()로 null-byte 등 무효 경로도 거부)
+            # No allowed_dir: reject '..' (resolve() also rejects invalid paths such as a null byte)
             Path(path).resolve()
             return ".." not in Path(path).parts
         except (ValueError, OSError):
@@ -734,7 +877,7 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
 
     @staticmethod
     def sanitize_id(value: str) -> str | None:
-        """안전한 ID 검증: [a-zA-Z0-9_-]만 허용. 실패 시 None."""
+        """Validate a safe id: letters, digits, '_', '-', '.' only. None when invalid."""
         if value and re.match(r'^[a-zA-Z0-9_.-]+$', value):
             return value
         return None
@@ -746,6 +889,7 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
         "/api/chat/config/test",
         "/api/chat/local/models",
         "/api/chat/knowledge/refresh",
+        "/api/studio/agent",
     ))
 
     # Providers that need no API key: local/self-hosted runtimes + CLI-backed agents
@@ -753,7 +897,7 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
     _KEYLESS_PROVIDERS = frozenset(("local", "agent-cli"))
 
     def _effective_request_origin(self) -> tuple[str, str]:
-        """현재 요청의 외부 origin(scheme, netloc)을 reverse proxy 헤더까지 반영해 계산."""
+        """External origin (scheme, netloc) of the current request, honouring reverse-proxy headers."""
         host = self.headers.get("Host", "").split(",", 1)[0].strip().lower()
         forwarded_host = self.headers.get(
             "X-Forwarded-Host", ""
@@ -801,21 +945,23 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
         return host in {"127.0.0.1", "localhost", "::1"}
 
     def do_OPTIONS(self):
-        """CORS preflight 204 응답."""
+        """Preflight — same-origin only. A cross origin gets 403; no CORS allow headers are sent."""
         self._parse_request_url()
+        if not self._host_ok():
+            return self._refuse_host()
+        origin = self.headers.get("Origin", "")
+        if origin and not self._url_matches_effective_origin(origin):
+            return self._refuse_cross_origin()
         self.send_response(204)
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Methods",
-                         "GET, POST, PUT, PATCH, DELETE, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers",
-                         "Content-Type, X-Lab-Token, X-DX-Api-Token, Authorization")
+        self.send_header("Allow", "GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS")
+        self.send_header("Content-Length", "0")
         self.end_headers()
 
     def _check_same_origin(self) -> bool:
-        """Origin/Referer가 있으면 same-origin인지 확인. 없으면 True(허용).
+        """When Origin/Referer is present, check it is same-origin. When absent, True (allowed).
 
-        브라우저 origin 기준에 맞춰 scheme + netloc을 모두 비교한다.
-        reverse proxy에서는 X-Forwarded-Proto/Host를 외부 origin으로 사용한다.
+        Compares scheme and netloc, as browsers define an origin.
+        Behind a reverse proxy, X-Forwarded-Proto/Host give the external origin.
         """
         origin = self.headers.get("Origin", "")
         if origin:
@@ -823,11 +969,71 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
         referer = self.headers.get("Referer", "")
         if referer:
             return self._url_matches_effective_origin(referer)
-        # Origin/Referer 없음 (curl 등) → 허용
+        # No Origin/Referer (curl and the like) → allowed
         return True
 
-    def _enforce_auth(self) -> bool:
-        """Optional API token gate when DX_API_TOKEN is set."""
+    # ── Remote access ────────────────────────────────────────────────────────
+    # The launcher sets shared.remote_access.RemoteAccess (pairing, sessions). Module servers leave it None.
+    remote_access = None
+
+    def _peer_ip(self) -> str:
+        try:
+            return self.client_address[0]
+        except (AttributeError, IndexError, TypeError):
+            return ""
+
+    @staticmethod
+    def _proxy_secret() -> str:
+        """Secret the launcher passes only through the child env; proxied requests carry it in X-DX-Proxy."""
+        return os.environ.get("DX_PROXY_SECRET", "")
+
+    def _is_local(self) -> bool:
+        """A request made directly on this machine — local use needs no authentication.
+
+        The peer must be loopback with no X-Forwarded-For (a reverse proxy on the same machine counts as remote).
+        Requests the launcher proxies carry X-Forwarded-For, but a matching X-DX-Proxy secret means the launcher
+        already authenticated them."""
+        ip = self._peer_ip().split("%", 1)[0]
+        try:
+            addr = ipaddress.ip_address(ip)
+            if getattr(addr, "ipv4_mapped", None):
+                addr = addr.ipv4_mapped
+            loopback = addr.is_loopback
+        except ValueError:
+            loopback = False
+        if not loopback:
+            return False
+        if self.headers.get("X-Forwarded-For") or self.headers.get("Forwarded"):
+            secret = self._proxy_secret()
+            return bool(secret) and hmac.compare_digest(
+                self.headers.get("X-DX-Proxy", "").encode("utf-8"), secret.encode("utf-8"))
+        return True
+
+    def _host_ok(self) -> bool:
+        """Block DNS rebinding — any IP Host is allowed; names must be localhost, this machine or DX_ALLOWED_HOSTS."""
+        from shared.remote_access import host_allowed
+        return host_allowed(self.headers.get("Host", ""))
+
+    def _origin_ok(self, require: bool = False) -> bool:
+        """Whether Origin (else Referer) is same-origin. With neither, ``not require``."""
+        origin = self.headers.get("Origin", "")
+        if origin:
+            return self._url_matches_effective_origin(origin)
+        referer = self.headers.get("Referer", "")
+        if referer:
+            return self._url_matches_effective_origin(referer)
+        return not require
+
+    def _refuse_host(self):
+        self.send_error_json(403, "Host not allowed")
+
+    def _refuse_cross_origin(self):
+        self.send_error_json(403, "Cross-origin request refused")
+
+    def _is_state_changing(self) -> bool:
+        return self.command in ("POST", "PUT", "PATCH", "DELETE")
+
+    def _token_ok(self) -> bool:
         token = _configured_api_token()
         if not token:
             return False
@@ -838,16 +1044,103 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
 
         auth = self.headers.get("Authorization", "")
         if auth.startswith("Bearer ") and _eq(auth[7:].strip()):
-            return False
-        if _eq(self.headers.get("X-DX-Api-Token", "").strip()):
-            return False
+            return True
+        return _eq(self.headers.get("X-DX-Api-Token", "").strip())
+
+    def _remote(self):
+        return type(self).remote_access
+
+    def _session(self):
+        ra = self._remote()
+        if ra is None:
+            return None
+        token = ra.cookie_value(self.headers.get("Cookie", ""))
+        return ra.sessions.valid(token) if token else None
+
+    def _auth_exempt(self) -> bool:
+        """Paths reachable remotely without authentication (launcher: pairing screen, code entry)."""
+        return False
+
+    def _send_unauthorized(self):
         self.send_error_json(401, "Unauthorized")
+
+    def _enforce_auth(self) -> bool:
+        """True when the request was refused. Local passes; remote needs DX_API_TOKEN or a pairing session (cookie)."""
+        self.auth_kind = None
+        if self._is_local():
+            self.auth_kind = "local"
+            return False
+        if self._token_ok():
+            self.auth_kind = "token"
+            return False
+        session = self._session()
+        if session:
+            # Browsers attach cookies on their own, so a state-changing request must be same-origin (CSRF)
+            if self._is_state_changing() and not self._origin_ok(require=True):
+                self._refuse_cross_origin()
+                return True
+            self.auth_kind = "session"
+            self.auth_session = session
+            return False
+        if self._auth_exempt():
+            return False
+        self._send_unauthorized()
         return True
 
-
     def _dispatch_request(self):
-        """URL 파싱 후 route() 호출."""
+        """Parse the URL and call route(). Any unread body is drained after the response (`_BodyCounter`)."""
+        length, chunked = self._declared_body()
+        counter = None
+        if length > 0 and not chunked:
+            counter = self.rfile = _BodyCounter(self.rfile)
+        try:
+            self._dispatch_checked()
+        finally:
+            if counter is not None:
+                self.rfile = counter.raw
+                self._drain_unread(length - counter.count)
+            elif chunked or length < 0:
+                self.close_connection = True
+
+    def _declared_body(self):
+        te = (self.headers.get("Transfer-Encoding") or "").lower()
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+        except (TypeError, ValueError):
+            length = -1
+        return length, "chunked" in te
+
+    # Refusals (401, 403) and handlers that ignore the body (logout, …) never read it. Left on a keep-alive
+    # connection, those bytes prefix the next request line (`{}GET / HTTP/1.1`) and it fails with 501. Drain them
+    # here once instead of in every handler; when large (a refused upload), close the connection instead.
+    _DRAIN_MAX = 1024 * 1024
+
+    def _drain_unread(self, left: int) -> None:
+        if left <= 0:
+            return
+        if left > self._DRAIN_MAX:
+            self.close_connection = True
+            return
+        try:
+            while left > 0:
+                chunk = self.rfile.read(min(65536, left))
+                if not chunk:
+                    break
+                left -= len(chunk)
+        except OSError:
+            self.close_connection = True
+            return
+        if left > 0:
+            self.close_connection = True
+
+    def _dispatch_checked(self):
         self._parse_request_url()
+        if not self._host_ok():
+            return self._refuse_host()
+        # Refuse state-changing cross-origin requests even when local — CSRF from a malicious page in a browser on
+        # the board aimed at 127.0.0.1
+        if self._is_state_changing() and not self._origin_ok():
+            return self._refuse_cross_origin()
         if self._enforce_auth():
             return
         try:
@@ -889,13 +1182,13 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
         self._dispatch_request()
 
     def route(self):
-        """서브클래스에서 오버라이드하여 앱 라우트 정의."""
+        """Override in a subclass to define the app's routes."""
         if self.route_common():
             return
         self.route_legacy()
 
     def route_common(self) -> bool:
-        """공통 GET 라우트 처리. 처리했으면 True, 아니면 False.
+        """Handle the common GET routes. True when handled, otherwise False.
 
         Handles:
           GET / or /index.html
@@ -934,7 +1227,7 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
     _shared_static = Path(__file__).parent / "static"
 
     def serve_shared_static(self, rel_path: str):
-        """shared/static/ 우선, shared/chat/static/ fallback."""
+        """shared/static/ first, shared/chat/static/ as fallback."""
         candidate = (self._shared_static / rel_path).resolve()
         if (self._path_is_within(candidate, self._shared_static.resolve())
                 and candidate.is_file()):
@@ -944,7 +1237,7 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
         self.serve_static(rel_path, base_dir=self._shared_chat_static)
 
     def send_sse_stream(self, token_generator):
-        """Generator[str]를 SSE로 스트리밍. 각 토큰을 data json으로 전송."""
+        """Stream a Generator[str] as SSE, each token as a JSON data event."""
         self.start_sse()
         try:
             for token in token_generator:
@@ -957,14 +1250,14 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
             self.end_sse()
 
     def handle_chat_routes(self, chat_engine):
-        """공통 채팅 라우트 처리. True 반환 시 처리됨.
+        """Handle the common chat routes. Returns True when handled.
 
         Routes:
-          GET  /api/chat/config → 설정 상태
-          POST /api/chat → SSE 스트리밍 응답
-          POST /api/chat/config → 설정 저장
-          POST /api/chat/config/test → 연결 테스트
-          GET  /static/shared/* → shared static 파일
+          GET  /api/chat/config → config status
+          POST /api/chat → SSE streaming response
+          POST /api/chat/config → save config
+          POST /api/chat/config/test → connection test
+          GET  /static/shared/* → shared static files
 
         Cross-origin requests to chat routes are rejected with 403.
 
@@ -987,6 +1280,25 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
 
         if method == "GET" and self.url_path == "/api/chat/config":
             self.send_json(chat_engine.get_config_status())
+            return True
+
+        # DELETE /api/chat/config — forget the saved choice; Chat follows the Studio agent again
+        if method == "DELETE" and self.url_path == "/api/chat/config":
+            from shared.chat.config import delete_config
+            delete_config()
+            self.send_json({"ok": True})
+            return True
+
+        # POST /api/studio/agent — the agent Home · Agent Dev picked; Chat answers through it when nothing is saved
+        if method == "POST" and self.url_path == "/api/studio/agent":
+            data = self.read_json_body()
+            from shared import agent_cli
+            try:
+                agent_cli.set_studio_agent(data.get("agent"), data.get("model") or None)
+            except ValueError as e:
+                self.send_error_json(400, str(e))
+                return True
+            self.send_json({"ok": True})
             return True
 
         # POST /api/chat/knowledge/refresh → regenerate SDK knowledge from the live .deepx
@@ -1031,6 +1343,12 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
             api_key = data.get("api_key", "").strip() if isinstance(data.get("api_key"), str) else ""
             model = data.get("model", "").strip() if isinstance(data.get("model"), str) else ""
             key_required = provider not in self._KEYLESS_PROVIDERS
+            if key_required and not api_key:
+                # The field shows the saved key masked; left blank, it means "keep the saved key".
+                from shared.chat.config import load_config
+                prev = load_config() or {}
+                if prev.get("provider") == provider and prev.get("api_key"):
+                    api_key = prev["api_key"]
             if not provider or not model or (key_required and not api_key):
                 fields = "provider, model" + (", api_key" if key_required else "")
                 self.send_error_json(400, f"{fields} are required")
@@ -1046,6 +1364,14 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
             from shared.chat.config import save_config
             endpoint_value = data.get("endpoint")
             endpoint = endpoint_value.strip() or None if isinstance(endpoint_value, str) else None
+            # Save only what answers — unless the user asks to save anyway (the network may be down right now).
+            tested = data.get("force") is not True
+            response = None
+            if tested:
+                ok, response, etype = self._probe_chat(provider, api_key, model, endpoint)
+                if not ok:
+                    self.send_json({"ok": False, "tested": True, "error": response, "error_type": etype})
+                    return True
             save_config(
                 provider=provider,
                 api_key=api_key,
@@ -1053,7 +1379,8 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
                 endpoint=endpoint,
                 temperature=temperature,
             )
-            self.send_json({"ok": True})
+            self.send_json({"ok": True, "tested": True, "response": response} if tested
+                           else {"ok": True, "tested": False})
             return True
 
         # POST /api/chat/config/test — test connection
@@ -1067,27 +1394,31 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
                 fields = "provider, model" + (", api_key" if key_required else "")
                 self.send_error_json(400, f"{fields} are required")
                 return True
-            from shared.chat.providers import stream_chat, ChatAPIError
             endpoint_value = data.get("endpoint")
             endpoint = endpoint_value.strip() or None if isinstance(endpoint_value, str) else None
-            try:
-                messages = [{"role": "user", "content": "Hello, respond with just 'OK'."}]
-                tokens = list(stream_chat(
-                    provider=provider, api_key=api_key, model=model,
-                    messages=messages,
-                    endpoint=endpoint,
-                    temperature=0.1,
-                ))
-                response = "".join(tokens)
-                self.send_json({"ok": True, "response": response[:200]})
-            except ChatAPIError as e:
-                self.send_json({"ok": False, "error": str(e), "error_type": e.error_type})
-            except Exception as e:
-                self.send_json({"ok": False, "error": str(e), "error_type": "unknown"})
+            ok, response, etype = self._probe_chat(provider, api_key, model, endpoint)
+            if ok:
+                self.send_json({"ok": True, "response": response})
+            else:
+                self.send_json({"ok": False, "error": response, "error_type": etype})
             return True
 
         return False
 
+
+    @staticmethod
+    def _probe_chat(provider, api_key, model, endpoint):
+        """One short request through the provider. Returns (ok, response_or_error, error_type)."""
+        from shared.chat.providers import stream_chat, ChatAPIError
+        try:
+            tokens = list(stream_chat(provider=provider, api_key=api_key, model=model,
+                                      messages=[{"role": "user", "content": "Hello, respond with just 'OK'."}],
+                                      endpoint=endpoint, temperature=0.1))
+            return True, "".join(tokens)[:200], None
+        except ChatAPIError as e:
+            return False, str(e), e.error_type
+        except Exception as e:  # noqa: BLE001 — reported to the user, not raised
+            return False, str(e), "unknown"
 
     def log_message(self, fmt, *args):
         if self.log_silent:
@@ -1101,7 +1432,7 @@ class DXBaseHandler(SimpleHTTPRequestHandler):
 
 
 class _DualStackHTTPServer(ThreadingHTTPServer):
-    """IPv4 + IPv6 dual-stack 서버 (localhost에서 ::1, 127.0.0.1 모두 동작)."""
+    """IPv4 + IPv6 dual-stack server (localhost works as both ::1 and 127.0.0.1)."""
     address_family = socket.AF_INET6
     allow_reuse_address = True
     daemon_threads = True
@@ -1112,16 +1443,18 @@ class _DualStackHTTPServer(ThreadingHTTPServer):
 
 
 class DXServer:
-    """서버 생성·시작 래퍼: CLI 파싱, IPv6 듀얼스택, 포트 충돌 해결, 시그널 핸들링."""
+    """Creates and starts a server: CLI parsing, IPv6 dual stack, port conflicts, signal handling."""
 
     def __init__(self, handler_class, name: str, default_port: int):
         self.handler_class = handler_class
         self.name = name
         self.default_port = default_port
         self._server = None
+        self._shutdown_lock = threading.Lock()
+        self._shutdown_requested = False
 
     def start(self):
-        """CLI 파싱 → 서버 생성 → 시그널 등록 → serve_forever."""
+        """Parse the CLI → create the server → register signals → serve_forever."""
         args = self._parse_args()
         port = args.port
 
@@ -1178,8 +1511,13 @@ class DXServer:
         return parser.parse_args()
 
     def _create_server(self, port: int, max_attempts: int = 5):
-        """IPv6 듀얼스택 우선, 실패 시 IPv4 폴백. 포트 충돌 시 재시도."""
+        """IPv6 dual stack first, IPv4 as fallback. Retries on a port conflict."""
         bind_host = _resolve_bind_host()
+        if not _is_loopback_host(bind_host) and not _configured_api_token():
+            # Never listen remotely without authentication. Modules default to loopback behind the launcher.
+            print(f"  [{self.name}] ERROR: refusing to listen on {bind_host} without DX_API_TOKEN "
+                  "(set DX_API_TOKEN, or use the launcher which pairs remote browsers).")
+            return None
         for attempt in range(max_attempts):
             # port 0 → OS picks a guaranteed-free port; never force-free / probe it.
             if port != 0 and (self._is_port_open(port) or attempt > 0):
@@ -1200,13 +1538,13 @@ class DXServer:
                     print(f"  [{self.name}] Bind failed ({e}), retrying...")
                     continue
 
-            # IPv6 듀얼스택 시도
+            # Try IPv6 dual stack
             try:
                 return _DualStackHTTPServer(("::", port), self.handler_class)
             except OSError:
                 pass
 
-            # IPv4 폴백
+            # IPv4 fallback
             try:
                 srv = ThreadingHTTPServer(("0.0.0.0", port), self.handler_class)
                 srv.allow_reuse_address = True
@@ -1221,11 +1559,17 @@ class DXServer:
         return None
 
     def _register_signals(self):
+        # Signal handlers run on the main thread, where serve_forever() runs. Calling shutdown() here
+        # deadlocks: shutdown() waits for serve_forever() to finish, which waits for this handler, and the
+        # server survives SIGTERM as an orphan. Handing shutdown() to another thread lets serve_forever()
+        # return, start() finish and the process exit.
         def _shutdown(*_):
             print(f"\n  [{self.name}] Shutting down...")
-            if self._server:
-                self._server.shutdown()
-            sys.exit(0)
+            with self._shutdown_lock:
+                if self._shutdown_requested or self._server is None:
+                    return
+                self._shutdown_requested = True
+                threading.Thread(target=self._server.shutdown, name=f"{self.name}-shutdown", daemon=True).start()
 
         signal.signal(signal.SIGINT, _shutdown)
         signal.signal(signal.SIGTERM, _shutdown)

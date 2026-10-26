@@ -19,6 +19,7 @@ class _BodyHandler(DXBaseHandler):
 
 def _handler(method="POST", headers=None, body=b"{}"):
     h = _BodyHandler.__new__(_BodyHandler)
+    h.client_address = ("127.0.0.1", 5555)   # local request; remote auth is in tests/shared/test_remote_access.py
     h.command = method
     h.path = "/api/test"
     h.rfile = io.BytesIO(body)
@@ -104,6 +105,7 @@ def test_dispatch_converts_unexpected_handler_error_to_500():
             raise RuntimeError("boom")
 
     h = _BoomHandler.__new__(_BoomHandler)
+    h.client_address = ("127.0.0.1", 5555)
     h.command = "POST"
     h.path = "/api/test"
     h.rfile = io.BytesIO(b"{}")

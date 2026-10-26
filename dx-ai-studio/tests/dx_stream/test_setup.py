@@ -1,4 +1,4 @@
-"""setup.py 테스트 — step 정의, 상태 확인, 스크립트 경로"""
+"""setup.py — step definitions, status checks, script paths"""
 import sys, pytest
 from pathlib import Path
 from types import SimpleNamespace
@@ -9,13 +9,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "dx_strea
 
 class TestSetupSteps:
     def test_install_model_registers_step(self):
-        """install_model()이 SETUP_STEPS에 동적 스텝을 등록하는지 확인"""
+        """install_model() registers a dynamic step in SETUP_STEPS"""
         from core.setup import SETUP_STEPS
         from core.setup import install_model
         assert callable(install_model)
 
     def test_run_step_supports_args(self):
-        """run_step()이 step에 args 키가 있으면 인자를 전달하는지 확인"""
+        """run_step() passes arguments when the step has an args key"""
         from core.setup import SETUP_STEPS
         SETUP_STEPS["_test_echo"] = {
             "label_ko": "테스트",
@@ -30,8 +30,8 @@ class TestSetupSteps:
     def test_all_core_setup_steps_have_post_routes(self):
         """Every core setup step must have a POST route in server.py.
 
-        Regression guard: the 'stream-deps' step was added to SETUP_STEPS + the UI
-        without a server route, so clicking Install 404'd (no run, no logs).
+        A step in SETUP_STEPS and the UI without a server route would make Install
+        return 404 (no run, no logs).
         """
         import re
         root = Path(__file__).resolve().parent.parent.parent / "dx_stream"
@@ -198,8 +198,26 @@ class TestSetupSteps:
         assert isinstance(status, dict)
         assert "build" in status
         assert "download-models" in status
-        for v in status.values():
+        for k, v in status.items():
+            if k == "running":          # the step still running (name or None), not a step state
+                assert v is None or isinstance(v, str)
+                continue
             assert "ok" in v
+
+    def test_setup_assets_require_local_completion_evidence(self, monkeypatch):
+        from core import setup
+        monkeypatch.setattr("dx_stream.core.status._check_models", lambda: {"ok": True})
+        calls = []
+
+        def local_status(component, sdk_root=None):
+            calls.append((component, sdk_root))
+            return {"ok": False, "detail": "Unverified legacy assets"}
+
+        monkeypatch.setattr(setup, "sample_assets_status", local_status, raising=False)
+        result = setup.get_setup_status()["download-models"]
+        assert result["ok"] is False
+        assert "unverified" in result["detail"].lower()
+        assert calls == [("stream", setup.DX_STREAM_ROOT)]
 
 
 class TestSetupLog:
@@ -258,34 +276,49 @@ class TestStopAndOpts:
 
         assert cmd == ["bash", str(script), "--clean", "--type=Release"]
 
-    def test_download_models_uses_full_setup(self, monkeypatch, tmp_path):
+    def test_download_models_uses_studio_asset_setup(self):
         from core import setup
-
-        script = tmp_path / "setup.sh"
-        script.write_text("#!/bin/sh\n", encoding="utf-8")
-        monkeypatch.setitem(setup.SETUP_STEPS, "download-models", {
-            "label_ko": "테스트",
-            "label_en": "Test",
-            "script": lambda: script,
-            "cwd": lambda: tmp_path,
-        })
+        from shared.paths import STUDIO_ROOT
 
         cmd = setup.build_command_args("download-models", opts={"models": True, "videos": False})
 
-        assert cmd == ["bash", str(script)]
-        assert "--models-only" not in cmd
-        assert "--videos-only" not in cmd
+        assert cmd == [sys.executable, "-m", "shared.asset_setup", "stream"]
+        assert setup.SETUP_STEPS["download-models"]["cwd"]() == STUDIO_ROOT
 
     def test_single_model_command_args_produces_model_flag(self, monkeypatch, tmp_path):
         from core import setup
-
-        script = tmp_path / "setup.sh"
-        script.write_text("#!/bin/sh\n", encoding="utf-8")
+        (tmp_path / "model_list.json").write_text(
+            '{"version":"2_4_0","models":["yolo26n.dxnn"]}')
+        (tmp_path / "setup_sample_models.sh").write_text(
+            'BASE_URL="https://sdk.deepx.ai/modelzoo/dxnn"\n')
         monkeypatch.setattr(setup, "DX_STREAM_ROOT", tmp_path)
 
         cmd = setup.single_model_command_args("yolo26n.dxnn")
 
-        assert cmd == ["bash", str(script), "--model=yolo26n.dxnn"]
+        assert cmd == [sys.executable, "-m", "shared.asset_setup", "stream", "--model", "yolo26n.dxnn"]
+
+    @pytest.mark.parametrize("name", [None, "../unknown", "unknown.dxnn", "x" * 256])
+    def test_single_unknown_model_refused_before_worker(self, monkeypatch, tmp_path, name):
+        from core import setup
+        (tmp_path / "model_list.json").write_text(
+            '{"version":"2_4_0","models":["tiny.dxnn"]}')
+        (tmp_path / "setup_sample_models.sh").write_text(
+            'BASE_URL="https://sdk.deepx.ai/modelzoo/dxnn"\n')
+        monkeypatch.setattr(setup, "DX_STREAM_ROOT", tmp_path)
+        monkeypatch.setattr(setup, "run_step", lambda *args: pytest.fail("must not start"))
+        with pytest.raises(ValueError, match="[Mm]odel"):
+            setup.install_model(name)
+
+    def test_single_model_worker_runs_from_studio_root(self, monkeypatch):
+        from core import setup
+        from shared.paths import STUDIO_ROOT
+        monkeypatch.setattr(setup, "single_model_command_args",
+                            lambda name: [sys.executable, "-m", "shared.asset_setup", "stream", "--model", name])
+        seen = []
+        monkeypatch.setattr(setup, "run_step",
+                            lambda step: seen.append(setup.SETUP_STEPS[step]["cwd"]()))
+        setup.install_model("tiny.dxnn")
+        assert seen == [STUDIO_ROOT]
 
     def test_build_opts_debug_uses_equals_type(self, monkeypatch, tmp_path):
         from core import setup
@@ -557,3 +590,67 @@ class TestManagedRuntimeWorker:
         assert "[ERROR] reconcile failed" in state["log"]
         assert cleanup_calls == [True]
         assert setup._running_proc is None
+
+
+def test_setup_status_names_the_step_that_is_still_running(monkeypatch):
+    """Leaving Setup (or changing language) stops the page's log poll; coming back it must learn
+    from the server which step is still running, or the install looks idle while it runs on."""
+    from dx_stream.core import setup as SU
+
+    monkeypatch.setattr(SU, "_step_logs", {
+        "build": {"log": "done", "done": True, "exit_code": 0},
+        "download-models": {"log": "Downloading 3/17", "done": False, "exit_code": None},
+    })
+    monkeypatch.setattr("dx_stream.core.status._check_build", lambda: {"ok": True})
+    monkeypatch.setattr("dx_stream.core.status._check_models", lambda: {"ok": False})
+    assert SU.get_setup_status()["running"] == "download-models"
+    monkeypatch.setattr(SU, "_step_logs", {"build": {"log": "", "done": True, "exit_code": 0}})
+    assert SU.get_setup_status()["running"] is None
+
+
+class TestStopStep:
+    """Stop said "Stop failed" for the runtime/driver steps (they run in a thread, there is no
+    process to stop), and for script steps it terminated only the shell — wget / meson / apt children
+    kept running."""
+
+    def test_a_thread_step_answers_that_it_cannot_be_stopped(self, monkeypatch):
+        from dx_stream.core import setup as SU
+        monkeypatch.setattr(SU, "_running_proc", True)
+        r = SU.stop_step()
+        assert r["ok"] is False and r["error"] == "not_stoppable" and "finishes on its own" in r["message"]
+
+    def test_a_script_step_is_stopped_with_its_children(self, monkeypatch):
+        import signal
+        from dx_stream.core import setup as SU
+
+        class _Proc:
+            pid = 4242
+            def poll(self):
+                return None
+            def terminate(self):
+                raise AssertionError("only the shell would stop")
+
+        killed = []
+        monkeypatch.setattr(SU, "_running_proc", _Proc())
+        monkeypatch.setattr(SU.os, "getpgid", lambda pid: pid, raising=False)
+        monkeypatch.setattr(SU.os, "killpg", lambda pg, sig: killed.append((pg, sig)), raising=False)
+        monkeypatch.setattr(SU, "_step_logs", {"build": {"log": "", "done": False, "exit_code": None}})
+        assert SU.stop_step()["ok"] is True
+        assert killed == [(4242, signal.SIGTERM)]
+        assert SU._step_logs["build"]["exit_code"] == 130
+
+
+def test_script_steps_start_in_their_own_process_group():
+    import inspect
+    from dx_stream.core import setup as SU
+    assert "start_new_session=True" in inspect.getsource(SU.run_step)
+
+
+def test_stream_model_count_includes_present_unverified_files(monkeypatch):
+    """A model file without a Studio record is installed (counted) and flagged unverified."""
+    from core import setup
+    monkeypatch.setattr(setup, "sample_assets_status", lambda *a, **k: {
+        "ok": True, "verified": False, "detail": "models 2/2 (1 unverified)",
+        "models": {"total": 2, "verified": 1, "unverified": 1, "missing": 0}})
+    result = setup.get_setup_status()["download-models"]
+    assert result["installed"] == 2 and result["total"] == 2 and result["unverified"] == 1

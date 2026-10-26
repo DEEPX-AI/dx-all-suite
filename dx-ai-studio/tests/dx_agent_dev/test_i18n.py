@@ -1,6 +1,6 @@
-"""dx_agent_dev 정적 i18n 계약(범위 축소판 — 콘솔 동적 키만).
+"""dx_agent_dev static i18n contract (narrowed to the console's dynamic keys).
 
-dx_monitor/test_i18n.py 구조를 따르되 콘솔이 사용하는 T() 키만 검증한다.
+Follows dx_monitor/test_i18n.py but checks only the T() keys the console uses.
 """
 import re
 from pathlib import Path

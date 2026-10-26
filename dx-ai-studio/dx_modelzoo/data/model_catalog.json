@@ -9,7 +9,16 @@
       "label_es": "Detección de objetos",
       "label_zh-CN": "目标检测",
       "label_zh-TW": "物件偵測",
-      "icon": "🎯"
+      "icon": "task-object_detection"
+    },
+    "mainbody_detection": {
+      "label_en": "Main-body Detection",
+      "label_ko": "주요 객체 탐지",
+      "label_ja": "主要物体検出",
+      "label_es": "Detección del objeto principal",
+      "label_zh-CN": "主体检测",
+      "label_zh-TW": "主體偵測",
+      "icon": "task-mainbody_detection"
     },
     "classification": {
       "label_en": "Classification",
@@ -18,7 +27,7 @@
       "label_es": "Clasificación",
       "label_zh-CN": "分类",
       "label_zh-TW": "分類",
-      "icon": "🏷️"
+      "icon": "task-classification"
     },
     "ppu": {
       "label_en": "PPU",
@@ -27,7 +36,7 @@
       "label_es": "PPU",
       "label_zh-CN": "PPU",
       "label_zh-TW": "PPU",
-      "icon": "⚙️"
+      "icon": "task-ppu"
     },
     "instance_segmentation": {
       "label_en": "Instance Segmentation",
@@ -36,7 +45,7 @@
       "label_es": "Segmentación de instancias",
       "label_zh-CN": "实例分割",
       "label_zh-TW": "實例分割",
-      "icon": "🎨"
+      "icon": "task-instance_segmentation"
     },
     "face_detection": {
       "label_en": "Face Detection",
@@ -45,7 +54,7 @@
       "label_es": "Detección de rostros",
       "label_zh-CN": "人脸检测",
       "label_zh-TW": "人臉偵測",
-      "icon": "👤"
+      "icon": "task-face_detection"
     },
     "pose_estimation": {
       "label_en": "Pose Estimation",
@@ -54,7 +63,7 @@
       "label_es": "Estimación de pose",
       "label_zh-CN": "姿态估计",
       "label_zh-TW": "姿態估計",
-      "icon": "🏃"
+      "icon": "task-pose_estimation"
     },
     "semantic_segmentation": {
       "label_en": "Semantic Segmentation",
@@ -63,7 +72,7 @@
       "label_es": "Segmentación semántica",
       "label_zh-CN": "语义分割",
       "label_zh-TW": "語意分割",
-      "icon": "🖌️"
+      "icon": "task-semantic_segmentation"
     },
     "image_denoising": {
       "label_en": "Image Denoising",
@@ -72,7 +81,7 @@
       "label_es": "Eliminación de ruido de imagen",
       "label_zh-CN": "图像去噪",
       "label_zh-TW": "影像去噪",
-      "icon": "✨"
+      "icon": "task-image_denoising"
     },
     "obb_detection": {
       "label_en": "OBB Detection",
@@ -81,7 +90,7 @@
       "label_es": "Detección OBB",
       "label_zh-CN": "OBB检测",
       "label_zh-TW": "OBB偵測",
-      "icon": "📐"
+      "icon": "task-obb_detection"
     },
     "reid": {
       "label_en": "Re-Identification",
@@ -90,7 +99,7 @@
       "label_es": "Reidentificación",
       "label_zh-CN": "重识别",
       "label_zh-TW": "重新識別",
-      "icon": "🔎"
+      "icon": "task-reid"
     },
     "embedding": {
       "label_en": "Embedding",
@@ -99,7 +108,7 @@
       "label_es": "Embedding",
       "label_zh-CN": "嵌入",
       "label_zh-TW": "嵌入",
-      "icon": "🔗"
+      "icon": "task-embedding"
     },
     "attribute_recognition": {
       "label_en": "Attribute Recognition",
@@ -108,7 +117,7 @@
       "label_es": "Reconocimiento de atributos",
       "label_zh-CN": "属性识别",
       "label_zh-TW": "屬性辨識",
-      "icon": "🏷️"
+      "icon": "task-attribute_recognition"
     },
     "super_resolution": {
       "label_en": "Super Resolution",
@@ -117,7 +126,7 @@
       "label_es": "Superresolución",
       "label_zh-CN": "超分辨率",
       "label_zh-TW": "超解析度",
-      "icon": "🔍"
+      "icon": "task-super_resolution"
     },
     "face_alignment": {
       "label_en": "Face Alignment",
@@ -126,7 +135,7 @@
       "label_es": "Alineación facial",
       "label_zh-CN": "人脸对齐",
       "label_zh-TW": "人臉對齊",
-      "icon": "😀"
+      "icon": "task-face_alignment"
     },
     "depth_estimation": {
       "label_en": "Depth Estimation",
@@ -135,7 +144,7 @@
       "label_es": "Estimación de profundidad",
       "label_zh-CN": "深度估计",
       "label_zh-TW": "深度估計",
-      "icon": "📏"
+      "icon": "task-depth_estimation"
     },
     "image_enhancement": {
       "label_en": "Image Enhancement",
@@ -144,7 +153,7 @@
       "label_es": "Mejora de imagen",
       "label_zh-CN": "图像增强",
       "label_zh-TW": "影像增強",
-      "icon": "🌟"
+      "icon": "task-image_enhancement"
     },
     "hand_landmark": {
       "label_en": "Hand Landmark",
@@ -153,7 +162,7 @@
       "label_es": "Puntos de referencia de la mano",
       "label_zh-CN": "手部关键点",
       "label_zh-TW": "手部關鍵點",
-      "icon": "✋"
+      "icon": "task-hand_landmark"
     },
     "hand_detection": {
       "label_en": "Hand Detection",
@@ -162,7 +171,7 @@
       "label_es": "Detección de manos",
       "label_zh-CN": "手部检测",
       "label_zh-TW": "手部偵測",
-      "icon": "🤚"
+      "icon": "task-hand_detection"
     },
     "keypoint_detection": {
       "label_en": "Keypoint Detection",
@@ -171,7 +180,7 @@
       "label_es": "Detección de puntos clave",
       "label_zh-CN": "关键点检测",
       "label_zh-TW": "關鍵點偵測",
-      "icon": "📍"
+      "icon": "task-keypoint_detection"
     },
     "object_pose_estimation": {
       "label_en": "Object Pose Estimation",
@@ -180,7 +189,7 @@
       "label_es": "Estimación de pose de objetos",
       "label_zh-CN": "物体姿态估计",
       "label_zh-TW": "物件姿態估計",
-      "icon": "📦"
+      "icon": "task-object_pose_estimation"
     },
     "panoptic_driving_perception": {
       "label_en": "Panoptic Driving Perception",
@@ -189,7 +198,7 @@
       "label_es": "Percepción panóptica de conducción",
       "label_zh-CN": "全景驾驶感知",
       "label_zh-TW": "全景駕駛感知",
-      "icon": "🚗"
+      "icon": "task-panoptic_driving_perception"
     },
     "3d_object_detection": {
       "label_en": "3D Object Detection",
@@ -198,7 +207,133 @@
       "label_es": "Detección de objetos 3D",
       "label_zh-CN": "3D目标检测",
       "label_zh-TW": "3D物件偵測",
-      "icon": "🧊"
+      "icon": "task-3d_object_detection"
+    },
+    "image_classification": {
+      "label_en": "Image Classification",
+      "label_ko": "이미지 분류",
+      "label_ja": "画像分類",
+      "label_es": "Clasificación de imágenes",
+      "label_zh-CN": "图像分类",
+      "label_zh-TW": "影像分類",
+      "icon": "task-image_classification"
+    },
+    "oriented_object_detection": {
+      "label_en": "Oriented Object Detection",
+      "label_ko": "회전 객체 탐지",
+      "label_ja": "回転物体検出",
+      "label_es": "Detección de objetos orientados",
+      "label_zh-CN": "旋转目标检测",
+      "label_zh-TW": "旋轉物件偵測",
+      "icon": "task-oriented_object_detection"
+    },
+    "face_landmark": {
+      "label_en": "Face Landmark",
+      "label_ko": "얼굴 랜드마크",
+      "label_ja": "顔ランドマーク",
+      "label_es": "Puntos faciales",
+      "label_zh-CN": "人脸关键点",
+      "label_zh-TW": "人臉關鍵點",
+      "icon": "task-face_landmark"
+    },
+    "face_recognition": {
+      "label_en": "Face Recognition",
+      "label_ko": "얼굴 인식",
+      "label_ja": "顔認識",
+      "label_es": "Reconocimiento facial",
+      "label_zh-CN": "人脸识别",
+      "label_zh-TW": "人臉辨識",
+      "icon": "task-face_recognition"
+    },
+    "person_attribute": {
+      "label_en": "Person Attribute",
+      "label_ko": "사람 속성",
+      "label_ja": "人物属性",
+      "label_es": "Atributos de persona",
+      "label_zh-CN": "行人属性",
+      "label_zh-TW": "行人屬性",
+      "icon": "task-person_attribute"
+    },
+    "low_light_enhancement": {
+      "label_en": "Low-Light Enhancement",
+      "label_ko": "저조도 향상",
+      "label_ja": "低照度補正",
+      "label_es": "Mejora con poca luz",
+      "label_zh-CN": "低光增强",
+      "label_zh-TW": "低光增強",
+      "icon": "task-low_light_enhancement"
+    },
+    "person_reid": {
+      "label_en": "Person Re-ID",
+      "label_ko": "사람 재식별",
+      "label_ja": "人物再識別",
+      "label_es": "Re-ID de personas",
+      "label_zh-CN": "行人重识别",
+      "label_zh-TW": "行人重新識別",
+      "icon": "task-person_reid"
+    },
+    "anomaly_detection": {
+      "label_en": "Anomaly Detection",
+      "label_ko": "이상 탐지",
+      "label_ja": "異常検知",
+      "label_es": "Detección de anomalías",
+      "label_zh-CN": "异常检测",
+      "label_zh-TW": "異常偵測",
+      "icon": "task-anomaly_detection"
+    },
+    "zero_shot_image_classification": {
+      "label_en": "Zero-Shot Classification",
+      "label_ko": "제로샷 분류",
+      "label_ja": "ゼロショット分類",
+      "label_es": "Clasificación zero-shot",
+      "label_zh-CN": "零样本分类",
+      "label_zh-TW": "零樣本分類",
+      "icon": "task-zero_shot_image_classification"
+    },
+    "zero_shot_instance_segmentation": {
+      "label_en": "Zero-Shot Segmentation",
+      "label_ko": "제로샷 분할",
+      "label_ja": "ゼロショットセグメンテーション",
+      "label_es": "Segmentación zero-shot",
+      "label_zh-CN": "零样本分割",
+      "label_zh-TW": "零樣本分割",
+      "icon": "task-zero_shot_instance_segmentation"
+    },
+    "image_matting": {
+      "label_en": "Image Matting",
+      "label_ko": "이미지 매팅",
+      "label_ja": "画像マッティング",
+      "label_es": "Matting de imagen",
+      "label_zh-CN": "图像抠图",
+      "label_zh-TW": "影像去背",
+      "icon": "task-image_matting"
+    },
+    "image_retrieval": {
+      "label_en": "Image Retrieval",
+      "label_ko": "이미지 검색",
+      "label_ja": "画像検索",
+      "label_es": "Recuperación de imágenes",
+      "label_zh-CN": "图像检索",
+      "label_zh-TW": "影像檢索",
+      "icon": "task-image_retrieval"
+    },
+    "visual_place_recognition": {
+      "label_en": "Visual Place Recognition",
+      "label_ko": "장소 인식",
+      "label_ja": "視覚的場所認識",
+      "label_es": "Reconocimiento visual de lugares",
+      "label_zh-CN": "视觉地点识别",
+      "label_zh-TW": "視覺地點辨識",
+      "icon": "task-visual_place_recognition"
+    },
+    "face_attribute": {
+      "label_en": "Face Attribute",
+      "label_ko": "얼굴 속성",
+      "label_ja": "顔属性",
+      "label_es": "Atributos faciales",
+      "label_zh-CN": "人脸属性",
+      "label_zh-TW": "人臉屬性",
+      "icon": "task-face_attribute"
     }
   },
   "models": [
@@ -1356,7 +1491,7 @@
         "zh-TW": "yolov5m_6_1 是針對 DEEPX NPU 最佳化的物件偵測模型。"
       },
       "specification": {
-        "input_resolution": "640x640x3",
+        "input_resolution": "1280x1280x3",
         "ops": "",
         "params": "",
         "dataset": "COCO",
@@ -4121,7 +4256,7 @@
         "zh-TW": "yolov5m6 是針對 DEEPX NPU 最佳化的物件偵測模型。"
       },
       "specification": {
-        "input_resolution": "1280x1280x3",
+        "input_resolution": "640x640x3",
         "ops": "",
         "params": "",
         "dataset": "COCO",

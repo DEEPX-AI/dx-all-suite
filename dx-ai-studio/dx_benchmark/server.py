@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""DX Benchmark 웹 서버 — 포트 8097.
+"""DX Benchmark web server — port 8097.
 
-YOLO26 하드웨어 벤치마크 대시보드 서버 (결과 조회·비교).
-이 서버는 순수 뷰어입니다: 번들된 dataset.json을 그대로 서빙하며 런타임 집계를
-수행하지 않습니다. 벤치마크 실행은 독립 실행형 dx-benchmark CLI에서 수행합니다
+Dashboard for YOLO26 hardware benchmarks (browse and compare results).
+This server is a pure viewer: it serves the bundled dataset.json as-is and does no
+aggregation at runtime. Benchmarks are run with the standalone dx-benchmark CLI
 (`cd dx-benchmark && ./run.sh run`).
-DXBaseHandler 기반.
+Built on DXBaseHandler.
 """
 
 import json
@@ -13,7 +13,9 @@ from pathlib import Path
 
 from shared.dx_server import DXBaseHandler, DXServer
 from shared.chat import ChatEngine
+from shared.chat import module_fallbacks as _module_fallbacks
 from shared.paths import outputs_dir
+from shared.shell import ShellSpec
 
 DEFAULT_PORT = 8097
 BASE_DIR = Path(__file__).resolve().parent
@@ -44,24 +46,7 @@ def iter_result_dirs():
 
 _chat_engine = ChatEngine(
     app_name="dx_benchmark",
-    fallback_rules=[
-        (["benchmark", "벤치마크", "run", "실행"], {
-            "ko": "벤치마크 실행은 독립 실행형 dx-benchmark CLI에서 수행합니다: `cd dx-benchmark && ./run.sh run`. 웹 UI는 Dashboard/Results에서 결과를 조회하는 뷰어입니다.",
-            "en": "Run benchmarks from the standalone dx-benchmark CLI: `cd dx-benchmark && ./run.sh run`. This web UI is a viewer for the Dashboard/Results tabs only.",
-        }),
-        (["result", "결과", "report", "리포트", "대시보드", "dashboard"], {
-            "ko": "Dashboard 탭에서 집계된 차트를, Results 탭에서 개별 실행 결과와 REPORT.md를 확인할 수 있습니다.",
-            "en": "View aggregated charts in the Dashboard tab, and individual run results with REPORT.md in the Results tab.",
-        }),
-        (["yolo", "model", "모델", "YOLO26"], {
-            "ko": "YOLO26 계열 모델(n/s/m/l)의 NPU 성능을 하드웨어별로 비교 측정합니다.",
-            "en": "Compares NPU performance of YOLO26 models (n/s/m/l) across different hardware.",
-        }),
-        (["hardware", "하드웨어", "보드", "board", "device"], {
-            "ko": "AI Box, ROCK5B+, OrangePi5+, Raspberry Pi, BIOSTAR 등 다양한 하드웨어를 지원합니다.",
-            "en": "Supports various hardware including AI Box, ROCK5B+, OrangePi5+, Raspberry Pi, BIOSTAR, etc.",
-        }),
-    ]
+    fallback_rules=_module_fallbacks.rules("dx_benchmark")
 )
 
 
@@ -71,12 +56,36 @@ def _check_bundled_dataset():
         print("  [Benchmark] Warning: bundled dataset.json not found at {}".format(DATASET_PATH))
 
 
+
+# ── Shared App Shell ──────────────────────────────────────────
+# The .top-bar + .main-tabs structure becomes the shell header and tab row.
+# Labels are the English source text = i18n dictionary keys. Icon ids are in shared/static/dx-icons.svg.
+DX_BENCHMARK_PAGES = (
+    ("dashboard", "Dashboard", "dashboard"),
+    ("results", "Results", "folder"),
+    ("settings", "Settings", "setup"),
+)
+
+# The EdgeGuide button is specific to dx_benchmark, so it goes in the shared header's .toolbar slot.
+_EDGEGUIDE_BTN = (
+    '<button id="edgeguideBtn" class="dx-toolbar-btn" title="DX EdgeGuide" aria-label="DX EdgeGuide">'
+    '<svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#edge"></use></svg></button>'
+)
+
+DX_BENCHMARK_SHELL = ShellSpec(
+    module_key="bench",
+    pages=DX_BENCHMARK_PAGES,
+    active_page="dashboard",
+    toolbar_extra=_EDGEGUIDE_BTN,
+)
+
 class DXBenchmarkHandler(DXBaseHandler):
-    """DX Benchmark HTTP 요청 핸들러."""
+    """DX Benchmark HTTP request handler."""
 
     server_name = SERVER_NAME
     static_dir = STATIC_DIR
     templates_dir = TEMPLATES_DIR
+    shell_spec = DX_BENCHMARK_SHELL
     log_silent = True
 
     def route(self):
@@ -197,7 +206,7 @@ class DXBenchmarkHandler(DXBaseHandler):
 
 
 def create_server(port=DEFAULT_PORT):
-    """테스트용 서버 팩토리: HTTPServer 인스턴스를 반환."""
+    """Server factory for tests: returns an HTTPServer instance."""
     from http.server import ThreadingHTTPServer
     srv = ThreadingHTTPServer(("127.0.0.1", port), DXBenchmarkHandler)
     srv.daemon_threads = True

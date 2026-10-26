@@ -109,6 +109,14 @@ function _invalidateRunMediaCache(cat){
   else{_runMediaCache={};_runMediaPending={};}
 }
 
+/* Rewrite the icon and text only when they change (do not replace DOM on every poll). */
+function setLabelIfChanged(el,icon,text){
+  if(!el)return;
+  var key=icon+'|'+text;
+  if(el.dataset.dxLabel===key)return;
+  el.dataset.dxLabel=key;
+  if(typeof DXIcon==='function'&&DXIcon.label)DXIcon.label(el,icon,text);else el.textContent=text;
+}
 function setTextIfChanged(el,text){
   if(el&&el.textContent!==text)el.textContent=text;
 }
@@ -177,6 +185,7 @@ function _applyPendingAutoSelect(){
 
 function initRunPage(){
   _invalidateRunMediaCache();
+  loadTaskDefaults();
   $('r-export-out').classList.add('hidden');
   [['r-input-img','image'],['r-input-vid','video'],['r-video','video']].forEach(function(pair){
     var input=$(pair[0]);
@@ -185,8 +194,17 @@ function initRunPage(){
     input.addEventListener('change',function(){_cancelPendingQuickRunForUserInput(pair[1]);});
   });
   var cats=[...new Set(S.models.map(function(m){return m.category}))].sort();
-  $('r-cat').innerHTML='<option value="">'+T('— Select Category —')+'</option>'+cats.map(function(c){return '<option value="'+esc(c)+'">'+esc(c)+'</option>'}).join('');
+  $('r-cat').innerHTML='<option value="">'+T('— Select Category —')+'</option>'+cats.map(function(c){return '<option value="'+esc(c)+'">'+esc(catText(c))+'</option>'}).join('');
+  // With no models there is nothing to pick. An empty dropdown reads as broken, so say where
+  // to get models and lock the controls that cannot be used meanwhile.
+  _setRunEmptyState(cats.length === 0);
   _applyPendingAutoSelect();
+}
+
+function _setRunEmptyState(empty){
+  var notice=$('r-no-models');
+  if(notice){ if(empty)notice.removeAttribute('hidden'); else notice.setAttribute('hidden',''); }
+  ['r-cat','r-model'].forEach(function(id){ var el=$(id); if(el)el.disabled=empty; });
 }
 
 function onRCat(){
@@ -200,16 +218,32 @@ function onRCat(){
   updateRunInputMode(cat);
 }
 
+// The task table (default input, image-only, old key) comes from the server via /api/task_defaults.
+// The old table below is used only before the server answers or when it does not.
+var _TASK_DEFAULTS=null;
+function loadTaskDefaults(){
+  if(_TASK_DEFAULTS)return Promise.resolve(_TASK_DEFAULTS);
+  return api('/api/task_defaults').then(function(r){_TASK_DEFAULTS=(r&&!r.error)?r:{};return _TASK_DEFAULTS;})
+    .catch(function(){_TASK_DEFAULTS={};return _TASK_DEFAULTS;});
+}
+function _taskInfo(cat){return (_TASK_DEFAULTS&&_TASK_DEFAULTS[cat])||{};}
+function _taskLegacy(cat){return _taskInfo(cat).legacy||cat;}
+function _selectedRunModel(){
+  var name=$('r-model')&&$('r-model').value, cat=$('r-cat')&&$('r-cat').value;
+  return (S.models||[]).find(function(m){return m.name===name&&m.category===cat;})||null;
+}
 function updateRunInputMode(cat){
   // Exact mirror of dx_app _IMAGE_ONLY_TASKS (common/runner/sync_runner.py:178): these 5
   // runners reject video/camera/rtsp — detector-crop pipeline (embedding/reid/attribute),
   // static pose (DOPE), or LiDAR .bin (SFA3D). Video is hard-disabled for them here.
   // hand_detection / hand_landmark are NOT image-only (they process video per-frame).
+  // A per-model layout model knows its own image_only (config.json); that comes first, then the server's task table.
   var imageOnly=['embedding','reid','attribute_recognition',
                  'object_pose_estimation','3d_object_detection'];
   var vidRadio=$('r-input-vid');
   var imgRadio=$('r-input-img');
-  var restrict=imageOnly.indexOf(cat)!==-1;
+  var mdl=_selectedRunModel();
+  var restrict=(mdl&&mdl.image_only===true)||_taskInfo(cat).image_only===true||imageOnly.indexOf(_taskLegacy(cat))!==-1;
   var ps=PENDING_AUTO_SELECT;
   if(restrict&&imgRadio&&!(ps&&ps.selectedInput))imgRadio.checked=true;
   if(vidRadio){
@@ -315,7 +349,8 @@ function loadRunImages(cat){
 function _renderRunMedia(cat,media){
   var grid=$('img-grid');
   var list=media&&Array.isArray(media.images)?media.images:[];
-  var defImg=CAT_IMG[cat];
+  var _m=_selectedRunModel();
+  var defImg=(_m&&_m.default_image)||_taskInfo(cat).image||CAT_IMG[_taskLegacy(cat)];
   var ps=PENDING_AUTO_SELECT;
   var selectedInput=ps&&ps.selectedInput?ps.selectedInput:'';
   if(defImg&&!selectedInput&&(!S.selectedImage||list.indexOf(S.selectedImage)===-1)){
@@ -335,7 +370,7 @@ function _renderRunMedia(cat,media){
           +'<div class="img-data-ph"><span class="img-data-ext">'+esc(ext)+'</span><span class="img-data-name">'+esc(fn)+'</span></div></div>';
       }
       var thumb=_runMediaThumb(p);
-      var badge=isDir?'<span class="img-dir-badge">📁</span>':'';
+      var badge=isDir?'<span class="img-dir-badge">' + DXIcon('folder') + '</span>':'';
       return '<div class="img-item'+sel+'" onclick="pickImg(this,\''+p+'\')" title="'+fn+'">'
         +badge+'<img src="/file/'+thumb+'" alt="'+fn+'" loading="lazy"/></div>';
     }).join('')||'<p class="txt-dim">'+T('No images')+'</p>';
@@ -398,6 +433,17 @@ function toggleRInput(){
 
 function loadCameras(){
   api('/api/cameras').then(function(cams){
+    if(cams&&cams.error){
+      _cameraDiscoveryError=cams;
+      var message=translatedError(cams);
+      var failed='<option value="" disabled selected>'+esc(message)+'</option>';
+      ['c-camera','b-cam-sel','ab-camera'].forEach(function(id){var el=$(id);if(el)el.innerHTML=failed});
+      contRenderStartupErrors();
+      toast(message,'err');
+      return;
+    }
+    _cameraDiscoveryError=null;
+    contRenderStartupErrors();
     if(!Array.isArray(cams)||!cams.length){
       var nocam='<option value="" disabled>'+T('No cameras found')+'</option>';
       ['c-camera','b-cam-sel','ab-camera'].forEach(function(id){var el=$(id);if(el)el.innerHTML=nocam});
@@ -421,21 +467,42 @@ function initRTSPStreams(selId){
   });
 }
 
+// RTSP address: a full URL from the camera (rtsp://user:pass@cam:554/cam/realmonitor?channel=1 …) is used as typed.
+// Only host:port gives rtsp://host:port/streamN. Empty gives '' and the caller stops and asks.
 function buildRTSPUrl(ipId,streamId){
-  var ip=$(ipId)?$(ipId).value:'';
+  var raw=($(ipId)?$(ipId).value:'').trim();
+  if(!raw)return '';
+  if(/^rtsps?:\/\//i.test(raw))return raw;
   var stream=$(streamId)?$(streamId).value:'stream1';
-  return 'rtsp://'+ip+'/'+stream;
+  return 'rtsp://'+raw+'/'+(stream||'stream1');
 }
+// With a full URL the Stream pick is unused, so hide that row (merely disabling it is undone when Stop re-enables
+// every select after a run)
+function syncRTSPStreamPick(ipId,streamId){
+  var ip=$(ipId),sel=$(streamId);if(!ip||!sel)return;
+  var row=sel.closest('.fg')||sel;
+  row.hidden=/^rtsps?:\/\//i.test(ip.value.trim());
+}
+function rtspAddressMissing(ipId){
+  if(($(ipId)?$(ipId).value:'').trim())return false;
+  toast(T('Enter the RTSP address (rtsp://… or IP:Port)'),'warn');
+  var el=$(ipId);if(el)el.focus();
+  return true;
+}
+document.addEventListener('input',function(e){
+  var id=e.target&&e.target.id;
+  if(id==='c-rtsp-ip'||id==='b-rtsp-ip'||id==='ab-rtsp-ip')syncRTSPStreamPick(id,id.replace('-ip','-stream'));
+});
 
 async function doRun(){
   if(_runInFlight){toast(T('Run already in progress'),'warn');return}
   const model=$('r-model').value;if(!model){toast(T('Select a model'),'warn');return}
   const m=findModel(model);if(!m){toast(T('Model not found'),'err');return}
-  if(!m.model_file){toast(T('⚠ Model file not configured for ')+model,'err');$('r-result').innerHTML='<p style="color:var(--error)">\u274c '+T('Model file not configured.')+'<br><span class="txt-dim">'+T('Please configure model file in Developer mode.')+'</span></p>';return}
-  if(m.model_exists===false){toast(T('⚠ Model file missing: ')+m.model_file,'err');$('r-result').innerHTML='<p style="color:var(--error)">\u274c '+T('Model file not found')+'<br><code style="font-size:11px;color:var(--text-3)">'+esc(m.model_file)+'</code><br><span class="txt-dim">'+T('Model file (.dxnn) does not exist. Please compile and try again.')+'</span></p>';return}
+  if(!m.model_file){toast(T('Model file not configured for ')+model,'err');$('r-result').innerHTML='<p style="color:var(--status-error)">' + DXIcon('x') + ' '+T('Model file not configured.')+'<br><span class="txt-dim">'+T('Please configure model file in Developer mode.')+'</span></p>';return}
+  if(m.model_exists===false){toast(T('Model file missing: ')+m.model_file,'err');$('r-result').innerHTML='<p style="color:var(--status-error)">' + DXIcon('x') + ' '+T('Model file not found')+'<br><code style="font-size:11px;color:var(--text-muted)">'+esc(m.model_file)+'</code><br><span class="txt-dim">'+T('Model file (.dxnn) does not exist. Please compile and try again.')+'</span></p>';return}
   const lang=$('r-lang').value;
-  if(lang==='cpp'&&!m.cpp){toast(T('⚠ C++ binary not built for ')+model,'err');$('r-result').innerHTML='<p style="color:var(--error)">\u274c '+T('C++ binary has not been built.')+'<br><span class="txt-dim">'+T('Run <code>make</code> build first or switch to Python.')+'</span></p>';return}
-  if(lang==='python'&&!m.python){toast(T('⚠ Python app not found for ')+model,'err');$('r-result').innerHTML='<p style="color:var(--error)">\u274c '+T('Python app not found.')+'<br><span class="txt-dim">'+T('Switch to C++ or add a Python app.')+'</span></p>';return}
+  if(lang==='cpp'&&!m.cpp){toast(T('C++ binary not built for ')+model,'err');$('r-result').innerHTML='<p style="color:var(--status-error)">' + DXIcon('x') + ' '+T('C++ binary has not been built.')+'<br><span class="txt-dim">'+T('Run <code>make</code> build first or switch to Python.')+'</span></p>';return}
+  if(lang==='python'&&!m.python){toast(T('Python app not found for ')+model,'err');$('r-result').innerHTML='<p style="color:var(--status-error)">' + DXIcon('x') + ' '+T('Python app not found.')+'<br><span class="txt-dim">'+T('Switch to C++ or add a Python app.')+'</span></p>';return}
   const isImg=$('r-input-img').checked;
   const inputType=isImg?'image':'video';
   if(isImg&&!S.selectedImage&&!S.uploadedImage){toast(T('Please select or upload an image'),'warn');return}
@@ -536,8 +603,10 @@ function updateRunProgress(poll){
   }
 }
 
+/* Result marks are sprite icons, not emoji in front of the sentence. */
+function _resIco(n){return (typeof DXIcon==='function')?DXIcon(n,{cls:'res-mark'}):'';}
 window.renderInferenceError=function(el,msg,hintHtml){
-  el.innerHTML='<p style="color:var(--error)">'+T('❌ Error: ')+esc(msg)+(hintHtml||'')+'</p>';
+  el.innerHTML='<p class="res-line" style="color:var(--status-error)">'+_resIco('x')+'<span>'+T('Error: ')+esc(msg)+(hintHtml||'')+'</span></p>';
 };
 
 window.renderInferenceResult=function(el,res){
@@ -546,25 +615,28 @@ window.renderInferenceResult=function(el,res){
   var isVideo=!!r._isVideo;
   var cat=r._cat||'';
   var VIS_HINTS={
-    classification:T('📊 Classification Result: overlays Top-K predicted classes and probabilities as text on the image.'),
-    attribute_recognition:T('🏷️ Attribute Result: overlays predicted person/face attributes and confidence scores on the image.'),
-    depth_estimation:T('🌈 Depth Result: visualizes depth using JET colormap (red=near, blue=far).'),
-    embedding:T('📐 Embedding Result: side-by-side reference vs current image with cosine similarity (SAME / DIFFERENT).'),
-    reid:T('🧍 ReID Result: side-by-side reference vs current image with cosine similarity (SAME / DIFFERENT).'),
-    image_denoising:T('🔇 Denoising Result: outputs the denoised image. DnCNN may process in grayscale (Y channel).'),
-    super_resolution:T('🔍 Super Resolution Result: outputs the upscaled image. ESPCN processes the Y channel and restores color.'),
-    image_enhancement:T('✨ Enhancement Result: outputs the image with improved brightness and contrast.'),
-    semantic_segmentation:T('🎨 Semantic Segmentation: alpha-blends per-pixel class labels using Cityscapes colormap onto the original.'),
-    instance_segmentation:T('🎭 Instance Segmentation: draws per-instance color masks + bounding boxes + class labels.'),
-    pose_estimation:T('💃 Pose Estimation: draws skeleton (joint connections) and keypoints. Low-confidence keypoints may be omitted.'),
-    hand_landmark:T('🤚 Hand Landmark: draws 21 hand landmark points and connections.'),
-    face_alignment:T('😊 Face Alignment: draws 3D facial landmark points.')
+    classification:T('Classification Result: overlays Top-K predicted classes and probabilities as text on the image.'),
+    attribute_recognition:T('Attribute Result: overlays predicted person/face attributes and confidence scores on the image.'),
+    depth_estimation:T('Depth Result: visualizes depth using JET colormap (red=near, blue=far).'),
+    embedding:T('Embedding Result: side-by-side reference vs current image with cosine similarity (SAME / DIFFERENT).'),
+    reid:T('ReID Result: side-by-side reference vs current image with cosine similarity (SAME / DIFFERENT).'),
+    image_denoising:T('Denoising Result: outputs the denoised image. DnCNN may process in grayscale (Y channel).'),
+    super_resolution:T('Super Resolution Result: outputs the upscaled image. ESPCN processes the Y channel and restores color.'),
+    image_enhancement:T('Enhancement Result: outputs the image with improved brightness and contrast.'),
+    semantic_segmentation:T('Semantic Segmentation: alpha-blends per-pixel class labels using Cityscapes colormap onto the original.'),
+    instance_segmentation:T('Instance Segmentation: draws per-instance color masks + bounding boxes + class labels.'),
+    pose_estimation:T('Pose Estimation: draws skeleton (joint connections) and keypoints. Low-confidence keypoints may be omitted.'),
+    hand_landmark:T('Hand Landmark: draws 21 hand landmark points and connections.'),
+    face_alignment:T('Face Alignment: draws 3D facial landmark points.')
   };
+  if(!VIS_HINTS[cat]&&VIS_HINTS[_taskLegacy(cat)])cat=_taskLegacy(cat);
   if(VIS_HINTS[cat]){
-    h+='<div style="background:var(--accent-dim);border:1px solid rgba(99,140,255,.2);border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:11px;color:var(--accent)">'+VIS_HINTS[cat]+'</div>';
+    /* The task icon comes from the same table as Model Zoo (sprite task-<key>), not an emoji in front of the sentence. */
+    var hintIco=(typeof DXIcon==='function')?DXIcon('task-'+cat,{cls:'res-hint-ico'}):'';
+    h+='<div class="res-hint" style="background:var(--accent-dim);border:1px solid rgba(41,151,255,.2);border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:11px;color:var(--accent)">'+hintIco+'<span>'+VIS_HINTS[cat]+'</span></div>';
   }
   if(r.result_video_url){h+='<div class="mb8"><video src="'+r.result_video_url+'" controls class="res-img" style="max-width:100%"></video></div>'}
-  else if(r.video_note){h+='<div style="background:rgba(240,180,40,.12);border:1px solid rgba(240,180,40,.35);border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:11px;color:#c88a10">⚠️ '+T(r.video_note)+'</div>'}
+  else if(r.video_note){h+='<div style="background:rgba(240,180,40,.12);border:1px solid rgba(240,180,40,.35);border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:11px;color:#c88a10" class="res-line">'+_resIco('alert')+'<span>'+T(r.video_note)+'</span></div>'}
   var pairCats=['embedding','reid'];
   // CMP slider applies when input is an image and result_image is present (not pair-compare layouts)
   // "Before" image is either a picked sample (served via /file/) or an uploaded
@@ -585,10 +657,10 @@ window.renderInferenceResult=function(el,res){
   h+='<div class="perf-grid">';
   if(r.fps)h+='<div class="pcard"><div class="pv txt-acc">'+r.fps+'</div><div class="pk">FPS</div></div>';
   if(r.latency)h+='<div class="pcard"><div class="pv">'+r.latency+'ms</div><div class="pk">Latency</div></div>';
-  if(r.fps_per_watt)h+='<div class="pcard"><div class="pv" style="color:var(--success)">'+r.fps_per_watt+'</div><div class="pk">FPS/W</div></div>';
+  if(r.fps_per_watt)h+='<div class="pcard"><div class="pv" style="color:var(--status-ok)">'+r.fps_per_watt+'</div><div class="pk">FPS/W</div></div>';
   if(r.elapsed_s)h+='<div class="pcard"><div class="pv">'+r.elapsed_s+'s</div><div class="pk">Elapsed</div></div>';
-  var exitColor=r.exit_code===0?'var(--success)':'var(--error)';
-  var exitIcon=r.exit_code===0?'\u2705':'\u274c';
+  var exitColor=r.exit_code===0?'var(--status-ok)':'var(--status-error)';
+  var exitIcon=_resIco(r.exit_code===0?'check':'x');
   h+='<div class="pcard"><div class="pv" style="color:'+exitColor+'">'+exitIcon+'</div><div class="pk">Exit '+r.exit_code+'</div></div>';
   h+='</div>';
   if(r.perf&&r.perf.pipeline&&r.perf.pipeline.length){
@@ -596,15 +668,15 @@ window.renderInferenceResult=function(el,res){
   }
   // Task-tag specific summary (single run)
   if(r.task_tag&&r.task_summary){
-    h+='<div class="mt8"><div style="font-size:11px;color:var(--text-3);margin-bottom:4px">'+T('📊 Task Summary (')+r.task_tag+')</div>';
+    h+='<div class="mt8"><div style="font-size:11px;color:var(--text-muted);margin-bottom:4px" class="res-line">'+_resIco('dashboard')+'<span>'+T('Task Summary (')+r.task_tag+')</span></div>';
     h+=renderTaskSummary(r.task_tag,r.task_summary)+'</div>';
   }else if(r.det_summary&&Object.keys(r.det_summary).length){
     h+='<div class="mt8">'+renderDetSummary(r.det_summary)+'</div>';
   }
   if(r.exit_code!==0){
-    h+='<div style="background:rgba(248,81,73,.08);border:1px solid rgba(248,81,73,.2);border-radius:8px;padding:8px 12px;margin-top:10px;font-size:11px;color:var(--error)">'+T('⚠️ Inference exited abnormally (exit code: ')+r.exit_code+T('). Check Full Output for details.')+'</div>';
+    h+='<div style="background:rgba(248,81,73,.08);border:1px solid rgba(248,81,73,.2);border-radius:8px;padding:8px 12px;margin-top:10px;font-size:11px;color:var(--status-error)" class="res-line">'+_resIco('alert')+'<span>'+T('Inference exited abnormally (exit code: ')+r.exit_code+T('). Check Full Output for details.')+'</span></div>';
   }
-  if(r.output){h+='<details class="mt8"><summary class="clickable txt-dim">'+T('📋 Full Output')+'</summary><div class="code mt8">'+esc(r.output)+'</div></details>'}
+  if(r.output){h+='<details class="mt8"><summary class="clickable txt-dim">'+_resIco('file')+' '+T('Full Output')+'</summary><div class="code mt8">'+esc(r.output)+'</div></details>'}
   el.innerHTML=h;
 };
 
@@ -715,28 +787,52 @@ async function doExportFromRun(){
   var m=findModel(model);if(!m){toast(T('Model not found'),'err');return}
   var lang=$('r-export-lang').value;
   var path=m.category+'/'+model;
-  var btn=$('r-export-btn');btn.disabled=true;btn.textContent='⏳ '+T('Extracting...');
+  var btn=$('r-export-btn');btn.disabled=true;DXIcon.label(btn,'spinner',T('Extracting...'));
   $('r-export-out').classList.remove('hidden');$('r-export-out').textContent=T('Extracting package: ')+path+'\n...';
   var res=await postJ('/api/extract',{model_path:path,lang:lang});
-  btn.disabled=false;btn.textContent='📦 '+T('Export');
+  btn.disabled=false;DXIcon.label(btn,'models',T('Export'));
   if(res.ok){
-    var txt=T('✅ Extraction complete! Output: ')+res.output_dir+'\n\n';
+    var txt=DXIcon('check')+' '+T('Extraction complete! Output: ')+res.output_dir+'\n\n';
     (res.results||[]).forEach(function(r){
-      txt+='['+r.lang+'] '+(r.ok?'✅ OK':'❌ FAIL')+'\n';
+      txt+='['+r.lang+'] '+(r.ok?DXIcon('check') + ' OK':DXIcon('x') + ' FAIL')+'\n';
       if(r.output)txt+=r.output+'\n';
     });
     if(res.download_url){
-      txt+='\n📦 Download: '+res.download_url+'\n';
+      txt+='\n' + DXIcon('models') + ' Download: '+res.download_url+'\n';
     }
-    $('r-export-out').innerHTML=esc(txt)+(res.download_url?'<br><a class="btn btn-sm btn-acc" href="'+res.download_url+'" download style="margin-top:8px;display:inline-block">⬇️ '+T('Download .tar.gz')+'</a>':'');
+    $('r-export-out').innerHTML=esc(txt)+(res.download_url?'<br><a class="btn btn-sm btn-acc" href="'+res.download_url+'" download style="margin-top:8px;display:inline-block">' + DXIcon('download') + ' '+T('Download .tar.gz')+'</a>':'');
     toast(T('Package ready for download'),'ok',{duration:5000,action:res.download_url?{label:T('Download'),url:res.download_url,fn:function(){window.open(res.download_url)}}:null});
   }else{
-    $('r-export-out').textContent=T('❌ Error: ')+(res.error||T('Unknown'));
+    DXIcon.label($('r-export-out'),'x',T('Error: '))+(res.error||T('Unknown'));
     toast(res.error||T('Extraction failed'),'err');
   }
 }
 
-var CONT={slots:[{cat:'',model:''}],running:false,timerInt:null,startTime:0};
+var CONT={slots:[{cat:'',model:''}],running:false,timerInt:null,startTime:0,startupErrors:[]};
+var _cameraDiscoveryError=null;
+
+function contRenderStartupErrors(){
+  var box=$('c-live-errors');if(!box)return;
+  var errors=CONT.startupErrors||[];
+  var h=errors.map(function(entry){
+    return '<p><strong>'+esc(T('Slot ')+(entry.slotIdx+1)+' · '+entry.model)+'</strong><br>'+
+      esc(translatedError(entry.response))+'</p>';
+  }).join('');
+  if(_cameraDiscoveryError)h+='<p>'+esc(translatedError(_cameraDiscoveryError))+'</p>';
+  if(h)h='<strong>'+esc(T('Error'))+'</strong>'+h+
+    '<button class="btn btn-ghost btn-sm" onclick="nav(\'setup\')">'+esc(T('Setup'))+'</button>';
+  box.innerHTML=h;
+  box.classList.toggle('hidden',!h);
+}
+
+function contLiveStartupError(slotIdx,response){
+  var sl=CONT.slots[slotIdx]||{};
+  CONT.startupErrors.push({slotIdx:slotIdx,model:sl.model||'',response:response});
+  contRenderStartupErrors();
+  var slot=$('c-ls-img-'+slotIdx);
+  if(slot&&slot.parentElement)slot.parentElement.textContent=translatedError(response);
+  toast(T('Slot ')+(slotIdx+1)+': '+translatedError(response),'err');
+}
 
 function toggleRunTab(tab){
   $('run-single-tab').classList.toggle('hidden',tab!=='single');
@@ -757,16 +853,16 @@ function contRenderSlots(){
   var h='';
   CONT.slots.forEach(function(sl,i){
     var cats=[...new Set(S.models.map(function(m){return m.category}))].sort();
-    var catOpts='<option value="">\u2014 Category \u2014</option>'+cats.map(function(c){
-      return '<option'+(c===sl.cat?' selected':'')+'>'+c+'</option>';
+    var catOpts='<option value="">\u2014 '+T('Category')+' \u2014</option>'+cats.map(function(c){
+      return '<option value="'+esc(c)+'"'+(c===sl.cat?' selected':'')+'>'+esc(catText(c))+'</option>';
     }).join('');
-    var modOpts='<option value="">\u2014 Model \u2014</option>';
+    var modOpts='<option value="">\u2014 '+T('Model')+' \u2014</option>';
     if(sl.cat){
       var mods=S.models.filter(function(m){return m.category===sl.cat});
       modOpts+=mods.map(function(m){return '<option'+(m.name===sl.model?' selected':'')+'>'+m.name+'</option>'}).join('');
     }
     h+='<div class="cont-slot-cfg" data-cidx="'+i+'">';
-    h+='<span style="color:var(--text-3);font-size:11px;font-weight:700;min-width:16px">'+(i+1)+'</span>';
+    h+='<span style="color:var(--text-muted);font-size:11px;font-weight:700;min-width:16px">'+(i+1)+'</span>';
     h+='<select onchange="contOnCat('+i+',this.value)">'+catOpts+'</select>';
     h+='<select onchange="contOnModel('+i+',this.value)">'+modOpts+'</select>';
     if(CONT.slots.length>1)h+='<button class="cont-x" onclick="contRemoveSlot('+i+')">\u00d7</button>';
@@ -782,7 +878,8 @@ function contOnCat(idx,val){
   CONT.slots[idx].cat=val;CONT.slots[idx].model='';
   contRenderSlots();
 }
-function contOnModel(idx,val){CONT.slots[idx].model=val}
+// Show the picked model on the slot's label right away, not "(no model selected)" until the run starts
+function contOnModel(idx,val){CONT.slots[idx].model=val;if(!CONT.running)contRenderGrid()}
 
 function toggleContInput(){
   var t=$('c-input-type').value;
@@ -817,7 +914,7 @@ function contRenderGrid(){
     h+='<span class="cont-badge cb-fps" id="c-fps-'+i+'"></span>';
     h+='<span class="cont-badge cb-status" id="c-status-'+i+'"></span>';
     h+='</div>';
-    h+='<div class="cont-ph" id="c-ph-'+i+'">'+(CONT.running?T('⏳ Waiting…'):T('▶ Press Start to begin inference'))+'</div>';
+    h+='<div class="cont-ph" id="c-ph-'+i+'">'+(CONT.running?DXIcon('spinner')+' '+T('Waiting…'):DXIcon('play')+' '+T('Press Start to begin inference'))+'</div>';
     h+='</div>';
   }
   grid.innerHTML=h;
@@ -828,13 +925,19 @@ async function contStart(){
   if(!valid){toast(T('Please select Category and Model for all slots'),'warn');return}
   var cInputType=$('c-input-type')?$('c-input-type').value:'video';
   if(cInputType==='video'&&!$('c-video').value){toast(T('Please select a video'),'warn');return}
+  // Do not start without a camera; the runner would only end with "cannot open camera"
+  if(cInputType==='camera'&&!$('c-camera').value){toast(T('No cameras found'),'warn');return}
+  if(cInputType==='rtsp'&&rtspAddressMissing('c-rtsp-ip'))return;
   for(var i=0;i<CONT.slots.length;i++){
     var m=findModel(CONT.slots[i].model);
     if(!m){toast(T('Model not found: ')+CONT.slots[i].model,'err');return}
     if(!m.model_file){toast(T('Model file not configured: ')+CONT.slots[i].model,'err');return}
     if(m.model_exists===false){toast(T('Model file not found: ')+CONT.slots[i].model,'err');return}
   }
+  CONT.startupErrors=[];
+  contRenderStartupErrors();
   CONT.running=true;
+  CONT.stopped=false;
   $('c-start-btn').classList.add('hidden');
   $('c-stop-btn').classList.remove('hidden');
   document.querySelectorAll('#run-cont-tab select, #c-add-btn').forEach(function(el){el.disabled=true});
@@ -861,7 +964,7 @@ async function contStart(){
     var slot=$('c-slot-'+i);
     if(slot){slot.className='cont-slot processing'}
     var statusEl=$('c-status-'+i);
-    if(statusEl)statusEl.textContent=T('⏳ Processing...');
+    if(statusEl)DXIcon.label(statusEl,'spinner',T('Processing...'));
     var phEl=$('c-ph-'+i);
     if(phEl)phEl.innerHTML='<div class="spin"></div><p class="txt-dim mt8">'+esc(sl.model)+T(' running inference…')+'</p>';
     var body={
@@ -873,10 +976,12 @@ async function contStart(){
     if(cInputType==='camera'){body.camera_id=parseInt($('c-camera').value)||0;body.loop=parseInt($('c-cam-frames').value)||300}
     if(cInputType==='rtsp'){body.rtsp_url=buildRTSPUrl('c-rtsp-ip','c-rtsp-stream')}
     var res=await postJ('/api/run',body);
+    if(!CONT.running)break;   // results of a stopped (killed) slot stay out of the summary
     allResults.push(res);
-    if(!CONT.running)break;
     contShowResult(i,res,sl.model);
   }
+  // Stop already cleaned up the UI; do not show the 'done' toast and summary again
+  if(CONT.stopped)return;
   contFinish(allResults);
 }
 
@@ -887,13 +992,13 @@ function contShowResult(idx,res,modelName){
   if(!slot)return;
   if(res.error){
     slot.className='cont-slot error';
-    setTextIfChanged(statusEl,T('❌ Error'));
+    setLabelIfChanged(statusEl,'x',T('Error'));
     var phEl=$('c-ph-'+idx);
-    if(phEl)phEl.innerHTML='<p style="color:var(--error);font-size:12px;padding:12px">❌ '+esc(translatedError(res))+'</p>';
+    if(phEl)phEl.innerHTML='<p style="color:var(--status-error);font-size:12px;padding:12px">' + DXIcon('x') + ' '+esc(translatedError(res))+'</p>';
     return;
   }
   slot.className='cont-slot done';
-  setTextIfChanged(statusEl,T('✅ Done'));
+  setLabelIfChanged(statusEl,'check',T('Done'));
   if(res.fps)setTextIfChanged(fpsEl,res.fps+' FPS');
   var content='';
   if(res.result_video_url){
@@ -901,7 +1006,7 @@ function contShowResult(idx,res,modelName){
   }else if(res.result_image){
     content='<img src="data:image/jpeg;base64,'+res.result_image+'" style="width:100%;display:block;border-radius:var(--radius)"/>';
   }else{
-    content='<div class="cont-ph">'+T('ℹ️ No result video was generated')+'</div>';
+    content='<div class="cont-ph">'+DXIcon('info')+' '+T('No result video was generated')+'</div>';
   }
   // Keep overlay, replace content
   var overlay=slot.querySelector('.cont-overlay');
@@ -910,7 +1015,7 @@ function contShowResult(idx,res,modelName){
   var ov=slot.querySelector('.cont-overlay');
   if(!ov){
     ov=document.createElement('div');ov.className='cont-overlay';
-    ov.innerHTML='<span class="cont-badge cb-model">'+esc(modelName)+'</span><span class="cont-badge cb-fps" id="c-fps-'+idx+'">'+(res.fps?res.fps+' FPS':'')+'</span><span class="cont-badge cb-status" id="c-status-'+idx+'">'+T('✅ Done')+'</span>';
+    ov.innerHTML='<span class="cont-badge cb-model">'+esc(modelName)+'</span><span class="cont-badge cb-fps" id="c-fps-'+idx+'">'+(res.fps?res.fps+' FPS':'')+'</span><span class="cont-badge cb-status" id="c-status-'+idx+'">'+DXIcon('check')+' '+T('Done')+'</span>';
     slot.insertBefore(ov,slot.firstChild);
   }
 }
@@ -929,8 +1034,8 @@ function contFinish(results){
     var h='<div class="perf-grid">';
     results.forEach(function(r,i){
       if(!r)return;
-      var col=r.error?'var(--error)':'var(--accent)';
-      var icon=r.error?'❌':'✅';
+      var col=r.error?'var(--status-error)':'var(--accent)';
+      var icon=r.error?DXIcon('x'):DXIcon('check');
       h+='<div class="pcard"><div class="pv" style="color:'+col+'">'+icon+'</div><div class="pk">'+(CONT.slots[i]?CONT.slots[i].model:'Slot '+i)+'</div></div>';
       if(r.fps)h+='<div class="pcard"><div class="pv txt-acc">'+r.fps+'</div><div class="pk">FPS</div></div>';
       if(r.latency)h+='<div class="pcard"><div class="pv">'+r.latency+'ms</div><div class="pk">Latency</div></div>';
@@ -941,10 +1046,10 @@ function contFinish(results){
     results.forEach(function(r,i){
       if(!r||r.error)return;
       if(r.task_tag&&r.task_summary){
-        h+='<div class="mt8"><div style="font-size:11px;color:var(--text-3);margin-bottom:4px">📊 '+(CONT.slots[i]?CONT.slots[i].model:'Slot '+i)+' ('+r.task_tag+')</div>';
+        h+='<div class="mt8"><div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">' + DXIcon('dashboard') + ' '+(CONT.slots[i]?CONT.slots[i].model:'Slot '+i)+' ('+r.task_tag+')</div>';
         h+=renderTaskSummary(r.task_tag,r.task_summary)+'</div>';
       }else if(r.det_summary&&Object.keys(r.det_summary).length){
-        h+='<div class="mt8"><div style="font-size:11px;color:var(--text-3);margin-bottom:4px">'+(CONT.slots[i]?CONT.slots[i].model:'Slot '+i)+'</div>';
+        h+='<div class="mt8"><div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">'+(CONT.slots[i]?CONT.slots[i].model:'Slot '+i)+'</div>';
         h+=renderDetSummary(r.det_summary)+'</div>';
       }
     });
@@ -961,6 +1066,7 @@ async function contStop(){
     return;
   }
   CONT.running=false;
+  CONT.stopped=true;
   await postJ('/api/stop',{});
   clearInterval(CONT.timerInt);
   $('c-timer').classList.remove('active');
@@ -972,9 +1078,17 @@ async function contStop(){
   document.querySelectorAll('#c-grid video').forEach(function(v){v.pause()});
   CONT.slots.forEach(function(sl,i){
     var statusEl=$('c-status-'+i);
-    if(statusEl&&(statusEl.textContent==='⏳ Processing...'||statusEl.textContent==='⏳ 처리 중...'))statusEl.textContent=T('⏹ Stopped');
+    /* If still 'processing' (icon + translated text), switch to stopped */
+    if(statusEl&&statusEl.textContent.trim()===T('Processing...'))DXIcon.label(statusEl,'stop',T('Stopped'));
     var slot=$('c-slot-'+i);
     if(slot&&slot.classList.contains('processing')){slot.className='cont-slot'}
+    /* Turn the spinner of an unfinished slot ('… running inference…', 'Waiting…') into the stopped mark */
+    var phEl=$('c-ph-'+i);
+    var finished=slot&&(slot.classList.contains('done')||slot.classList.contains('error'));
+    if(phEl&&!finished){
+      phEl.innerHTML='<p class="txt-dim mt8">'+DXIcon('stop')+' '+T('Stopped')+'</p>';
+      if(statusEl)DXIcon.label(statusEl,'stop',T('Stopped'));
+    }
   });
   toast(T('Continuous inference stopped'),'info');
 }
@@ -988,7 +1102,7 @@ function _makeLiveSlotEl(slotIdx,modelName){
   el.id='c-ls-'+slotIdx;
   el.innerHTML=
     '<div class="live-slot-header">'+
-    '<span style="color:var(--text-3)">'+T('Slot ')+(slotIdx+1)+'</span>'+
+    '<span style="color:var(--text-muted)">'+T('Slot ')+(slotIdx+1)+'</span>'+
     '<span class="cont-badge cb-model" style="margin-left:6px">'+esc(modelName)+'</span>'+
     '<span class="cont-badge cb-fps" id="c-ls-fps-badge-'+slotIdx+'" style="margin-left:4px"></span>'+
     '</div>'+
@@ -1001,6 +1115,7 @@ function _makeLiveSlotEl(slotIdx,modelName){
     '<span class="stat-pill">Avg\u00a0<b id="c-ls-avg-'+slotIdx+'">0</b></span>'+
     '<span class="stat-pill">Elapsed\u00a0<b id="c-ls-ela-'+slotIdx+'">0s</b></span>'+
     '</div>'+
+    '<div id="c-ls-lat-'+slotIdx+'" class="live-slot-lat" style="display:none"></div>'+
     '<div id="c-ls-pred-'+slotIdx+'" class="live-slot-pred" style="display:none"></div>'+
     '<div id="c-ls-chart-'+slotIdx+'" class="live-slot-chart sparkline-wrap" style="display:none"></div>';
   return el;
@@ -1020,7 +1135,7 @@ async function contStartLive(cInputType){
   for(var i=0;i<n;i++){
     var sl=CONT.slots[i];
     var m=findModel(sl.model);
-    if(!m){toast(T('Slot ')+(i+1)+T(': Model not found'),'err');continue;}
+    if(!m){contLiveStartupError(i,{error:T('Model not found')});continue;}
     var el=_makeLiveSlotEl(i,sl.model);
     grid.appendChild(el);
     var body={
@@ -1032,8 +1147,13 @@ async function contStartLive(cInputType){
     };
     if(cInputType==='camera')body.camera_id=parseInt($('c-camera').value)||0;
     if(cInputType==='rtsp')body.rtsp_url=buildRTSPUrl('c-rtsp-ip','c-rtsp-stream');
-    var res=await postJ('/api/run_live',body);
-    if(res.error){toast(T('Slot ')+(i+1)+': '+translatedError(res),'err');continue;}
+    var res;
+    try{res=await postJ('/api/run_live',body);}
+    catch(e){res={error:e.message||String(e)};}
+    if(!res||res.error||!res.job_id){
+      contLiveStartupError(i,res&&res.error?res:{error:T('No result data.')+' (job_id)'});
+      continue;
+    }
     var lslot={slotIdx:i,jobId:res.job_id,pollInt:null,lastFrames:0,lastPollTime:0,confHistory:[],result:null,done:false,finishing:false};
     LIVE.slots.push(lslot);
     document.getElementById('c-ls-img-'+i).src='/api/live_frame?slot='+i+'&t='+Date.now();
@@ -1057,12 +1177,22 @@ function _updateSlotStats(lslot,poll){
   var i=lslot.slotIdx;
   var now=Date.now()/1000;
   var wfps='—';
-  if(lslot.lastPollTime>0){
+  // Tasks without per-frame lines do not know frames (null): '—'. 'Loop' counting (frame_basis 'loop') jumps in steps
+  // each time the video wraps, so show the average instead of the interval FPS (contract: tests/dx_app/test_live_display.py)
+  // dx_app's runner measures its own rate over the last second ([PROGRESS] fps=); older runners do not, so the
+  // browser divides the frames between polls.
+  if(poll.frames==null){
+    wfps='—';
+  }else if(poll.runner_fps!=null){
+    wfps=Number(poll.runner_fps).toFixed(1);
+  }else if(poll.frame_basis==='loop'){
+    wfps=poll.fps_est!=null?String(poll.fps_est):'—';
+  }else if(lslot.lastPollTime>0){
     var dt=now-lslot.lastPollTime;
     var df=poll.frames-lslot.lastFrames;
     if(dt>0&&df>=0)wfps=(df/dt).toFixed(1);
   }
-  lslot.lastFrames=poll.frames;
+  lslot.lastFrames=poll.frames==null?0:poll.frames;
   lslot.lastPollTime=now;
   // Confidence sparkline for classification
   if(poll.last_pred&&poll.last_pred.length){
@@ -1078,11 +1208,21 @@ function _updateSlotStats(lslot,poll){
     }
   }
   function _u(id,val){var el=document.getElementById(id);if(el)el.textContent=val;}
-  _u('c-ls-frames-'+i,poll.frames);
+  _u('c-ls-frames-'+i,poll.frames==null?'—':poll.frames);
   _u('c-ls-fps-'+i,wfps);
-  _u('c-ls-avg-'+i,poll.fps_est);
+  _u('c-ls-avg-'+i,poll.fps_est==null?'—':Number(poll.fps_est).toFixed(1));
   _u('c-ls-ela-'+i,poll.elapsed+'s');
   _u('c-ls-fps-badge-'+i,wfps+' FPS');
+  // Stage averages the runner measured over the same second (async Infer: submit to callback)
+  var lat=document.getElementById('c-ls-lat-'+i);
+  if(lat&&poll.stage_ms){
+    var parts=[];
+    [['read','Read'],['pre','Pre'],['infer','Infer'],['post','Post']].forEach(function(k){
+      var v=poll.stage_ms[k[0]];
+      if(v!=null)parts.push(k[1]+'\u00a0'+Number(v).toFixed(1));
+    });
+    if(parts.length){lat.style.display='';lat.textContent=T('Latency(ms)')+'  '+parts.join(' · ');}
+  }
   if(poll.last_pred&&poll.last_pred.length){
     var pred=document.getElementById('c-ls-pred-'+i);
     if(pred){pred.style.display='';pred.textContent=poll.last_pred.join('\n');}
@@ -1174,11 +1314,17 @@ async function contFinishLiveSlot(lslot){
       _orig_error:lslot.result?lslot.result.error:null
     };
   }
+  // The runner exited on its own (an image-only example rejecting video, or a crashed example); that is not 'done'
+  // (contract: tests/dx_app/test_live_display.py)
+  if(lslot.result&&lslot.result.run_error_key){
+    lslot.failed=true;
+    toast(T('Slot ')+(lslot.slotIdx+1)+': '+translatedError({error_key:lslot.result.run_error_key,error:lslot.result.run_error}),'err');
+  }
   lslot.done=true;  // mark done AFTER result is collected
   if(LIVE.slots.every(function(s){return s.done;})){
     contShowSummary();
     contResetUI();
-    toast(T('Live inference complete'),'ok');
+    if(!LIVE.slots.every(function(s){return s.failed;}))toast(T('Live inference complete'),'ok');
   }
 }
 
@@ -1234,9 +1380,9 @@ function contShowSummary(){
         h+='</div>';
       }
     }else if(result&&result.error){
-      h+='<p style="color:var(--error);font-size:12px">❌ '+esc(result.error)+'</p>';
+      h+='<p style="color:var(--status-error);font-size:12px">' + DXIcon('x') + ' '+esc(result.error)+'</p>';
     }else{
-      h+='<p style="color:var(--text-3);font-size:12px">'+T('No result data.')+'</p>';
+      h+='<p style="color:var(--text-muted);font-size:12px">'+T('No result data.')+'</p>';
     }
     h+='</div>';
   });
@@ -1259,6 +1405,7 @@ function contResetUI(){
 
 if (typeof registerLangRefresher === 'function') {
   registerLangRefresher(function refreshInferenceLanguage() {
+    contRenderStartupErrors();
     if (!document.querySelector('#page-run.active')) return;
     if (typeof refreshRunLanguage === 'function') refreshRunLanguage();
     var catSel = typeof $ === 'function' ? $('r-cat') : null;

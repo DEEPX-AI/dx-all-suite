@@ -20,7 +20,7 @@ InferenceEngine 설정, DxPreprocess/DxInfer 엘리먼트 연결 — 따라서 *
 지원되는 워크플로우:
 
 - `IFactory`, `SyncRunner`, `AsyncRunner`를 사용한 독립형(Standalone) 추론 앱
-- DEEPX의 13개 커스텀 엘리먼트를 사용한 6가지 카테고리의 GStreamer 비디오 파이프라인
+- DEEPX의 13개 커스텀 엘리먼트를 사용한 5가지 카테고리의 GStreamer 비디오 파이프라인
 - dx_app, dx_stream, dx-runtime에 걸친 크로스 프로젝트 빌드
 - DX-COM을 통한 ONNX → DXNN 포맷 모델 컴파일 (dx-compiler)
 
@@ -92,13 +92,13 @@ InferenceEngine 설정, DxPreprocess/DxInfer 엘리먼트 연결 — 따라서 *
 
 | 요구사항 | 세부사항 |
 |---|---|
-| **DEEPX 개발 환경** | DX-RT SDK 설치 및 `setup_env.sh` 소싱 완료 |
+| **DEEPX 개발 환경** | DX-RT 설치 완료 (dx-runtime `install.sh`) |
 | **AI 코딩 에이전트** (택1) | Claude Code, GitHub Copilot (VS Code), Cursor, OpenCode, 또는 Codex CLI |
 | **Python** | 3.10+ (dx-all-suite 패키지 설치 완료) |
 
 ## 아키텍처 개요
 
-에이전틱 지식 베이스는 세 개의 독립적인 레이어로 구성됩니다. 각 레이어는
+에이전틱 지식 베이스는 네 개의 독립적인 레이어로 구성됩니다. 각 레이어는
 자체 `.deepx/` 디렉토리를 포함하며, 에이전트가 작업 시 읽는 스킬, 지침,
 메모리 파일이 들어 있습니다.
 
@@ -152,13 +152,12 @@ dx-all-suite는 작업을 분류하고 적절한 서브모듈로 디스패치하
 | **dx_app** | `@dx-model-manager` | 모델 다운로드 및 레지스트리 관리 |
 | **dx_app** | `@dx-validator` | dx_app 검증 및 피드백 루프 |
 | **dx_stream** | `@dx-stream-builder` | GStreamer 파이프라인 빌더 — 세부 빌더로 라우팅 |
-| **dx_stream** | `@dx-pipeline-builder` | 파이프라인 구성 (6가지 카테고리, 브로커 포함) |
 | **dx_stream** | `@dx-validator` | dx_stream 검증 및 피드백 루프 |
 | **dx-compiler** | `@dx-compiler-builder` | 모델 컴파일 라우터 — 변환기 또는 컴파일러로 라우팅 |
 | **dx-compiler** | `@dx-model-converter` | PyTorch → ONNX 모델 변환기 |
 | **dx-compiler** | `@dx-dxnn-compiler` | ONNX → DXNN 컴파일러 (DX-COM) |
 
-### 스킬 (OpenCode 전용)
+### 스킬
 
 | 레벨 | 스킬 | 설명 |
 |---|---|---|
@@ -193,7 +192,7 @@ dx-all-suite는 작업을 분류하고 적절한 서브모듈로 디스패치하
 
 !!! note "팁"  
 
-    어떤 서브모듈을 대상으로 해야 할지 모르겠다면, 최상위에서 @dx-suite-builder`를 사용하세요 — 작업을 분류하고 적절한 빌더로 라우팅합니다.  
+    어떤 서브모듈을 대상으로 해야 할지 모르겠다면, 최상위에서 `@dx-suite-builder`를 사용하세요 — 작업을 분류하고 적절한 빌더로 라우팅합니다.  
 
 
 ## 지원 AI 도구
@@ -262,6 +261,7 @@ cursor-agent
 | `.github/copilot-instructions.md` | Copilot Chat/CLI | Auto |
 | `CLAUDE.md` | Claude Code | Auto |
 | `AGENTS.md` + `opencode.json` | OpenCode | Auto |
+| `AGENTS.md` + `.codex/skills/dx-codex-identity/SKILL.md` | Codex CLI | Auto |
 | `.cursor/rules/dx-all-suite.mdc` | Cursor | Auto |
 
 #### 에이전트 파일 (수동 @mention)
@@ -277,7 +277,7 @@ cursor-agent
     Cursor는 `.cursor/rules/`에 에이전트 `.mdc` 파일이 있습니다 (예: `dx-suite-builder.mdc`).  
     Claude Code는 또한 `CLAUDE.md`의 Context Routing Table로 작업을 디스패치합니다.  
 
-#### 스킬 파일 (OpenCode 전용 — `/slash-command`)
+#### 스킬 파일 (`/slash-command`)
 
 | 스킬 | 파일 |
 |------|------|
@@ -303,7 +303,7 @@ OpenCode (`.opencode/`), Cursor (`.cursor/rules/`) 용 플랫폼별 파일로 �
 | 디렉토리 | 내용 |
 |-----------|------|
 | `agents/` | `dx-suite-builder`, `dx-suite-validator` |
-| `skills/` | 13개 스킬 (도메인 + 공유 프로세스 스킬) |
+| `skills/` | 도메인, 프로세스, 하네스 스킬 |
 | `templates/` | `{en,ko}/*.tmpl` — 인스트럭션 파일 템플릿 |
 | `templates/fragments/` | `{en,ko}/*.md` — 여러 리포에서 재사용되는 공유 섹션 |
 | `memory/` | 세션 간 영속 지식 |
@@ -320,7 +320,7 @@ OpenCode (`.opencode/`), Cursor (`.cursor/rules/`) 용 플랫폼별 파일로 �
 생성된 파일을 직접 편집하지 마세요.
 
 ```bash
-pip install -e .deepx/tools   # 생성기 설치
+pipx install --force --editable .deepx/tools   # PEP 668-safe; 생성기 설치
 dx-agent-gen generate                    # 플랫폼 파일 생성
 dx-agent-gen check                       # 드리프트 없는지 확인
 ```
@@ -446,7 +446,7 @@ dx-compiler와 dx_stream에 걸치는 크로스 프로젝트 시나리오입니�
 
 ### 시나리오 4: PPU 모델 컴파일 + 감지 앱
 
-하드웨어 가속 후처리를 위해 PPU(Pre/Post Processing Unit) 지원으로 YOLO 모델을
+하드웨어 가속 후처리를 위해 PPU(Post-Processing Unit) 지원으로 YOLO 모델을
 컴파일한 다음, PPU 모델을 사용하는 앱을 생성합니다.
 
 **프롬프트:**

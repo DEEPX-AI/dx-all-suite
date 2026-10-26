@@ -1,43 +1,59 @@
-<!-- Setup Panel — 컴파일 환경 설정 대시보드 -->
-<div id="setup-panel" class="setup-panel">
-  <div class="setup-header" id="setup-header">
-    <h3><span data-i18n="Setup Status">Setup Status</span></h3>
-    <button class="setup-toggle" id="setup-toggle" title="Toggle" data-i18n-title="Toggle">▼</button>
-  </div>
+<!-- Setup Panel — the shared compact step list (shared/static/dx-steps.js).
+     Two steps (SDK · samples). When both are done the card collapses to one line ("Setup ready · SDK v… · N samples").
+     Without the SDK the Compile button below is locked, with the reason next to it (setup_panel.js _disableCompileForm). -->
+<section id="setup-panel" class="setup-panel dx-steps dx-steps--compact" data-steps aria-busy="true">
+  <button type="button" class="dx-steps-summary" data-steps-summary id="setup-summary">
+    <span class="dx-step-dot"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#check"></use></svg></span>
+    <span class="dx-steps-summary-text"><b data-i18n="Setup ready">Setup ready</b> <small id="setup-summary-facts"></small></span>
+    <svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#chevd"></use></svg>
+  </button>
+  <header class="dx-steps-head setup-header" id="setup-header">
+    <h2><span data-i18n="Setup Status">Setup Status</span></h2>
+    <div class="dx-steps-progress"><span class="dx-steps-count" data-steps-count></span><div class="dx-steps-bar"></div></div>
+    <button type="button" class="setup-toggle" id="setup-toggle" title="Toggle" data-i18n-title="Toggle" aria-expanded="true"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#chevd"></use></svg></button>
+  </header>
 
   <div class="setup-body" id="setup-body">
-    <!-- ① SDK 상태 -->
-    <div class="setup-item" id="setup-sdk">
-      <div class="setup-item-header">
-        <span class="setup-icon" id="setup-sdk-icon">❌</span>
-        <span data-i18n="DX Compiler SDK">DX Compiler SDK</span>
-        <span class="setup-version" id="setup-sdk-version"></span>
-      </div>
-      <button class="btn-small setup-action-btn" id="setup-install-btn">
-        <span class="setup-action-icon">📦</span>
-        <span class="setup-action-label">Install</span>
-      </button>
-      <div class="setup-progress" id="setup-install-progress" style="display:none;">
-        <div class="progress-bar" id="setup-install-bar"></div>
-        <span class="setup-progress-text" id="setup-install-text"></span>
-        <pre id="setup-install-log" style="display:none;margin-top:8px;max-height:220px;overflow:auto;background:var(--bg-0);color:var(--text-2);padding:10px;border-radius:6px;border:1px solid var(--border);font-size:11px;line-height:1.4;white-space:pre-wrap;word-break:break-word"></pre>
-      </div>
-    </div>
-
-    <!-- ② 샘플 모델 + 캘리브레이션 -->
-    <div class="setup-item" id="setup-samples">
-      <div class="setup-item-header">
-        <span class="setup-icon" id="setup-samples-icon">❌</span>
-        <span data-i18n="Sample Models & Calibration Data">Sample Models & Calibration Data</span>
-      </div>
-      <button class="btn-small setup-action-btn" id="setup-download-btn">
-        <span class="setup-action-icon">⬇️</span>
-        <span class="setup-action-label">Download</span>
-      </button>
-      <div class="setup-progress" id="setup-download-progress" style="display:none;">
-        <div class="progress-bar" id="setup-download-bar"></div>
-        <span class="setup-progress-text" id="setup-download-text"></span>
-      </div>
-    </div>
+    <ol class="dx-steps-list">
+      <!-- 1. SDK -->
+      <li class="dx-step" data-step="sdk" data-state="todo" id="setup-sdk">
+        <span class="dx-step-dot"></span>
+        <div class="dx-step-body">
+          <div class="dx-step-row"><h3 class="dx-step-title"><span data-i18n="DX Compiler SDK">DX Compiler SDK</span></h3><span class="dx-step-facts"><span class="setup-version" id="setup-sdk-version"></span></span><span class="dx-step-state" id="setup-sdk-icon"></span></div>
+          <div class="dx-step-more">
+            <div class="dx-step-actions">
+              <button class="btn btn-primary btn-sm setup-action-btn" id="setup-install-btn">
+                <span class="setup-action-icon"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#download"></use></svg></span>
+                <span class="setup-action-label">Install</span>
+              </button>
+            </div>
+            <div class="setup-progress" id="setup-install-progress" style="display:none;">
+              <div class="progress-bar" id="setup-install-bar"></div>
+              <span class="setup-progress-text" id="setup-install-text"></span>
+              <pre id="setup-install-log" class="setup-install-log" style="display:none"></pre>
+            </div>
+          </div>
+        </div>
+      </li>
+      <!-- 2. Sample models + calibration -->
+      <li class="dx-step" data-step="samples" data-state="todo" id="setup-samples">
+        <span class="dx-step-dot"></span>
+        <div class="dx-step-body">
+          <div class="dx-step-row"><h3 class="dx-step-title"><span data-i18n="Sample Models & Calibration Data">Sample Models & Calibration Data</span></h3><span class="dx-step-facts"><span id="setup-samples-count"></span></span><span class="dx-step-state" id="setup-samples-icon"></span></div>
+          <div class="dx-step-more">
+            <div class="dx-step-actions">
+              <button class="btn btn-primary btn-sm setup-action-btn" id="setup-download-btn">
+                <span class="setup-action-icon"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#download"></use></svg></span>
+                <span class="setup-action-label">Download</span>
+              </button>
+            </div>
+            <div class="setup-progress" id="setup-download-progress" style="display:none;">
+              <div class="progress-bar" id="setup-download-bar"></div>
+              <span class="setup-progress-text" id="setup-download-text"></span>
+            </div>
+          </div>
+        </div>
+      </li>
+    </ol>
   </div>
-</div>
+</section>

@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
-"""DX EdgeGuide 웹 서버 — 포트 8096.
+"""DX EdgeGuide web server — port 8096.
 
-DX EdgeGuide — Edge AI 제품 추천 가이드.
-DXBaseHandler 기반.
+DX EdgeGuide — an Edge AI product recommendation guide.
+Built on DXBaseHandler.
 """
 
 from pathlib import Path
 
 from shared.dx_server import DXBaseHandler, DXServer
 from shared.chat import ChatEngine
+from shared.chat import module_fallbacks as _module_fallbacks
 from dx_planner.core.aggregator import aggregate_benchmarks as _aggregate
+from shared.shell import ShellSpec
 
 DEFAULT_PORT = 8096
 STATIC_DIR = Path(__file__).resolve().parent / "static"
@@ -18,29 +20,24 @@ SERVER_NAME = "DX EdgeGuide"
 
 _chat_engine = ChatEngine(
     app_name="dx_planner",
-    fallback_rules=[
-        (["tco", "비용", "cost"], {
-            "ko": "TCO 계산기를 사용하여 엣지 AI와 클라우드 비용을 비교할 수 있습니다.",
-            "en": "Use the TCO calculator to compare edge AI and cloud costs.",
-        }),
-        (["planner", "플래너"], {
-            "ko": "DX EdgeGuide는 워크로드에 맞는 최적의 DEEPX Edge AI 제품을 추천합니다.",
-            "en": "DX EdgeGuide recommends the optimal DEEPX Edge AI product for your workload.",
-        }),
-        (["deepx", "m1", "h1", "npu"], {
-            "ko": "DEEPX DX-M1은 25 TOPS, 3W TDP의 팬리스 M.2 NPU입니다.",
-            "en": "DEEPX DX-M1 is a fanless M.2 NPU with 25 TOPS and 3W TDP.",
-        }),
-    ]
+    fallback_rules=_module_fallbacks.rules("dx_planner")
 )
 
 
+
+# ── Shared app shell ────────────────────────────────────────────
+# A single workspace screen, so there is no tab row — the template root carries .dx-shell--no-tabs.
+DX_PLANNER_SHELL = ShellSpec(
+    module_key="edge",
+)
+
 class DXPlannerHandler(DXBaseHandler):
-    """DX EdgeGuide HTTP 요청 핸들러."""
+    """DX EdgeGuide HTTP request handler."""
 
     server_name = SERVER_NAME
     static_dir = STATIC_DIR
     templates_dir = TEMPLATES_DIR
+    shell_spec = DX_PLANNER_SHELL
     log_silent = True
 
     def route(self):
@@ -60,7 +57,7 @@ class DXPlannerHandler(DXBaseHandler):
 
 
 def _run_aggregation():
-    """벤치마크 결과를 집계하여 static/data/benchmarks.json 생성."""
+    """Aggregate benchmark results into static/data/benchmarks.json."""
     base_dir = Path(__file__).resolve().parent.parent
     results_dir = base_dir / "dx_benchmark" / "results"
     npu_catalog_path = Path(__file__).resolve().parent / "data" / "npu.json"
@@ -81,7 +78,7 @@ def _run_aggregation():
 
 
 def create_server(port=DEFAULT_PORT):
-    """테스트용 서버 팩토리: HTTPServer 인스턴스를 반환."""
+    """Server factory for tests: returns an HTTPServer instance."""
     from http.server import ThreadingHTTPServer
     srv = ThreadingHTTPServer(("127.0.0.1", port), DXPlannerHandler)
     srv.daemon_threads = True

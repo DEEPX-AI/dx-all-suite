@@ -17,6 +17,9 @@ class ModuleStartPolicy:
 
     allowed: bool
     reason: Optional[ContractCheck] = None
+    # Allowed because this module's contract passes right now, not because the journal says ACTIVE; the launch
+    # context follows the same rule
+    degraded: bool = False
 
 
 def module_start_policy(
@@ -40,7 +43,7 @@ def module_start_policy(
         from shared.runtime_validation import validate_module_contracts
         module_result = validate_module_contracts(module)
         if module_result.checks and module_result.passed:
-            return ModuleStartPolicy(allowed=True)
+            return ModuleStartPolicy(allowed=True, degraded=True)
     except Exception:
         pass
 
@@ -54,6 +57,6 @@ def module_start_policy(
                 state.active_version or "missing",
             ),
             passed=False,
-            remediation="Complete Runtime Setup or restore a validated runtime profile before launching inference.",
+            remediation="Run the DX-Runtime Dependencies step in DX Stream Setup, then try again.",
         ),
     )

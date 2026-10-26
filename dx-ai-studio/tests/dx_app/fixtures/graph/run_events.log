@@ -1,0 +1,10 @@
+frame 0: od boxes=10 person boxes=8 zone boxes=5 alarm records=1 value=5 active=1
+[EVENT] {"frame":0,"time":0,"stream":"cam","node":"zone","event":"enter","track_id":0,"data":{"count":5}}
+[EVENT] {"frame":0,"time":0,"stream":"cam","node":"zone","event":"enter","track_id":3,"data":{"count":5}}
+[EVENT] {"frame":0,"time":0,"stream":"cam","node":"zone","event":"enter","track_id":4,"data":{"count":5}}
+[EVENT] {"frame":0,"time":0,"stream":"cam","node":"zone","event":"enter","track_id":5,"data":{"count":5}}
+[EVENT] {"frame":0,"time":0,"stream":"cam","node":"zone","event":"enter","track_id":7,"data":{"count":5}}
+[EVENT] {"frame":0,"time":0,"stream":"cam","node":"alarm","event":"intrusion","track_id":-1,"data":{"value":5,"threshold":0,"track_ids":"0,3,4,5,7"}}
+[PROGRESS] frames=1
+frame 1: od boxes=8 person boxes=8 zone boxes=5 alarm records=1 value=5 active=1
+[PROGRESS] frames=2 fps=13.9 avg_fps=13.9 node_ms=od:34.49,person:0.01,zone:0.02,alarm:0.01

@@ -1,6 +1,6 @@
 /**
- * DX Stream — GStreamer 요소 레퍼런스
- * 카드 기반 렌더링 + 검색/필터
+ * DX Stream — GStreamer element reference
+ * Card-based rendering + search/filter
  */
 DXStream.elementsInit = async function () {
     const grid = DXStream.$('elements-grid');
@@ -17,25 +17,30 @@ DXStream.elementsInit = async function () {
     _renderElementCards(DXStream._allElements);
 
     const search = DXStream.$('elements-search');
-    if (search) {
-        search.oninput = function () {
-            var q = this.value.toLowerCase();
-            var filtered = DXStream._allElements.filter(function (e) {
-                return e.name.toLowerCase().indexOf(q) !== -1 || (e.category || '').toLowerCase().indexOf(q) !== -1;
-            });
-            _renderElementCards(filtered);
-        };
-    }
+    if (search) search.oninput = _applyElementFilter;
+    _applyElementFilter();
 };
+
+// Category and search narrow TOGETHER — choosing a category keeps the typed search, and typing
+// searches only the chosen category.
+DXStream._elemCat = DXStream._elemCat || 'all';
+function _applyElementFilter() {
+    var box = DXStream.$('elements-search');
+    var q = ((box && box.value) || '').trim().toLowerCase();
+    var cat = DXStream._elemCat || 'all';
+    _renderElementCards((DXStream._allElements || []).filter(function (e) {
+        if (cat !== 'all' && e.category !== cat) return false;
+        if (!q) return true;
+        return e.name.toLowerCase().indexOf(q) !== -1 || (e.category || '').toLowerCase().indexOf(q) !== -1
+            || String(e.description_en || '').toLowerCase().indexOf(q) !== -1;
+    }));
+}
 
 DXStream.filterElements = function (cat, btn) {
     document.querySelectorAll('#elements-filter-bar .btn').forEach(function (b) { b.classList.remove('active'); });
     if (btn) btn.classList.add('active');
-    if (cat === 'all') {
-        _renderElementCards(DXStream._allElements);
-    } else {
-        _renderElementCards(DXStream._allElements.filter(function (e) { return e.category === cat; }));
-    }
+    DXStream._elemCat = cat || 'all';
+    _applyElementFilter();
 };
 
 var _elemCatCssClasses = {
@@ -67,9 +72,16 @@ function _escElementHtml(value) {
     });
 }
 
+/* Element descriptions exist only in ko and en. Return one string: ko when the chosen language is ko,
+   otherwise en (so ja · zh · es still get a description). */
+function _bilingual(ko, en) {
+    var lang = (window.DXI18n && DXI18n.lang) || DXStream.S.lang || 'en';
+    if (lang === 'ko') return ko || en || '';
+    return en ? (typeof T === 'function' ? T(en) : en) : (ko || '');
+}
+
 function _renderBilingualText(ko, en) {
-    return '<span class="ko">' + _escElementHtml(ko || en || '') + '</span>' +
-        '<span class="en">' + _escElementHtml(en || ko || '') + '</span>';
+    return _escElementHtml(_bilingual(ko, en));
 }
 
 function _renderElementExtra(el) {
@@ -81,27 +93,29 @@ function _renderElementExtra(el) {
     }
     if (el.key_features && el.key_features.length) {
         html += '<div class="element-detail-section"><h4>' +
-            '<span class="ko">핵심 기능</span><span class="en">Key Features</span>' +
+            '<span data-i18n="Key Features">' + T('Key Features') + '</span>' +
             '</h4><ul class="element-feature-list">';
         for (var i = 0; i < el.key_features.length; i++) {
             var feature = el.key_features[i] || {};
-            html += '<li>' + _renderBilingualText(feature.ko, feature.en) + '</li>';
+            // the data carries all six languages; fall back to ko / en
+            var lang = (window.DXI18n && DXI18n.lang) || DXStream.S.lang || 'en';
+            html += '<li>' + _escElementHtml(feature[lang] || _bilingual(feature.ko, feature.en)) + '</li>';
         }
         html += '</ul></div>';
     }
     if (el.pipeline_hint_ko || el.pipeline_hint_en) {
         html += '<div class="element-detail-section"><h4>' +
-            '<span class="ko">파이프라인 힌트</span><span class="en">Pipeline Hint</span>' +
+            '<span data-i18n="Pipeline Hint">' + T('Pipeline Hint') + '</span>' +
             '</h4><p>' + _renderBilingualText(el.pipeline_hint_ko, el.pipeline_hint_en) + '</p></div>';
     }
     if (el.example_config) {
         html += '<div class="element-detail-section"><h4>' +
-            '<span class="ko">예시 설정</span><span class="en">Example Config</span>' +
+            '<span data-i18n="Example Config">' + T('Example Config') + '</span>' +
             '</h4><pre class="element-code-snippet">' + _escElementHtml(el.example_config) + '</pre></div>';
     }
     if (el.related_elements && el.related_elements.length) {
         html += '<div class="element-detail-section element-related"><h4>' +
-            '<span class="ko">관련 요소</span><span class="en">Related Elements</span>' +
+            '<span data-i18n="Related Elements">' + T('Related Elements') + '</span>' +
             '</h4>';
         for (var j = 0; j < el.related_elements.length; j++) {
             html += '<span class="badge b-cat">' + _escElementHtml(el.related_elements[j]) + '</span>';
@@ -110,7 +124,7 @@ function _renderElementExtra(el) {
     }
     if (el.doc_path) {
         html += '<div class="element-detail-section"><h4>' +
-            '<span class="ko">SDK 문서</span><span class="en">SDK Docs</span>' +
+            '<span data-i18n="SDK Docs">' + T('SDK Docs') + '</span>' +
             '</h4><code class="element-doc-path">' + _escElementHtml(el.doc_path) + '</code></div>';
     }
     return html;
@@ -132,7 +146,7 @@ function _renderElementCards(elements) {
         html += '<div class="element-card" onclick="DXStream.showElementDetail(\'' + e.name.replace(/'/g, "\\'") + '\')">' +
             '<div><span class="element-card-name">' + e.name + '</span>' +
             '<span class="badge ' + catClass + ' element-card-cat">' + _elemCatLabel(e.category) + '</span></div>' +
-            '<div class="element-card-desc"><span class="ko">' + (e.description_ko || '') + '</span><span class="en">' + (e.description_en || '') + '</span></div>' +
+            '<div class="element-card-desc">' + _renderBilingualText(e.description_ko, e.description_en) + '</div>' +
             '<div class="element-card-props">' + propCount + ' ' + T('properties') + '</div>' +
             '</div>';
     }

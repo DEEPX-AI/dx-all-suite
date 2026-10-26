@@ -10,8 +10,8 @@ Navigates each release route and collects:
   - Placeholder tokens: undefined, NaN, null, TODO, FIXME
   - Internal release leak tokens: sandbox, Coming Soon, Metadata pending
 
-Usage:
-    python3 tools/release_audit.py [--base-url URL] [--routes r1,r2] [--json FILE]
+Usage (from the repo root, so the studio packages import):
+    python3 -m tools.release_audit [--base-url URL] [--routes r1,r2] [--json FILE]
 
 Exit codes:
     0  No blocker-level findings
@@ -282,9 +282,14 @@ def _run_keyboard_smoke(page, route: str) -> list[SmokeCheck]:
             selector = str(action["selector"])
             page.locator(selector).first.wait_for(state="attached", timeout=2_000)
             focus_selector = action.get("focus_selector", selector)
-            if focus_selector:
-                page.locator(str(focus_selector)).first.focus(timeout=2_000)
-            page.keyboard.press(str(action["key"]))
+            if focus_selector == selector:
+                # Focus and key in one step: Home focuses its ask box when it shows, which stole the focus between a
+                # separate focus() and press().
+                page.locator(selector).first.press(str(action["key"]), timeout=2_000)
+            else:
+                if focus_selector:
+                    page.locator(str(focus_selector)).first.focus(timeout=2_000)
+                page.keyboard.press(str(action["key"]))
             wait_for_eval = action.get("wait_for_eval")
             if wait_for_eval:
                 page.wait_for_function(str(wait_for_eval), timeout=2_000)
@@ -333,8 +338,16 @@ def _try_playwright_audit(base_url: str, routes: list[str]) -> list[RouteResult]
 
     results: list[RouteResult] = []
 
+    try:  # the same Chromium the CI browser suites use (Playwright's shell build may be missing)
+        from shared.chromium import resolve_chromium_executable
+        executable = resolve_chromium_executable()
+    except ImportError:
+        print("[release_audit] shared/ not importable; run `python3 -m tools.release_audit` from the repo root",
+              file=sys.stderr)
+        executable = None
+
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
+        browser = p.chromium.launch(headless=True, executable_path=executable)
 
         for route in routes:
             result = RouteResult(route=route)

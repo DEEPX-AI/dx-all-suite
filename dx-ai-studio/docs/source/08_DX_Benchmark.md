@@ -39,6 +39,23 @@ which uses the same data to recommend hardware.
 *What "max-channel" means:* the highest number of simultaneous video streams a model
 sustains on that NPU while meeting the FPS threshold.  
 
+## Example: compare a model fairly
+
+1. In **Dashboard → E2E FPS Overview**, select the host / NPU environments and their
+   runs. Keep task, model size and ORT setting consistent; compare the displayed
+   environment versions rather than assuming two boards ran identical software.
+2. Click a chart bar to inspect the environment details. Select the **Full Metrics**
+   sub-tab to compare model latency / throughput, end-to-end pipeline FPS and
+   multi-stream channels.
+3. Open **Detailed Data** and check thermal values, **Throttled** and run status.
+   **Partial**, **Timeout** or **Error** is not a clean zero-performance result;
+   use **Results** to read the run report / JSON before drawing a conclusion.
+4. If a run or metric is missing, choose an available run or produce new results with
+   the standalone benchmark CLI. Changing this read-only dashboard does not execute
+   a new benchmark or repair incomplete source data.
+
+![DX Benchmark details — model metrics, thermal information and run status from the selected stored run, not a new measurement started by the dashboard.](resources/benchmark-details.png)
+
 !!! note  
     The dashboard is **read-only**; benchmarks are produced by the standalone
     `dx-benchmark` CLI (`cd dx-benchmark && ./run.sh run`), and their results feed this

@@ -1,6 +1,6 @@
 'use strict';
 
-// 전역 상태 (기존 app/message handler가 참조)
+// Global state (referenced by the existing app/message handlers)
 let _viewMode = 'card';
 let _selectedCategories = [];
 let _allModels = [];
@@ -16,7 +16,7 @@ const OVERSCAN_ROWS = 3;
 const CARD_DOM_LIMIT = 50;
 const LIST_ROW_DOM_LIMIT = 100;
 
-// 최적화 이미지 헬퍼 (Task 9) — window에 노출하여 detail.js와 공유
+// Optimized image helpers — exposed on window so detail.js can share them
 
 function optimizedImageCandidates(originalPath) {
   if (!originalPath) return [];
@@ -68,7 +68,7 @@ function handleImageFallback(img) {
   placeholder.className = 'mz-img-placeholder' + (img.className ? ' ' + img.className : '');
   const icon = document.createElement('span');
   icon.className = 'mz-img-placeholder-icon';
-  icon.textContent = '🖼️';
+  icon.innerHTML = _mzIco('image');
   placeholder.appendChild(icon);
   if (img.alt) {
     const label = document.createElement('span');
@@ -79,31 +79,9 @@ function handleImageFallback(img) {
   img.replaceWith(placeholder);
 }
 
-function _escapeAttr(s) {
-  if (s == null) return '';
-  return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
-
 window.handleImageFallback = handleImageFallback;
 window.ModelZooImages = { optimizedImageCandidates, imageTagWithFallback, handleImageFallback };
 
-
-function _localLabel(obj, prefix) {
-  const lang = DXI18n.lang;
-  const direct = obj[prefix + '_' + lang] || obj[prefix + '_' + lang.split('-')[0]];
-  if (direct) return direct;
-  // The category data only ships label_en + label_ko. For ja/zh-CN/zh-TW/es fall back to
-  // the shared i18n dict (which has all 6 languages for the category names) keyed by the
-  // English label — otherwise the category column/chips stay English in those languages.
-  const en = obj[prefix + '_en'] || '';
-  return en ? T(en) : '';
-}
-
-function _localText(obj) {
-  if (!obj) return '';
-  const lang = DXI18n.lang;
-  return obj[lang] || obj[lang.split('-')[0]] || obj.en || '';
-}
 
 function _missingLabel(label) {
   return `<span class="mz-field-empty">${_escapeAttr(T(label))}</span>`;
@@ -140,6 +118,59 @@ function _bestAccuracyValue(m) {
   return legacyMetric || '';
 }
 
+/* ── Metrics and accuracy ────────────────────────────────────────────
+   Accuracy numbers alone cannot be compared. Different metrics (`3.499` NME and
+   `98.667` Top-1) cannot share one sortable column: there is no order between
+   different metrics.
+
+   Direction also differs per metric — Top1 is better higher, RMSE lower — so coloring
+   a delta needs to know which way is good; metrics of unknown direction stay uncolored.
+   app.js holds the single direction table (METRIC_HIGHER_IS_BETTER /
+   METRIC_LOWER_IS_BETTER). Server-side counterpart: dx_modelzoo/core/metrics.py */
+function _metricName(m) {
+  const name = m.specification?.metric?.name;
+  if (name) return String(name);
+  // Older snapshots stored metric as an object such as {mAP: 51.2}.
+  const legacy = m.specification?.metric;
+  if (legacy && typeof legacy === 'object') return Object.keys(legacy)[0] || '';
+  return '';
+}
+
+function _metricDirection(metric) {
+  if (!metric) return null;
+  if (METRIC_HIGHER_IS_BETTER.has(metric)) return 'higher';
+  if (METRIC_LOWER_IS_BETTER.has(metric)) return 'lower';
+  return null;
+}
+
+function _accuracyWithMetric(m) {
+  const value = _bestAccuracyValue(m);
+  if (value === '' || value == null) return '';
+  const metric = _metricName(m);
+  // English words in metric names (Accuracy · Top1 Accuracy · Average Accuracy) are translated. Abbreviations such as mAP · mIoU are not in the dictionary and stay as-is.
+  return metric ? T(metric) + ' ' + value : String(value);
+}
+
+/* Compare only within the same metric. Different metrics return 0 so they get no
+   order between them — the sort then keeps the original order (stable sort). */
+function _compareAccuracy(a, b, metricOf) {
+  const ma = metricOf(a), mb = metricOf(b);
+  if (ma !== mb) return 0;
+  const va = parseFloat(_bestAccuracyValue(a));
+  const vb = parseFloat(_bestAccuracyValue(b));
+  if (isNaN(va) && isNaN(vb)) return 0;
+  if (isNaN(va)) return 1;
+  if (isNaN(vb)) return -1;
+  const dir = _metricDirection(ma);
+  // For lower-is-better metrics, ascending is the 'best first' order.
+  return dir === 'lower' ? va - vb : vb - va;
+}
+
+function _specNumber(m, key) {
+  const v = m.specification?.[key];
+  return (v === null || v === undefined || v === '') ? '' : String(v);
+}
+
 function _modelFpsText(m) {
   const performance = m.performance || {};
   const fps = performance.fps ?? m.specification?.fps;
@@ -170,34 +201,37 @@ function _computeUniqueModelCount(models) {
   return unique.size || (models || []).length;
 }
 
-function _artifactAvailable(m, artifactId) {
-  const artifact = (m.artifacts || {})[artifactId] || {};
-  if (artifact.available === false) return false;
-  return artifact.available === true ||
-    Boolean(artifact.download_endpoint || artifact.local_path || artifact.remote_url);
-}
-
-function _artifactBadge(m, artifactId, label) {
-  const available = _artifactAvailable(m, artifactId);
-  const status = available ? 'ready' : 'not-ready';
-  const icon = available ? '✅' : '⏳';
-  const title = available ? label : T('Artifact unavailable');
-  return `<span class="mz-download-badge ${status}" title="${_escapeAttr(title)}">${icon} ${_escapeAttr(label)}</span>`;
-}
-
 function _artifactBadges(m) {
   const qlite = _artifactAvailable(m, 'qlite_dxnn') || _artifactAvailable(m, 'qlite_json') ||
     m.downloaded_qlite || m.downloaded;
   const qpro = _artifactAvailable(m, 'qpro_dxnn') || _artifactAvailable(m, 'qpro_json') ||
     m.downloaded_qpro;
+  const qmaster = _artifactAvailable(m, 'qmaster_dxnn') || _artifactAvailable(m, 'qmaster_json') ||
+    m.downloaded_qmaster;
   const artifacts = {
     qlite_dxnn: qlite ? { available: true } : (m.artifacts || {}).qlite_dxnn,
     qpro_dxnn: qpro ? { available: true } : (m.artifacts || {}).qpro_dxnn,
+    qmaster_dxnn: qmaster ? { available: true } : (m.artifacts || {}).qmaster_dxnn,
   };
-  return [
+  const badges = [
     _artifactBadge({ artifacts }, 'qlite_dxnn', 'Q-Lite'),
     _artifactBadge({ artifacts }, 'qpro_dxnn', 'Q-Pro'),
-  ].join(' ');
+  ];
+  // Q-Master exists for only 15 of the 354 public catalog models. Always drawing it
+  // would make most chips read 'none' — it takes space only when present.
+  if (artifacts.qmaster_dxnn) {
+    badges.push(_artifactBadge({ artifacts }, 'qmaster_dxnn', 'Q-Master'));
+  }
+  return badges.join(' ');
+}
+
+// Models this PC's DX-RT cannot read (Model Zoo 2_5_0 = .dxnn container v9) — they would not run even if
+// downloaded.
+function _dxrtBadge(m) {
+  if (!m.requires_dxrt) return '';
+  const label = T('Needs DX-RT') + ' ' + m.requires_dxrt;
+  const title = T('This model is .dxnn container v9 — the installed DX-RT reads up to v8.');
+  return `<span class="mz-license-badge restricted mz-dxrt-badge" title="${_escapeAttr(title)}">${_mzIco('alert')} ${_escapeAttr(label)}</span>`;
 }
 
 function _licenseBadge(m) {
@@ -207,7 +241,7 @@ function _licenseBadge(m) {
   const title = cu === 'non-commercial'
     ? T('Commercial use prohibited')
     : T('Commercial use requires license review');
-  return `<span class="mz-license-badge ${cu}" title="${_escapeAttr(title)}">⚠ ${_escapeAttr(label)}</span>`;
+  return `<span class="mz-license-badge ${cu}" title="${_escapeAttr(title)}">${_mzIco('alert')} ${_escapeAttr(label)}</span>`;
 }
 
 function _commitCatalogStateSave(state) {
@@ -272,6 +306,21 @@ const ModelZooVirtualCatalog = {
     };
     container.addEventListener('scroll', onScroll);
     window.addEventListener('scroll', onScroll);
+    // The scroller may be neither the container nor window: with the shared app shell the
+    // overflow lives on an ancestor (main.dx-shell-main). Hard-coding one class would break
+    // again whenever the shell changes, so subscribe to every overflowing ancestor.
+    // (Same approach: _bindScrollRootsFor in shared/static/tutorial-engine.js)
+    this._scrollRootSeen = this._scrollRootSeen || new WeakSet();
+    let node = container.parentElement;
+    while (node && node !== document.documentElement) {
+      const st = window.getComputedStyle ? window.getComputedStyle(node) : null;
+      const ov = st ? (st.overflow || '') + (st.overflowY || '') : '';
+      if (/auto|scroll|overlay/.test(ov) && !this._scrollRootSeen.has(node)) {
+        this._scrollRootSeen.add(node);
+        node.addEventListener('scroll', onScroll, { passive: true });
+      }
+      node = node.parentElement;
+    }
     window.addEventListener('resize', () => {
       this._measuredCardHeight = null;
       onScroll();
@@ -305,20 +354,39 @@ const ModelZooVirtualCatalog = {
     this._listSortBound = true;
   },
 
+  /** The ancestor that actually scrolls the container, or null (= window scrolling). */
+  _scrollRoot() {
+    let node = this._container && this._container.parentElement;
+    while (node && node !== document.documentElement) {
+      const st = window.getComputedStyle ? window.getComputedStyle(node) : null;
+      const ov = st ? (st.overflow || '') + (st.overflowY || '') : '';
+      if (/auto|scroll|overlay/.test(ov) && node.scrollHeight > node.clientHeight + 1) {
+        return node;
+      }
+      node = node.parentElement;
+    }
+    return null;
+  },
+
   _getEffectiveScrollTop() {
     const container = this._container;
     if (!container) return 0;
-    // container가 자체 스크롤 컨테이너인 경우
+    // When the container is its own scroll container
     const style = window.getComputedStyle ? window.getComputedStyle(container) : {};
     const overflowY = style.overflowY || '';
     if (container.scrollHeight > container.clientHeight &&
         (overflowY === 'auto' || overflowY === 'scroll')) {
       return container.scrollTop || 0;
     }
-    // window 스크롤 모드: container의 문서 내 위치를 기준으로 계산
-    const rect = container.getBoundingClientRect();
-    const containerDocTop = rect.top + window.scrollY;
-    return Math.max(0, window.scrollY - containerDocTop);
+    // Otherwise use how far the container has been pushed above the top of the scroll
+    // root's viewport. This one expression covers container, ancestor and window scrolling.
+    // rootTop matters when the scroller's top sits below a header instead of at viewport
+    // y=0; without it the offset would be off by that height (hidden by the overscan, but
+    // wrong).
+    const root = this._scrollRoot();
+    const containerTop = container.getBoundingClientRect().top;
+    const rootTop = root ? root.getBoundingClientRect().top : 0;
+    return Math.max(0, rootTop - containerTop);
   },
 
   setViewMode(mode) {
@@ -368,7 +436,7 @@ const ModelZooVirtualCatalog = {
     return sortModels(models);
   },
 
-  // loadPage: 서버 페이지 fetch 경로 — API 기반 가상화/향후 점진적 로딩용으로 유지
+  // loadPage: server page fetch path — kept for API-based virtualization / future incremental loading
   async loadPage(page) {
     const cacheKey = this._cacheKey(page);
     if (this.pageCache.has(cacheKey)) {
@@ -556,14 +624,16 @@ const ModelZooVirtualCatalog = {
     const headers = [
       { key: 'name', label: T('Name') },
       { key: 'category', label: T('Category') },
-      { key: 'fps', label: 'FPS' },
-      { key: 'resolution', label: T('Input Resolution') },
+      { key: 'params', label: T('Params (M)') },
       { key: 'accuracy', label: T('Accuracy') },
+      { key: 'fps', label: 'FPS' },
+      { key: 'fps_per_watt', label: 'FPS / W' },
+      { key: 'resolution', label: T('Input Resolution') },
       { key: 'status', label: T('Status') },
     ];
     let html = '<table class="mz-list-table"><thead><tr>';
     headers.forEach(h => {
-      const arrow = _sortField === h.key ? (_sortDir === 'asc' ? ' ▲' : ' ▼') : '';
+      const arrow = _sortField === h.key ? (_sortDir === 'asc' ? ' ↑' : ' ↓') : '';
       html += `<th data-sort-key="${_escapeAttr(h.key)}">${_escapeAttr(h.label)}${arrow}</th>`;
     });
     html += '</tr></thead><tbody>';
@@ -572,11 +642,11 @@ const ModelZooVirtualCatalog = {
     const afterHeight = Math.max(0, models.length - end) * LIST_ROW_HEIGHT;
 
     if (beforeHeight > 0) {
-      html += `<tr class="mz-spacer"><td colspan="6" style="height:${beforeHeight}px;padding:0;border:none"></td></tr>`;
+      html += `<tr class="mz-spacer"><td colspan="8" style="height:${beforeHeight}px;padding:0;border:none"></td></tr>`;
     }
     visible.forEach(m => { html += this.renderListRow(m); });
     if (afterHeight > 0) {
-      html += `<tr class="mz-spacer"><td colspan="6" style="height:${afterHeight}px;padding:0;border:none"></td></tr>`;
+      html += `<tr class="mz-spacer"><td colspan="8" style="height:${afterHeight}px;padding:0;border:none"></td></tr>`;
     }
     html += '</tbody></table>';
     const savedScrollTop = container.scrollTop || 0;
@@ -596,31 +666,31 @@ const ModelZooVirtualCatalog = {
   renderCardItem(m) {
     const catInfo = _allCategories[m.category] || {};
     const catLabel = _localLabel(catInfo, 'label') || m.category;
-    const icon = _escapeAttr(catInfo.icon || '🤖');
-    const categoryIcon = _escapeAttr(catInfo.icon || '');
+    const icon = _taskIcon(catInfo, 'mz-thumb-ico');
+    const categoryIcon = catInfo.icon ? _taskIcon(catInfo) : '';
     const legacyFps = m.specification?.fps ? `<span class="mz-card-fps">${_escapeAttr(m.specification.fps)} FPS</span>` : '';
     const fps = `<span class="${_escapeAttr(_modelFpsClass(m))}">${_escapeAttr(_modelFpsText(m))}</span>` || legacyFps;
     const resolution = _modelInputResolution(m);
-    const missing = Array.isArray(m.missing) ? m.missing : [];
-    const missingCount = missing.length;
-    const summary = _localText(m.display?.summary) || _localText(m.content?.use_case) || '';
+    // Show the metric name too — bare numbers make NME 3.5 and Top-1 98.6 look like the same scale.
+    const accuracy = _accuracyWithMetric(m);
+    const summary = _summaryText(m);
     const thumbImg = m.thumbnail
       ? imageTagWithFallback(m.thumbnail, m.name)
       : '';
     return `
     <div class="mz-card" data-model-id="${_escapeAttr(m.id)}" data-help-id="model-card-${_escapeAttr(m.id)}">
-      <div class="mz-card-thumb">${icon}${thumbImg}</div>
+      <div class="mz-card-thumb${thumbImg ? '' : ' no-thumb'}">${icon}${thumbImg}</div>
       <div class="mz-card-body">
         <div class="mz-card-name" title="${_escapeAttr(m.id)}">${_escapeAttr(m.name)}</div>
         <div class="mz-card-cat">${categoryIcon} ${_escapeAttr(catLabel)}</div>
-        ${_licenseBadge(m)}
+        ${_licenseBadge(m)}${_dxrtBadge(m)}
         ${summary ? `<div class="mz-card-summary">${_escapeAttr(summary)}</div>` : ''}
         <div class="mz-card-meta">
           ${fps}
           <span>${resolution ? _escapeAttr(resolution) : _missingLabel('Not provided by source')}</span>
         </div>
+        ${accuracy ? `<div class="mz-card-acc">${_escapeAttr(accuracy)}</div>` : ''}
         <div class="mz-card-artifacts">${_artifactBadges(m)}</div>
-        ${missingCount ? `<div class="mz-card-missing">${_escapeAttr(missingCount)} ${_escapeAttr(T('Not provided by source'))}</div>` : ''}
       </div>
     </div>`;
   },
@@ -628,7 +698,7 @@ const ModelZooVirtualCatalog = {
   renderListRow(m) {
     const catInfo = _allCategories[m.category] || {};
     const catLabel = _localLabel(catInfo, 'label') || m.category;
-    const categoryIcon = _escapeAttr(catInfo.icon || '');
+    const categoryIcon = catInfo.icon ? _taskIcon(catInfo) : '';
     const metric = m.specification?.metric;
     let accuracy = '';
     if (metric) {
@@ -640,7 +710,9 @@ const ModelZooVirtualCatalog = {
     const legacyFps = _escapeAttr(m.specification?.fps || '-');
     const fpsText = _modelFpsText(m) || legacyFps;
     const resolution = _modelInputResolution(m);
-    const accuracyText = _bestAccuracyValue(m) || accuracy;
+    const accuracyText = _accuracyWithMetric(m) || accuracy;
+    const params = _specNumber(m, 'parameters');
+    const fpsw = m.performance?.fps_per_watt != null ? String(m.performance.fps_per_watt) : '';
     let statusBadges = '—';
     if (m.artifacts || m.downloaded_qlite || m.downloaded_qpro || m.downloaded) {
       statusBadges = _artifactBadges(m);
@@ -650,10 +722,12 @@ const ModelZooVirtualCatalog = {
     return `<tr class="mz-list-row" data-model-id="${_escapeAttr(m.id)}" data-help-id="model-row-${_escapeAttr(m.id)}">
       <td>${_escapeAttr(m.name)}</td>
       <td><span class="mz-card-cat">${categoryIcon} ${_escapeAttr(catLabel)}</span></td>
-      <td>${_escapeAttr(fpsText)}</td>
-      <td>${resolution ? _escapeAttr(resolution) : _missingLabel('Not provided by source')}</td>
+      <td>${params ? _escapeAttr(params) : _missingLabel('Not provided by source')}</td>
       <td>${accuracyText ? _escapeAttr(String(accuracyText)) : _missingLabel('Not provided by source')}</td>
-      <td>${statusBadges}${_licenseBadge(m)}</td>
+      <td>${_escapeAttr(fpsText)}</td>
+      <td>${fpsw ? _escapeAttr(fpsw) : _missingLabel('Not provided by source')}</td>
+      <td>${resolution ? _escapeAttr(resolution) : _missingLabel('Not provided by source')}</td>
+      <td>${statusBadges}${_licenseBadge(m)}${_dxrtBadge(m)}</td>
     </tr>`;
   },
 
@@ -681,7 +755,7 @@ const ModelZooVirtualCatalog = {
         this._stateSaveTimer = null;
         _commitCatalogStateSave(state);
       }, 150);
-    } catch (_) { /* sessionStorage 접근 불가 시 무시 */ }
+    } catch (_) { /* ignore when sessionStorage is unavailable */ }
   },
 
   _restoreState() {
@@ -712,10 +786,36 @@ const ModelZooVirtualCatalog = {
           if (this._container) this._container.scrollTop = state.scrollTop;
         });
       }
-    } catch (_) { /* 파싱 실패 시 무시 */ }
+    } catch (_) { /* ignore parse failures */ }
   },
 };
 
+
+/** Date the catalog was built (local format), or an empty string when there is none — filling a missing value
+    with "unknown" would make it indistinguishable from a stale one. */
+function _catalogGeneratedAt() {
+  /* app.js stores the /api/catalog response in _catalogData (there is no bundler, so
+     the classic scripts share one scope). */
+  var data = (typeof _catalogData !== 'undefined' && _catalogData) || null;
+  var at = (data && data.generated_at) || '';
+  if (!at) return '';
+  try {
+    var d = new Date(at);
+    if (isNaN(d.getTime())) return '';
+    // Date format follows the chosen language, not the browser (otherwise a ko page shows "10/1/2026")
+    var lang = (typeof DXI18n !== 'undefined' && DXI18n.lang) || undefined;
+    try { return d.toLocaleDateString(lang); } catch (e2) { return d.toLocaleDateString(); }
+  } catch (e) {
+    return '';
+  }
+}
+
+/* Count + name. Translations starting with a CJK counter word attach to the number with no space,
+   matching app.js. */
+function _countLabel(n, key) {
+  var tr = T(key);
+  return /^[개件個个]/.test(tr) ? n + tr : n + ' ' + tr;
+}
 
 function updateCatalogHeading() {
   const titleEl = document.getElementById('catalogTitle');
@@ -736,10 +836,20 @@ function updateCatalogHeading() {
     }
   }
   if (subtitleEl) {
-    subtitleEl.textContent = `${variantCount} ${T('model variants')} · ${uniqueModelCount} ${T('unique models')}`;
+    /* Say when the list was built. Detail pages already show it per model, but this is where
+       "is this whole list stale?" gets asked. When to re-sync is an operator decision; this
+       only makes it visible.
+       Contract: tests/dx_modelzoo/test_catalog_freshness.py */
+    var parts = [
+      _countLabel(variantCount, 'model variants'),
+      _countLabel(uniqueModelCount, 'unique models'),
+    ];
+    var synced = _catalogGeneratedAt();
+    if (synced) parts.push(`${T('synced')} ${synced}`);
+    subtitleEl.textContent = parts.join(' · ');
   }
   if (countEl) {
-    countEl.textContent = `${variantCount} ${T('models found')}`;
+    countEl.textContent = _countLabel(variantCount, 'models found');
   }
 }
 
@@ -757,7 +867,7 @@ function syncCatalogControls() {
   document.getElementById('btnListView')?.classList.toggle('active', _viewMode === 'list');
 }
 
-// 공개 API — 기존 호환 래퍼
+// Public API — compatibility wrappers
 
 function initCatalog(data) {
   if (!data) return;
@@ -785,7 +895,7 @@ function renderCategoryChips() {
     const catActive = _selectedCategories.includes(id);
     html += `<label class="mz-category-option${catActive ? ' active' : ''}">
       <input type="checkbox" data-cat="${_escapeAttr(id)}" ${catActive ? 'checked' : ''}>
-      <span class="mz-category-label">${_escapeAttr(info.icon || '')} ${_escapeAttr(label)}</span>
+      <span class="mz-category-label">${info.icon ? _taskIcon(info) : ''} ${_escapeAttr(label)}</span>
       <span class="chip-count">${_escapeAttr(count)}</span>
     </label>`;
   }
@@ -795,7 +905,7 @@ function renderCategoryChips() {
     const unkActive = _selectedCategories.includes('__unknown__');
     html += `<label class="mz-category-option${unkActive ? ' active' : ''}">
       <input type="checkbox" data-cat="__unknown__" ${unkActive ? 'checked' : ''}>
-      <span class="mz-category-label">❓ ${_escapeAttr(unknownLabel)}</span>
+      <span class="mz-category-label">${_mzIco('info')} ${_escapeAttr(unknownLabel)}</span>
       <span class="chip-count">${_escapeAttr(unknownCount)}</span>
     </label>`;
   }
@@ -895,6 +1005,24 @@ function sortModels(models) {
       vb = parseFloat(b.performance?.fps ?? b.specification?.fps) || 0;
       return (vb - va) * dir;
     }
+    if (_sortField === 'fps_per_watt') {
+      va = parseFloat(a.performance?.fps_per_watt) || 0;
+      vb = parseFloat(b.performance?.fps_per_watt) || 0;
+      return (vb - va) * dir;
+    }
+    if (_sortField === 'params') {
+      va = parseFloat(a.specification?.parameters);
+      vb = parseFloat(b.specification?.parameters);
+      if (isNaN(va) && isNaN(vb)) return 0;
+      if (isNaN(va)) return 1;
+      if (isNaN(vb)) return -1;
+      return (va - vb) * dir;
+    }
+    if (_sortField === 'accuracy') {
+      // Different metrics compare as 0 — no order between them. Array.sort is stable,
+      // so the original order is kept.
+      return _compareAccuracy(a, b, _metricName) * dir;
+    }
     return String(va).localeCompare(String(vb)) * dir;
   });
 }
@@ -914,13 +1042,13 @@ function filterAndRender() {
 }
 
 function renderCardView(container, models) {
-  // 가상화 위임 — 내부 상태 사용, 레거시 인자는 호환성을 위해 유지
+  // Delegate to the virtualizer — uses internal state; legacy arguments kept for compatibility
   ModelZooVirtualCatalog._viewMode = 'card';
   ModelZooVirtualCatalog.renderViewport();
 }
 
 function renderListView(container, models) {
-  // 가상화 위임 — 내부 상태 사용, 레거시 인자는 호환성을 위해 유지
+  // Delegate to the virtualizer — uses internal state; legacy arguments kept for compatibility
   ModelZooVirtualCatalog._viewMode = 'list';
   ModelZooVirtualCatalog.renderViewport();
 }

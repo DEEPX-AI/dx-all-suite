@@ -20,7 +20,7 @@ so you can describe *what* you want and let the agent handle the implementation 
 Supported workflows include:
 
 - Standalone inference apps with `IFactory`, `SyncRunner`, and `AsyncRunner`
-- GStreamer video pipelines using DEEPX's 13 custom elements across 6 categories
+- GStreamer video pipelines using DEEPX's 13 custom elements across 5 categories
 - Cross-project builds that span dx_app, dx_stream, and dx-runtime
 - Model compilation from ONNX to DXNN format using DX-COM (in dx-compiler)
 
@@ -96,7 +96,7 @@ verification gates** the harness imposes. Reading a transcript you can watch:
 
 | Requirement | Details |
 |---|---|
-| **DEEPX development environment** | DX-RT SDK installed and `setup_env.sh` sourced |
+| **DEEPX development environment** | DX-RT installed (dx-runtime `install.sh`) |
 | **AI coding agent** (one of) | Claude Code, GitHub Copilot (VS Code), Cursor, OpenCode, or Codex CLI |
 | **Python** | 3.10+ with the dx-all-suite packages installed |
 
@@ -159,13 +159,12 @@ correct submodule.
 | **dx_app** | `@dx-model-manager` | Model download and registry manager |
 | **dx_app** | `@dx-validator` | dx_app validation and feedback loop |
 | **dx_stream** | `@dx-stream-builder` | GStreamer pipeline builder — routes to specialist builders |
-| **dx_stream** | `@dx-pipeline-builder` | Pipeline construction (6 categories incl. broker) |
 | **dx_stream** | `@dx-validator` | dx_stream validation and feedback loop |
 | **dx-compiler** | `@dx-compiler-builder` | Model compilation router — routes to converter or compiler |
 | **dx-compiler** | `@dx-model-converter` | PyTorch to ONNX model converter |
 | **dx-compiler** | `@dx-dxnn-compiler` | ONNX to DXNN compiler (DX-COM) |
 
-### Skills (OpenCode only)
+### Skills
 
 | Level | Skill | Description |
 |---|---|---|
@@ -257,7 +256,7 @@ Each AI coding agent auto-loads different configuration files at the suite level
 Files marked **Auto** are loaded on every conversation; **@mention** files are invoked
 manually via agent or skill commands.
 
-!!! note "Git submodule boundary*"  
+!!! note "Git submodule boundary"  
 
     Copilot Chat/CLI, Claude Code, and Codex CLI only see files at the current git root. When opened at `dx-all-suite/`, they do NOT auto-load sub-project files in `dx-compiler/`, `dx-runtime/`, etc. (these are separate git submodules). OpenCode bridges this boundary via explicit path references in `opencode.json`.  
 
@@ -284,7 +283,7 @@ manually via agent or skill commands.
     Cursor has agent `.mdc` files in `.cursor/rules/` (e.g., `dx-suite-builder.mdc`).  
     Claude Code also uses the Context Routing Table in `CLAUDE.md` to dispatch tasks.  
 
-#### Skill Files (OpenCode Only — `/slash-command`)
+#### Skill Files (`/slash-command`)
 
 | Skill | File |
 |-------|------|
@@ -311,7 +310,7 @@ OpenCode (`.opencode/`), and Cursor (`.cursor/rules/`).
 | Directory | Contents |
 |-----------|----------|
 | `agents/` | `dx-suite-builder`, `dx-suite-validator` |
-| `skills/` | 13 skills (domain + shared process skills) |
+| `skills/` | Domain, process, and harness skills |
 | `templates/` | `{en,ko}/*.tmpl` — instruction file templates |
 | `templates/fragments/` | `{en,ko}/*.md` — shared sections reused across repos |
 | `memory/` | Persistent cross-session knowledge |
@@ -328,7 +327,7 @@ All platform-specific files are generated from `.deepx/` by the `dx-agent-dev-ge
 package. Never edit generated files directly.
 
 ```bash
-pip install -e .deepx/tools   # Install generator
+pipx install --force --editable .deepx/tools   # PEP 668-safe; install generator
 dx-agent-gen generate                    # Generate platform files
 dx-agent-gen check                       # Verify no drift
 ```
@@ -454,7 +453,7 @@ This scenario involves two stages:
 
 ### Scenario 4: PPU Model Compilation + Detection App
 
-Compile a YOLO model with PPU (Pre/Post Processing Unit) support for hardware-accelerated
+Compile a YOLO model with PPU (Post-Processing Unit) support for hardware-accelerated
 post-processing, then generate an app that uses the PPU model.
 
 **Prompt:**

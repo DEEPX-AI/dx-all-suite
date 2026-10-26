@@ -1,6 +1,6 @@
-"""P3: in-UI 로그인 보조 — /api/agent/login/status (설치/인증/로그인 명령 안내).
+"""In-UI sign-in help: /api/agent/login/status (install state, auth state, sign-in command).
 
-완전 임베드 device-code 스트리밍은 라이브 검증 필요 → 여기서는 안전한 상태+안내 경로를 검증.
+Embedded device-code streaming needs a live CLI, so this covers the safe status-and-guidance path.
 """
 import json
 import os

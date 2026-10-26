@@ -260,12 +260,11 @@ python .deepx/e2e/e2e_monitor.py --once
 ## 🚀 빠른 시작
 
 ```bash
-cd .deepx/e2e
-
-# 에이전트 인프라 검증 (~704개 테스트, ~1초)
-./test.sh agent-driven
+# 에이전트 인프라 검증 (~600개 테스트, ~1초; suite root에서 실행; PYTHONPATH 불필요)
+python3 -m pytest --rootdir=. .deepx/tests/conformance -q
 
 # 에이전트 E2E 시나리오 테스트 (도구별)
+cd .deepx/e2e
 ./test.sh agent-driven-e2e-copilot-cli-autopilot     # Copilot CLI
 ./test.sh agent-driven-e2e-cursor-cli-autopilot      # Cursor CLI
 ./test.sh agent-driven-e2e-opencode-cli-autopilot    # OpenCode CLI
@@ -352,7 +351,7 @@ export DX_AGENT_E2E_CODEX_EXTRA_ARGS='-c model_reasoning_effort="xhigh"'  # xhig
 .deepx/
 ├── tests/                          # ← suite conformance (이 README)
 │   ├── conftest.py                 # 마커 등록 + collect_ignore
-│   └── conformance/                # KB / 생성물 정책 검사 (~700, CLI/NPU 불필요)
+│   └── conformance/                # KB / 생성물 정책 검사 (~600, CLI/NPU 불필요)
 │       ├── conftest.py             # ProjectInfra/GuidePair, 경로 상수, helper
 │       ├── test_guide_structure.py · test_routing_consistency.py
 │       ├── test_scenario_references.py · test_instruction_sync.py
@@ -377,4 +376,4 @@ export DX_AGENT_E2E_CODEX_EXTRA_ARGS='-c model_reasoning_effort="xhigh"'  # xhig
 ---
 
 **총 에이전트 테스트 수:**
-~1279개 (agent-driven: ~704 | copilot_cli: ~114 | cursor_cli: ~113 | opencode_cli: ~116 | claude_code_cli: ~116 | codex_cli: ~116) — 정확한 수치는 `pytest --collect-only -q`로 확인
+~1175개 (conformance: ~600 | copilot_cli: ~114 | cursor_cli: ~113 | opencode_cli: ~116 | claude_code_cli: ~116 | codex_cli: ~116) — 정확한 수치는 `pytest --collect-only -q`로 확인

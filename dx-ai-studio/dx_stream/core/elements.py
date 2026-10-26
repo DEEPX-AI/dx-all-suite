@@ -1,10 +1,10 @@
-"""GStreamer 엘리먼트 레퍼런스 — DxStream 커스텀 13개 + GStreamer 표준 소스/싱크.
+"""GStreamer element reference — the 13 DxStream custom elements plus standard GStreamer sources/sinks.
 
-파이프라인 빌더 팔레트에서 사용.
+Used by the pipeline builder palette.
 """
 from __future__ import annotations
 
-# 카테고리별 색상 (pipeline-iso.css와 동기화)
+# Colors per category (keep in sync with pipeline-iso.css)
 CATEGORY_COLORS = {
     "source": "#3B82F6",
     "preprocess": "#F59E0B",
@@ -18,7 +18,7 @@ CATEGORY_COLORS = {
 }
 
 _ELEMENTS = [
-    # DxStream 커스텀 (13개)
+    # DxStream custom elements (13)
     {
         "name": "DxPreprocess",
         "category": "preprocess",
@@ -110,7 +110,8 @@ _ELEMENTS = [
         "description_ko": "프레임레이트 제어",
         "description_en": "Frame rate control", "description_es": "Frame rate control",
         "properties": [
-            {"name": "rate", "type": "float", "description": "목표 FPS", "description_ko": "목표 FPS", "description_en": "Target FPS", "description_es": "FPS objetivo"},
+            {"name": "framerate", "type": "uint", "description": "목표 FPS (필수)", "description_ko": "목표 FPS (필수)", "description_en": "Target FPS (required)", "description_es": "FPS objetivo (obligatorio)"},
+            {"name": "throttle", "type": "bool", "description_ko": "프레임을 버릴 때 상류로 Throttle QoS 이벤트 전송", "description_en": "Send Throttle QoS events upstream on frame drops", "description_es": "Send Throttle QoS events upstream on frame drops"},
         ],
     },
     {
@@ -128,8 +129,6 @@ _ELEMENTS = [
         "description_ko": "MQTT/Kafka 메시지 전송",
         "description_en": "MQTT/Kafka message publishing", "description_es": "MQTT/Kafka message publishing",
         "properties": [
-            {"name": "proto-lib", "type": "string", "description": "프로토콜 라이브러리 경로", "description_ko": "프로토콜 라이브러리 경로", "description_en": "Protocol library path", "description_es": "Protocol library path"},
-            {"name": "conn-str", "type": "string", "description": "연결 문자열", "description_ko": "연결 문자열", "description_en": "Connection string", "description_es": "Connection string"},
             {"name": "topic", "type": "string", "description": "토픽명", "description_ko": "토픽명", "description_en": "Topic name", "description_es": "Topic name"},
             {"name": "broker-name", "type": "string", "description_ko": "브로커 종류 (mqtt/kafka)", "description_en": "Broker type (mqtt/kafka)", "description_es": "Broker type (mqtt/kafka)"},
             {"name": "conn-info", "type": "string", "description_ko": "연결 정보 (host:port)", "description_en": "Connection info (host:port)", "description_es": "Connection info (host:port)"},
@@ -162,7 +161,7 @@ _ELEMENTS = [
         "category": "source",
         "description_ko": "VNPU 하드웨어 비디오 디코더 (H.264/H.265 → raw)",
         "description_en": "VNPU hardware video decoder (H.264/H.265 → raw)",
-        "description_es": "Decodificador de vídeo por hardware VNPU (H.264/H.265 → raw)",
+        "description_es": "Decodificador de video por hardware VNPU (H.264/H.265 → raw)",
         "properties": [
             {"name": "output-format", "type": "string", "description_ko": "출력 픽셀 포맷: NV12(기본)/RGB/BGR", "description_en": "Output pixel format: NV12 (default)/RGB/BGR", "description_es": "Formato de píxel de salida: NV12 (predet.)/RGB/BGR"},
             {"name": "output-width", "type": "int", "description_ko": "출력 폭 (0=입력과 동일)", "description_en": "Output width (0 = same as input)", "description_es": "Ancho de salida (0 = igual que entrada)"},
@@ -174,7 +173,7 @@ _ELEMENTS = [
         "category": "output",
         "description_ko": "VNPU 하드웨어 비디오 인코더 (raw → H.264/H.265)",
         "description_en": "VNPU hardware video encoder (raw → H.264/H.265)",
-        "description_es": "Codificador de vídeo por hardware VNPU (raw → H.264/H.265)",
+        "description_es": "Codificador de video por hardware VNPU (raw → H.264/H.265)",
         "properties": [
             {"name": "codec", "type": "string", "description_ko": "인코딩 코덱: h264(기본)/h265", "description_en": "Encoding codec: h264 (default)/h265", "description_es": "Códec de codificación: h264 (predet.)/h265"},
             {"name": "bitrate", "type": "int", "description_ko": "목표 비트레이트 (kbps, 기본 4096)", "description_en": "Target bitrate (kbps, default 4096)", "description_es": "Bitrate objetivo (kbps, predet. 4096)"},
@@ -208,7 +207,7 @@ _ELEMENTS = [
             {"name": "group-count", "type": "int", "description_ko": "HDMI 그리드 오버레이 그룹 수", "description_en": "Number of overlay groups for HDMI grid", "description_es": "Número de grupos de superposición para cuadrícula HDMI"},
         ],
     },
-    # GStreamer 표준 (파이프라인 빌더용)
+    # Standard GStreamer elements (for the pipeline builder)
     {
         "name": "urisourcebin",
         "category": "source",
@@ -226,6 +225,17 @@ _ELEMENTS = [
         "properties": [
             {"name": "location", "type": "string", "description": "RTSP URL", "description_ko": "RTSP URL", "description_en": "RTSP URL", "description_es": "RTSP URL"},
             {"name": "latency", "type": "int", "description": "지연 시간 (ms)", "description_ko": "지연 시간 (ms)", "description_en": "Latency (ms)", "description_es": "Latencia (ms)"},
+        ],
+    },
+    {
+        # USB / V4L2 camera — without it a camera pipeline cannot be built (the other sources are urisourcebin · rtspsrc).
+        "name": "v4l2src",
+        "category": "source",
+        "description_ko": "USB · V4L2 카메라 소스",
+        "description_en": "USB / V4L2 camera source", "description_es": "Fuente de cámara USB / V4L2",
+        "properties": [
+            {"name": "device", "type": "string", "description": "카메라 장치", "description_ko": "카메라 장치 (예: /dev/video0)",
+             "description_en": "Camera device (e.g. /dev/video0)", "description_es": "Dispositivo de cámara (p. ej. /dev/video0)"},
         ],
     },
     {
@@ -475,9 +485,37 @@ _ELEMENT_DETAILS = {
 }
 
 
+# Property defaults, read with `gst-inspect-1.0 <element>` from installed plugins
+# (dx_stream plugins 3.1.2 · standard GStreamer). Properties whose string default is null and
+# plugins that were not installed (DxVnpu* · x264enc) are left out — the table shows "--" for them.
+_GST_DEFAULTS = {
+    "DxPreprocess": {"preprocess-id": "0", "resize-width": "0", "resize-height": "0", "secondary-mode": "false",
+                     "interval": "0", "min-object-width": "0", "min-object-height": "0", "keep-ratio": "true",
+                     "pad-value": "0", "target-class-id": "-1"},
+    "DxInfer": {"preprocess-id": "0", "inference-id": "0", "secondary-mode": "false"},
+    "DxPostprocess": {"inference-id": "0", "secondary-mode": "false"},
+    "DxScale": {"width": "0", "height": "0"},
+    "DxRate": {"framerate": "0", "throttle": "false"},
+    "DxMsgBroker": {"broker-name": "mqtt"},
+    "rtspsrc": {"latency": "2000"},
+    "v4l2src": {"device": "/dev/video0"},
+    "queue": {"max-size-buffers": "200", "leaky": "no (0)"},
+    "fpsdisplaysink": {"sync": "true"},
+    "ximagesink": {"sync": "true", "force-aspect-ratio": "true"},
+    "webrtcbin": {"bundle-policy": "none (0)"},
+    "vp8enc": {"deadline": "1000000", "target-bitrate": "256000"},
+}
+
+
 def _with_detail(element: dict) -> dict:
     detailed = dict(element)
     detailed.update(_ELEMENT_DETAILS.get(element["name"], {}))
+    defaults = _GST_DEFAULTS.get(element["name"])
+    if defaults:
+        detailed["properties"] = [
+            dict(prop, default=defaults[prop["name"]]) if prop["name"] in defaults else prop
+            for prop in element.get("properties", [])
+        ]
     return detailed
 
 CONNECTION_RULES = {
@@ -521,12 +559,12 @@ AUTO_CONVERTER_RULES = [
 
 
 def get_elements() -> list[dict]:
-    """전체 엘리먼트 레퍼런스 반환"""
+    """The whole element reference."""
     return [_with_detail(e) for e in _ELEMENTS]
 
 
 def get_element_by_name(name: str) -> dict | None:
-    """이름으로 엘리먼트 조회"""
+    """Look up an element by name."""
     for e in _ELEMENTS:
         if e["name"] == name:
             return _with_detail(e)
@@ -534,7 +572,7 @@ def get_element_by_name(name: str) -> dict | None:
 
 
 def get_elements_by_category() -> dict[str, list[dict]]:
-    """카테고리별 엘리먼트 그룹핑"""
+    """Elements grouped by category."""
     cats: dict[str, list[dict]] = {}
     for e in get_elements():
         cats.setdefault(e["category"], []).append(e)
@@ -542,7 +580,7 @@ def get_elements_by_category() -> dict[str, list[dict]]:
 
 
 def validate_connection(from_elem: str, to_elem: str) -> dict:
-    """엘리먼트 연결 호환성 검증.
+    """Check whether two elements may be connected.
 
     Returns:
         {"result": "allow"} |
@@ -553,7 +591,7 @@ def validate_connection(from_elem: str, to_elem: str) -> dict:
     from_el = get_element_by_name(from_elem)
     to_el = get_element_by_name(to_elem)
 
-    # unknown elements → allow (차단하지 않음)
+    # unknown elements → allow (never block)
     if not from_el or not to_el:
         return {"result": "allow"}
 
@@ -564,7 +602,7 @@ def validate_connection(from_elem: str, to_elem: str) -> dict:
     from_override = ELEMENT_OVERRIDES.get(from_elem, {})
     to_override = ELEMENT_OVERRIDES.get(to_elem, {})
 
-    # Step 1: 구조 검증 — has_output / has_input
+    # Step 1: structure — has_output / has_input
     has_output = from_override.get("has_output", from_rule.get("has_output", True))
     if not has_output:
         return {"result": "block", "reason_en": "Output has no outgoing connections",
@@ -575,11 +613,11 @@ def validate_connection(from_elem: str, to_elem: str) -> dict:
         return {"result": "block", "reason_en": "Source cannot receive input",
                 "reason_ko": "소스는 입력을 받을 수 없습니다"}
 
-    # Step 2: 카테고리 호환성
+    # Step 2: category compatibility
     allowed_next = from_rule.get("allowed_next")
     if allowed_next is not None:
         if to_cat not in allowed_next and to_cat != "utility":
-            # 시맨틱 경고가 블록보다 우선하는 경우 체크
+            # A semantic warning takes precedence over a block
             for sw in SEMANTIC_WARNINGS:
                 if sw["pattern"] == "inference_to_inference" and from_cat == "inference" and to_cat == "inference":
                     return {"result": "warn", "reason_en": sw["msg_en"],
@@ -587,7 +625,7 @@ def validate_connection(from_elem: str, to_elem: str) -> dict:
             return {"result": "block", "reason_en": "Category connection not allowed",
                     "reason_ko": "카테고리 연결이 허용되지 않습니다"}
 
-    # Step 3: 자동 컨버터
+    # Step 3: auto converter
     for rule in AUTO_CONVERTER_RULES:
         if from_cat in rule["from_categories"] and to_elem in rule["to_elements"]:
             return {
@@ -597,7 +635,7 @@ def validate_connection(from_elem: str, to_elem: str) -> dict:
                 "msg_ko": "자동으로 " + rule["insert"] + "를 삽입할까요?",
             }
 
-    # Step 4: 시맨틱 경고
+    # Step 4: semantic warnings
     for sw in SEMANTIC_WARNINGS:
         if sw["pattern"] == "inference_to_inference" and from_cat == "inference" and to_cat == "inference":
             return {"result": "warn", "reason_en": sw["msg_en"],
@@ -613,7 +651,7 @@ def validate_connection(from_elem: str, to_elem: str) -> dict:
 
 
 def get_connection_rules() -> dict:
-    """프론트엔드에 전달할 연결 규칙 번들"""
+    """Connection rules bundled for the frontend."""
     return {
         "connection_rules": CONNECTION_RULES,
         "element_overrides": ELEMENT_OVERRIDES,

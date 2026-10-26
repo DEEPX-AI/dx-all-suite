@@ -15,9 +15,9 @@ in a single sub-project, prefer the project-level version:
 
 | Working on... | Use this skill |
 |---|---|
-| dx_app (standalone inference) | `dx-runtime/dx_app/.deepx/skills/dx-verify-completion.md` |
-| dx_stream (GStreamer pipelines) | `dx-runtime/dx_stream/.deepx/skills/dx-verify-completion.md` |
-| Cross-project integration | `dx-runtime/.deepx/skills/dx-verify-completion.md` |
+| dx_app (standalone inference) | `dx-runtime/dx_app/.deepx/skills/dx-agent-verify/SKILL.md` |
+| dx_stream (GStreamer pipelines) | `dx-runtime/dx_stream/.deepx/skills/dx-agent-verify/SKILL.md` |
+| Cross-project integration | `dx-runtime/.deepx/skills/dx-agent-verify/SKILL.md` |
 
 ## Verification Checklist — dx_app Python Apps
 

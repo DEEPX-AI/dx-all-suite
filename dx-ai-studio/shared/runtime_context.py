@@ -33,10 +33,15 @@ def resolve_active_runtime_context(
     library_dirs: Optional[Sequence[Path]] = None,
     plugin_dir: Optional[Path] = None,
     postprocess_lib_dir: Optional[Path] = None,
+    allow_unjournaled: bool = False,
 ) -> ActiveRuntimeContext:
-    """Resolve launch facts only for a journaled, fully validated profile."""
+    """Resolve launch facts only for a journaled, fully validated profile.
+
+    ``allow_unjournaled`` is for a launch the gate already allowed on the degraded path (the module's
+    own contracts validated live — ``shared.runtime_gate``); use :func:`resolve_launch_context`."""
     state = (state_store or RuntimeStateStore()).load()
-    if state.phase is not RuntimePhase.ACTIVE or not state.active_version:
+    journaled = state.phase is RuntimePhase.ACTIVE and bool(state.active_version)
+    if not journaled and not allow_unjournaled:
         raise RuntimeContextError("Studio runtime profile is not active and validated.")
 
     interpreter_value = python_executable or runtime_python()
@@ -57,7 +62,7 @@ def resolve_active_runtime_context(
         raise RuntimeContextError("Active runtime profile has no native library directories.")
 
     return ActiveRuntimeContext(
-        version=state.active_version,
+        version=state.active_version if journaled else "unvalidated",
         python_executable=interpreter,
         venv_root=interpreter.parent.parent,
         library_dirs=libraries,
@@ -68,3 +73,18 @@ def resolve_active_runtime_context(
             else Path("/usr/local/share/gstdxstream/lib")
         ),
     )
+
+
+def resolve_launch_context(module: str, *, state_store: Optional[RuntimeStateStore] = None,
+                           **facts) -> ActiveRuntimeContext:
+    """The launch context for ``module`` exactly when the launch gate allows it.
+
+    The gate allows dx_stream when the journal is ACTIVE *or* when Stream's own contracts validate live;
+    the context must accept both, or a board that never ran the managed runtime transaction could not
+    launch Stream at all (``profile.context``)."""
+    from shared.runtime_gate import module_start_policy
+    policy = module_start_policy(module, state_store)
+    if not policy.allowed:
+        raise RuntimeContextError(policy.reason.observed if policy.reason else "launch not allowed")
+    return resolve_active_runtime_context(state_store=state_store, allow_unjournaled=policy.degraded, **facts)
+

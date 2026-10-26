@@ -7,6 +7,7 @@ so results from different machines are traceable and comparable.
 from __future__ import annotations
 
 import glob
+import hashlib
 import json
 import os
 import platform
@@ -29,15 +30,24 @@ def _normalize_version(raw: str) -> str:
     instead of a clean ``v3.4.0``. Per semver, everything after ``+`` is build
     metadata and is irrelevant to precedence, so it is dropped; git-describe
     commit suffixes (``-<n>-g<hash>``) and the ``-dirty`` marker are stripped
-    too. Genuine pre-release tags (``-rc.4``) are preserved. The full,
-    unmodified ``dxrt-cli`` output is still kept in the fingerprint's ``raw``
-    field, so a dirty build remains auditable. Empty / ``unknown`` unchanged.
+    too. dx_rt v3.5.0 added a fourth shape -- a trailing parenthesised build
+    stamp, ``v3.5.0 (build: 1.d0298f2)`` (measured: ``dxrt-cli --version`` ->
+    ``DXRT v3.5.0 (build: 1.d0298f2)``, where v3.4.0 printed
+    ``DXRT v3.4.0+fad14d6``) -- which is dropped as well, so two builds of one
+    release stay a single point on the version trend. Genuine pre-release tags
+    (``-rc.4``) are preserved. The full, unmodified ``dxrt-cli`` output is
+    still kept in the fingerprint's ``raw`` field, and the un-normalized
+    version string in ``npu.rt_version_raw``, so a stamped build remains
+    auditable. Empty / ``unknown`` unchanged.
     """
     if not raw:
         return raw
     v = raw.strip()
     if v.lower() == "unknown":
         return v
+    # Before the '+' split: a stamp whose body contains '+' would otherwise be
+    # cut mid-parenthesis and survive the anchored strip below.
+    v = re.sub(r"\s*\([^)]*\)$", "", v)          # drop trailing '(build: ...)' stamp
     v = v.split("+", 1)[0]                       # drop semver build metadata
     v = re.sub(r"-dirty$", "", v)                # drop dirty marker
     v = re.sub(r"-\d+-g[0-9a-f]+$", "", v)       # drop git-describe '-<n>-g<hash>'
@@ -51,6 +61,38 @@ def _run(cmd: list[str], default: str = "unknown") -> str:
         return r.stdout.strip() or default
     except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
         return default
+
+
+def file_sha256(path: str | Path) -> str:
+    """Streaming SHA-256 of a (possibly large) model file."""
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def read_model_source(model_dir: str | Path) -> str | None:
+    """Model download source stamped by setup_data.sh (``<base-url>/<version>``)."""
+    try:
+        text = (Path(model_dir) / ".model_source").read_text().strip()
+    except OSError:
+        return None
+    return text or None
+
+
+def get_tool_commit(repo_dir: str | Path | None = None) -> str | None:
+    """Git short SHA of the benchmark tool checkout; ``-dirty`` when tracked files
+    under it changed (untracked files and ``results/`` are ignored). None outside git."""
+    if repo_dir is None:
+        from .config import APP_DIR
+        repo_dir = APP_DIR.parent
+    sha = _run(["git", "-C", str(repo_dir), "rev-parse", "--short", "HEAD"], default="")
+    if not sha:
+        return None
+    changed = _run(["git", "-C", str(repo_dir), "status", "--porcelain", "--untracked-files=no",
+                    "--", ".", ":(exclude)results"], default="")
+    return f"{sha}-dirty" if changed else sha
 
 
 def _read_release_ver(start: Path) -> str | None:
@@ -101,6 +143,11 @@ def _tool_version(name: str) -> dict[str, Any]:
     elif name == "run_model":
         # Extract only the first line (version string)
         ver = _run([name, "--help"]).split("\n")[0]
+    elif name == "dxrt-cli":
+        # dxrt-cli reports its version under --version, not --help, and follows
+        # it with a minimum driver/compiler requirements block -- keep line 1
+        # only, the same string `_get_dxrt_version` reads for `npu.rt_version`.
+        ver = _run([name, "--version"]).split("\n")[0]
     return {"path": path, "version": ver, "available": True}
 
 
@@ -111,20 +158,108 @@ REQUIRED_TOOLS = ["run_model", "dxrt-cli", "gst-launch-1.0", "gst-inspect-1.0", 
 E2E_REQUIRED_TOOLS = ["ffprobe"]
 OPTIONAL_TOOLS = ["dxtop"]
 
-# Actionable install hints surfaced next to a missing tool in preflight output.
-_REMEDIATION = {
-    "run_model": "DEEPX runtime — run: dx-runtime/install.sh --all",
-    "dxrt-cli": "DEEPX runtime — run: dx-runtime/install.sh --all",
-    "gst-launch-1.0": "GStreamer tools — sudo apt-get install -y gstreamer1.0-tools",
-    "gst-inspect-1.0": "GStreamer tools — sudo apt-get install -y gstreamer1.0-tools",
-    "time": "GNU time — sudo apt-get install -y time",
-    "ffprobe": "ffmpeg — sudo apt-get install -y ffmpeg",
-}
+# Minimum versions -- both binaries ship in the same `libdxrt-bin` deb, so on a
+# correctly installed host they move together and the second entry is free.
+#   run_model: needs --max-throughput / --probe-time (dx_rt v3.5.0).
+#   dxrt-cli : its `--version` IS the recorded `npu.rt_version` (see
+#              `_get_dxrt_version`) -- the value stamped on every row and
+#              plotted by the version trend. Gating run_model alone checked a
+#              version nothing records: a skewed install (new run_model ahead of
+#              an old dxrt-cli on PATH) passed preflight and then labelled the
+#              whole campaign with the older runtime.
+MIN_TOOL_VERSIONS = {"run_model": (3, 5, 0), "dxrt-cli": (3, 5, 0)}
+
+
+# run_model options the sweep needs. A v3.5.0 rc build reports the same version as
+# the final one but lacks --sweep-tolerance.
+RUN_MODEL_REQUIRED_OPTIONS = ("--max-throughput", "--probe-time", "--sweep-tolerance")
+
+
+def _run_model_missing_options() -> list[str]:
+    """Sweep options absent from ``run_model --help`` (all of them if unreadable)."""
+    help_text = _run(["run_model", "--help"])
+    return [o for o in RUN_MODEL_REQUIRED_OPTIONS if o not in help_text]
+
+
+def _probe_npu_monitor() -> dict:
+    """Indirection so test suites can stub the (2 s, host-dependent) real probe."""
+    from .npu_monitor import probe_npu_monitor
+    return probe_npu_monitor()
+
+
+def _parse_dxrt_version(ver: str | None) -> tuple[int, int, int] | None:
+    """Pull (3, 5, 0) out of a banner like 'DXRT v3.5.0 run_model'.
+
+    The tool name in the banner follows argv[0] (`run_model` is a symlink to
+    `dxrun`), so only the version triple is read. A build stamp
+    ('v3.5.0+9ef3f4c-dirty') or a pre-release tag ('v3.5.0-rc.4') still yields
+    (3, 5, 0): the question here is whether the feature exists, not semver
+    precedence. The leading `v` is optional, so a banner that drops it still
+    parses -- an upstream format change must not read as "too old" on every
+    host. Returns None when no version is present at all.
+    """
+    m = re.search(r"v?(\d+)\.(\d+)\.(\d+)", ver or "")
+    return (int(m.group(1)), int(m.group(2)), int(m.group(3))) if m else None
+
+
+def _fmt_ver(v: tuple[int, int, int]) -> str:
+    return "v{}.{}.{}".format(*v)
+
+
+# `uname -m` names an architecture differently from dpkg, and the deb filename
+# uses dpkg's spelling. Only machines actually present in the fleet are mapped;
+# see `_deb_arch` for why an unknown one is not guessed at.
+_DEB_ARCH = {"x86_64": "amd64", "aarch64": "arm64"}
+
+
+def _deb_arch() -> str:
+    """Debian package architecture for the running host.
+
+    An unrecognised machine yields ``$(dpkg --print-architecture)`` rather than
+    a guess. A wrong-but-concrete filename reads as authoritative and installs
+    nothing, whereas the subshell is both honest about what we do not know and
+    still copy-pasteable -- any host that can run ``dpkg -i`` can resolve it.
+    """
+    return _DEB_ARCH.get(platform.machine(), "$(dpkg --print-architecture)")
+
+
+def _dxrt_install_hint() -> str:
+    """Install hint for the dx_rt binaries, derived rather than written out.
+
+    Both halves used to be literals and both were wrong in their own way. The
+    version drifts the moment ``MIN_TOOL_VERSIONS`` is raised, so it is read
+    from the gate it is advising about. The architecture was pinned to
+    ``amd64`` while 4 of the 6 benchmark hosts are aarch64 boards (RPi5B,
+    RPi5B_M1M, ROCK5B+, OrangePi5+ -- only BIOSTAR and DX-AIPlayer-N97 are
+    x86_64), so the hint handed the majority of the fleet a package that cannot
+    install; it now follows the running host.
+    """
+    ver = _fmt_ver(MIN_TOOL_VERSIONS["run_model"]).lstrip("v")
+    return (f"DEEPX runtime v{ver}+ — dx-runtime/install.sh --all, "
+            f"or: sudo dpkg -i libdxrt-bin_{ver}_{_deb_arch()}.deb")
+
+
+def _remediation_hints() -> dict[str, str]:
+    """Actionable install hints surfaced next to a missing tool in preflight output.
+
+    Built per call, not frozen at import: the dx_rt hint resolves its version
+    from ``MIN_TOOL_VERSIONS`` and its package architecture from the host, and
+    a cached copy of either is exactly the drift this is meant to prevent.
+    """
+    dxrt = _dxrt_install_hint()
+    return {
+        "run_model": dxrt,
+        "dxrt-cli": dxrt,
+        "gst-launch-1.0": "GStreamer tools — sudo apt-get install -y gstreamer1.0-tools",
+        "gst-inspect-1.0": "GStreamer tools — sudo apt-get install -y gstreamer1.0-tools",
+        "time": "GNU time — sudo apt-get install -y time",
+        "ffprobe": "ffmpeg — sudo apt-get install -y ffmpeg",
+    }
 
 
 def _remediation(tool: str) -> str:
     """Return an install hint for a tool name, or '' when none is known."""
-    for key, hint in _REMEDIATION.items():
+    for key, hint in _remediation_hints().items():
         if key in tool:
             return hint
     return ""
@@ -184,16 +319,34 @@ def collect_fingerprint() -> dict[str, Any]:
         "software": {
             "dx_stream": _get_dx_stream_version(),
         },
+        "tool_commit": get_tool_commit(),
         "tools": {},
     }
 
     # Always-required tools
     missing = []
+    outdated = []
     for tool in REQUIRED_TOOLS:
         info = _tool_version(tool)
         fp["tools"][tool] = info
         if not info["available"]:
             missing.append(tool)
+            continue
+        need = MIN_TOOL_VERSIONS.get(tool)
+        if need:
+            found = _parse_dxrt_version(info.get("version"))
+            # Unparseable counts as too old: a present-but-broken binary must
+            # not be allowed to start a campaign (see D5).
+            if found is None or found < need:
+                outdated.append((tool, info.get("version") or "unknown", _fmt_ver(need)))
+            elif tool == "run_model":
+                absent = _run_model_missing_options()
+                if absent:
+                    outdated.append((
+                        tool,
+                        f"{info.get('version')} (lacks {', '.join(absent)}: pre-final build)",
+                        f"{_fmt_ver(need)} final build",
+                    ))
 
     # E2E-tier tools (record availability; gate only the E2E/multi families)
     for tool in E2E_REQUIRED_TOOLS:
@@ -204,6 +357,10 @@ def collect_fingerprint() -> dict[str, Any]:
         fp["tools"][tool] = _tool_version(tool)
 
     fp["missing_required"] = missing
+    fp["outdated_required"] = outdated
+    # Verify dxtop starts; otherwise every NPU clock/utilization column is empty.
+    if shutil.which("dxtop"):
+        fp["npu_monitor"] = _probe_npu_monitor()
     fp["missing_e2e"] = collect_e2e_missing()
     return fp
 
@@ -499,7 +656,16 @@ def _get_npu_info() -> dict[str, Any]:
 
 
 def check_preflight(fingerprint: dict) -> tuple[bool, list[str]]:
-    """Validate that all always-required tools are present.
+    """Validate that all always-required tools are present and new enough.
+
+    The minimum version is deliberately NOT scoped to a family. dx-benchmark
+    exists to produce comparable numbers, and every family is measured against
+    the same libdxrt.so -- the dxstream plugin the E2E / multi-stream pipelines
+    load links the very library that ships in the same `libdxrt-bin` deb as
+    `run_model`. A campaign that ran E2E on v3.4.0 while the model family
+    required v3.5.0 would record one `rt_version` that does not describe all of
+    its own rows, silently corrupting the version trend. This is a
+    protocol-consistency constraint, not a feature-availability one.
 
     Returns (ok, list_of_error_messages). Each message carries an install hint.
     """
@@ -507,6 +673,19 @@ def check_preflight(fingerprint: dict) -> tuple[bool, list[str]]:
     for tool in fingerprint.get("missing_required", []):
         hint = _remediation(tool)
         errors.append(f"Required tool not found: {tool}" + (f"  → {hint}" if hint else ""))
+    for tool, found, need in fingerprint.get("outdated_required", []):
+        hint = _remediation(tool)
+        errors.append(
+            f"Required tool too old: {tool} (found {found}, need >= {need})"
+            + (f"  → {hint}" if hint else "")
+        )
+    mon = fingerprint.get("npu_monitor")
+    if mon and not mon.get("ok", True):
+        errors.append(
+            f"NPU monitor (dxtop) is not working: {mon.get('reason', 'no data')}"
+            "  → run from a terminal or export TERM=xterm; without it every NPU clock/"
+            "utilization column is empty and throttling goes unnoticed"
+        )
     return len(errors) == 0, errors
 
 
@@ -581,17 +760,22 @@ def collect_model_metadata(model_path: str | Path) -> dict[str, Any]:
     """Run ``parse_model -m <model_path>`` and extract key metadata.
 
     Returns a dict with ``format_version``, ``dxcom_version``, and
-    ``total_memory_mb`` (or empty dict on failure).
+    ``total_memory_mb`` plus the file ``sha256`` (parse_model fields are
+    omitted when it fails).
     """
+    result: dict[str, Any] = {}
+    try:
+        result["sha256"] = file_sha256(model_path)
+    except OSError:
+        pass
+
     raw = _run(["parse_model", "-m", str(model_path)], default="")
     if not raw:
-        return {}
+        return result
 
     # parse_model always emits ANSI colour codes regardless of TTY; strip them
     # before applying regex patterns so captured values are clean strings.
     raw = _strip_ansi(raw)
-
-    result: dict[str, Any] = {}
 
     # .dxnn Format Version
     m = re.search(r"\.dxnn Format Version\s*:\s*(\S+)", raw)

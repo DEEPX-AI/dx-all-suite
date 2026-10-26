@@ -35,7 +35,7 @@ the source of every recurring mistake** we hit. So:
 ## Install / run
 
 ```bash
-pip install -e .deepx/tools          # registers `dx-showcase-gen`
+pipx install --force --editable .deepx/tools          # PEP 668-safe; registers `dx-showcase-gen`
 # or, without installing:
 export PYTHONPATH=.deepx/tools/src
 python3 -m dx_showcase_gen.cli --help

@@ -100,6 +100,8 @@ def test_inference_run_writes_merged_config_for_python(tmp_path, monkeypatch):
     (app_root / "input.jpg").write_bytes(b"input")
 
     captured = {}
+    launched = []
+    media_calls = []
 
     class FakeProc:
         returncode = 0
@@ -117,7 +119,21 @@ def test_inference_run_writes_merged_config_for_python(tmp_path, monkeypatch):
         def wait(self, timeout=None):
             return 0
 
-    monkeypatch.setattr(inference.subprocess, "Popen", FakeProc)
+    real_popen = inference.subprocess.Popen
+
+    def fake_popen(cmd, *args, **kwargs):
+        launched.append(cmd)
+        if any(str(part).endswith("demo_sync.py") for part in cmd):
+            return FakeProc(cmd, *args, **kwargs)
+        return real_popen(cmd, *args, **kwargs)  # environment probes (ldconfig -p …)
+
+    monkeypatch.setattr(inference.subprocess, "Popen", fake_popen)
+    # Preview normalisation runs in a media child (shared.media) that also goes through
+    # subprocess; stub that seam so FakeProc sees only the dx_app run.
+    monkeypatch.setattr(
+        inference, "run_media",
+        lambda operation, **params: media_calls.append((operation, params)) or {},
+    )
 
     inference.run_inference(
         "demo",
@@ -132,8 +148,11 @@ def test_inference_run_writes_merged_config_for_python(tmp_path, monkeypatch):
         save_output=False,
     )
 
+    app_runs = [cmd for cmd in launched if any(str(p).endswith("demo_sync.py") for p in cmd)]
+    assert len(app_runs) == 1, launched
     assert "--config" in captured["cmd"]
     assert captured["config"]["top_k"] == 9
+    assert [op for op, _ in media_calls] == ["normalize"]
 
 
 def _prepare_dx_app_runtime(tmp_path, monkeypatch):

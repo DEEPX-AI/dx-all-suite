@@ -1,4 +1,4 @@
-"""dx_agent_dev config 상수 테스트."""
+"""dx_agent_dev config constants."""
 import sys
 from pathlib import Path
 

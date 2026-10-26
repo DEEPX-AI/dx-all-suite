@@ -1,0 +1,127 @@
+/* Light theme — redefines semantic tokens only. Legacy aliases are left alone
+   (the aliases in dx-semantic.css follow automatically).
+
+   A contrast remap, not a plain inversion: the dark accent is too pale on a light
+   background, so it goes one step darker, and Apple's system status colours are only
+   2.2–3.6:1 on white, so the accessible variants are used. Shadows are neutral and
+   minimal — just enough to lift a surface.
+
+   The viewer has three states:
+     data-theme="light"  explicit light
+     data-theme="dark"   explicit dark (the default, not handled here)
+     (no stamp)          system — prefers-color-scheme decides
+   The two blocks below cover the first and the third. */
+
+:root[data-theme="light"]{
+  color-scheme:light;
+  --vpu:var(--npu);   /* magenta (#e879f9) is 2.4:1 on a light background — use the deep indigo */
+
+  --surface-page:#f5f5f7;
+  --surface-panel:#FFFFFF;
+  --surface-raised:#fafafc;
+  --surface-sunken:#ededf2;
+  --surface-hover:#f5f5f7;
+  --surface-hover-strong:#ededf2;
+  --surface-overlay:rgba(255,255,255,.8);
+
+  --text-primary:#1d1d1f;
+  --text-secondary:#333336;
+  --text-muted:#636368;
+  --text-faint:#76767a;
+  --text-on-accent:#FFFFFF;
+  --text-on-accent-solid:var(--text-on-accent);
+  --accent-ink:#0058b9;--accent-fill:var(--accent);--accent-strong-ink:#4b49c9;--app-accent:var(--accent);--emerald:#047857;
+
+  --border-subtle:rgba(0,0,0,.1);
+  --border-strong:rgba(0,0,0,.18);
+
+  --control-bg:#FFFFFF;
+  --control-border:rgba(0,0,0,.12);
+  --control-border-focus:#0071e3;
+  --control-ring:rgba(0,113,227,.22);
+
+  --status-ok:#1a6f2f;
+  --status-warn:#b25000;
+  --status-error:#d70015;
+  --status-info:#0071e3;
+  --status-error-ink:var(--status-error);
+
+  --accent:#0071e3;
+  --accent-light:#0077ed;
+  --accent-dim:rgba(0,113,227,.12);
+  --accent-glow:rgba(0,113,227,.24);
+  --accent-strong:#5e5ce6;
+  --accent-rgb:0,113,227;
+  --surface-panel-rgb:255,255,255;
+  --gradient-accent:linear-gradient(135deg,#0071e3,#5e5ce6);
+
+  --shadow:0 4px 20px rgba(0,0,0,.06);
+  --shadow-sm:0 1px 4px rgba(0,0,0,.05);
+  --shadow-lg:0 10px 30px rgba(0,0,0,.08);
+  --shadow-xl:0 20px 56px rgba(0,0,0,.11);
+  --inset-highlight:inset 0 1px 0 rgba(255,255,255,.9);
+  --inset-highlight-strong:inset 0 1px 0 rgba(255,255,255,1);
+  --surface-raised-shadow:var(--shadow-sm),var(--inset-highlight);
+  --surface-glass-shadow:var(--shadow-sm),var(--inset-highlight);
+  --surface-hover-shadow:var(--shadow),var(--inset-highlight);
+  --glass-border:rgba(0,0,0,.1);
+}
+
+/* System is light and the user has not chosen dark explicitly.
+   The :not([data-theme="dark"]) guard lets an explicit dark choice win. */
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    color-scheme:light;
+  --vpu:var(--npu);   /* magenta (#e879f9) is 2.4:1 on a light background — use the deep indigo */
+
+    --surface-page:#f5f5f7;
+    --surface-panel:#FFFFFF;
+    --surface-raised:#fafafc;
+    --surface-sunken:#ededf2;
+  --surface-hover:#f5f5f7;
+  --surface-hover-strong:#ededf2;
+    --surface-overlay:rgba(255,255,255,.8);
+
+    --text-primary:#1d1d1f;
+    --text-secondary:#333336;
+    --text-muted:#636368;
+    --text-faint:#76767a;
+    --text-on-accent:#FFFFFF;
+    --text-on-accent-solid:var(--text-on-accent);
+    --accent-ink:#0058b9;--accent-fill:var(--accent);--accent-strong-ink:#4b49c9;--app-accent:var(--accent);--emerald:#047857;
+
+    --border-subtle:rgba(0,0,0,.1);
+    --border-strong:rgba(0,0,0,.18);
+
+    --control-bg:#FFFFFF;
+    --control-border:rgba(0,0,0,.12);
+    --control-border-focus:#0071e3;
+    --control-ring:rgba(0,113,227,.22);
+
+    --status-ok:#1a6f2f;
+    --status-warn:#b25000;
+    --status-error:#d70015;
+    --status-info:#0071e3;
+    --status-error-ink:var(--status-error);
+
+    --accent:#0071e3;
+    --accent-light:#0077ed;
+    --accent-dim:rgba(0,113,227,.12);
+    --accent-glow:rgba(0,113,227,.24);
+    --accent-strong:#5e5ce6;
+    --accent-rgb:0,113,227;
+  --surface-panel-rgb:255,255,255;
+    --gradient-accent:linear-gradient(135deg,#0071e3,#5e5ce6);
+
+    --shadow:0 4px 20px rgba(0,0,0,.06);
+    --shadow-sm:0 1px 4px rgba(0,0,0,.05);
+    --shadow-lg:0 10px 30px rgba(0,0,0,.08);
+    --shadow-xl:0 20px 56px rgba(0,0,0,.11);
+    --inset-highlight:inset 0 1px 0 rgba(255,255,255,.9);
+    --inset-highlight-strong:inset 0 1px 0 rgba(255,255,255,1);
+    --surface-raised-shadow:var(--shadow-sm),var(--inset-highlight);
+    --surface-glass-shadow:var(--shadow-sm),var(--inset-highlight);
+    --surface-hover-shadow:var(--shadow),var(--inset-highlight);
+    --glass-border:rgba(0,0,0,.1);
+  }
+}

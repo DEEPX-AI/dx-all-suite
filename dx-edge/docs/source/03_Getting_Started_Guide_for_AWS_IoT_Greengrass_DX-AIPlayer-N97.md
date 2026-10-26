@@ -33,6 +33,11 @@ This guide applies to the DX-AIPlayer N97 system with an Intel® Processor N97 (
 
 ## 2. Overview
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="img/badges/aws-qualified-device-dark.png">
+  <img src="img/badges/aws-qualified-device-light.png" alt="AWS Qualified Device — AWS IoT Greengrass" width="120" align="right">
+</picture>
+
 The DX-AIPlayer N97 is a compact, fanless-class edge AI system built around an Intel® Processor N97 (x86_64) and the DEEPX DX-M1 AI accelerator (M.2 module), delivering up to 25 TOPS of AI inference performance at 1–5 W of accelerator power. With dual GbE LAN, USB 3.2, serial ports, and onboard storage, it is designed for vision AI, smart factory, retail analytics, and other edge applications that benefit from local AI inference combined with cloud connectivity through AWS IoT Greengrass.
 
 Running Ubuntu 24.04 LTS, the DX-AIPlayer N97 hosts the AWS IoT Greengrass Core software (classic nucleus), enabling local execution of Greengrass components, messaging, data management, and secure communication with the AWS Cloud.
@@ -232,3 +237,5 @@ For device-specific support, contact DEEPX at tech_support@deepx.ai or visit htt
 Once the device is registered with AWS IoT Core and included in a Thing Group, the DEEPX NPU driver, firmware, `dx_rt` runtime, and `dx_stream` media pipeline can be installed over the air, with no on-site work, using the **DEEPX Greengrass Solution** available on AWS Marketplace. See [DEEPX Greengrass Solution](01_DEEPX_Greengrass_Solution.md).
 
 To compile your own ONNX models into the DEEPX NPU execution format on AWS, see [DEEPX Compiler Solution](02_DEEPX_Compiler_Solution.md).
+
+---

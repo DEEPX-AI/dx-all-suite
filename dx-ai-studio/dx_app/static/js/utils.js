@@ -8,7 +8,7 @@ const S={
   devToken:null,benchAbort:false,benchRes:{},
   sseSource:null,cpuCores:4
 };
-const CAT_IMG={object_detection:'sample/img/sample_street.jpg',face_detection:'sample/img/sample_face.jpg',
+const CAT_IMG={object_detection:'sample/img/sample_street.jpg',mainbody_detection:'sample/img/sample_street.jpg',face_detection:'sample/img/sample_face.jpg',
  pose_estimation:'sample/img/sample_people.jpg',obb_detection:'sample/img/sample_parking.jpg',classification:'sample/img/sample_dog.jpg',
  instance_segmentation:'sample/img/sample_street.jpg',semantic_segmentation:'sample/img/sample_horse.jpg',
  depth_estimation:'sample/img/sample_kitchen.jpg',image_denoising:'sample/img/sample_dark_room.jpg',super_resolution:'sample/img/sample_dark_room.jpg',
@@ -22,16 +22,40 @@ const CAT_IMG={object_detection:'sample/img/sample_street.jpg',face_detection:'s
 // CSS token-aware color constants (resolved at runtime)
 const _cs=getComputedStyle(document.documentElement);
 const _cv=k=>_cs.getPropertyValue(k).trim();
-const WF_COLORS=[_cv('--info'),_cv('--app-accent'),_cv('--warning'),_cv('--error'),_cv('--npu')];
+const WF_COLORS=[_cv('--status-info'),_cv('--app-accent'),_cv('--status-warn'),_cv('--status-error'),_cv('--npu')];
 const WF_STEPS=['Read','Preprocess','Inference','Postprocess','Display'];
 
 const $=id=>document.getElementById(id);
 const esc=s=>{const d=document.createElement('div');d.textContent=s;return d.innerHTML};
 function api(url,opts){return fetch(url,opts).then(r=>r.json()).catch(e=>({error:e.message}))}
 function findModel(name){return S.models.find(function(m){return m.name===name})}
+/* task slug -> name in the current language (the same 6-language table as Model Zoo, /api/category_labels). Until the
+   table arrives, the slug spelled out, never a raw 'zero_shot_image_classification'. */
+function catText(c){
+  var labels=S.catLabels||{};
+  var e=labels[c];
+  if(!e){   // the Models catalog gives English names ('Attribute Recognition') instead of slugs
+    for(var k in labels){if(labels[k]&&labels[k].en===c){e=labels[k];break}}
+  }
+  if(!e&&c){
+    // Catalog names differ slightly from the table's: 'Face Attribute Recognition' <-> face_attribute,
+    // 'Image De-noising' <-> image_denoising. Match via the slug, dropping trailing words one by one if needed.
+    var slug=String(c).toLowerCase().replace(/de-noising/g,'denoising').replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'');
+    while(slug&&!e){
+      e=labels[slug];
+      var cut=slug.lastIndexOf('_');
+      if(cut<0)break;
+      slug=slug.slice(0,cut);
+    }
+  }
+  var lang=(window.DXI18n&&DXI18n.lang)||'en';
+  if(e)return e[lang]||e.en;
+  var plain=String(c||'').replace(/_/g,' ');
+  return (typeof T==='function')?T(plain):plain;
+}
 function postJ(url,body){return api(url,{method:'POST',headers:{'Content-Type':'application/json','X-Lab-Token':S.labToken||S.devToken||''},body:JSON.stringify(body)})}
 
-const _toastIcons={ok:'✅',err:'❌',info:'ℹ️',warn:'⚠️'};
+const _toastIcons={ok:DXIcon('check'),err:DXIcon('x'),info:DXIcon('info'),warn:DXIcon('alert')};
 const _toastHistory=[];
 const _TOAST_HIST_MAX=100;
 let _toastUnread=0;
@@ -39,7 +63,7 @@ let _toastUnread=0;
 function toast(msg,type='info',opts){
   if(!opts)opts={};
   const tc=type==='ok'?'ok':type==='err'?'err':type==='warn'?'warn':'info';
-  const icon=_toastIcons[tc]||'ℹ️';
+  const icon=_toastIcons[tc]||DXIcon('info');
   _toastHistory.unshift({msg,type:tc,time:Date.now(),icon,actionLabel:opts.action?opts.action.label:null,actionUrl:opts.action&&opts.action.url?opts.action.url:null});
   if(_toastHistory.length>_TOAST_HIST_MAX)_toastHistory.pop();
   _toastUnread++;
@@ -53,7 +77,7 @@ function toast(msg,type='info',opts){
     t.appendChild(ab);
   }
   if(!opts.persist){
-    const cb=document.createElement('button');cb.className='toast-close';cb.innerHTML='✕';
+    const cb=document.createElement('button');cb.className='toast-close';cb.innerHTML='';cb.setAttribute('aria-label',T('Close'));
     cb.onclick=function(){t.classList.remove('show');setTimeout(()=>t.remove(),400);};
     t.appendChild(cb);
   }
@@ -93,7 +117,7 @@ function _renderNotifHistory(){
   if(!_toastHistory.length){c.innerHTML='<p class="txt-dim" style="padding:16px;text-align:center">'+T('No notifications yet')+'</p>';return;}
   c.innerHTML=_toastHistory.map(function(h){
     const ts=fmtClock(h.time);
-    var actionHtml=h.actionUrl?'<br><a class="btn btn-xs btn-acc" href="'+esc(h.actionUrl)+'" download style="margin-top:4px;display:inline-block;font-size:10px;padding:3px 10px;background:var(--accent);color:#fff;border-radius:6px;text-decoration:none;font-weight:600">⬇️ '+esc(h.actionLabel||T('Download'))+'</a>':'';
+    var actionHtml=h.actionUrl?'<br><a class="btn btn-xs btn-acc" href="'+esc(h.actionUrl)+'" download style="margin-top:4px;display:inline-block;font-size:10px;padding:3px 10px;background:var(--accent);color:#fff;border-radius:6px;text-decoration:none;font-weight:600">' + DXIcon('download') + ' '+esc(h.actionLabel||T('Download'))+'</a>':'';
     return '<div class="notif-item notif-'+h.type+'"><span class="notif-icon">'+h.icon+'</span><span class="notif-msg">'+esc(h.msg)+actionHtml+'</span><span class="notif-time">'+ts+'</span></div>';
   }).join('');
 }
@@ -128,23 +152,41 @@ function getLocale(){return LOCALE_BY_LANG[getLang()]||'en-US'}
 function fmtDate(ts){const d=new Date(ts*1000);return d.toLocaleDateString(getLocale())}
 function fmtTime(ts){const d=new Date(ts*1000);return d.toLocaleString(getLocale(),{hour12:false})}
 function fmtClock(epochMs){const d=new Date(epochMs);return d.toLocaleTimeString(getLocale(),{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'})}
-function tempColor(t){return t<40?_cv('--success'):t<55?_cv('--warning'):_cv('--error')}
+function tempColor(t){return t<40?_cv('--status-ok'):t<55?_cv('--status-warn'):_cv('--status-error')}
 
-const PAGES=['setup','models','run','rundemo','bench','compare','modelzoo','lab','outputs','reference'];
-const PAGE_TITLES={setup:'⚙️ Setup & Install',models:'Models',run:'Run Inference',rundemo:'🎬 Run Demo',bench:'Benchmark',compare:'A/B Compare',modelzoo:'📥 ModelZoo',lab:'🧪 Lab',outputs:'Outputs',reference:'📖 Reference'};
+const PAGES=['setup','models','run','rundemo','bench','compare','modelzoo','graph','lab','outputs','reference'];
+const PAGE_TITLES={setup:DXIcon('gear') + ' Setup & Install',models:'Models',run:'Run Inference',rundemo:DXIcon('demo') + ' Run Demo',bench:'Benchmark',compare:'A/B Compare',modelzoo:DXIcon('download') + ' ModelZoo',graph:DXIcon('graph') + ' Graph Composer',lab:DXIcon('lab') + ' Lab',outputs:'Outputs',reference:DXIcon('book') + ' Reference'};
 function _applyLangToActivePage(){
   if(!window.DXI18n)return;
   const active=document.querySelector('.page.active');
   DXI18n.applyLang(active||document);
 }
+// The header's page name uses the active tab's label as is. PAGE_TITLES carry an emoji prefix
+// that would clash with the tab's SVG icon, and tab and header would drift if they took
+// different translation paths. PAGE_TITLES is used only when there is no tab.
+function _shellPageLabel(page){
+  const tab=document.querySelector('.dx-tab[data-page="'+page+'"] span');
+  const fromTab=tab&&tab.textContent&&tab.textContent.trim();
+  return fromTab||T(PAGE_TITLES[page]||page);
+}
 function nav(page){
   // Auto-stop continuous inference when leaving Run page
   if(CONT.running)contStop();
+  // Leaving the Graph Composer stops its Live and closes its zone editor
+  if(page!=='graph'&&window.GraphComposer&&GraphComposer.leave)GraphComposer.leave();
   PAGES.forEach(p=>{
     const el=$('page-'+p);if(el)el.classList.toggle('active',p===page);
   });
-  document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.page===page));
-  $('topbar-title').textContent=T(PAGE_TITLES[page]||page);
+  // Shared shell: a top tab row instead of a left nav. The active mark goes through aria-current
+  // (dx-shell.css styles on that, not on class="active").
+  document.querySelectorAll('.dx-tab').forEach(function(t){
+    if(t.dataset.page===page)t.setAttribute('aria-current','page');
+    else t.removeAttribute('aria-current');
+  });
+  const _pageSlot=document.getElementById('dxShellPage');
+  if(_pageSlot)_pageSlot.textContent=_shellPageLabel(page);
+  // If the active tab was in the overflow menu, bring it back into the row.
+  if(window.DXTabs)DXTabs.reflowAll();
   if(page==='outputs')loadOutputs();
   if(page==='models')renderModelsPage();
   if(page==='run'){initRunPage();loadRunImages()}
@@ -152,6 +194,7 @@ function nav(page){
   if(page==='bench')initBenchPage();
   if(page==='compare'){setABCols(S.abCols);initABImages()}
   if(page==='modelzoo')initModelZoo();
+  if(page==='graph'&&window.GraphComposer)GraphComposer.open();
   if(page==='lab')initLabPage();
   if(page==='setup')setupInit();
   // Re-apply i18n after page content renders
@@ -160,12 +203,9 @@ function nav(page){
 // openDev is defined in developer.js (with auth logic)
 
 
-function toggleSidebar(){
-  const sb=document.querySelector('.sidebar');
-  const ml=document.querySelector('.main');
-  sb.classList.toggle('collapsed');
-  ml.style.marginLeft=sb.classList.contains('collapsed')?'60px':'220px';
-}
+// The shared shell has no sidebar to collapse; the 56px rail is always visible.
+// Kept as a no-op because outside callers may remain.
+function toggleSidebar(){ /* no sidebar in the unified shell */ }
 
 
 
@@ -176,8 +216,8 @@ function refreshActivePageLanguage(){
   _applyLangToActivePage();
   const active=document.querySelector('.page.active');
   const page=active&&active.id?active.id.replace(/^page-/,''):'';
-  const titleEl=$('topbar-title');
-  if(titleEl&&page)titleEl.textContent=T(PAGE_TITLES[page]||page);
+  const titleEl=$('dxShellPage');
+  if(titleEl&&page)titleEl.textContent=_shellPageLabel(page);
   if(typeof _i18nOptions==='function')_i18nOptions();
   if(_isNotifDrawerOpen())_renderNotifHistory();
   if(page==='models'&&typeof renderModelsPage==='function')renderModelsPage();
@@ -213,7 +253,7 @@ function refreshBenchLanguage(){
   }
   // Update run button text if benchmark is running
   var runBtn=$('b-run-btn');
-  if(runBtn&&typeof _benchRunning!=='undefined'&&_benchRunning)runBtn.textContent=T('⏳ Running…');
+  if(runBtn&&typeof _benchRunning!=='undefined'&&_benchRunning)DXIcon.label(runBtn,'spinner',T('Running…'));
 }
 
 function refreshCompareLanguage(){

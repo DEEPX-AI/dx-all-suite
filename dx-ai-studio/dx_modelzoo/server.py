@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""DX Model Zoo 웹 서버 — 포트 8094."""
+"""DX Model Zoo web server — port 8094."""
 import json
 import threading
 from pathlib import Path
 
 from shared.dx_server import DXBaseHandler, DXServer
 from shared.chat import ChatEngine
+from shared.chat import module_fallbacks as _module_fallbacks
 from dx_modelzoo.core.config import (DEFAULT_PORT, STATIC_DIR, TEMPLATES_DIR, DATA_DIR,
                          DX_APP_ROOT, CPP_DIR, PY_DIR, SERVER_NAME,
                          SAMPLE_IMG_DIR, SAMPLE_IMAGES, MODEL_IMAGE_OVERRIDE)
@@ -22,10 +23,15 @@ from dx_modelzoo.core.catalog import (
 )
 from dx_modelzoo.core.proxy import proxy_request, is_dx_app_alive, is_safe_model_id
 from dx_modelzoo.metadata.sanitize import sanitize_browser_model
+from dx_modelzoo.core.model_card import catalog_date
+from dx_modelzoo.core.model_card_labels import LABELS as MODEL_CARD_LABELS
+from dx_modelzoo.core.model_card_studio import DxAppMissing, NoDxAppExample, studio_card
+from shared.paths import STUDIO_ROOT
+from shared.shell import ShellSpec
 
 
 def _collect_demo_files(demo):
-    """demo dict에서 cpp/python 예제 코드를 수집하여 (cpp_code, py_code) 반환."""
+    """Collect cpp/python example code from the demo dict and return (cpp_code, py_code)."""
     cpp_code = py_code = ""
     cpp_rel = demo.get("cpp_example", "")
     if cpp_rel:
@@ -47,15 +53,15 @@ def _collect_demo_files(demo):
 
 
 def _is_safe_demo_dir(path, root):
-    """경로가 root 하위인지 resolve 기반으로 검증. symlink/prefix 우회 방지."""
-    # Python 3.8-safe (Path.is_relative_to는 3.9+): relative_to + ValueError로 판정.
+    """Check, after resolving, that a path is under root (prevents symlink/prefix escapes)."""
+    # Python 3.8-safe (Path.is_relative_to is 3.9+): decide with relative_to + ValueError.
     try:
         Path(path).resolve().relative_to(Path(root).resolve())
         return True
     except ValueError:
         return False
 
-# 메타데이터 sync 런타임 상태
+# Runtime state of the metadata sync
 _sync_state = {
     "last_report": None,
     "last_synced_at": None,
@@ -66,27 +72,41 @@ _sync_running = False
 
 _chat_engine = ChatEngine(
     app_name="dx_modelzoo",
-    fallback_rules=[
-        (["catalog", "카탈로그", "모델", "model"], {
-            "ko": "카탈로그 페이지에서 340+ 모델을 카테고리별로 검색할 수 있습니다.",
-            "en": "Browse 340+ models by category on the catalog page.",
-        }),
-        (["download", "다운로드", "설치"], {
-            "ko": "모델 상세 페이지에서 다운로드할 수 있습니다.",
-            "en": "Download models from the model detail page.",
-        }),
-        (["inference", "추론", "demo"], {
-            "ko": "모델 상세 페이지의 Demo 탭에서 추론을 실행할 수 있습니다. DX App이 실행 중이어야 합니다.",
-            "en": "Run inference in the Demo tab of the model detail page. DX App must be running.",
-        }),
-    ]
+    fallback_rules=_module_fallbacks.rules("dx_modelzoo")
 )
 
+
+
+# ── Shared app shell ────────────────────────────────────────────
+# A single catalog screen, so there is no tab row — the template root carries .dx-shell--no-tabs.
+# The model count is page-level state and sits on the left of the header (next to the page name);
+# the homepage link and the dx_app connection dot go in the toolbar slot.
+_MODEL_COUNT = '<span class="mz-model-count" id="modelCount"></span>'
+
+_ZOO_TOOLBAR = (
+    '<a href="https://developer.deepx.ai/modelzoo/" target="_blank" rel="noopener"'
+    ' class="mz-btn mz-btn-outline mz-homepage-link" style="gap:4px;white-space:nowrap;text-decoration:none"'
+    ' data-i18n-title="ModelZoo public site" title="ModelZoo public site"'
+    ' aria-label="ModelZoo public site" data-i18n-aria-label="ModelZoo public site">'
+    '<span class="mz-homepage-text" data-i18n="ModelZoo Homepage">ModelZoo Homepage</span>'
+    '<svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#external"></use></svg></a>'
+    # A bare 8px dot did not say what it was the status of (and the tutorial spotlight was just a dot) — add a label
+    '<span class="mz-dx-app-indicator" id="dxAppIndicator" role="status" title="DX App">'
+    '<span class="mz-dx-app-status" id="dxAppStatus" aria-hidden="true"></span>'
+    '<span class="mz-dx-app-label">DX App</span></span>'
+)
+
+DX_MODELZOO_SHELL = ShellSpec(
+    module_key="zoo",
+    toolbar_extra=_ZOO_TOOLBAR,
+    header_extra=_MODEL_COUNT,
+)
 
 class ModelZooHandler(DXBaseHandler):
     server_name = SERVER_NAME
     static_dir = STATIC_DIR
     templates_dir = TEMPLATES_DIR
+    shell_spec = DX_MODELZOO_SHELL
     log_silent = True
 
     def route(self):
@@ -107,10 +127,16 @@ class ModelZooHandler(DXBaseHandler):
                 models = filter_models(cat["models"], category=category, search=search)
                 stats = catalog_stats(models)
                 safe_models = [sanitize_browser_model(model) for model in models]
-                return self.send_json({"ok": True, "models": safe_models,
-                                       "categories": cat["categories"], "count": len(safe_models),
-                                       "variant_count": stats["variant_count"],
-                                       "unique_model_count": stats["unique_model_count"]})
+                payload = {"ok": True, "models": safe_models,
+                           "categories": cat["categories"], "count": len(safe_models),
+                           "variant_count": stats["variant_count"],
+                           "unique_model_count": stats["unique_model_count"]}
+                # When and from what this list was built. The handler picks fields explicitly, so putting
+                # them on get_catalog() alone would not reach the page.
+                for key in ("generated_at", "source_profile"):
+                    if cat.get(key):
+                        payload[key] = cat[key]
+                return self.send_json(payload)
 
             if path == "/api/categories":
                 cat = get_catalog()
@@ -175,7 +201,7 @@ class ModelZooHandler(DXBaseHandler):
                 self.wfile.write(data)
                 return
 
-            # API: card/list 카탈로그 뷰 (모델 상세 prefix 매칭 전에 처리)
+            # API: card/list catalog view (handled before the model-detail prefix match)
             if path in ("/api/catalog/card", "/api/catalog/list"):
                 cat = get_catalog()
                 view = "card" if path.endswith("/card") else "list"
@@ -193,7 +219,7 @@ class ModelZooHandler(DXBaseHandler):
                 payload["models"] = [sanitize_browser_model(model) for model in payload["models"]]
                 return self.send_json(payload)
 
-            # API: 페이지네이션 카탈로그 (모델 상세보다 먼저 매칭)
+            # API: paginated catalog (matched before model detail)
             if path == "/api/catalog/page":
                 cat = get_catalog()
                 category = qs.get("category", [None])[0]
@@ -225,7 +251,7 @@ class ModelZooHandler(DXBaseHandler):
                     "unique_model_count": stats["unique_model_count"],
                 })
 
-            # API: 아티팩트 엔드포인트 (모델 상세 전에 매칭)
+            # API: artifact endpoint (matched before model detail)
             if path.startswith("/api/catalog/") and "/artifacts/" in path:
                 return self._handle_artifact_request(path)
 
@@ -235,7 +261,10 @@ class ModelZooHandler(DXBaseHandler):
             if path == "/api/metadata/sync/report":
                 return self._handle_sync_report()
 
-            # API: 모델 상세 (카테고리/헬스 뒤에 배치 — prefix 충돌 방지)
+            if path == "/api/model_card/labels":
+                return self.send_json({"ok": True, "keys": list(MODEL_CARD_LABELS)})
+
+            # API: model detail (after categories/health — avoids prefix collisions)
             if path.startswith("/api/catalog/"):
                 model_id = path[len("/api/catalog/"):]
                 if not is_safe_model_id(model_id):
@@ -274,6 +303,9 @@ class ModelZooHandler(DXBaseHandler):
             if path == "/api/metadata/sync":
                 return self._handle_sync_post()
 
+            if path.startswith("/api/model_card/"):
+                return self._handle_model_card(path[len("/api/model_card/"):])
+
             if path.startswith("/api/proxy/"):
                 length = int(self.headers.get("Content-Length", 0))
                 body = self.rfile.read(length) if length else None
@@ -281,6 +313,26 @@ class ModelZooHandler(DXBaseHandler):
                 return self._handle_proxy("POST", path, self.parsed.query, body, ct)
 
         self.route_legacy()
+
+    def _handle_model_card(self, model_id):
+        """POST /api/model_card/<id> {lang, labels, task_label} → the card as an HTML attachment."""
+        payload = self.read_json_body()  # bad JSON → RequestBodyError → 400 in the dispatcher
+        if not is_safe_model_id(model_id):
+            return self.send_json({"ok": False, "error": "Invalid model ID", "code": "INVALID_PARAM"}, 400)
+        cat = get_catalog()
+        model = get_model(cat["models"], model_id)
+        if not model:
+            return self.send_json({"ok": False, "error": f"Model '{model_id}' not found", "code": "MODEL_NOT_FOUND"}, 404)
+        try:
+            html, filename = studio_card(model, cat.get("categories") or {}, payload, dx_app_root=DX_APP_ROOT,
+                                         data_dir=DATA_DIR,
+                                         benchmark_path=STUDIO_ROOT / "dx_benchmark" / "dataset.json",
+                                         asof=catalog_date(cat.get("generated_at")))
+        except DxAppMissing:
+            return self.send_json({"ok": False, "error": "The dx_app checkout is missing", "code": "DX_APP_MISSING"}, 503)
+        except NoDxAppExample:
+            return self.send_json({"ok": False, "error": "No dx_app example for this model", "code": "MODEL_NOT_FOUND"}, 404)
+        return self.send_bytes(html.encode("utf-8"), "text/html; charset=utf-8", filename=filename)
 
     def _handle_proxy(self, method, path, query, body=None, content_type=None):
         if body and content_type and "application/json" in content_type:
@@ -480,7 +532,7 @@ class ModelZooHandler(DXBaseHandler):
         report = result.get("report", {})
         now = datetime.now(timezone.utc).isoformat()
 
-        # in-memory 카탈로그 갱신
+        # Refresh the in-memory catalog
         if catalog:
             apply_generated_catalog(catalog)
 
@@ -502,7 +554,7 @@ class ModelZooHandler(DXBaseHandler):
 
 
 def create_server(port=DEFAULT_PORT):
-    """테스트용 서버 팩토리: HTTPServer 인스턴스를 반환."""
+    """Server factory for tests: returns an HTTPServer instance."""
     from http.server import ThreadingHTTPServer
     reload_catalog()
     srv = ThreadingHTTPServer(("127.0.0.1", port), ModelZooHandler)

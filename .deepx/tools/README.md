@@ -242,13 +242,15 @@ Generated paths: `CLAUDE.md`, `CLAUDE-KO.md`, `AGENTS.md`, `AGENTS-KO.md`,
 
 ```bash
 # Install the CLI (editable mode — changes to src/ take effect immediately)
-pip install -e .deepx/tools
+# (the shim is optional — run_all.sh, the pre-commit hook and pytest all run
+# the in-tree source)
+pipx install --force --editable .deepx/tools   # PEP 668-safe; --force also repoints a stale install; or: python3 -m venv .venv && .venv/bin/pip install -e .deepx/tools
 
 # Verify installation
-dx-agent-gen --help
+.venv/bin/dx-agent-gen --help  # or: source .venv/bin/activate
 ```
 
-Python 3.10+ required. Dependencies (installed automatically):
+Python 3.8+ required (the GHES self-hosted runners ship 3.8 — keep `from __future__ import annotations` in every module). Dependencies (installed automatically):
 - `jinja2 >= 3.1` — template rendering
 - `pyyaml >= 6.0` — YAML frontmatter
 
@@ -279,9 +281,8 @@ See [`../docs/fragment-authoring-guide.md`](../docs/fragment-authoring-guide.md)
 ## 9. Testing the Generator
 
 ```bash
-# Suite-wide conformance tests (~700, ~1s)
-cd .deepx/e2e
-./test.sh agent-driven
+# Suite-wide conformance tests (~600, ~1s; run from the suite root; no PYTHONPATH needed)
+python3 -m pytest --rootdir=. .deepx/tests/conformance -q
 
 # What this checks (relevant to the generator):
 # - Guide document structure: existence, headings, scenario numbering

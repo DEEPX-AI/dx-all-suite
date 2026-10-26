@@ -231,6 +231,13 @@ window._DX_I18N_DICT = {
     'zh-TW': '分割',
     es: 'Segmentación',
   },
+  'Oriented BBox': {
+    ko: '회전 바운딩박스',
+    ja: '回転バウンディングボックス',
+    'zh-CN': '旋转边界框',
+    'zh-TW': '旋轉邊界框',
+    es: 'BBox orientado',
+  },
   'Oriented BBox (OBB)': {
     ko: '회전 바운딩박스 (OBB)',
     ja: '回転バウンディングボックス (OBB)',
@@ -343,7 +350,7 @@ window._DX_I18N_DICT = {
     ja: 'ビデオディレクトリ',
     'zh-CN': '视频目录',
     'zh-TW': '影片目錄',
-    es: 'Directorio de vídeo',
+    es: 'Directorio de video',
   },
   'Results Directory': {
     ko: '결과 디렉토리',
@@ -436,7 +443,7 @@ window._DX_I18N_DICT = {
     ja: 'スループット',
     'zh-CN': '吞吐量',
     'zh-TW': '吞吐量',
-    es: 'Rendimiento',
+    es: 'Throughput',
   },
   'Latency (ms)': {
     ko: '지연시간 (ms)',
@@ -458,7 +465,7 @@ window._DX_I18N_DICT = {
     ja: 'NPU スループット (マルチコア)',
     'zh-CN': 'NPU 吞吐量 (多核)',
     'zh-TW': 'NPU 吞吐量 (多核)',
-    es: 'Rendimiento NPU (Multi-núcleo)',
+    es: 'Throughput NPU (Multi-núcleo)',
   },
   'E2E FPS (Single-Stream)': {
     ko: 'E2E FPS (단일 스트림)',
@@ -508,7 +515,7 @@ window._DX_I18N_DICT = {
     ja: 'モデルスループットトレンド',
     'zh-CN': '模型吞吐量趋势',
     'zh-TW': '模型吞吐量趨勢',
-    es: 'Tendencia de rendimiento del modelo',
+    es: 'Tendencia de throughput del modelo',
   },
   'Max Channel Trend': {
     ko: '최대 채널 트렌드',
@@ -529,7 +536,7 @@ window._DX_I18N_DICT = {
     ja: 'モデルスループット',
     'zh-CN': '模型吞吐量',
     'zh-TW': '模型吞吐量',
-    es: 'Rendimiento del modelo',
+    es: 'Throughput del modelo',
   },
 
   'No data available': {
@@ -775,7 +782,7 @@ window._DX_I18N_DICT = {
     ja: 'スループット (FPS)',
     'zh-CN': '吞吐量 (FPS)',
     'zh-TW': '吞吐量 (FPS)',
-    es: 'Rendimiento (FPS)',
+    es: 'Throughput (FPS)',
   },
 
   // --- Thermal / throttle indicators (5c) ---
@@ -798,7 +805,7 @@ window._DX_I18N_DICT = {
     ja: 'スロットリング中',
     'zh-CN': '限频',
     'zh-TW': '降頻',
-    es: 'Limitado',
+    es: 'Limitado térmicamente',
   },
   'NPU thermal throttling detected': {
     ko: 'NPU 열 스로틀링이 감지되었습니다',
@@ -860,6 +867,40 @@ window._DX_I18N_DICT = {
     'zh-TW': '逾時',
     es: 'Tiempo agotado',
   },
+  'Paths are configured at deployment and cannot be changed at runtime.': {
+    ko: '경로는 배포할 때 정해지며 실행 중에는 바꿀 수 없습니다.',
+    ja: 'パスはデプロイ時に設定され、実行中は変更できません。',
+    'zh-CN': '路径在部署时配置，运行时无法更改。',
+    'zh-TW': '路徑在部署時設定，執行時無法變更。',
+    es: 'Las rutas se configuran en el despliegue y no se pueden cambiar en ejecución.',
+  },
+  'Thermal and benchmark parameters are deployment-fixed. Adjust via configuration files before starting the server.': {
+    ko: '온도 · 벤치마크 값은 배포 시 고정됩니다. 서버를 시작하기 전에 설정 파일에서 바꾸세요.',
+    ja: '温度とベンチマークのパラメーターはデプロイ時に固定されます。サーバーを起動する前に設定ファイルで変更してください。',
+    'zh-CN': '温度与基准测试参数在部署时固定。请在启动服务器前通过配置文件调整。',
+    'zh-TW': '溫度與基準測試參數在部署時固定。請在啟動伺服器前透過設定檔調整。',
+    es: 'Los parámetros térmicos y de benchmark se fijan en el despliegue. Ajústelos en los archivos de configuración antes de iniciar el servidor.',
+  },
+  'Hostname': { ko: '호스트명', ja: 'ホスト名', 'zh-CN': '主机名', 'zh-TW': '主機名稱', es: 'Nombre de host' },
+  'Kernel': { ko: '커널', ja: 'カーネル', 'zh-CN': '内核', 'zh-TW': '核心', es: 'Kernel' },
+  'Architecture': { ko: '아키텍처', ja: 'アーキテクチャ', 'zh-CN': '架构', 'zh-TW': '架構', es: 'Arquitectura' },
+  'CPU Cores': { ko: 'CPU 코어', ja: 'CPU コア数', 'zh-CN': 'CPU 核心数', 'zh-TW': 'CPU 核心數', es: 'Núcleos de CPU' },
+  'Product': { ko: '제품', ja: '製品', 'zh-CN': '产品', 'zh-TW': '產品', es: 'Producto' },
+  'RT Driver': { ko: 'RT 드라이버', ja: 'RT ドライバー', 'zh-CN': 'RT 驱动', 'zh-TW': 'RT 驅動程式', es: 'Controlador RT' },
+  'PCIe Driver': { ko: 'PCIe 드라이버', ja: 'PCIe ドライバー', 'zh-CN': 'PCIe 驱动', 'zh-TW': 'PCIe 驅動程式', es: 'Controlador PCIe' },
+  'Firmware': { ko: '펌웨어', ja: 'ファームウェア', 'zh-CN': '固件', 'zh-TW': '韌體', es: 'Firmware' },
+  'Clock': { ko: '클럭', ja: 'クロック', 'zh-CN': '时钟', 'zh-TW': '時脈', es: 'Reloj' },
+  'Memory': { ko: '메모리', ja: 'メモリ', 'zh-CN': '内存', 'zh-TW': '記憶體', es: 'Memoria' },
+  'Board': { ko: '보드', ja: 'ボード', 'zh-CN': '板卡', 'zh-TW': '板卡', es: 'Placa' },
+  'Runs': { ko: '실행', ja: '実行', 'zh-CN': '运行', 'zh-TW': '執行', es: 'Ejecuciones' },
+  'Codec:': { ko: '코덱:', ja: 'コーデック:', 'zh-CN': '编解码器：', 'zh-TW': '編解碼器：', es: 'Códec:' },
+  'Decoder:': { ko: '디코더:', ja: 'デコーダー:', 'zh-CN': '解码器：', 'zh-TW': '解碼器：', es: 'Decodificador:' },
+  'Decoder Out:': { ko: '디코더 출력:', ja: 'デコーダー出力:', 'zh-CN': '解码器输出：', 'zh-TW': '解碼器輸出：', es: 'Salida del decodificador:' },
+  'Preprocess In:': { ko: '전처리 입력:', ja: '前処理入力:', 'zh-CN': '预处理输入：', 'zh-TW': '前處理輸入：', es: 'Entrada de preprocesado:' },
+  'Preprocess Backend:': { ko: '전처리 백엔드:', ja: '前処理バックエンド:', 'zh-CN': '预处理后端：', 'zh-TW': '前處理後端：', es: 'Backend de preprocesado:' },
+  'Cooldown Threshold (°C)': { ko: '냉각 기준 온도 (°C)', ja: 'クールダウンしきい値 (°C)', 'zh-CN': '冷却阈值 (°C)', 'zh-TW': '冷卻閾值 (°C)', es: 'Umbral de enfriamiento (°C)' },
+  'Wait Interval (s)': { ko: '대기 간격 (초)', ja: '待機間隔 (秒)', 'zh-CN': '等待间隔 (秒)', 'zh-TW': '等待間隔 (秒)', es: 'Intervalo de espera (s)' },
+  '{n} runs': { ko: '{n}회 실행', ja: '{n} 回の実行', 'zh-CN': '{n} 次运行', 'zh-TW': '{n} 次執行', es: '{n} ejecuciones' },
   'runs completed': {
     ko: '실행 완료',
     ja: '実行完了',

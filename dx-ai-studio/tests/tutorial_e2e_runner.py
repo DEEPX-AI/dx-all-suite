@@ -34,6 +34,7 @@ METRICS_JS = """() => {
     sectionId: engine && engine._curSection ? engine._curSection.id : null,
     stepIndex: engine ? engine._curStep : null,
     selector,
+    optionalTarget: !!(step && step.optionalTarget),
     overlayActive: !!ov,
     spotlightActive: !!sp,
     tooltipActive: !!tip,
@@ -65,14 +66,35 @@ def dismiss_confirm(page: Page) -> None:
     page.wait_for_timeout(150)
 
 
+def mock_left_over(page: Page) -> list[str]:
+    """Tutorial-injected elements still present after the tour ends.
+
+    A preview planted by beforeStep must be removed by afterStep. Otherwise fake data stays
+    mixed in with real results, and the user cannot tell the tutorial made it.
+    """
+    return page.evaluate(
+        """() => [...document.querySelectorAll('[data-dxt-tutorial-mock]')]
+              .map(el => el.tagName.toLowerCase() + '.' + (el.className || '(no class)'))"""
+    )
+
+
 def analyze_step(metrics: dict[str, Any]) -> list[tuple[str, str]]:
+    """Extract defects from one step's state.
+
+    `data-dxt-tutorial-mock` is not checked here. It is a preview beforeStep injects **on
+    purpose**, and spotlighting it is the point of that step, so it is expected to exist while
+    the step is live. The defect is a mock that stays behind, so it is counted after the tour
+    ends — mock_left_over() is that contract.
+    """
     issues: list[tuple[str, str]] = []
-    if metrics.get("tutorialMockActive"):
-        issues.append(("MOCK_INJECTION", "data-dxt-tutorial-mock present in DOM"))
     selector = metrics.get("selector")
     if selector:
         if metrics.get("floating"):
-            issues.append(("FLOATING_FALLBACK", f"target {selector!r} floating"))
+            # Floating is expected for optional targets — controls that exist only in states the
+            # tutorial cannot create, such as a DX App connection or an installed model. A step
+            # that does not declare it is still caught when it floats (no stale selectors slip by).
+            if not metrics.get("optionalTarget"):
+                issues.append(("FLOATING_FALLBACK", f"target {selector!r} floating"))
         elif not metrics.get("spotlightActive"):
             issues.append(("NO_SPOTLIGHT", f"target {selector!r} no spotlight"))
         elif not metrics.get("hasTarget"):

@@ -16,12 +16,12 @@ REQUIRED_DYNAMIC_KEYS = {
     "Voltage",
     "Clock",
     "DRAM",
-    "NPU Temp (C)",
+    "NPU Temp (°C)",
     "Voltage (mV)",
     "Clock (MHz)",
     "NPU DRAM (%)",
     "NPU Util (%)",
-    "Core Temp (C)",
+    "Core Temp (°C)",
     "CPU Load",
     "Memory (%)",
     "CPU Cores (%)",
@@ -167,7 +167,14 @@ def test_monitor_charts_receive_translated_empty_state_text():
 
 
 def _template_selectors() -> set[str]:
-    html = read_text(MONITOR / "templates" / "index.html")
+    # shared/shell.py injects the rail and header at render time, so the template file
+    # alone lacks the shell selectors the tutorial points at.
+    from dx_monitor.server import DX_MONITOR_SHELL
+    from shared.shell import apply as apply_shell
+
+    html = apply_shell(
+        read_text(MONITOR / "templates" / "index.html"), DX_MONITOR_SHELL
+    )
     ids = {"#" + value for value in re.findall(r'id="([^"]+)"', html)}
     classes = {"." + value for cls in re.findall(r'class="([^"]+)"', html) for value in cls.split()}
     return ids | classes | VALID_DYNAMIC_TUTORIAL_TARGETS

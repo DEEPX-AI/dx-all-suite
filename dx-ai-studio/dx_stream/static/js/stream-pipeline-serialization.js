@@ -1,6 +1,6 @@
 /**
- * DX Stream Pipeline — 직렬화 & 히스토리 모듈
- * gst-launch 미리보기, 프리셋 로드, 히스토리(undo/redo), 노드 조작(복사/붙여넣기/삭제)
+ * DX Stream Pipeline — serialization & history module
+ * gst-launch preview, preset loading, history (undo/redo), node operations (copy/paste/delete)
  */
 
 function _updateCommandPreview() {
@@ -12,7 +12,7 @@ function _updateCommandPreview() {
         return;
     }
 
-    // 토폴로지 정렬 (BFS) → gst-launch 문자열 생성
+    // Topological sort (BFS) → gst-launch string
     var inDeg = {};
     st.nodes.forEach(function (n) { inDeg[n.id] = 0; });
     st.edges.forEach(function (e) { inDeg[e.to] = (inDeg[e.to] || 0) + 1; });
@@ -31,7 +31,7 @@ function _updateCommandPreview() {
             }
         });
     }
-    // 정렬 안 된 노드도 추가 (고립 노드)
+    // Also add unsorted (isolated) nodes
     st.nodes.forEach(function (n) {
         if (ordered.indexOf(n.id) === -1) ordered.push(n.id);
     });
@@ -39,7 +39,7 @@ function _updateCommandPreview() {
     var nodeMap = {};
     st.nodes.forEach(function (n) { nodeMap[n.id] = n; });
 
-    // 엣지 연결 set
+    // Set of edge connections
     var edgeSet = {};
     st.edges.forEach(function (e) { edgeSet[e.from + '->' + e.to] = true; });
 
@@ -48,7 +48,7 @@ function _updateCommandPreview() {
         var n = nodeMap[ordered[i]];
         if (!n) continue;
         var seg = n.type.toLowerCase();
-        // 속성 추가
+        // Append properties
         if (n.properties) {
             var propParts = [];
             Object.keys(n.properties).forEach(function (k) {
@@ -62,7 +62,7 @@ function _updateCommandPreview() {
             if (propParts.length > 0) seg += ' ' + propParts.join(' ');
         }
         parts.push(seg);
-        // 다음 노드와 연결?
+        // Linked to the next node?
         if (i < ordered.length - 1) {
             var nextId = ordered[i + 1];
             if (edgeSet[n.id + '->' + nextId]) {
@@ -98,7 +98,7 @@ DXStream.loadPreset = async function (demoId) {
     var startX = 60, startY = 100, gapX = 200;
 
     if (!topology.linear && topology.nodes) {
-        // 분기 토폴로지: 노드와 엣지를 직접 배치
+        // Branching topology: place nodes and edges directly
         var posMap = {};
         topology.nodes.forEach(function (tn, i) {
             var node = {
@@ -123,7 +123,7 @@ DXStream.loadPreset = async function (demoId) {
             });
         });
     } else {
-        // 선형 토폴로지: steps 배열 사용
+        // Linear topology: use the steps array
         var steps = topology.steps || topology;
         steps.forEach(function (step, i) {
             var node = {
@@ -148,21 +148,25 @@ DXStream.loadPreset = async function (demoId) {
 
     _updateElementCount();
     DXStream.pipelineFitView();
-    DXStream.toast(T('Preset loaded: ') + (demo.name_ko || demo.name_en), 'success');
+    // history + draft (and the command preview): without it, coming back to the tab restored the
+    // old draft over the preset, and Undo skipped past it.
+    _pushHistory();
+    var lang = (window.DXI18n && DXI18n.lang) || 'en';
+    DXStream.toast(T('Preset loaded: ') + (demo['name_' + lang] || demo.name_en || demo.name_ko), 'success');
 };
 
 function _demoToNodes(demo) {
     var a = DXStream._pipeAssets;
-    // 멀티소스 데모 (Demo 8: 4 sources → compositor)
+    // Multi-source demo (Demo 8: 4 sources → compositor)
     if (demo.id === 8 || demo.pipeline_type === 'multi_source') {
         return _demoMultiNodes(demo);
     }
-    // 2차 분기 데모 (Demo 10: tee → 2 branches → DxGather)
+    // Secondary-branch demo (Demo 10: tee → 2 branches → DxGather)
     if (demo.id === 10 || demo.pipeline_type === 'secondary') {
         return _demoSecondaryNodes(demo);
     }
 
-    // config-type 데모: config-file-path 기반 프로퍼티
+    // config-type demo: properties from config-file-path
     if (demo.pipeline_type === 'config' && demo.config_dir) {
         var cfgBase = demo.config_dir;
         var nodes = [
@@ -176,7 +180,7 @@ function _demoToNodes(demo) {
         return { linear: true, steps: nodes };
     }
 
-    // tracking-config 데모 (demo 7): config-file-path + DxTracker
+    // tracking-config demo (demo 7): config-file-path + DxTracker
     if (demo.pipeline_type === 'tracking' && demo.config_dir) {
         var cfgBase2 = demo.config_dir;
         var nodes2 = [
@@ -191,7 +195,7 @@ function _demoToNodes(demo) {
         return { linear: true, steps: nodes2 };
     }
 
-    // 기본 선형 파이프라인 패턴 (standard 타입)
+    // Default linear pipeline pattern (standard type)
     var ppProps = {};
     if (demo.postproc_lib) ppProps['library-file-path'] = demo.postproc_lib;
     if (demo.postproc_func) ppProps['function-name'] = demo.postproc_func;
@@ -314,10 +318,10 @@ function _demoSecondaryNodes(demo) {
 function _pushHistory() {
     var st = DXStream._pipeState;
     var snap = JSON.stringify({ nodes: st.nodes, edges: st.edges, _nextId: st._nextId });
-    // 현재 위치 이후 미래 히스토리 삭제
+    // Drop the redo history after the current position
     st._history = st._history.slice(0, st._historyIdx + 1);
     st._history.push(snap);
-    if (st._history.length > 50) st._history.shift(); // 메모리 제한
+    if (st._history.length > 50) st._history.shift(); // memory cap
     st._historyIdx = st._history.length - 1;
     _scheduleDraftSave(snap);
     _scheduleCommandPreview();
@@ -360,7 +364,7 @@ DXStream._deleteSelectedNode = function () {
 
     var targets = st.selectedNodes.length > 0 ? st.selectedNodes.slice() : [st.selectedNode];
     var label = targets.length > 1
-        ? T('Delete ' + targets.length + ' nodes?', targets.length + '개 노드를 삭제하시겠습니까?')
+        ? T('Delete {n} nodes?').replace('{n}', targets.length)
         : T('Delete selected node?');
 
     DXStream.confirmModal(T('Delete Node'), label).then(function (ok) {
@@ -418,12 +422,12 @@ DXStream._copyNodes = function () {
         return n ? JSON.parse(JSON.stringify(n)) : null;
     }).filter(Boolean);
 
-    // 선택 노드 간의 내부 엣지도 복사
+    // Also copy the edges between selected nodes
     st._clipboardEdges = st.edges.filter(function (ed) {
         return selSet[ed.from] && selSet[ed.to];
     }).map(function (ed) { return JSON.parse(JSON.stringify(ed)); });
 
-    DXStream.toast(T('Copied ' + st._clipboard.length + ' nodes', st._clipboard.length + '개 노드 복사됨'), 'success');
+    DXStream.toast(T('Copied {n} nodes').replace('{n}', st._clipboard.length), 'success');
 };
 
 DXStream._pasteNodes = function () {
@@ -447,7 +451,7 @@ DXStream._pasteNodes = function () {
         st.selectedNodes.push(newId);
     });
 
-    // 내부 엣지 재연결
+    // Reconnect the internal edges
     if (st._clipboardEdges) {
         st._clipboardEdges.forEach(function (orig) {
             var newFrom = idMap[orig.from];
@@ -466,5 +470,5 @@ DXStream._pasteNodes = function () {
     _pushHistory();
     _updateElementCount();
     _refreshCanvas();
-    DXStream.toast(T('Pasted ' + st._clipboard.length + ' nodes', st._clipboard.length + '개 노드 붙여넣기'), 'success');
+    DXStream.toast(T('Pasted {n} nodes').replace('{n}', st._clipboard.length), 'success');
 };

@@ -146,8 +146,8 @@ class TestDiagnostics(unittest.TestCase):
         with (
             patch.object(diagnostics, "_run", new=fake_run),
             patch.object(
-                diagnostics, "resolve_active_runtime_context",
-                return_value=SimpleNamespace(), create=True,
+                diagnostics, "resolve_launch_context",
+                return_value=SimpleNamespace(),
             ),
             patch.object(
                 diagnostics, "build_child_environment",
@@ -182,9 +182,8 @@ class TestDiagnostics(unittest.TestCase):
         with (
             patch.object(
                 diagnostics,
-                "resolve_active_runtime_context",
+                "resolve_launch_context",
                 return_value=context,
-                create=True,
             ),
             patch.object(
                 diagnostics,
@@ -235,3 +234,29 @@ class TestDiagnostics(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestDiagnosticsRunTogether(unittest.TestCase):
+    """The eleven checks are independent subprocess probes. Run one after another they took 6.2 s on
+    a fully set-up board — the "Run diagnostics" button and /api/diagnostics waited for the sum."""
+
+    def test_the_checks_run_concurrently_and_keep_their_order(self):
+        import time
+        from dx_stream.core import diagnostics
+
+        def slow(check_id):
+            def run():
+                time.sleep(0.3)
+                return {"ok": True, "detail": check_id}
+            return run
+
+        with ExitStack() as stack:
+            for name, check_id, _ in TestDiagnostics.CHECK_SPECS:
+                stack.enter_context(patch.object(diagnostics, name, new=slow(check_id)))
+            t0 = time.monotonic()
+            result = diagnostics.deep_diagnostics()
+            elapsed = time.monotonic() - t0
+
+        self.assertLess(elapsed, 1.5, f"11 x 0.3 s checks took {elapsed:.1f} s — they ran one by one")
+        self.assertEqual([c["id"] for c in result["checks"]], [s[1] for s in TestDiagnostics.CHECK_SPECS])
+        self.assertTrue(result["all_ok"])

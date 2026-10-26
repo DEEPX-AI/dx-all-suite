@@ -1,0 +1,396 @@
+/* ─── DX AI Studio — demo result stage · cards · filter (pairs with dx-demo-stage.js) ──────────
+   Side panel layout: the 16:9 result on the left, a 320px panel on the right. Narrow (content width < 1000px):
+   the panel moves below. Folds on **content width** (@container), not screen width — the module sidebar takes room. */
+
+.dds { container-type: inline-size; display: block; }
+
+/* ── Stage ─────────────────────────────────────────────────────────────── */
+/* Media height comes from the viewport height, so at 1440×900 the first row of cards is visible with the stage.
+   Media width is 16:9 of that height; the panel (320 – 480px) takes the rest, and any extra is centred. */
+.dds-stage {
+  --dds-media-h: clamp(240px, calc(100vh - 540px), 600px);
+  display: flex;
+  justify-content: center;
+  gap: var(--sp-4);
+  padding: var(--sp-4);
+  background: var(--surface-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--sp-5);
+}
+.dds-media {
+  position: relative;
+  flex: 0 1 calc(var(--dds-media-h) * 16 / 9);
+  aspect-ratio: 16 / 9;
+  align-self: flex-start;
+  min-width: 0;
+  background: var(--surface-sunken);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.dds-media > img, .dds-media > video, .dds-media > canvas,
+.dds-media .dds-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+.dds-blank { color: var(--text-faint); }
+.dds-blank .dds-ico { width: 64px; height: 64px; }
+.dds-stage.is-unready .dds-media > img { opacity: .45; filter: grayscale(.6); }
+.dds-stage.is-empty { justify-content: flex-start; }
+.dds-stage.is-empty .dds-media { display: none; }
+
+.dds-side {
+  flex: 1 1 320px;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  min-width: 300px;
+}
+.dds-stage.is-empty .dds-side { max-width: none; }
+.dds-stage.is-empty .dds-side { align-items: flex-start; }
+.dds-head { display: flex; flex-direction: column; gap: var(--sp-1); min-width: 0; }
+.dds-task {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  font-size: var(--fs-xs);
+  color: var(--text-secondary);
+}
+.dds-task .dds-ico { width: 16px; height: 16px; color: var(--accent); }
+.dds-title {             /* beats the module's h2 rule (dx_app: uppercase, dim) */
+  margin: 0;
+  font-family: var(--font);
+  font-weight: 650;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 1.25rem;
+  line-height: 1.3;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+.dds-sub {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  min-width: 0;
+}
+.dds-model {
+  font-family: var(--mono);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+.dds-state {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  font-weight: 600;
+}
+.dds-state .dds-ico { width: 14px; height: 14px; }
+.dds-state[data-kind="ready"] { color: var(--status-ok); }
+.dds-state[data-kind="running"] { color: var(--accent); }
+.dds-state[data-kind="done"] { color: var(--status-ok); }
+.dds-state[data-kind="failed"] { color: var(--status-error); }
+.dds-state[data-kind="unready"] { color: var(--status-warn); }
+
+.dds-opts { display: flex; flex-direction: column; gap: var(--sp-2); }
+.dds-opts:empty, .dds-actions:empty, .dds-metrics:empty, .dds-bars:empty, .dds-extra:empty { display: none; }
+.dds-why { margin: 0; font-size: var(--fs-sm); color: var(--text-secondary); }
+
+/* One option per line — label on the left + segmented button (modules fill this class). One per line keeps
+   the panel from growing taller than the media as result figures are added. */
+.dds-opt { display: flex; align-items: center; gap: var(--sp-2); }
+.dds-opt-label { flex: 0 0 88px; font-size: var(--fs-xs); color: var(--text-muted); }
+.dds-opt > .dds-seg, .dds-opt > .dds-input { flex: 1 1 auto; min-width: 0; }
+.dds-seg {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 2px;
+  background: var(--surface-sunken);
+  border-radius: var(--radius-sm);
+}
+.dds-seg button {
+  flex: 1 1 auto;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: var(--fs-sm);
+  padding: var(--sp-1) var(--sp-2);
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+}
+.dds-seg button:hover:not(:disabled) { background: var(--surface-hover); color: var(--text-primary); }
+.dds-seg button.is-on { background: var(--surface-raised); color: var(--text-primary); font-weight: 600; box-shadow: 0 0 0 1px var(--border-subtle); }
+.dds-seg button:disabled { opacity: .4; cursor: not-allowed; }
+.dds-input {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  font-size: var(--fs-sm);
+  padding: var(--sp-2);
+  background: var(--surface-page);
+  color: var(--text-primary);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+}
+
+.dds-actions { display: flex; gap: var(--sp-2); }
+.dds-actions > button { flex: 1 1 auto; }
+.dds-run, .dds-setup {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-1);
+  font: inherit;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.dds-run {
+  padding: var(--sp-2) var(--sp-4);
+  background: var(--accent-fill);
+  color: var(--text-on-accent);
+  border: 1px solid var(--accent);
+}
+.dds-run:hover:not(:disabled) { filter: brightness(1.08); }
+.dds-run:disabled { opacity: .5; cursor: not-allowed; }
+.dds-run.is-stop { background: transparent; color: var(--status-error); border-color: var(--status-error); }
+.dds-run .dds-ico, .dds-setup .dds-ico { width: 16px; height: 16px; }
+.dds-setup {
+  padding: var(--sp-1) var(--sp-3);
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--border-accent);
+  font-size: var(--fs-sm);
+}
+.dds-setup:hover { background: rgba(var(--accent-rgb), .08); }
+
+.dds-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--sp-2);
+}
+.dds-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: var(--sp-1) var(--sp-2);
+  background: var(--surface-sunken);
+  border-radius: var(--radius-sm);
+  min-width: 0;
+}
+.dds-metric b {
+  font-size: 1.125rem;
+  line-height: 1.2;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dds-metric.is-accent b { color: var(--accent); }
+.dds-metric span { font-size: var(--fs-2xs); color: var(--text-muted); }
+
+.dds-bars { display: flex; flex-direction: column; gap: var(--sp-2); }
+.dds-bar {
+  display: flex;
+  gap: 2px;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+.dds-bar i { display: block; min-width: 2px; }
+.dds-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1) var(--sp-3);
+  font-size: var(--fs-xs);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.dds-legend span { display: inline-flex; align-items: center; gap: var(--sp-1); }
+.dds-legend span::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--c);
+}
+.dds-extra { font-size: var(--fs-sm); color: var(--text-secondary); }
+.dds-extra details > summary { cursor: pointer; color: var(--accent); }
+.dds-extra pre {
+  max-height: 240px;
+  overflow: auto;
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  background: var(--surface-sunken);
+  padding: var(--sp-2);
+  border-radius: var(--radius-sm);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.dds-none { display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-3); }
+.dds-none p { margin: 0; font-size: var(--fs-base); color: var(--text-secondary); }
+
+/* ── filter ────────────────────────────────────────────────────────────── */
+/* One line — overflow scrolls sideways rather than wrapping and pushing the cards down */
+.dds-filter {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-3);
+  overflow-x: auto;
+  scrollbar-width: thin;
+  padding-bottom: 2px;
+}
+.dds-filter .dds-fbtn { flex: none; white-space: nowrap; }
+.dds-fbtn {
+  font: inherit;
+  font-size: var(--fs-sm);
+  padding: var(--sp-1) var(--sp-3);
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-panel);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.dds-fbtn:hover { color: var(--text-primary); border-color: var(--border-strong); }
+.dds-fbtn.is-on { background: var(--accent-fill); border-color: var(--accent); color: var(--text-on-accent); }
+
+/* ── Cards — for picking only. All the same height (grid-auto-rows: 1fr) ── */
+.dds-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-auto-rows: 1fr;
+  gap: var(--sp-3);
+}
+.dds-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--surface-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius);
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color .15s, box-shadow .15s;
+}
+/* The pick button — invisible, takes focus only. The card draws the focus ring. */
+.dds-cpick {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.dds-card[hidden] { display: none; }
+.dds-card:hover { border-color: var(--border-strong); }
+.dds-card:has(.dds-cpick:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.dds-card.is-selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.dds-thumb {
+  display: block;
+  aspect-ratio: 2 / 1;
+  background: var(--surface-sunken);
+  overflow: hidden;
+}
+.dds-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.dds-thumb.is-blank { display: flex; align-items: center; justify-content: center; color: var(--text-faint); }
+.dds-thumb.is-blank .dds-ico { width: 40px; height: 40px; }
+.dds-card.is-unready .dds-thumb img { opacity: .45; filter: grayscale(.6); }
+.dds-cbody {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  padding: var(--sp-2) var(--sp-3) var(--sp-3);
+  min-width: 0;
+}
+/* Wrap so a long status badge ("Requiere instalación") does not truncate the task name */
+.dds-crow { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-1) var(--sp-2); min-width: 0; }
+.dds-crow .dds-task { flex: 1 1 auto; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.dds-ctitle {
+  font-weight: 600;
+  font-size: var(--fs-base);
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dds-cstate {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  font-size: var(--fs-2xs);
+  font-weight: 600;
+}
+.dds-cstate .dds-ico { width: 12px; height: 12px; }
+.dds-cstate.is-running { color: var(--accent); }
+.dds-cstate.is-todo { color: var(--status-warn); }
+.dds-reason {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dds-cfoot { display: flex; align-items: center; gap: var(--sp-2); min-width: 0; min-height: 26px; margin-top: auto; }
+.dds-cfoot > .dds-reason, .dds-cmeta { flex: 1 1 auto; min-width: 0; }
+.dds-cmeta {
+  font-family: var(--mono);
+  font-size: var(--fs-2xs);
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dds-card .dds-setup { flex: none; padding: 2px var(--sp-2); font-size: var(--fs-xs); }
+
+/* ── Narrow: panel below the media ─────────────────────────────────────── */
+@container (max-width: 999px) {
+  .dds-stage { flex-direction: column; }
+  .dds-media { flex: none; width: 100%; }
+  .dds-side { flex: none; max-width: none; min-width: 0; }
+}
+
+/* ── Running · result notices (filled by the module) ─────────────────────── */
+.dds-media .dds-preview.is-dim { opacity: .35; }
+.dds-overlay {
+  position: absolute;
+  left: var(--sp-4);
+  right: var(--sp-4);
+  bottom: var(--sp-4);
+  padding: var(--sp-3);
+  background: var(--surface-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+}
+.dds-note {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  margin: 0 0 var(--sp-2);
+  font-size: var(--fs-xs);
+  overflow-wrap: anywhere;
+}
+.dds-note .dds-ico { flex: none; width: 14px; height: 14px; margin-top: 1px; }
+.dds-note.is-warn { color: var(--status-warn); }
+.dds-note.is-error { color: var(--status-error); }

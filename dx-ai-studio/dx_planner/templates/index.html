@@ -4,59 +4,48 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>DX EdgeGuide — DEEPX</title>
+  <link rel="icon" type="image/svg+xml" href="/static/shared/favicons/dx_planner.svg">
   <link rel="stylesheet" href="/static/shared/dx-fonts.css">
   <link rel="stylesheet" href="/static/shared/dx-tokens.css">
+  <link rel="stylesheet" href="/static/shared/dx-semantic.css">
+  <link rel="stylesheet" href="/static/shared/dx-theme-light.css">
+  <link rel="stylesheet" href="/static/shared/dx-shell.css">
   <link rel="stylesheet" href="/static/shared/dx-base.css">
   <link rel="stylesheet" href="/static/shared/dx-utilities.css">
+  <link rel="stylesheet" href="/static/shared/dx-components.css">
   <link rel="stylesheet" href="/static/shared/module-chrome.css">
   <link rel="stylesheet" href="/static/shared/brand.css">
   <link rel="stylesheet" href="/static/shared/tutorial.css">
   <link rel="stylesheet" href="/static/shared/toolbar.css">
   <link rel="stylesheet" href="/static/shared/chat-widget.css">
   <link rel="stylesheet" href="/static/css/style.css?m=dx_planner">
+<script src="/static/shared/dx-theme.js"></script>
+<script src="/static/shared/dx-icon.js"></script>
 </head>
 <body>
 
   <!-- ── Header ── -->
-  <header class="planner-topbar">
-    <div class="planner-logo">
-      <div class="dx-brand-slot" id="dxBrand"></div>
-    </div>
-    <div class="planner-controls toolbar">
-    </div>
-  </header>
+<div class="dx-shell dx-shell--no-tabs">
+{{DX_SHELL_RAIL}}
+<div class="dx-shell-body">
+{{DX_SHELL_HEADER}}
+<main class="dx-shell-main planner-main">
 
-  <!-- ── Main ── -->
-  <main class="planner-main">
     <div id="plannerWorkspace" class="planner-workspace workspace-state-empty" data-state="empty">
 
       <!-- ── Requirements Panel ── -->
       <section id="requirementsPanel" class="workspace-panel requirements-panel" data-i18n-aria-label="Requirements">
         <div class="scope-banner info-banner" id="scopeBanner" data-help-id="planner-scope-banner">
-          <p class="scope-banner-kicker panel-kicker">
-            <span class="ko">벤치마크 기준</span><span class="ja">ベンチマーク基準</span><span class="zh-CN">基准范围</span><span class="zh-TW">基準範圍</span><span class="en">Benchmark scope</span><span class="es">Alcance del benchmark</span>
+          <p class="scope-banner-kicker panel-kicker" data-i18n="Benchmark scope">Benchmark scope
           </p>
-          <p class="scope-banner-title">
-            <span class="ko">이 가이드는 <strong>YOLO26</strong> (5 tasks · n–x) DX Benchmark 실측 데이터로 Edge 제품을 비교합니다.</span>
-            <span class="ja">このガイドは <strong>YOLO26</strong>（5 tasks · n–x）の DX Benchmark 実測データで Edge 製品を比較します。</span>
-            <span class="zh-CN">本指南基于 <strong>YOLO26</strong>（5 tasks · n–x）DX Benchmark 实测数据比较 Edge 产品。</span>
-            <span class="zh-TW">本指南基於 <strong>YOLO26</strong>（5 tasks · n–x）DX Benchmark 實測資料比較 Edge 產品。</span>
-            <span class="en">This guide compares Edge products using <strong>YOLO26</strong> (5 tasks · n–x) DX Benchmark measurements.</span>
-            <span class="es">Esta guía compara productos Edge con mediciones DX Benchmark de <strong>YOLO26</strong> (5 tasks · n–x).</span>
+          <p class="scope-banner-title" data-i18n-html="This guide compares Edge products using &lt;strong&gt;YOLO26&lt;/strong&gt; (5 tasks · n–x) DX Benchmark measurements.">This guide compares Edge products using <strong>YOLO26</strong> (5 tasks · n–x) DX Benchmark measurements.
           </p>
-          <p class="scope-banner-note txt-dim txt-sm">
-            <span class="ko">다른 모델·커스텀 워크로드는 DX Benchmark / Model Zoo에서 확인하세요.</span>
-            <span class="ja">他のモデルやカスタムワークロードは DX Benchmark / Model Zoo で確認してください。</span>
-            <span class="zh-CN">其他模型或自定义工作负载请在 DX Benchmark / Model Zoo 中查看。</span>
-            <span class="zh-TW">其他模型或自訂工作負載請在 DX Benchmark / Model Zoo 中查看。</span>
-            <span class="en">For other models or custom workloads, use DX Benchmark / Model Zoo.</span>
-            <span class="es">Para otros modelos o cargas personalizadas, use DX Benchmark / Model Zoo.</span>
+          <p class="scope-banner-note txt-dim txt-sm" data-i18n="For other models or custom workloads, use DX Benchmark / Model Zoo.">For other models or custom workloads, use DX Benchmark / Model Zoo.
           </p>
           <p class="scope-banner-meta txt-sm" id="scopeBannerMeta"></p>
           <button type="button" class="btn-methodology btn-methodology-prominent" data-open-methodology data-help-id="planner-methodology">
-            <span class="btn-methodology-icon" aria-hidden="true">ℹ</span>
-            <span class="btn-methodology-text">
-              <span class="ko">추천 원리 보기</span><span class="ja">推奨の仕組み</span><span class="zh-CN">查看推荐原理</span><span class="zh-TW">查看推薦原理</span><span class="en">How ranking works</span><span class="es">Cómo funciona el ranking</span>
+            <span class="btn-methodology-icon" aria-hidden="true"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#info"></use></svg></span>
+            <span class="btn-methodology-text" data-i18n="How ranking works">How ranking works
             </span>
           </button>
         </div>
@@ -64,43 +53,38 @@
         <ol class="workflow-steps" id="workflowSteps" data-i18n-aria-label="EdgeGuide workflow">
           <li class="workflow-step is-active" data-step="requirements">
             <span class="workflow-step-num">1</span>
-            <span class="ko">시나리오</span><span class="ja">シナリオ</span><span class="zh-CN">场景</span><span class="zh-TW">情境</span><span class="en">Scenario</span><span class="es">Escenario</span>
+            <span data-i18n="Scenario">Scenario</span>
           </li>
           <li class="workflow-step" data-step="recommendations">
             <span class="workflow-step-num">2</span>
-            <span class="ko">추천</span><span class="ja">推奨</span><span class="zh-CN">推荐</span><span class="zh-TW">推薦</span><span class="en">Pick</span><span class="es">Elegir</span>
+            <span data-i18n="Pick">Pick</span>
           </li>
           <li class="workflow-step" data-step="details">
             <span class="workflow-step-num">3</span>
-            <span class="ko">근거</span><span class="ja">根拠</span><span class="zh-CN">依据</span><span class="zh-TW">依據</span><span class="en">Evidence</span><span class="es">Evidencia</span>
+            <span data-i18n="Evidence">Evidence</span>
           </li>
           <li class="workflow-step" data-step="commerce">
             <span class="workflow-step-num">4</span>
-            <span class="ko">구매</span><span class="ja">購入</span><span class="zh-CN">购买</span><span class="zh-TW">購買</span><span class="en">Buy</span><span class="es">Comprar</span>
+            <span data-i18n="Buy">Buy</span>
           </li>
         </ol>
 
         <div class="scenario-chips" id="scenarioChips" role="group" data-help-id="planner-scenario-chips">
-          <span class="scenario-chips-label txt-sm txt-dim">
-            <span class="ko">빠른 시나리오</span><span class="ja">クイックシナリオ</span><span class="zh-CN">快速场景</span><span class="zh-TW">快速情境</span><span class="en">Quick scenarios</span><span class="es">Escenarios rápidos</span>
+          <span class="scenario-chips-label txt-sm txt-dim" data-i18n="Quick scenarios">Quick scenarios
           </span>
-          <button type="button" class="scenario-chip" data-preset="cctv">
-            <span class="ko">4채널 CCTV OD</span><span class="en">4-ch CCTV OD</span><span class="ja">4ch CCTV OD</span><span class="zh-CN">4路CCTV OD</span><span class="zh-TW">4路CCTV OD</span><span class="es">4 canales CCTV OD</span>
+          <button type="button" class="scenario-chip" data-preset="cctv" data-i18n="4-ch CCTV OD">4-ch CCTV OD
           </button>
-          <button type="button" class="scenario-chip" data-preset="retail">
-            <span class="ko">8채널 리테일 분류</span><span class="en">8-ch retail cls</span><span class="ja">8ch 小売分類</span><span class="zh-CN">8路零售分类</span><span class="zh-TW">8路零售分類</span><span class="es">8 canales retail cls</span>
+          <button type="button" class="scenario-chip" data-preset="retail" data-i18n="8-ch retail cls">8-ch retail cls
           </button>
-          <button type="button" class="scenario-chip" data-preset="pose">
-            <span class="ko">2채널 포즈 30FPS</span><span class="en">2-ch pose 30FPS</span><span class="ja">2ch ポーズ 30FPS</span><span class="zh-CN">2路姿态30FPS</span><span class="zh-TW">2路姿態30FPS</span><span class="es">2 canales pose 30FPS</span>
+          <button type="button" class="scenario-chip" data-preset="pose" data-i18n="2-ch pose 30FPS">2-ch pose 30FPS
           </button>
           <button type="button" class="scenario-chip scenario-chip-reset" id="btnStartOver" data-help-id="planner-start-over">
-            <span aria-hidden="true">🔄</span>
-            <span class="ko">처음부터</span><span class="en">Start over</span><span class="ja">最初から</span><span class="zh-CN">重新开始</span><span class="zh-TW">重新開始</span><span class="es">Empezar de nuevo</span>
+            <svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#refresh"></use></svg>
+            <span data-i18n="Start over">Start over</span>
           </button>
         </div>
 
-        <div class="panel-kicker">
-          <span class="ko">조건 설정</span><span class="ja">要件設定</span><span class="zh-CN">条件设置</span><span class="zh-TW">條件設定</span><span class="en">Requirements</span><span class="es">Requisitos</span>
+        <div class="panel-kicker" data-i18n="Requirements">Requirements
         </div>
 
         <div class="requirements-wizard-stage" id="requirementsWizardStage">
@@ -109,50 +93,47 @@
 
         <!-- Card 1: AI Task -->
         <div class="cfg-card" id="task-card">
-          <h3 class="card-title">
-            <span class="ko">AI 작업 유형</span><span class="ja">AIタスクタイプ</span><span class="zh-CN">AI任务类型</span><span class="zh-TW">AI任務類型</span><span class="en">AI Task</span><span class="es">Tarea IA</span>
+          <h3 class="card-title" data-i18n="AI Task">AI Task
           </h3>
           <div class="task-grid">
             <button class="task-btn selected" data-task="object_detection" data-help-id="planner-task-object-detection">
-              <span class="task-icon">🎯</span>
-              <span class="task-name"><span class="ko">객체 감지</span><span class="ja">物体検出</span><span class="zh-CN">目标检测</span><span class="zh-TW">物件偵測</span><span class="en">Object Detection</span><span class="es">Detección de objetos</span></span>
-              <span class="task-desc txt-dim txt-sm"><span class="ko">박스 기반 탐지</span><span class="ja">バウンディングボックス検出</span><span class="zh-CN">边界框检测</span><span class="zh-TW">邊界框偵測</span><span class="en">Bounding box detect</span><span class="es">Detección de cuadro delimitador</span></span>
+              <svg class="dx-ico task-icon" aria-hidden="true"><use href="/static/shared/dx-icons.svg#task-object_detection"></use></svg>
+              <span class="task-name" data-i18n="Object Detection">Object Detection</span>
+              <span class="task-desc txt-dim txt-sm" data-i18n="Bounding box detect">Bounding box detect</span>
             </button>
             <button class="task-btn" data-task="pose_estimation" data-help-id="planner-task-pose-estimation">
-              <span class="task-icon">🏃</span>
-              <span class="task-name"><span class="ko">포즈 추정</span><span class="ja">姿勢推定</span><span class="zh-CN">姿态估计</span><span class="zh-TW">姿態估計</span><span class="en">Pose Estimation</span><span class="es">Estimación de pose</span></span>
-              <span class="task-desc txt-dim txt-sm"><span class="ko">키포인트 감지</span><span class="ja">キーポイント検出</span><span class="zh-CN">关键点检测</span><span class="zh-TW">關鍵點偵測</span><span class="en">Keypoint detection</span><span class="es">Detección de puntos clave</span></span>
+              <svg class="dx-ico task-icon" aria-hidden="true"><use href="/static/shared/dx-icons.svg#task-pose_estimation"></use></svg>
+              <span class="task-name" data-i18n="Pose Estimation">Pose Estimation</span>
+              <span class="task-desc txt-dim txt-sm" data-i18n="Keypoint detection">Keypoint detection</span>
             </button>
             <button class="task-btn" data-task="segmentation" data-help-id="planner-task-segmentation">
-              <span class="task-icon">🖼️</span>
-              <span class="task-name"><span class="ko">분할</span><span class="ja">セグメンテーション</span><span class="zh-CN">分割</span><span class="zh-TW">分割</span><span class="en">Segmentation</span><span class="es">Segmentación</span></span>
-              <span class="task-desc txt-dim txt-sm"><span class="ko">픽셀 마스킹</span><span class="ja">ピクセルマスキング</span><span class="zh-CN">像素遮罩</span><span class="zh-TW">像素遮罩</span><span class="en">Pixel masking</span><span class="es">Enmascaramiento de píxel</span></span>
+              <svg class="dx-ico task-icon" aria-hidden="true"><use href="/static/shared/dx-icons.svg#task-semantic_segmentation"></use></svg>
+              <span class="task-name" data-i18n="Segmentation">Segmentation</span>
+              <span class="task-desc txt-dim txt-sm" data-i18n="Pixel masking">Pixel masking</span>
             </button>
             <button class="task-btn" data-task="oriented_bbox" data-help-id="planner-task-oriented-bbox">
-              <span class="task-icon">📦</span>
-              <span class="task-name"><span class="ko">회전 박스</span><span class="ja">回転ボックス</span><span class="zh-CN">旋转框</span><span class="zh-TW">旋轉框</span><span class="en">OBB</span><span class="es">OBB</span></span>
-              <span class="task-desc txt-dim txt-sm"><span class="ko">방향성 감지</span><span class="ja">方向性検出</span><span class="zh-CN">方向检测</span><span class="zh-TW">方向偵測</span><span class="en">Oriented detect</span><span class="es">Detección orientada</span></span>
+              <svg class="dx-ico task-icon" aria-hidden="true"><use href="/static/shared/dx-icons.svg#task-obb_detection"></use></svg>
+              <span class="task-name" data-i18n="OBB">OBB</span>
+              <span class="task-desc txt-dim txt-sm" data-i18n="Oriented detect">Oriented detect</span>
             </button>
             <button class="task-btn" data-task="classification" data-help-id="planner-task-classification">
-              <span class="task-icon">🏷️</span>
-              <span class="task-name"><span class="ko">분류</span><span class="ja">分類</span><span class="zh-CN">分类</span><span class="zh-TW">分類</span><span class="en">Classification</span><span class="es">Clasificación</span></span>
-              <span class="task-desc txt-dim txt-sm"><span class="ko">카테고리 분류</span><span class="ja">カテゴリ分類</span><span class="zh-CN">类别分类</span><span class="zh-TW">類別分類</span><span class="en">Category classify</span><span class="es">Clasificar por categoría</span></span>
+              <svg class="dx-ico task-icon" aria-hidden="true"><use href="/static/shared/dx-icons.svg#task-classification"></use></svg>
+              <span class="task-name" data-i18n="Classification">Classification</span>
+              <span class="task-desc txt-dim txt-sm" data-i18n="Category classify">Category classify</span>
             </button>
           </div>
         </div>
 
         <!-- Card 2: Model Size -->
         <div class="cfg-card" id="size-card">
-          <h3 class="card-title">
-            <span class="ko">모델 크기</span><span class="ja">モデルサイズ</span><span class="zh-CN">模型大小</span><span class="zh-TW">模型大小</span><span class="en">Model Size</span><span class="es">Tamaño del modelo</span>
+          <h3 class="card-title" data-i18n="Model Size">Model Size
           </h3>
-          <div class="size-scale-label txt-sm txt-dim">
-            <span class="ko">속도 ↔ 정확도</span><span class="ja">速度 ↔ 精度</span><span class="zh-CN">速度 ↔ 精度</span><span class="zh-TW">速度 ↔ 精度</span><span class="en">Speed ↔ Accuracy</span><span class="es">Velocidad ↔ Precisión</span>
+          <div class="size-scale-label txt-sm txt-dim" data-i18n="Speed ↔ Accuracy">Speed ↔ Accuracy
           </div>
           <div class="size-btn-row">
             <button class="size-btn selected" data-size="n" data-help-id="planner-size-n">
               <span class="size-letter">n</span>
-              <span class="size-desc txt-sm"><span class="ko">최고속도</span><span class="ja">最高速度</span><span class="zh-CN">最快速度</span><span class="zh-TW">最快速度</span><span class="en">Fastest</span><span class="es">Más rápido</span></span>
+              <span class="size-desc txt-sm" data-i18n="Fastest">Fastest</span>
             </button>
             <button class="size-btn" data-size="s" data-help-id="planner-size-s">
               <span class="size-letter">s</span>
@@ -160,7 +141,7 @@
             </button>
             <button class="size-btn" data-size="m" data-help-id="planner-size-m">
               <span class="size-letter">m</span>
-              <span class="size-desc txt-sm"><span class="ko">균형</span><span class="ja">バランス</span><span class="zh-CN">均衡</span><span class="zh-TW">均衡</span><span class="en">Balanced</span><span class="es">Equilibrado</span></span>
+              <span class="size-desc txt-sm" data-i18n="Balanced">Balanced</span>
             </button>
             <button class="size-btn" data-size="l" data-help-id="planner-size-l">
               <span class="size-letter">l</span>
@@ -168,19 +149,17 @@
             </button>
             <button class="size-btn" data-size="x" data-help-id="planner-size-x">
               <span class="size-letter">x</span>
-              <span class="size-desc txt-sm"><span class="ko">최고정확도</span><span class="ja">最高精度</span><span class="zh-CN">最高精度</span><span class="zh-TW">最高精度</span><span class="en">Most Accurate</span><span class="es">Más preciso</span></span>
+              <span class="size-desc txt-sm" data-i18n="Most Accurate">Most Accurate</span>
             </button>
           </div>
         </div>
 
         <!-- Card 3: Operating Requirements -->
         <div class="cfg-card" id="ops-card">
-          <h3 class="card-title">
-            <span class="ko">운영 요구사항</span><span class="ja">運用要件</span><span class="zh-CN">运行要求</span><span class="zh-TW">運行需求</span><span class="en">Operating Requirements</span><span class="es">Requisitos de operación</span>
+          <h3 class="card-title" data-i18n="Operating Requirements">Operating Requirements
           </h3>
           <div class="ops-row">
-            <label class="ops-label" for="channelSlider">
-              <span class="ko">카메라 / 채널 수</span><span class="ja">カメラ / チャンネル数</span><span class="zh-CN">摄像头 / 通道数</span><span class="zh-TW">攝影機 / 通道數</span><span class="en">Camera / Channels</span><span class="es">Cámara / Canales</span>
+            <label class="ops-label" for="channelSlider" data-i18n="Camera / Channels">Camera / Channels
             </label>
             <div class="ops-slider-wrap">
               <input type="range" id="channelSlider" min="1" max="32" value="4">
@@ -188,8 +167,7 @@
             </div>
           </div>
           <div class="ops-row">
-            <label class="ops-label" for="targetFps">
-              <span class="ko">목표 FPS</span><span class="ja">目標FPS</span><span class="zh-CN">目标FPS</span><span class="zh-TW">目標FPS</span><span class="en">Target FPS</span><span class="es">FPS objetivo</span>
+            <label class="ops-label" for="targetFps" data-i18n="Target FPS">Target FPS
             </label>
             <select id="targetFps" class="ops-select">
               <option value="15">15 FPS</option>
@@ -199,8 +177,7 @@
             </select>
           </div>
           <div class="ops-row">
-            <label class="ops-label">
-              <span class="ko">런타임</span><span class="ja">ランタイム</span><span class="zh-CN">运行时</span><span class="zh-TW">執行環境</span><span class="en">Runtime</span><span class="es">Tiempo de ejecución</span>
+            <label class="ops-label" data-i18n="Runtime">Runtime
             </label>
             <div class="ort-toggle" id="ortToggle" data-help-id="planner-ort-toggle">
               <button type="button" class="ort-btn selected" data-ort="true">ONNX Runtime</button>
@@ -208,8 +185,7 @@
             </div>
           </div>
           <div class="ops-row">
-            <label class="ops-label" for="maxLatencyMs">
-              <span class="ko">최대 latency (ms)</span><span class="ja">最大レイテンシ (ms)</span><span class="zh-CN">最大延迟 (ms)</span><span class="zh-TW">最大延遲 (ms)</span><span class="en">Max latency (ms)</span><span class="es">Latencia máx. (ms)</span>
+            <label class="ops-label" for="maxLatencyMs" data-i18n="Max latency (ms)">Max latency (ms)
             </label>
             <div class="ops-latency-wrap" data-help-id="planner-max-latency">
               <select id="maxLatencyPreset" class="ops-select ops-select--latency" data-i18n-aria-label="Max latency preset">
@@ -222,13 +198,7 @@
               </select>
               <input type="number" id="maxLatencyMs" class="ops-input ops-input--latency" min="1" step="1" data-i18n-placeholder="ms" data-i18n-aria-label="Max latency custom ms">
             </div>
-            <p class="ops-hint txt-sm txt-dim">
-              <span class="ko">프리셋을 고르거나 오른쪽에 ms를 직접 입력하세요. 비우면 제한 없음.</span>
-              <span class="en">Pick a preset or type ms on the right. Empty means no limit.</span>
-              <span class="ja">プリセットを選ぶか、右側に ms を直接入力。空欄は制限なし。</span>
-              <span class="zh-CN">选择预设或在右侧直接输入 ms。留空表示无限制。</span>
-              <span class="zh-TW">選擇預設或在右側直接輸入 ms。留空表示無限制。</span>
-              <span class="es">Elija un preset o escriba ms a la derecha. Vacío = sin límite.</span>
+            <p class="ops-hint txt-sm txt-dim" data-i18n="Pick a preset or type ms on the right. Empty means no limit.">Pick a preset or type ms on the right. Empty means no limit.
             </p>
           </div>
         </div>
@@ -236,23 +206,15 @@
         </div><!-- /requirements-row-3 -->
 
         <div class="requirements-step-actions requirements-step-actions--next">
-          <button type="button" class="btn-setup-next" id="btnSetupNext" data-help-id="planner-setup-next">
-            <span class="ko">다음 — 우선순위 선택</span><span class="ja">次へ — 優先度</span><span class="zh-CN">下一步 — 选择优先级</span><span class="zh-TW">下一步 — 選擇優先順序</span><span class="en">Next — choose ranking</span><span class="es">Siguiente — prioridad</span>
+          <button type="button" class="btn-setup-next" id="btnSetupNext" data-help-id="planner-setup-next" data-i18n="Next — choose ranking">Next — choose ranking
           </button>
         </div>
         </div><!-- /requirementsStep1 -->
 
         <aside id="requirementsStep2" class="requirements-priority-drawer" aria-hidden="true">
-        <div class="panel-kicker requirements-step-kicker">
-          <span class="ko">플랫폼 우선순위</span><span class="ja">プラットフォーム優先度</span><span class="zh-CN">平台优先级</span><span class="zh-TW">平台優先順序</span><span class="en">Platform ranking</span><span class="es">Prioridad de plataforma</span>
+        <div class="panel-kicker requirements-step-kicker" data-i18n="Platform ranking">Platform ranking
         </div>
-        <p class="requirements-step-hint txt-sm txt-dim">
-          <span class="ko">같은 YOLO26 조건을 만족하는 보드 중 무엇을 1순위로 둘지 고릅니다.</span>
-          <span class="en">How to rank boards that meet your YOLO26 workload.</span>
-          <span class="ja">同じ YOLO26 条件を満たすボードの並び順を選びます。</span>
-          <span class="zh-CN">在满足相同 YOLO26 条件的板卡之间如何排序。</span>
-          <span class="zh-TW">在滿足相同 YOLO26 條件的板卡之間如何排序。</span>
-          <span class="es">Cómo ordenar placas que cumplen la misma carga YOLO26.</span>
+        <p class="requirements-step-hint txt-sm txt-dim" data-i18n="How to rank boards that meet your YOLO26 workload.">How to rank boards that meet your YOLO26 workload.
         </p>
 
         <!-- Card 4: Priority -->
@@ -261,30 +223,30 @@
             <label class="priority-radio">
               <input type="radio" name="priority" value="channels" checked>
               <span class="priority-body">
-                <span class="priority-icon">📹</span>
+                <span class="priority-icon"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#video"></use></svg></span>
                 <span class="priority-text">
-                  <strong><span class="ko">최다 채널</span><span class="ja">最多チャンネル</span><span class="zh-CN">最多通道</span><span class="zh-TW">最多通道</span><span class="en">Most channels</span><span class="es">Más canales</span></strong>
-                  <span class="txt-dim txt-sm"><span class="ko">측정된 최대 채널 우선</span><span class="ja">計測最大チャンネル優先</span><span class="zh-CN">优先测量最大通道</span><span class="zh-TW">優先測量最大通道</span><span class="en">Prioritize measured max channels</span><span class="es">Prioriza canales máx. medidos</span></span>
+                  <strong data-i18n="Most channels">Most channels</strong>
+                  <span class="txt-dim txt-sm" data-i18n="Most channels at your target FPS">Most channels at your target FPS</span>
                 </span>
               </span>
             </label>
             <label class="priority-radio">
               <input type="radio" name="priority" value="performance">
               <span class="priority-body">
-                <span class="priority-icon">🚀</span>
+                <span class="priority-icon"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#bench"></use></svg></span>
                 <span class="priority-text">
-                  <strong><span class="ko">최고 성능</span><span class="ja">最高パフォーマンス</span><span class="zh-CN">最佳性能</span><span class="zh-TW">最佳效能</span><span class="en">Best Performance</span><span class="es">Mejor rendimiento</span></strong>
-                  <span class="txt-dim txt-sm"><span class="ko">처리량 최대화</span><span class="ja">スループット最大化</span><span class="zh-CN">最大化吞吐量</span><span class="zh-TW">最大化吞吐量</span><span class="en">Maximize throughput</span><span class="es">Maximizar rendimiento</span></span>
+                  <strong data-i18n="Best Performance">Best Performance</strong>
+                  <span class="txt-dim txt-sm" data-i18n="Highest camera-pipeline FPS">Highest camera-pipeline FPS</span>
                 </span>
               </span>
             </label>
             <label class="priority-radio">
               <input type="radio" name="priority" value="power">
               <span class="priority-body">
-                <span class="priority-icon">🔋</span>
+                <span class="priority-icon"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#bolt"></use></svg></span>
                 <span class="priority-text">
-                  <strong><span class="ko">최저 전력</span><span class="ja">最低消費電力</span><span class="zh-CN">最低功耗</span><span class="zh-TW">最低功耗</span><span class="en">Lowest Power</span><span class="es">Potencia más baja</span></strong>
-                  <span class="txt-dim txt-sm"><span class="ko">전력 소비 최소화</span><span class="ja">消費電力最小化</span><span class="zh-CN">最小化功耗</span><span class="zh-TW">最小化功耗</span><span class="en">Minimize power usage</span><span class="es">Minimizar uso de energía</span></span>
+                  <strong data-i18n="Lowest Power">Lowest Power</strong>
+                  <span class="txt-dim txt-sm" data-i18n="Lowest NPU power (host not included)">Lowest NPU power (host not included)</span>
                 </span>
               </span>
             </label>
@@ -292,18 +254,15 @@
         </div>
 
         <div class="requirements-step-actions requirements-step-actions--rank">
-          <button type="button" class="btn-setup-back" id="btnSetupBack">
-            <span class="ko">닫기</span><span class="ja">閉じる</span><span class="zh-CN">关闭</span><span class="zh-TW">關閉</span><span class="en">Close</span><span class="es">Cerrar</span>
+          <button type="button" class="btn-setup-back" id="btnSetupBack" data-i18n="Close">Close
           </button>
-          <button class="btn-recommend" id="btnRecommend" disabled data-help-id="planner-btn-recommend">
-            <span class="ko">추천 받기</span><span class="ja">推奨を取得</span><span class="zh-CN">获取推荐</span><span class="zh-TW">獲取推薦</span><span class="en">Get Recommendations</span><span class="es">Obtener recomendaciones</span>
+          <button class="btn-recommend" id="btnRecommend" disabled data-help-id="planner-btn-recommend" data-i18n="Get Recommendations">Get Recommendations
           </button>
         </div>
         </aside><!-- /requirementsStep2 -->
         </div><!-- /requirementsWizardStage -->
 
-        <p class="auto-refresh-note" id="autoRefreshNote" hidden>
-          <span class="ko">첫 추천 이후 조건 변경은 자동으로 결과에 반영됩니다.</span><span class="ja">初回推薦後の条件変更は自動的に結果へ反映されます。</span><span class="zh-CN">首次推荐后，条件变更会自动反映到结果中。</span><span class="zh-TW">首次推薦後，條件變更會自動反映到結果中。</span><span class="en">After the first recommendation, changes update the results automatically.</span><span class="es">Después de la primera recomendación, los cambios actualizan los resultados automáticamente.</span>
+        <p class="auto-refresh-note" id="autoRefreshNote" hidden data-i18n="After the first recommendation, changes update the results automatically.">After the first recommendation, changes update the results automatically.
         </p>
       </section>
 
@@ -312,17 +271,15 @@
         <div class="recommendation-verdict" id="recommendationVerdict" hidden></div>
         <div class="panel-header">
           <div class="panel-header-main">
-            <p class="panel-kicker">
-              <span class="ko">추천 결과</span><span class="ja">推奨結果</span><span class="zh-CN">推荐结果</span><span class="zh-TW">推薦結果</span><span class="en">Recommendations</span><span class="es">Recomendaciones</span>
+            <p class="panel-kicker" data-i18n="Recommendations">Recommendations
             </p>
-            <h2><span class="ko">조건에 맞는 Edge AI 제품</span><span class="ja">条件に合うEdge AI製品</span><span class="zh-CN">符合条件的Edge AI产品</span><span class="zh-TW">符合條件的Edge AI產品</span><span class="en">Edge AI products for your workload</span><span class="es">Productos Edge AI para su carga de trabajo</span></h2>
+            <h2 data-i18n="Edge AI products for your workload">Edge AI products for your workload</h2>
           </div>
           <div class="panel-header-actions">
             <div class="recommend-summary" id="recommendSummary"></div>
             <button type="button" class="btn-methodology btn-methodology-inline btn-methodology-chip" data-open-methodology data-i18n-aria-label="How ranking works">
-              <span class="btn-methodology-icon" aria-hidden="true">ℹ</span>
-              <span class="btn-methodology-text">
-                <span class="ko">원리</span><span class="en">How</span><span class="ja">仕組み</span><span class="zh-CN">原理</span><span class="zh-TW">原理</span><span class="es">Cómo</span>
+              <span class="btn-methodology-icon" aria-hidden="true"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#info"></use></svg></span>
+              <span class="btn-methodology-text" data-i18n="How">How
               </span>
             </button>
           </div>
@@ -333,27 +290,25 @@
           <canvas id="overviewChart"></canvas>
         </div>
         <div class="info-banner" id="fps-banner" style="display:none">
-          ⚠️ <span class="ko">60FPS 모드: 실측 데이터가 있는 플랫폼만 표시됩니다.</span><span class="ja">60FPSモード：実測データのあるプラットフォームのみ表示されます。</span><span class="zh-CN">60FPS模式：仅显示有实测数据的平台。</span><span class="zh-TW">60FPS模式：僅顯示有實測資料的平台。</span><span class="en">60FPS mode: only platforms with measured data are shown.</span><span class="es">Modo 60FPS: solo se muestran plataformas con datos medidos.</span>
+          <svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#alert"></use></svg> <span data-i18n="60 FPS: no stream count was measured this fast — channel counts are estimates from the measured total FPS.">60 FPS: no stream count was measured this fast — channel counts are estimates from the measured total FPS.</span>
         </div>
       </section>
 
       <!-- ── Detail Panel ── -->
       <aside id="detailPanel" class="workspace-panel detail-panel" data-i18n-aria-label="Details" hidden>
         <div class="detail-empty" id="detailEmpty">
-          <p><span class="ko">추천 항목을 선택하면 상세 수치와 비교 정보가 표시됩니다.</span><span class="ja">推奨項目を選択すると詳細数値と比較情報が表示されます。</span><span class="zh-CN">选择推荐项后会显示详细指标和比较信息。</span><span class="zh-TW">選擇推薦項後會顯示詳細指標和比較資訊。</span><span class="en">Select a recommendation to view detailed metrics and comparisons.</span><span class="es">Seleccione una recomendación para ver métricas y comparaciones detalladas.</span></p>
+          <p data-i18n="Select a recommendation to view detailed metrics and comparisons.">Select a recommendation to view detailed metrics and comparisons.</p>
         </div>
         <div class="detail-content" id="detailContent" hidden>
           <div class="detail-header">
             <div class="detail-header-main">
-              <p class="panel-kicker">
-                <span class="ko">상세 / 비교</span><span class="ja">詳細 / 比較</span><span class="zh-CN">详情 / 比较</span><span class="zh-TW">詳情 / 比較</span><span class="en">Details / Compare</span><span class="es">Detalles / Comparar</span>
+              <p class="panel-kicker" data-i18n="Details / Compare">Details / Compare
               </p>
               <h2 id="detailTitle"></h2>
               <p id="detailSubtitle" class="detail-subtitle txt-dim txt-sm" hidden></p>
             </div>
             <div class="detail-header-compare">
-              <label class="detail-compare-label ops-label" for="compare-dropdown">
-                <span class="ko">비교 대상</span><span class="en">Compare with</span><span class="ja">比較対象</span><span class="zh-CN">比较对象</span><span class="zh-TW">比較對象</span><span class="es">Comparar con</span>
+              <label class="detail-compare-label ops-label" for="compare-dropdown" data-i18n="Compare with">Compare with
               </label>
               <select id="compare-dropdown" class="ops-select compare-dropdown"></select>
             </div>
@@ -371,8 +326,7 @@
           </div>
           <div class="multi-stream-evidence" id="multi-stream-evidence"></div>
           <div class="commerce-panel cfg-card" id="commercePanel" hidden data-help-id="planner-commerce">
-            <h3 class="card-title">
-              <span class="ko">구매 / 문의</span><span class="ja">購入 / お問い合わせ</span><span class="zh-CN">购买 / 咨询</span><span class="zh-TW">購買 / 諮詢</span><span class="en">Purchase / Contact</span><span class="es">Compra / Contacto</span>
+            <h3 class="card-title" data-i18n="Purchase / Contact">Purchase / Contact
             </h3>
             <div class="commerce-body" id="commerceBody"></div>
           </div>
@@ -381,7 +335,9 @@
 
     </div>
 
-  </main>
+</main><!-- /dx-shell-main -->
+</div><!-- /dx-shell-body -->
+</div><!-- /dx-shell -->
 
   <!-- ── Toast ── -->
   <div id="toast-wrap" class="toast-wrap"></div>
@@ -390,11 +346,9 @@
     <div class="planner-dialog-panel workspace-panel">
       <header class="planner-dialog-header">
         <div>
-          <p class="panel-kicker">
-            <span class="ko">EdgeGuide 방법론</span><span class="ja">EdgeGuide 方法論</span><span class="zh-CN">EdgeGuide 方法论</span><span class="zh-TW">EdgeGuide 方法論</span><span class="en">EdgeGuide methodology</span><span class="es">Metodología EdgeGuide</span>
+          <p class="panel-kicker" data-i18n="EdgeGuide methodology">EdgeGuide methodology
           </p>
-          <h2 id="methodologyTitle">
-            <span class="ko">추천 결과는 어떻게 계산되나요?</span><span class="ja">推奨結果はどう計算されますか？</span><span class="zh-CN">推荐结果如何计算？</span><span class="zh-TW">推薦結果如何計算？</span><span class="en">How are recommendations calculated?</span><span class="es">¿Cómo se calculan las recomendaciones?</span>
+          <h2 id="methodologyTitle" data-i18n="How are recommendations calculated?">How are recommendations calculated?
           </h2>
         </div>
         <button type="button" class="planner-dialog-close" id="methodologyClose" data-i18n-aria-label="Close">×</button>
@@ -404,108 +358,71 @@
 
       <div class="methodology-grid">
         <section class="cfg-card methodology-card">
-          <h3 class="card-title"><span class="ko">1. 데이터</span><span class="en">1. Data</span><span class="ja">1. データ</span><span class="zh-CN">1. 数据</span><span class="zh-TW">1. 資料</span><span class="es">1. Datos</span></h3>
-          <p class="txt-sm txt-dim">
-            <span class="ko">DX Benchmark의 YOLO26 단일 스트림 + multi-stream 실측만 사용합니다.</span>
-            <span class="en">Uses YOLO26 single-stream and multi-stream DX Benchmark measurements only.</span>
-            <span class="ja">YOLO26 単一ストリームと multi-stream の DX Benchmark 実測のみを使用します。</span>
-            <span class="zh-CN">仅使用 YOLO26 单流与 multi-stream 的 DX Benchmark 实测。</span>
-            <span class="zh-TW">僅使用 YOLO26 單流與 multi-stream 的 DX Benchmark 實測。</span>
-            <span class="es">Solo usa mediciones DX Benchmark YOLO26 single-stream y multi-stream.</span>
+          <h3 class="card-title" data-i18n="1. Data">1. Data</h3>
+          <p class="txt-sm txt-dim" data-i18n="Uses YOLO26 single-stream and multi-stream DX Benchmark measurements only.">Uses YOLO26 single-stream and multi-stream DX Benchmark measurements only.
           </p>
         </section>
 
         <section class="cfg-card methodology-card">
-          <h3 class="card-title"><span class="ko">2. 최대 채널</span><span class="en">2. Max channels</span><span class="ja">2. 最大チャンネル</span><span class="zh-CN">2. 最大通道</span><span class="zh-TW">2. 最大通道</span><span class="es">2. Canales máx.</span></h3>
-          <pre class="methodology-formula">maxChannels = max stream_count where
-              per_channel_fps ≥ targetFps
-              AND NOT npu_throttled</pre>
-          <p class="txt-sm txt-dim">
-            <span class="ko">실측 multi-stream 지점 중 목표 FPS를 지속하고 <strong>throttle이 없는</strong> 최대 채널만 셉니다. throttle이 발생한 지점은 "지속 불가"로 보고 제외하며, 추정(보간·이론)은 하지 않습니다.</span>
-            <span class="en">Counts the largest measured stream that holds target FPS <strong>without throttling</strong>. Points where the NPU throttled are excluded as unsustainable; no interpolated or theoretical estimates are used.</span>
-            <span class="ja">目標FPSを維持し<strong>throttleが発生しない</strong>実測ストリームの最大チャンネルのみを数えます。throttleした点は「持続不可」として除外し、推定（補間・理論）は行いません。</span>
-            <span class="zh-CN">仅统计维持目标 FPS 且<strong>未降频</strong>的最大实测流。降频点视为不可持续而排除，不做插值/理论估算。</span>
-            <span class="zh-TW">僅統計維持目標 FPS 且<strong>未降頻</strong>的最大實測串流。降頻點視為不可持續而排除，不做插值/理論估算。</span>
-            <span class="es">Cuenta el mayor stream medido que mantiene el FPS objetivo <strong>sin throttling</strong>. Los puntos con throttling se excluyen como no sostenibles; no se usan estimaciones interpoladas ni teóricas.</span>
+          <h3 class="card-title" data-i18n="2. Channels">2. Channels</h3>
+          <pre class="methodology-formula">target = <span data-i18n="the FPS per channel you asked for">the FPS per channel you asked for</span>
+T_sat  = <span data-i18n="lowest measured total FPS">lowest measured total FPS</span>
+M      = <span data-i18n="largest measured stream count whose per-channel FPS ≥ target">largest measured stream count whose per-channel FPS ≥ target</span>
+N_max  = <span data-i18n="highest tested stream count">highest tested stream count</span>
+E      = floor(T_sat ÷ target)
+
+channels = M                          <span data-i18n="if a measured count above M misses the target">if a measured count above M misses the target</span>
+         = max(M, min(E, 2 × N_max))  <span data-i18n="if every measured count holds it">if every measured count holds it</span>
+         = E                          <span data-i18n="if no measured count holds it">if no measured count holds it</span></pre>
+          <p class="txt-sm txt-dim" data-i18n="Measured when a tested stream count brackets your target; otherwise estimated from the measured total FPS, which stays nearly flat around saturation. Estimates stop at twice the highest tested stream count. A throttled measurement is kept — its FPS already ran at throttled clocks — and flagged.">Measured when a tested stream count brackets your target; otherwise estimated from the measured total FPS, which stays nearly flat around saturation. Estimates stop at twice the highest tested stream count. A throttled measurement is kept — its FPS already ran at throttled clocks — and flagged.
+          </p>
+          <p class="txt-sm txt-dim" data-i18n="Estimated+ means the estimate hit that cap of twice the highest tested count — the real capacity may be higher. Each card shows its own division, e.g. 534 FPS ÷ 60 FPS = 8.9 → 8 ch.">Estimated+ means the estimate hit that cap of twice the highest tested count — the real capacity may be higher. Each card shows its own division, e.g. 534 FPS ÷ 60 FPS = 8.9 → 8 ch.
           </p>
         </section>
 
         <section class="cfg-card methodology-card">
-          <h3 class="card-title"><span class="ko">3. 충족 조건</span><span class="en">3. Meets requirement</span><span class="ja">3. 充足条件</span><span class="zh-CN">3. 满足条件</span><span class="zh-TW">3. 滿足條件</span><span class="es">3. Cumple requisito</span></h3>
-          <pre class="methodology-formula">meets = (maxChannels ≥ cameras)
-     && (latency_ms ≤ maxLatencyMs if set)</pre>
-          <p class="txt-sm txt-dim">
-            <span class="ko">throttle는 maxChannels 계산에서 이미 제외되므로 충족 조건은 채널 수와 latency만 봅니다.</span>
-            <span class="en">Throttling is already excluded when computing maxChannels, so the requirement check only looks at channel count and latency.</span>
-            <span class="ja">throttle は maxChannels の計算で既に除外されるため、充足条件はチャンネル数とレイテンシのみを見ます。</span>
-            <span class="zh-CN">降频已在计算 maxChannels 时排除，因此满足条件仅看通道数与延迟。</span>
-            <span class="zh-TW">降頻已在計算 maxChannels 時排除，因此滿足條件僅看通道數與延遲。</span>
-            <span class="es">El throttling ya se excluye al calcular maxChannels, por lo que el requisito solo considera canales y latencia.</span>
+          <h3 class="card-title" data-i18n="3. Meets requirement">3. Meets requirement</h3>
+          <pre class="methodology-formula"><span data-i18n="meets = channels ≥ cameras, and latency ≤ your budget (if set)">meets = channels ≥ cameras, and latency ≤ your budget (if set)</span>
+<span data-i18n="meets (estimate) = the same, but resting on an estimate or with latency not measured">meets (estimate) = the same, but resting on an estimate or with latency not measured</span></pre>
+          <p class="txt-sm txt-dim" data-i18n="Latency is the single-stream benchmark latency. With a budget set and no latency measured, a result never counts as a plain pass.">Latency is the single-stream benchmark latency. With a budget set and no latency measured, a result never counts as a plain pass.
           </p>
         </section>
 
         <section class="cfg-card methodology-card">
-          <h3 class="card-title"><span class="ko">4. 정렬</span><span class="en">4. Sorting</span><span class="ja">4. 並び替え</span><span class="zh-CN">4. 排序</span><span class="zh-TW">4. 排序</span><span class="es">4. Orden</span></h3>
-          <pre class="methodology-formula">sort: meets → priority → maxChannels → throughput</pre>
-          <p class="txt-sm txt-dim">
-            <span class="ko">채널·FPS는 해당 벤치마크 구성(호스트+NPU) 실측입니다. 가격은 DEEPX에 문의하세요.</span>
-            <span class="en">Channels and FPS come from that benchmark system (host + NPU). Contact DEEPX for pricing.</span>
-            <span class="ja">チャンネル・FPS はそのベンチマーク構成（ホスト+NPU）の実測値です。価格は DEEPX へお問い合わせください。</span>
-            <span class="zh-CN">通道与 FPS 为该 benchmark 构成（主机+NPU）的实测值。价格请联系 DEEPX。</span>
-            <span class="zh-TW">通道與 FPS 為該 benchmark 構成（主機+NPU）的實測值。價格請聯絡 DEEPX。</span>
-            <span class="es">Los canales y FPS provienen de ese sistema de benchmark (host + NPU). Consulte el precio a DEEPX.</span>
+          <h3 class="card-title" data-i18n="4. Sorting">4. Sorting</h3>
+          <pre class="methodology-formula"><span data-i18n="meets → meets (estimate) → not throttled → your priority → channels → pipeline FPS">meets → meets (estimate) → not throttled → your priority → channels → pipeline FPS</span></pre>
+          <p class="txt-sm txt-dim" data-i18n="Best performance ranks by measured camera-pipeline FPS (host + NPU end to end), not the NPU-only figure. Lowest power ranks by NPU TDP, then FPS per NPU watt — host power is not included. Contact DEEPX for pricing.">Best performance ranks by measured camera-pipeline FPS (host + NPU end to end), not the NPU-only figure. Lowest power ranks by NPU TDP, then FPS per NPU watt — host power is not included. Contact DEEPX for pricing.
+          </p>
+        </section>
+
+        <section class="cfg-card methodology-card">
+          <h3 class="card-title" data-i18n="5. Limit &amp; thermal">5. Limit &amp; thermal</h3>
+          <pre class="methodology-formula"><span data-i18n="limit = NPU, if the NPU was ≥ 85% busy at the most loaded measured stream count">limit = NPU, if the NPU was ≥ 85% busy at the most loaded measured stream count</span>
+<span data-i18n="limit = host (CPU / decode / PCIe), otherwise">limit = host (CPU / decode / PCIe), otherwise</span></pre>
+          <p class="txt-sm txt-dim" data-i18n="Each card shows the limit with the measured NPU load. When the host is the limit, a faster host CPU or hardware decoding adds channels; when the NPU is, a bigger NPU does. A measurement taken while the NPU throttled is kept and flagged, and ranks after an equal result measured cool.">Each card shows the limit with the measured NPU load. When the host is the limit, a faster host CPU or hardware decoding adds channels; when the NPU is, a bigger NPU does. A measurement taken while the NPU throttled is kept and flagged, and ranks after an equal result measured cool.
           </p>
         </section>
       </div>
 
       <section class="methodology-disclaimer cfg-card" id="methodologyDisclaimer">
         <h3 class="card-title methodology-disclaimer-title">
-          <span class="methodology-disclaimer-icon" aria-hidden="true">⚠</span>
-          <span class="ko">주의 — 가이드 한계</span>
-          <span class="en">Notice — guide limits</span>
-          <span class="ja">注意 — ガイドの限界</span>
-          <span class="zh-CN">注意 — 指南局限</span>
-          <span class="zh-TW">注意 — 指南侷限</span>
-          <span class="es">Aviso — límites de la guía</span>
+          <span class="methodology-disclaimer-icon" aria-hidden="true"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#alert"></use></svg></span>
+          <span data-i18n="Notice — guide limits">Notice — guide limits</span>
         </h3>
         <ul class="methodology-disclaimer-list txt-sm">
-          <li>
-            <span class="ko">채널 수는 <strong>실측 multi-stream</strong> 수치만 표시합니다. 목표 조건에서 실측 데이터가 없는 플랫폼은 (추정 없이) 표시되지 않습니다.</span>
-            <span class="en">Channel counts shown are <strong>measured multi-stream</strong> figures only. Platforms without measured data at your target are omitted rather than estimated.</span>
-            <span class="ja">表示するチャンネル数は<strong>実測 multi-stream</strong>の数値のみです。目標条件で実測データがないプラットフォームは（推定せず）表示されません。</span>
-            <span class="zh-CN">显示的通道数仅为<strong>实测 multi-stream</strong> 数值。目标条件下无实测数据的平台不显示（不做估算）。</span>
-            <span class="zh-TW">顯示的通道數僅為<strong>實測 multi-stream</strong> 數值。目標條件下無實測資料的平台不顯示（不做估算）。</span>
-            <span class="es">Los canales mostrados son solo cifras <strong>multi-stream medidas</strong>. Las plataformas sin datos medidos para su objetivo se omiten en lugar de estimarse.</span>
+          <li data-i18n-html="Channel counts are measured where a tested stream count brackets your target, and otherwise &lt;strong&gt;estimated&lt;/strong&gt; from the measured total FPS — each card says which.">Channel counts are measured where a tested stream count brackets your target, and otherwise <strong>estimated</strong> from the measured total FPS — each card says which.
           </li>
-          <li>
-            <span class="ko">벤치마크는 <strong>목표 FPS 30 부근</strong>에서 측정되었습니다. 목표 FPS를 크게 다르게 잡으면 실측 범위를 벗어나 채널 수 정확도가 제한될 수 있습니다.</span>
-            <span class="en">Benchmarks were measured <strong>around 30 FPS</strong>. Setting a target FPS far from that falls outside the measured range and may limit channel-count accuracy.</span>
-            <span class="ja">ベンチマークは<strong>目標 30 FPS 付近</strong>で測定されています。目標 FPS を大きく変えると実測範囲を外れ、チャンネル数の精度が制限される場合があります。</span>
-            <span class="zh-CN">基准在<strong>约 30 FPS</strong> 下测得。目标 FPS 偏离过大将超出实测范围，可能影响通道数精度。</span>
-            <span class="zh-TW">基準在<strong>約 30 FPS</strong> 下測得。目標 FPS 偏離過大將超出實測範圍，可能影響通道數精度。</span>
-            <span class="es">Los benchmarks se midieron <strong>en torno a 30 FPS</strong>. Un FPS objetivo muy distinto queda fuera del rango medido y puede limitar la precisión del número de canales.</span>
+          <li data-i18n-html="Benchmarks were measured &lt;strong&gt;around 30 FPS per channel&lt;/strong&gt;. At 15 or 60 FPS most figures are estimates — confirm on hardware for production.">Benchmarks were measured <strong>around 30 FPS per channel</strong>. At 15 or 60 FPS most figures are estimates — confirm on hardware for production.
           </li>
-          <li>
-            <span class="ko">벤치마크는 YOLO26 + DX Benchmark matrix 기준이며, 카메라 codec·전처리·후처리·멀티 모델 파이프라인은 포함하지 않습니다.</span>
-            <span class="en">Benchmarks cover the YOLO26 DX Benchmark matrix only — not your camera codec, pre/post processing, or multi-model pipelines.</span>
-            <span class="ja">YOLO26 DX Benchmark マトリクスのみ。カメラ codec や前後処理、マルチモデルは含みません。</span>
-            <span class="zh-CN">仅覆盖 YOLO26 DX Benchmark 矩阵，不含摄像头 codec、前后处理或多模型流水线。</span>
-            <span class="zh-TW">僅涵蓋 YOLO26 DX Benchmark 矩陣，不含攝影機 codec、前後處理或多模型流水線。</span>
-            <span class="es">Solo la matriz YOLO26 DX Benchmark — sin codec de cámara, pre/post ni pipelines multi-modelo.</span>
+          <li data-i18n="Benchmarks cover the YOLO26 DX Benchmark matrix only — not your camera codec, pre/post processing, or multi-model pipelines.">Benchmarks cover the YOLO26 DX Benchmark matrix only — not your camera codec, pre/post processing, or multi-model pipelines.
           </li>
-          <li>
-            <span class="ko">EdgeGuide 수치는 <strong>100% 정확한 사양서가 아닙니다.</strong> 양산·견적·최종 채널 수는 DEEPX에 문의해 주세요.</span>
-            <span class="en">EdgeGuide figures are <strong>not a 100% accurate spec sheet.</strong> For production sizing, quotes, and final channel counts, contact DEEPX.</span>
-            <span class="ja">EdgeGuide の数値は<strong>100% 正確な仕様書ではありません。</strong>量産・見積・最終チャンネル数は DEEPX へお問い合わせください。</span>
-            <span class="zh-CN">EdgeGuide 数值<strong>并非 100% 准确的规格书。</strong>量产、报价与最终通道数请联系 DEEPX。</span>
-            <span class="zh-TW">EdgeGuide 數值<strong>並非 100% 準確的規格書。</strong>量產、報價與最終通道數請聯絡 DEEPX。</span>
-            <span class="es">Las cifras de EdgeGuide <strong>no son una hoja de especificaciones 100% exacta.</strong> Para producción, cotizaciones y canales finales, contacte a DEEPX.</span>
+          <li data-i18n-html="EdgeGuide figures are &lt;strong&gt;not a 100% accurate spec sheet.&lt;/strong&gt; For production sizing, quotes, and final channel counts, contact DEEPX.">EdgeGuide figures are <strong>not a 100% accurate spec sheet.</strong> For production sizing, quotes, and final channel counts, contact DEEPX.
           </li>
         </ul>
         <p class="methodology-disclaimer-contact txt-sm">
-          <span class="ko">문의: </span><span class="en">Contact: </span><span class="ja">お問い合わせ: </span><span class="zh-CN">咨询: </span><span class="zh-TW">諮詢: </span><span class="es">Contacto: </span>
+          <span data-i18n="Contact:">Contact:</span>
           <a href="https://www.deepx.ai/contact" target="_blank" rel="noopener noreferrer">deepx.ai/contact</a>
-          <span class="ko"> · 제품 정보: </span><span class="en"> · Product info: </span><span class="ja"> · 製品情報: </span><span class="zh-CN"> · 产品信息: </span><span class="zh-TW"> · 產品資訊: </span><span class="es"> · Info: </span>
+          <span data-i18n="· Product info:">· Product info:</span>
           <a href="https://www.deepx.ai/" target="_blank" rel="noopener noreferrer">deepx.ai</a>
         </p>
       </section>
@@ -514,6 +431,7 @@
 
   <script src="/static/js/i18n.js?m=dx_planner"></script>
   <script src="/static/shared/i18n.js"></script>
+  <script src="/static/shared/server-error-i18n.js"></script>
   <script src="/static/shared/brand.js"></script>
   <script>
 DXBrand.mount({

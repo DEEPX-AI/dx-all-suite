@@ -1,4 +1,4 @@
-"""tests/shared conftest — shared 모듈 테스트용 경로 설정."""
+"""tests/shared conftest: sys.path setup for the shared-module tests."""
 import sys
 from pathlib import Path
 

@@ -15,6 +15,9 @@ DEEPX NPU model deployment follows a structured 6-step workflow (Steps 0–5), f
 | **Step 4** | NPU Compilation | `compiler-4_model_compile.sh` | Generate hardware-optimized `.dxnn` binaries |
 | **Step 5** | NPU Inference | `runtime-3_run_example_using_dxrt.sh` | Execute the model on NPU and verify results |
 
+!!! note "DX-ModelZoo Path"  
+    To evaluate pre-configured models (ONNX baseline → NPU compilation → NPU evaluation) instead of the sample models, use the `modelzoo-*.sh` scripts. Refer to **DX-ModelZoo: Model Evaluation Scripts Guide** below.  
+
 **Directory Structure**  
 Upon completion, the getting-started/ folder will be organized with symbolic links to actual data sources.  
 
@@ -29,6 +32,7 @@ getting-started/
 │   │   └── yolov5face_async
 │   └── sample
 │       └── ILSVRC2012
+├── modelzoo                        # workspace/modelzoo (models, datasets, result)
 └── sample_models                	# dx-compiler/dx_com/sample_models
     ├── json
     └── onnx
@@ -41,7 +45,7 @@ Before you begin, ensure your environment meets the following criteria:
 - **Environment Selection**  
     : **Local**: For users who have installed drivers and the SDK directly on the Host OS.  
     : **Docker**: For users working inside the container provided by the DEEPX Docker image.  
-      Tip: All scripts **must** be executed inside the container (via docker exec).  
+      Tip: All scripts **must** be executed inside the container (via `docker exec`).  
 
 ---
 
@@ -127,7 +131,7 @@ All runtime scripts are engineered with the following logic to ensure a seamless
 
 - **Intelligent Diagnosis & Recovery**: Scripts automatically verify the NPU driver and installation integrity using `sanity_check.sh`. If an environment is corrupted, use `-f` or `--force` to re-initialize.  
 - **Environment-Adaptive Logic**: Paths are dynamically assigned based on your Host or Docker environment. In headless (TTY) environments, the scripts automatically apply the `--no-display` flag to prevent GUI errors.  
-- **Resource Delegation**: The scripts trigger `dx_app/setup.sh` to automatically populate the `forked_dx_app_example` folder with required binaries and sample data.  
+- **Resource Delegation**: The scripts trigger `dx_app/setup.sh` to automatically populate the `forked_dx_app_example` folder with required binaries and sample data.
 - **Visual Verification**:  
    : **CLI Environment**: Includes a `fim` (fbi improved) installation routine to view result images directly in the terminal.  
    : **Docker Environment**: Since GUI output is limited, results can be retrieved using `docker cp <container_id>:/path/to/result ./local_path`.  
@@ -155,7 +159,7 @@ Synchronizes paths so that the runtime engine can load the `.dxnn` models genera
 **[Preparation for Step 5] `runtime-2_setup_assets.sh` (Resource Preparation)**  
 Prepare the dependency files and sample data required to run the inference example.  
 
-- **Action**: Sequentially calls the `setup.sh` scripts within the `dx_app` and `dx_stream` directories.  
+- **Action**: Sequentially calls the `setup.sh` scripts within the `dx_app` and `dx_stream` directories.
 - **Note**: This script manages resources within their respective modules; it does not create redundant copies in the `forked_dx_app_example` folder.  
 
 **[Step 5] `runtime-3_run_example_using_dxrt.sh` (Execute Example and Check Results)**  
@@ -173,5 +177,69 @@ This script loads your models onto the NPU, measures real-world performance, and
     This pipeline assumes all three sample models from Step 1 were successfully compiled in Step 4.  
     - If a model is missing, you will encounter a "**File Not Found**" error during inference.  
     -	We strongly recommend compiling **all 3 models** before running this runtime script to verify the entire end-to-end process.  
+
+---
+
+## DX-ModelZoo: Model Evaluation Scripts Guide
+
+This section covers evaluating a pre-configured **DX-ModelZoo** model end to end — ONNX baseline, NPU compilation, and NPU evaluation — using the `modelzoo-*.sh` scripts.  
+
+### A. Execution Order
+
+The scripts **must** be executed in the following order. DX-ModelZoo reuses the DX-Runtime environment, so complete the runtime installation first.  
+```Bash
+./getting-started/runtime-0_install_dx-runtime.sh          # Prerequisite: DX-Runtime environment
+./getting-started/modelzoo-0_install_dx-modelzoo.sh        # Environment Setup
+./getting-started/modelzoo-1_prepare_assets.sh             # Workspace & .env Configuration
+./getting-started/modelzoo-2_run_first_npu_model.sh        # ONNX Eval -> Compile -> NPU Eval
+```
+
+### B. Common Principles & Tips
+
+- **Shared Runtime Environment**: DX-ModelZoo is installed into `dx-runtime/venv-dx-runtime` (`/venv-dxnn` in Docker), so `dxmz` uses the `dx_engine` installed by `runtime-0_install_dx-runtime.sh` for NPU evaluation.  
+- **Auto-Environment Detection**: Like `compiler-3_setup_output_path.sh`, the scripts detect **Host** or **Docker** and link `getting-started/modelzoo` to the matching workspace path.  
+- **Evaluate Before Compile**: `dxmz eval` downloads missing models from `DXMZ_MODEL_URL`, but `dxmz compile` does not. The runner evaluates the ONNX model first, so the ONNX file exists before compilation.  
+- **NPU Evaluation Without Compiling**: `dxmz eval --profile <c-lite|q-lite|q-pro>` also downloads a prebuilt `.dxnn` from `DXMZ_MODEL_URL`. Use `--skip-onnx --skip-compile` to run NPU evaluation alone — no `dx_com` and no ONNX baseline required.  
+- **`dx_com` Is Installed Automatically**: When compilation is requested and `dx_com` is missing, the runner installs it with `pip` (version pinned by `dx-compiler/compiler.properties`, falling back to the PyPI release). Use `--dx-com-wheel <path>` only when installing from a local wheel.  
+- **Datasets Are Not Downloaded**: Evaluation and calibration read the dataset defined in the model YAML. Place it under `getting-started/modelzoo/datasets` before running. In Docker, an existing host dataset directory can be mounted read-only instead: `DX_DATASETS_PATH=/mnt/datasets ./docker_run.sh --target=dx-modelzoo --ubuntu_version=24.04` mounts it at `/deepx/datasets`. Then run the script with `DATA_ROOT=/deepx/datasets` so it reads the mounted dataset instead of `getting-started/modelzoo/datasets`.  
+
+!!! caution "Prerequisite"  
+    NPU evaluation requires a working DX-RT stack (`dxrt-cli -s`). Compilation requires `dx_com` in the same environment (installed automatically by the runner).  
+
+### C. Detailed Script Guide
+
+**[Step 0] `modelzoo-0_install_dx-modelzoo.sh` (Package Installation)**  
+Installs DX-ModelZoo (`dxmz` CLI) from the `dx-modelzoo` submodule.  
+
+- **Core Function**: Runs `pip install -e "dx-modelzoo[cpu]"` in the runtime environment and verifies `dxmz --help`.  
+- **Smart Check**: If `dxmz` already works, installation is skipped (unless you use the `--force` flag).  
+- **Options**: `--extra gpu` (switches to ONNX Runtime GPU; `onnxruntime` is removed because it conflicts with `onnxruntime-gpu`), `--venv <path>`, `--source <path>`.  
+
+**[Step 1] `modelzoo-1_prepare_assets.sh` (Workspace Configuration)**  
+
+| Environment | Physical Path (Actual Storage) | Logical Path (Access Point) |
+| :--- | :--- | :--- |
+| **Docker** | `${DOCKER_VOLUME_PATH}/modelzoo` | `getting-started/modelzoo/` |
+| **Local** | `${DX_AS_PATH}/workspace/modelzoo` | `getting-started/modelzoo/` |
+
+- **Structure**: Creates `models/`, `datasets/`, and `result/` in the workspace.  
+- **`.env` Setup**: Copies `dx-modelzoo/.env.example` to `dx-modelzoo/.env` only when `.env` does not exist. Set `DXMZ_MODEL_URL` for your network.  
+
+**[Step 2] `modelzoo-2_run_first_npu_model.sh` (Evaluate, Compile, and Run on NPU)**  
+Runs the full DX-ModelZoo flow for one model (default: `resnet50_224x224`, profile `q-lite`).  
+
+| Stage | Command | Output |
+| :--- | :--- | :--- |
+| [1] Model Info | `dxmz info` | Inputs, profiles, dataset path |
+| [2] ONNX Evaluation | `dxmz eval --profile onnx --save` | `result/eval_<model>_onnx.json` |
+| [3] NPU Compilation | `dxmz compile --profile q-lite` | `models/<model>/<model>_q-lite.dxnn` |
+| [4] NPU Evaluation | `dxmz eval --profile q-lite --save` | `result/eval_<model>_q-lite.json` |
+
+- **Options**: `--model <name>`, `--profile <c-lite|q-lite|q-pro>`, `--venv <path>`, `--dx-com-wheel <path>` (local wheel instead of the pip package), `--skip-onnx`, `--skip-compile`.  
+- **Shortcut**: `--skip-onnx --skip-compile` runs stage [4] only, on a `.dxnn` downloaded from `DXMZ_MODEL_URL` — the fastest way to check the NPU path.  
+- **Result Report**: Compare the metrics (e.g., Top-1/Top-5) and **FPS** in the ONNX and DXNN result files to check the quantization impact.  
+
+!!! caution "Essential Check"  
+    The default model `resnet50_224x224` reads the full ImageNet validation set (1,000 class directories, 50,000 JPEG images) from `getting-started/modelzoo/datasets/ILSVRC2012/val` for both evaluation and calibration. ONNX evaluation of all 50,000 images on CPU takes tens of minutes (about 35 minutes at ~27 FPS in our test); use `--skip-onnx` to skip the baseline when the ONNX file is already in place. If the dataset or the model download is missing, refer to **Q7–Q9** in [**FAQ Troubleshooting Guide**](05_FAQ_Troubleshooting_Guide.md).  
 
 ---

@@ -25,9 +25,9 @@ This is the top-level DEEPX All Suite repository.
 ## Process Skills (available at every level)
 | Skill | When to use | Read |
 |---|---|---|
-| Brainstorm & Plan | Before any code generation | Use submodule's `.deepx/skills/dx-brainstorm-and-plan.md` |
-| TDD | Validate each file after creation | Use submodule's `.deepx/skills/dx-tdd.md` |
-| Verify Completion | Before claiming task is done | Use submodule's `.deepx/skills/dx-verify-completion.md` |
+| Brainstorm & Plan | Before any code generation | Use submodule's `.deepx/skills/dx-agent-brainstorm/SKILL.md` |
+| TDD | Validate each file after creation | Use submodule's `.deepx/skills/dx-agent-tdd/SKILL.md` |
+| Verify Completion | Before claiming task is done | Use submodule's `.deepx/skills/dx-agent-verify/SKILL.md` |
 
 ## Interactive Workflow (MUST FOLLOW)
 - Ask 2-3 questions before building

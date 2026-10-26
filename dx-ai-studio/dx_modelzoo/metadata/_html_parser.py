@@ -1,7 +1,7 @@
-"""내부 Publish HTML 테이블 파싱 헬퍼.
+"""Parsing helpers for the internal publish HTML table.
 
-adapters.py 에서 분리된 순수 파싱 로직.
-AdapterResult 의존성 없이 dict[str, dict] 를 반환한다.
+Pure parsing logic split out of adapters.py.
+Returns dict[str, dict] without depending on AdapterResult.
 """
 
 import re
@@ -15,6 +15,7 @@ from dx_modelzoo.metadata.normalization import canonical_model_id, normalize_sou
 _TABLE_FIELD_MAP = {
     "Task": "display.task",
     "Name": "display.name",
+    "Display Name": "display.name",       # human-facing name — the column after Name (DenseNet121-1), so it overrides it
     "Class Name": "display.class_name",
     "Dataset": "specification.dataset",
     "Input Resolution": "specification.input_resolution",
@@ -34,6 +35,9 @@ _TABLE_FIELD_MAP = {
     "Q-Pro Accuracy": "evaluation.qpro.accuracy",
     "Q-Pro DXNN": "artifacts.qpro_dxnn.remote_url",
     "Q-Pro JSON": "artifacts.qpro_json.remote_url",
+    "NPU Q-Master Accuracy": "evaluation.qmaster.accuracy",
+    "NPU Q-Master DXNN": "artifacts.qmaster_dxnn.remote_url",
+    "NPU Q-Master JSON": "artifacts.qmaster_json.remote_url",
     "FPS": "performance.fps",
     "FPS/Watt": "performance.fps_per_watt",
     "Performance FPS": "performance.fps",
@@ -59,6 +63,8 @@ _LINK_FIELDS = {
     "artifacts.qlite_json.remote_url",
     "artifacts.qpro_dxnn.remote_url",
     "artifacts.qpro_json.remote_url",
+    "artifacts.qmaster_dxnn.remote_url",
+    "artifacts.qmaster_json.remote_url",
 }
 
 _ARTIFACT_JOIN_SCORES = {
@@ -67,11 +73,13 @@ _ARTIFACT_JOIN_SCORES = {
     "artifacts.qlite_json.remote_url": 45,
     "artifacts.qpro_dxnn.remote_url": 45,
     "artifacts.qpro_json.remote_url": 45,
+    "artifacts.qmaster_dxnn.remote_url": 45,
+    "artifacts.qmaster_json.remote_url": 45,
 }
 
 
 def html_span(value):
-    """rowspan/colspan 속성값을 int 로 파싱. 최솟값 1."""
+    """Parse a rowspan/colspan attribute as int (minimum 1)."""
     try:
         span = int(value or 1)
     except (TypeError, ValueError):
@@ -80,12 +88,12 @@ def html_span(value):
 
 
 def clean_cell_text(text):
-    """셀 텍스트를 정리하여 연속 공백을 단일 공백으로 변환."""
+    """Clean cell text, collapsing runs of whitespace into one space."""
     return " ".join(str(text or "").split())
 
 
 def expand_table_headers(header_rows):
-    """rowspan/colspan 이 있는 thead 를 leaf column header 목록으로 펼친다."""
+    """Flatten a thead with rowspan/colspan into a list of leaf column headers."""
     grid = []
     for row_idx, row in enumerate(header_rows):
         while len(grid) <= row_idx:
@@ -154,6 +162,9 @@ class _TableParser(HTMLParser):
                 "rowspan": html_span(attrs_dict.get("rowspan")),
                 "colspan": html_span(attrs_dict.get("colspan")),
             }
+        elif tag == "br" and self._current_cell is not None:
+            # A cell holding several lines (PSNR<br>SSIM · 32.9<br>0.90) — keep them apart, not 'PSNRSSIM'
+            self._current_cell["text"] += "\u0000"
         elif tag == "a" and self._current_cell is not None:
             href = attrs_dict.get("href")
             if href and not self._current_cell.get("href"):
@@ -165,7 +176,8 @@ class _TableParser(HTMLParser):
         elif tag == "tbody":
             self._in_tbody = False
         elif tag == self._current_cell_tag and self._current_cell is not None:
-            self._current_cell["text"] = clean_cell_text(self._current_cell.get("text", ""))
+            parts = [clean_cell_text(t) for t in self._current_cell.get("text", "").split("\u0000")]
+            self._current_cell["text"] = " / ".join(t for t in parts if t)
             if tag == "th":
                 self.headers.append(self._current_cell["text"])
             self._current_row.append(self._current_cell)
@@ -277,6 +289,9 @@ def _parse_internal_table_rows(rows, headers):
                 name_val = value
             elif header == "Class Name":
                 class_name_val = value
+            elif header == "Task":
+                # display.task is merged from several sources; keep the publish table's own column too.
+                entry["display.publish_task"] = value
             if _is_suspicious_accuracy(field, value):
                 base = field.rsplit(".", 1)[0]
                 entry[f"{base}.source_status"] = "suspect"
@@ -294,9 +309,9 @@ def _parse_internal_table_rows(rows, headers):
 
 
 def parse_internal_table_models(html):
-    """HTML 을 파싱하여 {canonical_id: fields} dict 를 반환.
+    """Parse the HTML and return a {canonical_id: fields} dict.
 
-    AdapterResult 에 의존하지 않는 순수 파싱 함수.
+    A pure parsing function with no dependency on AdapterResult.
     """
     parser = _TableParser()
     parser.feed(html)

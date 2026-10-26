@@ -18,7 +18,7 @@ Validates the agent-driven development infrastructure across all 5 project level
 - Scenario references: agent/skill references in guides match actual infrastructure
 - Cross-project scenarios: handoff chains, validation scripts, output isolation
 
-**Total tests:** ~700 infra checks — run `pytest .deepx/tests/conformance/ --collect-only -q` for the live count. These need no CLI/NPU, so effectively all pass; a few skip when an optional dependency is absent.
+**Total tests:** ~600 infra checks — run `pytest .deepx/tests/conformance/ --collect-only -q` for the live count. These need no CLI/NPU, so effectively all pass; a few skip when an optional dependency is absent.
 
 ### 2. test_agent_e2e_scenarios — Agent-Driven End-to-End Scenario Tests (Copilot CLI + Cursor CLI + OpenCode CLI + Claude Code CLI + Codex CLI)
 Runs actual CLI agent invocations for representative scenarios from each project level, then statically verifies the generated output files.
@@ -288,12 +288,11 @@ the per-session detail table.
 ## 🚀 Quick Start
 
 ```bash
-cd .deepx/e2e
-
-# Agent-Driven infrastructure validation (~704 tests, ~1 second)
-./test.sh agent-driven
+# Agent-Driven infrastructure validation (~600 tests, ~1 second; run from the suite root; no PYTHONPATH needed)
+python3 -m pytest --rootdir=. .deepx/tests/conformance -q
 
 # Agent-Driven E2E scenario tests
+cd .deepx/e2e
 ./test.sh agent-driven-e2e-copilot-cli-autopilot     # Copilot CLI, fully autonomous (CI/CD)
 ./test.sh agent-driven-e2e-cursor-cli-autopilot      # Cursor CLI, fully autonomous (CI/CD)
 ./test.sh agent-driven-e2e-opencode-cli-autopilot    # OpenCode CLI, fully autonomous (CI/CD)
@@ -311,7 +310,8 @@ cd .deepx/e2e
 ### Test Suite Commands
 
 ```bash
-./test.sh agent-driven          # Agent-Driven infrastructure (~704 tests, ~1 second)
+python3 -m pytest --rootdir=. .deepx/tests/conformance -q      # Agent-Driven infrastructure (~600 tests, ~1 second; from suite root, no PYTHONPATH)
+cd .deepx/e2e
 ./test.sh agent-driven-e2e-claude-code-autopilot   # Agent-Driven E2E Claude Code autonomous
 ./test.sh agent-driven-e2e-copilot-cli-autopilot   # Agent-Driven E2E Copilot CLI autonomous
 ./test.sh agent-driven-e2e-opencode-cli-autopilot  # Agent-Driven E2E Opencode CLI autonomous
@@ -819,7 +819,7 @@ In manual mode, Claude Code saves a TXT transcript
 
 | Test Suite | Test Count | Expected Time | Use Case |
 |-----------|------------|---------------|----------|
-| **agent-driven** | ~704 | ~1 second | Agent-Driven infrastructure validation |
+| **conformance** | ~600 | ~1 second | Agent-Driven infrastructure validation |
 | **agent_e2e (copilot-cli)** | ~114 | ~30-45 minutes | Agent-Driven E2E Copilot CLI scenario tests |
 | **agent_e2e (cursor-cli)** | ~113 | ~40-45 minutes | Agent-Driven E2E Cursor CLI scenario tests (Claude Sonnet 4.6) |
 | **agent_e2e (opencode-cli)** | ~116 | ~45-60 minutes | Agent-Driven E2E OpenCode CLI scenario tests |
@@ -939,7 +939,7 @@ python .deepx/e2e/e2e_monitor.py --once
 
 **Pull Request (Fast Feedback):**
 ```bash
-./test.sh agent-driven                     # Agent-Driven infrastructure (~1 sec)
+python3 -m pytest --rootdir=. .deepx/tests/conformance -q      # Agent-Driven infrastructure (~1 sec; from suite root, no PYTHONPATH)
 ```
 
 **Main/Develop Branch (Comprehensive):**
@@ -954,7 +954,7 @@ python .deepx/e2e/e2e_monitor.py --once
 .deepx/
 ├── tests/                          # ← suite conformance (this README)
 │   ├── conftest.py                 # marker registration + collect_ignore
-│   └── conformance/                # KB / generated-output policy checks (~700, no CLI/NPU)
+│   └── conformance/                # KB / generated-output policy checks (~600, no CLI/NPU)
 │       ├── conftest.py             # ProjectInfra/GuidePair, path constants, helpers
 │       ├── test_guide_structure.py · test_routing_consistency.py
 │       ├── test_scenario_references.py · test_instruction_sync.py
@@ -980,4 +980,4 @@ python .deepx/e2e/e2e_monitor.py --once
 ---
 
 **Total Agent-Driven Tests:**
-~1279 (agent-driven: ~704 | agent_e2e_copilot_cli: ~114 | agent_e2e_cursor_cli: ~113 | agent_e2e_opencode_cli: ~116 | agent_e2e_claude_code_cli: ~116 | agent_e2e_codex_cli: ~116) — run `pytest --collect-only -q` for live counts
+~1175 (conformance: ~600 | agent_e2e_copilot_cli: ~114 | agent_e2e_cursor_cli: ~113 | agent_e2e_opencode_cli: ~116 | agent_e2e_claude_code_cli: ~116 | agent_e2e_codex_cli: ~116) — run `pytest --collect-only -q` for live counts

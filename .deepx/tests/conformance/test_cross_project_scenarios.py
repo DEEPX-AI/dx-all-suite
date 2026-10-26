@@ -28,6 +28,7 @@ from .conftest import (
     PROJECT_ROOTS,
     agent_names_from_dir,
     extract_agent_references,
+    find_guide,
     list_md_files,
     read_markdown,
     skill_names_from_dir,
@@ -145,8 +146,8 @@ class TestScenario4Infrastructure:
 
         This test checks that the compiler's guide or agent files mention PPU.
         """
-        compiler_guide = (
-            COMPILER_ROOT / "source/docs/05_DX-COMPILER_Agent_Driven_Development.md"
+        compiler_guide = find_guide(
+            COMPILER_ROOT / "source/docs", "*_DX-COMPILER_Agent_Driven_Development.md"
         )
         if not compiler_guide.exists():
             pytest.skip("dx-compiler guide not found")
@@ -161,8 +162,8 @@ class TestScenario4Infrastructure:
         PPU support may be in the app guide, agent files, or skill files.
         """
         # Check guide first
-        app_guide = (
-            APP_ROOT / "docs/source/docs/12_DX-APP_Agent_Driven_Development.md"
+        app_guide = find_guide(
+            APP_ROOT / "docs/source/docs", "*_DX-APP_Agent_Driven_Development.md"
         )
         guide_has_ppu = False
         if app_guide.exists():

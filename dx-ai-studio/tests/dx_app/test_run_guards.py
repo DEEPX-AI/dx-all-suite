@@ -113,3 +113,17 @@ def test_inference_run_inflight_guard_warns_and_disables_run_button():
     assert "runBtn.disabled=false" in body
     assert body.index("runBtn.disabled=true") < body.index("await runWithProgress(")
     assert body.index("runBtn.disabled=false") > body.index("finally")
+
+
+def test_stopping_a_continuous_run_does_not_also_report_it_complete():
+    """Stop must not end the loop as if it completed: no "done" toast and summary from contFinish(), and no waiting
+    slot left with a 'Waiting…' spinner that never stops."""
+    js = _read(JS_DIR / "inference.js")
+    start = _function_body(js, "async function contStart(")
+    stop = _function_body(js, "async function contStop(")
+    assert "CONT.stopped=false" in start.replace(" ", "")
+    tail = start[start.rindex("for(var i=0;i<CONT.slots.length;i++)"):]
+    assert "if(CONT.stopped)return;" in tail.replace(" ", ""), "멈췄으면 contFinish 를 부르지 않는다"
+    assert tail.index("if(!CONT.running)break;") < tail.index("allResults.push(res)"), "멈춘 slot 의 결과는 요약에 넣지 않는다"
+    assert "CONT.stopped=true" in stop.replace(" ", "")
+    assert "c-ph-" in stop, "남은 spinner placeholder 를 멈춤 표시로 바꾼다"

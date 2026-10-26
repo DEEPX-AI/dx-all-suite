@@ -1,6 +1,11 @@
 (function() {
   'use strict';
 
+  // Field, award and link icons are sprite names (about-data.json). Legacy text icons pass through as is.
+  function _aboutIco(name) {
+    if (/^[a-z0-9_-]+$/.test(name || '') && typeof window.DXIcon === 'function') return window.DXIcon(name);
+    return name || '';
+  }
   let _aboutData = null;
   let _aboutInitialized = false;
   let _scrollSpyObserver = null;
@@ -87,7 +92,7 @@
       <div class="about-action-grid">
         ${d.links.map(function (link) {
           return `<a class="about-action-card about-fade-in" href="${link.url}" target="_blank" rel="noopener noreferrer">
-            <span class="about-action-icon">${link.icon}</span>
+            <span class="about-action-icon">${_aboutIco(link.icon)}</span>
             <span class="about-action-label">${L(link.label)}</span>
             <span class="about-action-desc">${L(link.desc)}</span>
           </a>`;
@@ -151,7 +156,7 @@
           </div>
         `).join('')}
       </div>
-      <div class="about-scroll-hint">▼</div>
+      <div class="about-scroll-hint">${_aboutIco('chevd')}</div>
     `;
     container.appendChild(el);
   }
@@ -182,7 +187,7 @@
       <div class="about-values-grid">
         ${c.values.map(v => `
           <div class="about-value-card about-fade-in">
-            <div class="about-value-icon">${v.icon}</div>
+            <div class="about-value-icon">${_aboutIco(v.icon)}</div>
             <div class="about-value-title">${L(v.title)}</div>
             <div class="about-value-desc">${L(v.desc)}</div>
           </div>
@@ -320,7 +325,8 @@
         <h4 class="about-sdk-howto-title">${T({en:'Supported Environments & Integrations', ko:'지원 환경 및 연동', ja:'対応環境と連携', 'zh-CN':'支持的环境与集成', 'zh-TW':'支援的環境與整合', es:'Entornos e integraciones compatibles'})}</h4>
         <figure class="about-sdk-env-fig">
           <img src="/static/img/about/dx-allsuite-environments.png" alt="DX-AllSuite supported environments and integrations: DEEPX Developers, GitHub, AWS IoT Greengrass; Docker and local install" loading="lazy">
-          <img src="/static/img/about/dxnn-sdk-architecture.png" alt="DXNN SDK full-stack software architecture diagram" loading="lazy">
+          <img class="theme-img-light" src="/static/img/about/dxnn-sdk-architecture.png" alt="DXNN SDK full-stack software architecture diagram" loading="lazy">
+          <img class="theme-img-dark" src="/static/img/about/dxnn-sdk-architecture-dark.png" alt="DXNN SDK full-stack software architecture diagram" loading="lazy">
         </figure>
         <div class="about-sdk-links about-fade-in">
           ${t.sdk.startHere ? `<a class="about-start-here" href="${t.sdk.startHere.url}" target="_blank" rel="noopener noreferrer">${L(t.sdk.startHere.label)} →</a>` : ''}
@@ -414,7 +420,7 @@
       <div class="about-solutions-grid">
         ${p.useCases.map(function (uc) {
           return `<div class="about-solution-card about-fade-in">
-            <div class="about-solution-icon">${uc.icon}</div>
+            <div class="about-solution-icon">${_aboutIco(uc.icon)}</div>
             <div class="about-solution-title">${L(uc.title)}</div>
             <div class="about-solution-desc">${L(uc.desc)}</div>
           </div>`;
@@ -442,7 +448,7 @@
         ${inv.rounds.map(r => `
           <div class="about-round-card">
             <div class="about-round-name">${r.name}</div>
-            <div class="about-round-status">✓ ${L(r.status)}</div>
+            <div class="about-round-status">${_aboutIco('check')} ${L(r.status)}</div>
             ${r.detail ? `<div class="about-round-note">${L(r.detail)}</div>` : (r.note ? `<div class="about-round-note">${L(r.note)}</div>` : '')}
           </div>
         `).join('')}
@@ -452,7 +458,7 @@
       <div class="about-awards-grid">
         ${inv.awards.map(a => `
           <div class="about-award-card about-fade-in">
-            <div class="about-award-icon">${a.icon}</div>
+            <div class="about-award-icon">${_aboutIco(a.icon)}</div>
             <div class="about-award-info">
               <div class="about-award-name">${a.name}</div>
               <div class="about-award-year">${a.year}</div>
@@ -477,7 +483,7 @@
       <div class="about-solutions-grid">
         ${pt.solutions.map(s => `
           <div class="about-solution-card about-fade-in">
-            <div class="about-solution-icon">${s.icon}</div>
+            <div class="about-solution-icon">${_aboutIco(s.icon)}</div>
             <div class="about-solution-title">${L(s.title)}</div>
             <div class="about-solution-desc">${L(s.desc)}</div>
           </div>
@@ -592,6 +598,12 @@
     function setActive(id) {
       tabs.forEach(t => t.classList.toggle('active', t.dataset.section === id));
       dots.forEach(d => d.classList.toggle('active', d.dataset.section === id));
+      // 폰 폭에서 목차는 가로로 스크롤한다 — 지금 섹션의 탭을 가운데로 데려온다 (L-25)
+      const activeTab = Array.prototype.find.call(tabs, t => t.dataset.section === id);
+      if (activeTab && nav.scrollWidth > nav.clientWidth) {
+        const off = activeTab.getBoundingClientRect().left - nav.getBoundingClientRect().left;
+        nav.scrollTo({ left: nav.scrollLeft + off - (nav.clientWidth - activeTab.offsetWidth) / 2, behavior: 'smooth' });
+      }
       if (_aboutScrollProgressUpdate) _aboutScrollProgressUpdate();
     }
 
@@ -893,6 +905,14 @@
       renderAboutView({ preserveScroll: true });
     }
   });
+
+  // The tab labels do not wait for about-data.json: they are written now, once the page language is settled, and on
+  // every language change. They have no data-i18n — their keys are ids ('aboutDeveloper'), and the shared i18n.js
+  // writes an English key as the text, so the tabs read 'aboutDeveloper' until the data arrived (or for good when it
+  // failed). Contract: tests/launcher/test_about_nav_first_paint_browser.py
+  renderAboutNavLabels();
+  document.addEventListener('DOMContentLoaded', renderAboutNavLabels);
+  window.addEventListener('dx-lang-applied', renderAboutNavLabels);
 
   window.AboutDeepX = {
     init: initAboutView,

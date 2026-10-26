@@ -14,21 +14,36 @@ var BenchApp = {
 
   initTabs: function() {
     var self = this;
-    document.querySelectorAll('.main-tab').forEach(function(btn) {
+    // Tabs are drawn by shared/shell.py and identified by data-page.
+    document.querySelectorAll('.dx-tab').forEach(function(btn) {
       btn.addEventListener('click', function() {
-        self.switchTab(btn.dataset.tab);
+        self.switchTab(btn.dataset.page);
       });
     });
+    if (window.DXTabs) DXTabs.init({ row: '.dx-shell-tabs' });
+  },
+
+  // The header page name reuses the active tab label (one translation path). Tab labels are only
+  // translated once a language is applied, so this re-syncs on every language change.
+  syncPageTitle: function() {
+    var label = document.querySelector('.dx-tab[data-page="' + (this.currentTab || 'dashboard') + '"] span');
+    var slot = document.getElementById('dxShellPage');
+    if (label && slot) slot.textContent = label.textContent.trim();
   },
 
   switchTab: function(tabId) {
     this.currentTab = tabId;
-    document.querySelectorAll('.main-tab').forEach(function(b) {
-      b.classList.toggle('active', b.dataset.tab === tabId);
+    // The active tab is marked with aria-current; dx-shell.css styles it from that.
+    document.querySelectorAll('.dx-tab').forEach(function(b) {
+      if (b.dataset.page === tabId) b.setAttribute('aria-current', 'page');
+      else b.removeAttribute('aria-current');
     });
     document.querySelectorAll('.main-tab-content').forEach(function(c) {
       c.classList.toggle('active', c.id === 'tab-' + tabId);
     });
+    this.syncPageTitle();
+    // If the active tab was in the overflow menu, bring it back into the row.
+    if (window.DXTabs) DXTabs.reflowAll();
     if (tabId === 'dashboard' && this.dataset) {
       Dashboard.refresh();
     }
@@ -68,7 +83,9 @@ document.addEventListener('DOMContentLoaded', function() {
       try { fn(); } catch (e) { console.error('[benchmark-lang-refresh]', e); }
     });
     if (typeof DXI18n !== 'undefined' && DXI18n.applyLang) DXI18n.applyLang(document);
+    BenchApp.syncPageTitle();
   }
+  window.addEventListener('dx-lang-applied', function () { BenchApp.syncPageTitle(); });
   if (typeof DXI18n !== 'undefined') {
     DXI18n.onLangChange(refreshBenchmarkModuleLanguage);
   }

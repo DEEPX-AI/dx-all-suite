@@ -106,7 +106,8 @@ def test_static_response_uses_http11_cache_headers_and_validators(static_server)
     assert resp.headers["Cache-Control"] == "no-cache, must-revalidate"
     assert resp.headers["ETag"].startswith('W/"')
     assert resp.headers["Last-Modified"]
-    assert resp.headers["Access-Control-Allow-Origin"] == "*"
+    # CORS stays closed — same-origin only
+    assert "Access-Control-Allow-Origin" not in resp.headers
     assert resp.headers["Vary"] == "Accept-Encoding"
 
 
@@ -219,7 +220,7 @@ def test_304_includes_cache_headers_but_no_content_length(static_server):
         assert second.getheader("ETag") == etag
         assert second.getheader("Cache-Control") is not None
         assert second.getheader("Last-Modified") is not None
-        assert second.getheader("Access-Control-Allow-Origin") == "*"
+        assert second.getheader("Access-Control-Allow-Origin") is None   # same-origin only
         assert second.getheader("Vary") == "Accept-Encoding"
     finally:
         conn.close()
@@ -405,3 +406,99 @@ def test_production_sse_handlers_call_end_sse():
             assert found_in_finally, (
                 f"{rel_path}::{node.name} must call self.end_sse() inside a finally block"
             )
+
+# ── static with a matching hash is immutable ────────────────────────────────────────────
+# ?v= is the content hash added by render_html_with_asset_hashes. When it matches, the URL is the content, so there is
+# nothing to revalidate — dozens of CSS/JS 304 round trips over a VS Code port-forward tunnel go away.
+IMMUTABLE = "public, max-age=31536000, immutable"
+
+
+def test_static_with_matching_hash_is_immutable(static_server, tmp_path):
+    digest = DXBaseHandler.asset_content_hash(tmp_path / "static" / "app.js")
+    resp = urlopen(f"{static_server}/static/app.js?v={digest}", timeout=5)
+    resp.read()
+    assert resp.headers["Cache-Control"] == IMMUTABLE
+
+
+def test_static_with_stale_or_missing_hash_keeps_revalidating(static_server):
+    for url in (f"{static_server}/static/app.js?v=deadbeef", f"{static_server}/static/app.js"):
+        resp = urlopen(url, timeout=5)
+        resp.read()
+        assert resp.headers["Cache-Control"] == "no-cache, must-revalidate", url
+
+
+def test_static_304_with_matching_hash_is_immutable(static_server, tmp_path):
+    digest = DXBaseHandler.asset_content_hash(tmp_path / "static" / "app.js")
+    url = f"{static_server}/static/app.js?v={digest}"
+    first = urlopen(url, timeout=5)
+    first.read()
+    with pytest.raises(HTTPError) as exc_info:
+        urlopen(Request(url, headers={"If-None-Match": first.headers["ETag"]}), timeout=5)
+    assert exc_info.value.code == 304
+    assert exc_info.value.headers["Cache-Control"] == IMMUTABLE
+
+
+def test_explicit_cache_control_yields_to_matching_hash(tmp_path):
+    """The launcher gives shell assets cache_control=_SHELL_CACHE — a matching hash still makes them immutable."""
+    asset = tmp_path / "shell.js"
+    asset.write_text("window.shell = 1;\n", encoding="utf-8")
+    digest = DXBaseHandler.asset_content_hash(asset)
+
+    class Handler(StaticPerfHandler):
+        def route(self):
+            self.send_file(asset, "application/javascript", cache_control="no-cache, must-revalidate")
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    base = f"http://127.0.0.1:{server.server_address[1]}"
+    try:
+        hit = urlopen(f"{base}/shell.js?v={digest}", timeout=5)
+        hit.read()
+        miss = urlopen(f"{base}/shell.js?v=00000000", timeout=5)
+        miss.read()
+    finally:
+        server.shutdown()
+        server.server_close()
+    assert hit.headers["Cache-Control"] == IMMUTABLE
+    assert miss.headers["Cache-Control"] == "no-cache, must-revalidate"
+
+
+# ── the icon sprite gets a hash URL too ─────────────────────────────────────────────────
+SPRITE = "/static/shared/dx-icons.svg"
+
+
+def _sprite_hash():
+    return DXBaseHandler.asset_content_hash(
+        Path(__file__).resolve().parents[2] / "shared" / "static" / "dx-icons.svg")
+
+
+def test_sprite_refs_get_content_hash_and_keep_fragment():
+    handler = object.__new__(StaticPerfHandler)
+    html = ('<html><head><title>x</title></head><body>'
+            f'<svg><use href="{SPRITE}#check"></use></svg>'
+            f"<svg><use href='{SPRITE}#globe'></use></svg></body></html>")
+    out = handler.render_html_with_asset_hashes(html)
+    h = _sprite_hash()
+    assert f'href="{SPRITE}?v={h}#check"' in out
+    assert f"href='{SPRITE}?v={h}#globe'" in out
+    assert f'{SPRITE}#' not in out
+
+
+def test_sprite_meta_is_injected_once_before_head_close():
+    handler = object.__new__(StaticPerfHandler)
+    html = "<html><head><title>x</title></head><body></body></html>"
+    once = handler.render_html_with_asset_hashes(html)
+    twice = handler.render_html_with_asset_hashes(once)
+    meta = f'<meta name="dx-icons" content="{SPRITE}?v={_sprite_hash()}">'
+    assert once.count('name="dx-icons"') == 1
+    assert once.index(meta) < once.index("</head>")
+    assert twice.count('name="dx-icons"') == 1
+    assert meta in twice
+
+
+def test_fragments_injected_after_the_rewrite_can_be_versioned_on_their_own():
+    """The NPU Monitor widget the launcher injects into proxied responses skips the module server's rewrite."""
+    snippet = f'<div><svg><use href="{SPRITE}#clock"></use></svg></div>'
+    out = DXBaseHandler.version_sprite_refs(snippet)
+    assert out == f'<div><svg><use href="{SPRITE}?v={_sprite_hash()}#clock"></use></svg></div>'
+    assert 'name="dx-icons"' not in out

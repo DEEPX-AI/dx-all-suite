@@ -1,7 +1,7 @@
-"""YAML scalar / path / model YAML 파싱 헬퍼.
+"""Parsing helpers for YAML scalars, paths and model YAML.
 
-adapters.py 에서 분리된 순수 파싱 로직.
-stdlib 만 사용하여 간단한 YAML 파싱을 수행한다.
+Pure parsing logic split out of adapters.py.
+Does simple YAML parsing with the stdlib only.
 """
 
 import re
@@ -11,7 +11,7 @@ from dx_modelzoo.metadata.normalization import canonical_model_id
 
 
 def yaml_scalar(value):
-    """간단한 YAML scalar 값을 stdlib 만으로 정규화."""
+    """Normalize a simple YAML scalar value using only the stdlib."""
     value = value.strip()
     if value in {"", "null", "Null", "NULL", "~"}:
         return None
@@ -23,7 +23,7 @@ def yaml_scalar(value):
 
 
 def yaml_top_level_value(text, key):
-    """YAML 텍스트에서 top-level key 의 값을 추출."""
+    """Extract the value of a top-level key from YAML text."""
     m = re.search(rf"^{re.escape(key)}:\s*(.*)$", text, re.MULTILINE)
     if not m:
         return None
@@ -31,7 +31,7 @@ def yaml_top_level_value(text, key):
 
 
 def yaml_nested_value(text, section, key):
-    """YAML 텍스트에서 section 하위의 key 값을 추출."""
+    """Extract the value of a key under a section from YAML text."""
     lines = text.splitlines()
     in_section = False
     for line in lines:
@@ -48,7 +48,7 @@ def yaml_nested_value(text, section, key):
 
 
 def yaml_first_shape(text):
-    """YAML 텍스트에서 첫 번째 shape 리스트를 추출."""
+    """Extract the first shape list from YAML text."""
     lines = text.splitlines()
     for idx, line in enumerate(lines):
         if line.strip() != "shape:":
@@ -65,7 +65,7 @@ def yaml_first_shape(text):
 
 
 def parse_modelzoo_yaml_file(file_path):
-    """현재 dx-modelzoo YAML 모델 정의에서 기본 메타데이터를 추출."""
+    """Extract basic metadata from a current dx-modelzoo YAML model definition."""
     file_path = Path(file_path)
     text = file_path.read_text(encoding="utf-8")
 

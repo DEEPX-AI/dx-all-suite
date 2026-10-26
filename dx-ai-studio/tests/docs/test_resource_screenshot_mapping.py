@@ -5,13 +5,13 @@ from pathlib import Path
 RESOURCE_DIR = Path(__file__).resolve().parents[2] / "docs" / "source" / "resources"
 
 EXPECTED_SHA256 = {
-    "stream.png": "6091e15daaab938a68d24e02509d69aaba26cfaa1cbded6080d4cf6482f355ad",
-    "modelzoo-detail.png": "a6bc38677fd54d2463159cbdebf4836251f0b0bcbb5375a42dfa09f6a35fb8f8",
-    "app.png": "66e1dc09f52663820cc41c44945b5fe478ac2e2fe23746afe6e46fab52a11f59",
-    "tutorial.png": "06463981d7ca211eba73f9e8b74aaabeb2f23536e5cb21b959e6a5b189332ada",
-    "compiler.png": "5b190d9687dd191b1d62dbd3e15ab3e59bd597b567bcf5d9e6876c2a2aef157f",
-    "hub.png": "89dcf4c03166ed21295b265f4d086a11fa643e870b016c14d84e6e11177877ea",
-    "about.png": "56b723256f8cb710c51f681a88c2c154f50626f643d6b910d12a9f4f63cea3d7",
+    "stream.png": "d9f6862c6bd4bdbd4495bc5d539c0bb738b7adad4fa93544867e534f18ef90c1",
+    "modelzoo-detail.png": "db348954a4dc10478c6a7e261c85b851ef27f2954940d909ac91327677e20718",
+    "app.png": "379f2275f2a758dbf938e59a5103a2604e1efbfe90ca6379265cffa5096041fa",
+    "tutorial.png": "6f36ce6a9ef720e1d64113650beb707ed8cb0611b470004b3c653c236187c29f",
+    "compiler.png": "6ad217a8aa5df5c95dc7a1902904d4b8855ea84f2ab012701a438f30f8207dac",
+    "hub.png": "12a3e06932c884fb494930d079479a724045f0fbdbe6501ce1dc07ca271b7c63",
+    "about.png": "59ff30bfc4599688372869f08ecbbf8584a860d83d9cc1ceda076af9a5a7243b",
 }
 
 

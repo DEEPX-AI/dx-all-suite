@@ -62,9 +62,12 @@ article#doc-cover {
 /* 일반 본문 요소 스타일                                 */
 /* ==================================================== */
 article {
-  h1 { border-bottom: 2px solid #06b; page-break-after: avoid; }
-  h2 { border-bottom: 1px solid #5ad; page-break-after: avoid; }
-  h3 { border-bottom: 0.5px solid #eee; page-break-after: avoid; }
+  h1 { border-bottom: 2px solid #06b; }
+  h2 { border-bottom: 1px solid #5ad; }
+  h3 { border-bottom: 0.5px solid #eee; }
+
+  /* WeasyPrint 62 drops all remaining content when heading break-avoid chains leave no break point */
+  h1, h2, h3, h4, h5, h6 { page-break-after: auto !important; }
 
   h1 > .pdf-order,
   h2 > .pdf-order,

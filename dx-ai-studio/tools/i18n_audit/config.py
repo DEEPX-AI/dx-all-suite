@@ -15,6 +15,7 @@ MODULES = {
     "dx_benchmark": ("dx_benchmark",),
     "dx_monitor": ("dx_monitor",),
     "dx_agent_dev": ("dx_agent_dev",),
+    "dx_edge": ("dx_edge",),
     "shared": ("shared",),
 }
 
@@ -30,6 +31,7 @@ BRAND_TERMS = {
     "DX Benchmark",
     "DX Monitor",
     "DX Agent Dev",
+    "DX Cloud",
     "DX All Suite",
     "DX Runtime",
     "DX Firmware",
@@ -60,6 +62,10 @@ _EXCLUDED_PARTS = {
 }
 
 _EXCLUDED_PREFIXES = (
+    # Run artifacts, not product source (.gitignore; shared/paths.py var_dir() / outputs_dir()):
+    # acceptance evidence, compile summaries and inference results written while Studio runs.
+    "var/",
+    "outputs/",
     "docs/superpowers/reports/",
     "docs/site/",
     "tools/data/",

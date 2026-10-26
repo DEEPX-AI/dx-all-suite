@@ -7,14 +7,14 @@ function _cc() {
   return {
     text:    '#B0BDD0',
     dim:     '#8892A8',
-    strong:  '#E2E8F0',
-    emph:    '#E2E8F0',
+    strong:  '#f5f5f7',
+    emph:    '#f5f5f7',
     noData:  '#8892A8',
     grid:    'rgba(255,255,255,0.06)',
     axes:    'rgba(255,255,255,0.15)',
     outline: 'rgba(0,0,0,0.7)',
-    sel:     'rgba(99,140,255,0.12)',
-    selBdr:  'rgba(99,140,255,0.7)'
+    sel:     'rgba(41,151,255,0.12)',
+    selBdr:  'rgba(41,151,255,0.7)'
   };
 }
 
@@ -116,7 +116,9 @@ function _appendEdgeGuideLink(parentEl, overrides) {
   var el = document.createElement('a');
   el.className = 'edgeguide-link';
   el.href = _edgeGuideUrl(overrides);
-  el.textContent = '💰 ' + _t('Find optimal product in EdgeGuide →');
+  // EdgeGuide's compass icon (sprite `edge`, the same mark the rail uses for that module).
+  el.innerHTML = ((typeof DXIcon === 'function') ? DXIcon('edge') : '');
+  el.appendChild(document.createTextNode(' ' + _t('Find optimal product in EdgeGuide →')));
   el.addEventListener('click', function(e) {
     e.preventDefault();
     _navigateToEdgeGuide(overrides);
@@ -125,7 +127,7 @@ function _appendEdgeGuideLink(parentEl, overrides) {
 }
 
 function _buildDashboardHTML() {
-  return '<div class="page benchmark-workspace dashboard-workspace">' +
+  return '<div class="benchmark-workspace dashboard-workspace">' +
     '<header class="hero benchmark-workspace-hero">' +
       '<div>' +
         '<p class="eyebrow">YOLO26 Benchmark</p>' +
@@ -148,11 +150,11 @@ function _buildDashboardHTML() {
           '<div id="fpsRunSelectors" class="run-selector-grid"></div>' +
         '</section>' +
         '<section class="controls controls--compact">' +
-          '<label>' + _t('Task') + ' <select id="fpsTaskFilter">' +
+          '<label><span data-i18n="Task">' + _t('Task') + '</span> <select id="fpsTaskFilter">' +
             '<option value="object_detection">OD (' + _t('Object Detection') + ')</option>' +
             '<option value="pose_estimation">Pose (' + _t('Pose Estimation') + ')</option>' +
             '<option value="segmentation">Seg (' + _t('Segmentation') + ')</option>' +
-            '<option value="oriented_bbox">OBB (' + _t('Oriented BBox (OBB)') + ')</option>' +
+            '<option value="oriented_bbox">OBB (' + _t('Oriented BBox') + ')</option>' +
             '<option value="classification">Cls (' + _t('Classification') + ')</option>' +
           '</select></label>' +
           '<label>ORT <select id="fpsOrtFilter">' +
@@ -195,11 +197,11 @@ function _buildDashboardHTML() {
           '<div id="overviewRunSelectors" class="run-selector-grid"></div>' +
         '</section>' +
         '<section class="controls controls--compact">' +
-          '<label>' + _t('Task') + ' <select id="taskFilter">' +
+          '<label><span data-i18n="Task">' + _t('Task') + '</span> <select id="taskFilter">' +
             '<option value="object_detection">OD (' + _t('Object Detection') + ')</option>' +
             '<option value="pose_estimation">Pose (' + _t('Pose Estimation') + ')</option>' +
             '<option value="segmentation">Seg (' + _t('Segmentation') + ')</option>' +
-            '<option value="oriented_bbox">OBB (' + _t('Oriented BBox (OBB)') + ')</option>' +
+            '<option value="oriented_bbox">OBB (' + _t('Oriented BBox') + ')</option>' +
             '<option value="classification">Cls (' + _t('Classification') + ')</option>' +
           '</select></label>' +
           '<label>' + _t('Size') + ' <select id="sizeFilter">' +
@@ -242,12 +244,12 @@ function _buildDashboardHTML() {
       '<section class="controls">' +
         '<label>' + _t('Environment') + ' <select id="detailEnvFilter"></select></label>' +
         '<label>' + _t('Run ID') + ' <select id="detailRunFilter"></select></label>' +
-        '<label>' + _t('Task') + ' <select id="detailTaskFilter">' +
+        '<label><span data-i18n="Task">' + _t('Task') + '</span> <select id="detailTaskFilter">' +
           '<option value="all">' + _t('All Tasks') + '</option>' +
           '<option value="object_detection">OD (' + _t('Object Detection') + ')</option>' +
           '<option value="pose_estimation">Pose (' + _t('Pose Estimation') + ')</option>' +
           '<option value="segmentation">Seg (' + _t('Segmentation') + ')</option>' +
-          '<option value="oriented_bbox">OBB (' + _t('Oriented BBox (OBB)') + ')</option>' +
+          '<option value="oriented_bbox">OBB (' + _t('Oriented BBox') + ')</option>' +
           '<option value="classification">Cls (' + _t('Classification') + ')</option>' +
         '</select></label>' +
         '<label>ORT <select id="detailOrtFilter">' +
@@ -261,11 +263,11 @@ function _buildDashboardHTML() {
     '<div id="tab-version-trend" class="tab-content dashboard-panel-stack">' +
       '<section class="controls">' +
         '<label>' + _t('Environment') + ' <select id="trendEnvFilter"></select></label>' +
-        '<label>' + _t('Task') + ' <select id="trendTaskFilter">' +
+        '<label><span data-i18n="Task">' + _t('Task') + '</span> <select id="trendTaskFilter">' +
           '<option value="object_detection">OD (' + _t('Object Detection') + ')</option>' +
           '<option value="pose_estimation">Pose (' + _t('Pose Estimation') + ')</option>' +
           '<option value="segmentation">Seg (' + _t('Segmentation') + ')</option>' +
-          '<option value="oriented_bbox">OBB (' + _t('Oriented BBox (OBB)') + ')</option>' +
+          '<option value="oriented_bbox">OBB (' + _t('Oriented BBox') + ')</option>' +
           '<option value="classification">Cls (' + _t('Classification') + ')</option>' +
         '</select></label>' +
         '<label>ORT <select id="trendOrtFilter">' +
@@ -304,11 +306,11 @@ function _buildDashboardHTML() {
     '<div id="tab-ort-compare" class="tab-content dashboard-panel-stack">' +
       '<section class="controls">' +
         '<label>' + _t('Environment') + ' <select id="ortEnvFilter"></select></label>' +
-        '<label>' + _t('Task') + ' <select id="ortTaskFilter">' +
+        '<label><span data-i18n="Task">' + _t('Task') + '</span> <select id="ortTaskFilter">' +
           '<option value="object_detection">OD (' + _t('Object Detection') + ')</option>' +
           '<option value="pose_estimation">Pose (' + _t('Pose Estimation') + ')</option>' +
           '<option value="segmentation">Seg (' + _t('Segmentation') + ')</option>' +
-          '<option value="oriented_bbox">OBB (' + _t('Oriented BBox (OBB)') + ')</option>' +
+          '<option value="oriented_bbox">OBB (' + _t('Oriented BBox') + ')</option>' +
           '<option value="classification">Cls (' + _t('Classification') + ')</option>' +
         '</select></label>' +
         '<label>' + _t('Metric') + ' <select id="ortMetricFilter">' +
@@ -398,12 +400,22 @@ function _envProductLabel(env) {
   }
   return null;
 }
-function envLabel(env) { env = env || {}; return (env.hw_id || env.hostname || 'unknown') + '\n(' + (_envProductLabel(env) || '?') + ')'; }
+/* One name per device, used everywhere. hw_id is unique per device (hostnames can repeat, e.g. two
+   "raspberrypi"), so use it; drop its trailing _<SKU> because the SKU is shown in parentheses. */
+function envName(env) {
+  env = env || {};
+  var sku = _envProductLabel(env) || '?';
+  var id = env.hw_id || env.hostname || 'unknown';
+  if (sku !== '?' && id.slice(-(sku.length + 1)) === '_' + sku) id = id.slice(0, -(sku.length + 1));
+  return id + ' (' + sku + ')';
+}
+function envLabel(env) { return envName(env).replace(' (', '\n('); }
 /* Tolerant suite-version reader: new dataset carries dx_all_suite_version on
    both env and run objects; falls back to 'unknown' if absent (older shape). */
 function envVersion(env) { env = env || {}; return env.dx_all_suite_version || env.suite_version || env.version || 'unknown'; }
 function fmt(v, d) { if (v === null || v === undefined) return '-'; var n = Number(v); return Number.isNaN(n) ? '-' : n.toFixed(d === undefined ? 1 : d); }
-function modelSizeChar(name) { var m = String(name||'').match(/yolo26([nslmx])/i); return m ? m[1].toLowerCase() : ''; }
+// Names may carry a hyphen (yolo26-l_640x640.dxnn) as well as the plain form (yolo26l).
+function modelSizeChar(name) { var m = String(name||'').match(/yolo26-?([nslmx])(?=[-_.]|$)/i); return m ? m[1].toLowerCase() : ''; }
 function formatInputShape(shape) {
   if (!shape || !Array.isArray(shape)) return '-';
   if (shape.length === 4) return shape[1] + '\u00d7' + shape[2];
@@ -451,7 +463,7 @@ function renderRunSelectors(targetId){
   target.innerHTML=envs.map(function(env){
     var runs=_getRunOptions(env.env_id);if(!runs.length)return '';
     var options=runs.map(function(run){return '<option value="'+escHtml(run.run_id)+'">'+escHtml(run.run_id)+'</option>';}).join('');
-    return '<label><span>'+escHtml(env.hostname)+' ('+escHtml(_envProductLabel(env)||'?')+')</span><select data-run-env="'+escHtml(env.env_id)+'">'+options+'</select></label>';
+    return '<label><span>'+escHtml(envName(env))+'</span><select data-run-env="'+escHtml(env.env_id)+'">'+options+'</select></label>';
   }).join('');
   target.querySelectorAll('select[data-run-env]').forEach(function(sel){
     var envId=sel.dataset.runEnv;sel.value=_getSelectedRunId(envId)||sel.value;
@@ -460,7 +472,7 @@ function renderRunSelectors(targetId){
 }
 
 
-function _infoRows(r) { return r.map(function(row) { return '<div class="info-row"><span class="info-key">'+escHtml(row[0])+'</span><span class="info-val">'+escHtml(row[1]!=null?String(row[1]):'-')+'</span></div>'; }).join(''); }
+function _infoRows(r) { return r.map(function(row) { return '<div class="info-row"><span class="info-key">'+escHtml(_t(row[0]))+'</span><span class="info-val">'+escHtml(row[1]!=null?String(row[1]):'-')+'</span></div>'; }).join(''); }
 function cleanVer(v) { if (typeof v !== 'string') return v; return v.replace(/^DXRT\s+/i,'').replace(/^v(?=\d)/i,''); }
 /* Formats the npu_modules block (new-tool shape: [{product,count},...]) into a
    single readable string, e.g. "H1-Quattro ×1" or "M1 ×2, M1M ×1". */
@@ -513,22 +525,22 @@ function renderE2eTable(container, envId, task, useOrt, runId) {
   for (var ci=0;ci<rows.length;ci++){if(rows[ci].pipeline_caps){caps=rows[ci].pipeline_caps;break;}}
   if (caps) {
     var parts = [];
-    if (caps.video_codec) parts.push('<b>Codec:</b> '+escHtml(caps.video_codec));
+    if (caps.video_codec) parts.push('<b>'+_t('Codec:')+'</b> '+escHtml(caps.video_codec));
     /* Decoder element name (same for all rows in this env) */
     var decName = null;
     for (var di=0;di<rows.length;di++){if(rows[di].decoder && rows[di].decoder!=='unknown'){decName=rows[di].decoder;break;}}
-    if (decName) parts.push('<b>Decoder:</b> '+escHtml(decName));
+    if (decName) parts.push('<b>'+_t('Decoder:')+'</b> '+escHtml(decName));
     var decFmt = caps.decoder_src_format||'?';
     var decMem = caps.decoder_src_memory;
-    parts.push('<b>Decoder Out:</b> '+escHtml(decFmt)+(decMem?' <span class="tag tag--warn">'+escHtml(decMem)+'</span>':''));
+    parts.push('<b>'+_t('Decoder Out:')+'</b> '+escHtml(decFmt)+(decMem?' <span class="tag tag--warn">'+escHtml(decMem)+'</span>':''));
     var ppFmt = caps.dxpreprocess_sink_format||'?';
     var ppMem = caps.dxpreprocess_sink_memory;
-    parts.push('<b>Preprocess In:</b> '+escHtml(ppFmt)+(ppMem?' <span class="tag tag--warn">'+escHtml(ppMem)+'</span>':''));
-    if (caps.dxpreprocess_backend) parts.push('<b>Preprocess Backend:</b> '+escHtml(caps.dxpreprocess_backend));
+    parts.push('<b>'+_t('Preprocess In:')+'</b> '+escHtml(ppFmt)+(ppMem?' <span class="tag tag--warn">'+escHtml(ppMem)+'</span>':''));
+    if (caps.dxpreprocess_backend) parts.push('<b>'+_t('Preprocess Backend:')+'</b> '+escHtml(caps.dxpreprocess_backend));
     html += '<p class="decode-path-summary">'+parts.join(' &nbsp;|&nbsp; ')+'</p>';
   }
 
-  html += '<table class="summary-table"><thead><tr><th>Model</th><th>E2E FPS</th><th>CPU%</th><th>NPU Avg%</th><th>NPU Max%</th><th>NPU Temp \u00b0C</th><th>NPU MHz</th><th>Host RSS (MiB)</th><th>Runs</th><th>Status</th></tr></thead><tbody>';
+  html += '<table class="summary-table"><thead><tr><th>'+_t('Model')+'</th><th>E2E FPS</th><th>CPU%</th><th>NPU Avg%</th><th>NPU Max%</th><th>'+_t('NPU Temp (°C)')+'</th><th>NPU MHz</th><th>Host RSS (MiB)</th><th>'+_t('Runs')+'</th><th>'+_t('Status')+'</th></tr></thead><tbody>';
   rows.forEach(function(r) {
     var fpsS=fmt(r.avg_e2e_fps,1);if(r.fps_std!=null)fpsS+=' \u00b1'+fmt(r.fps_std,1);
     var tempS=_fmtTemp(r.npu_temp_min_c,r.npu_temp_max_c);
@@ -694,7 +706,7 @@ function getChartData() {
 function refreshChart(preferredEnvId) {
   var data=getChartData();state.chartData=data;
   var model=getModelName(state.task,state.size);
-  document.getElementById('chartSubtitle').textContent=TASK_MAP[state.task].label+'  \u00b7  '+model+'  \u00b7  ORT '+(state.ort?'ON':'OFF');
+  document.getElementById('chartSubtitle').textContent=_t(TASK_MAP[state.task].label)+'  \u00b7  '+model+'  \u00b7  ORT '+(state.ort?'ON':'OFF');
   if(!data.length){
     state.selectedEnvId=null;
     document.getElementById('envDetail').style.display='none';
@@ -719,7 +731,7 @@ function getFpsCompareData() {
 }
 function refreshFpsCompare(preferredEnvId) {
   var data=getFpsCompareData();state.fpsChartData=data;
-  document.getElementById('fpsChartSubtitle').textContent=TASK_MAP[state.fpsTask].label+'  \u00b7  ORT '+(state.fpsOrt?'ON':'OFF')+'  \u00b7  All Sizes (N / S / M / L / X)';
+  document.getElementById('fpsChartSubtitle').textContent=_t(TASK_MAP[state.fpsTask].label)+'  \u00b7  ORT '+(state.fpsOrt?'ON':'OFF')+'  \u00b7  '+_t('All Sizes (N / S / M / L / X)');
   if(!data.length){
     state.fpsSelectedEnvId=null;
     document.getElementById('fpsEnvDetail').style.display='none';
@@ -738,16 +750,16 @@ function handleFpsEnvClick(idx,d,options) {
   options=options||{};
   state.fpsSelectedEnvId=d.envId;
   var panel=document.getElementById('fpsEnvDetail');panel.style.display='';
-  document.getElementById('fpsEnvDetailTitle').textContent=d.env.hostname+' ('+(_envProductLabel(d.env)||'?')+')';
+  document.getElementById('fpsEnvDetailTitle').textContent=envName(d.env);
   renderHostInfo(document.getElementById('fpsEnvHostInfo'),d.env);
   renderNpuInfo(document.getElementById('fpsEnvNpuInfo'),d.env);
   renderToolsInfo(document.getElementById('fpsEnvToolsInfo'),d.env);
   var metaPanel=document.getElementById('fpsModelMetaPanel');metaPanel.style.display='';
-  document.getElementById('fpsModelMetaTitle').textContent='Benchmarked Models – '+TASK_MAP[state.fpsTask].label;
+  document.getElementById('fpsModelMetaTitle').textContent=_t('Benchmarked Models')+' – '+_t(TASK_MAP[state.fpsTask].label);
   renderModelMetaForTask(document.getElementById('fpsModelMetaSection'),d.env,state.fpsTask);
   var e2eSection=document.getElementById('fpsE2eTableSection');e2eSection.style.display='';
   var runId=_getSelectedRunId(d.envId);
-  document.getElementById('fpsE2eTableTitle').textContent=_t('E2E Pipeline (Single-Stream)') +' \u2013 '+TASK_MAP[state.fpsTask].label+' \u00b7 ORT '+(state.fpsOrt?'ON':'OFF')+' \u00b7 '+runId;
+  document.getElementById('fpsE2eTableTitle').textContent=_t('E2E Pipeline (Single-Stream)') +' \u2013 '+_t(TASK_MAP[state.fpsTask].label)+' \u00b7 ORT '+(state.fpsOrt?'ON':'OFF')+' \u00b7 '+runId;
   renderE2eTable(document.getElementById('fpsE2eTableContent'),d.envId,state.fpsTask,state.fpsOrt,runId);
   /* View trend link */
   var hwId=_envToHwId(d.env);
@@ -774,12 +786,12 @@ function initFpsFilters() {
 function renderEnvDetail(env,options) {
   options=options||{};
   var panel=document.getElementById('envDetail');panel.style.display='';
-  document.getElementById('envDetailTitle').textContent=env.hostname+' ('+(_envProductLabel(env)||'?')+')';
+  document.getElementById('envDetailTitle').textContent=envName(env);
   renderHostInfo(document.getElementById('envHostInfo'),env);
   renderNpuInfo(document.getElementById('envNpuInfo'),env);
   renderToolsInfo(document.getElementById('envToolsInfo'),env);
   var metaPanel=document.getElementById('overviewModelMetaPanel');metaPanel.style.display='';
-  document.getElementById('overviewModelMetaTitle').textContent='Benchmarked Models – '+TASK_MAP[state.task].label;
+  document.getElementById('overviewModelMetaTitle').textContent=_t('Benchmarked Models')+' – '+_t(TASK_MAP[state.task].label);
   renderModelMetaForTask(document.getElementById('overviewModelMetaSection'),env,state.task);
   /* View trend link */
   var hwId=_envToHwId(env);
@@ -823,7 +835,7 @@ function initOverviewFilters() {
 function initDetailTab() {
   var sel=document.getElementById('detailEnvFilter');
   var runSel=document.getElementById('detailRunFilter');
-  sel.innerHTML=(state.dataset.environments||[]).map(function(e){return '<option value="'+e.env_id+'">'+escHtml(e.hostname)+' ('+escHtml(_envProductLabel(e)||'?')+')</option>';}).join('');
+  sel.innerHTML=(state.dataset.environments||[]).map(function(e){return '<option value="'+e.env_id+'">'+escHtml(envName(e))+'</option>';}).join('');
   if(state.dataset.environments.length){state.detailEnvId=state.dataset.environments[0].env_id;sel.value=state.detailEnvId;}
   syncDetailRunFilter();
   sel.addEventListener('change',function(){state.detailEnvId=this.value;syncDetailRunFilter();renderDetailTables();});
@@ -845,8 +857,8 @@ function renderDetailTables() {
   if(!tasks.length){target.innerHTML='<div class="empty-state">' + _t('No data.') + '</div>';dispatchBenchmarkHelpSync();return;}
   target.innerHTML=tasks.map(function(task){
     var models=Object.keys(taskModels[task]).sort(function(a,b){var d=sizeOrd(modelSizeChar(a))-sizeOrd(modelSizeChar(b));return d!==0?d:a.localeCompare(b);});
-    var body=models.map(function(model){var ortRows=[true,false].filter(function(useOrt){return state.detailOrt==='all'||state.detailOrt===(useOrt?'on':'off');});var fpsOn=null,fpsOff=null,capOn=null,capOff=null;ortRows.forEach(function(useOrt){var k=model+'|'+(useOrt?'on':'off');var e2e=e2eMap[k]||{};if(useOrt){fpsOn=e2e.avg_e2e_fps!=null?Number(e2e.avg_e2e_fps):null;capOn=capMap[k]!=null?Number(capMap[k]):null;}else{fpsOff=e2e.avg_e2e_fps!=null?Number(e2e.avg_e2e_fps):null;capOff=capMap[k]!=null?Number(capMap[k]):null;}});var bestFpsOrt=null,bestCapOrt=null;if(fpsOn!=null&&fpsOff!=null){bestFpsOrt=fpsOn>=fpsOff?'on':'off';}else if(fpsOn!=null){bestFpsOrt='on';}else if(fpsOff!=null){bestFpsOrt='off';}if(capOn!=null&&capOff!=null){bestCapOrt=capOn>=capOff?'on':'off';}else if(capOn!=null){bestCapOrt='on';}else if(capOff!=null){bestCapOrt='off';}var sz=modelSizeChar(model);var szLabel=sz?sz.toUpperCase():'-';return ortRows.map(function(useOrt){var k=model+'|'+(useOrt?'on':'off');var e2e=e2eMap[k]||{};var ortKey=useOrt?'on':'off';var fpsVal=fmt(e2e.avg_e2e_fps,1);var capVal=capMap[k]!=null?capMap[k]:null;var fpsTd=bestFpsOrt===ortKey?'<td class="cell-best">'+fpsVal+'</td>':'<td>'+fpsVal+'</td>';var capTd=bestCapOrt===ortKey?'<td class="cell-best">'+(capVal!=null?capVal:'-')+'</td>':'<td>'+(capVal!=null?capVal:'-')+'</td>';var th=thermMap[k]||{};var tempS=_fmtTemp(th.tMin,th.tMax);var clkS=_fmtClock(th.cMin,th.cMax);var tempTd='<td>'+tempS+(th.throttled?' <span class="tag tag--warn" title="'+_t('NPU thermal throttling detected')+'">'+_t('Throttled')+'</span>':'')+'</td>';var conds=[];var stm=statusMap[k]||{};if(stm.lat&&stm.lat!=='ok')conds.push({metric:_t('Latency (ms)'),status:stm.lat});if(stm.tp&&stm.tp!=='ok')conds.push({metric:_t('Throughput'),status:stm.tp});var e2eRow=e2eMap[k];if(e2eRow&&e2eRow.status&&e2eRow.status!=='ok')conds.push({metric:_t('E2E FPS'),status:e2eRow.status,extra:(e2eRow.runs!=null&&e2eRow.requested_runs!=null)?(e2eRow.runs+'/'+e2eRow.requested_runs+' '+_t('runs completed')):null});var capSt=capStatusMap[k];if(capSt&&capSt!=='ok')conds.push({metric:_t('Max Channels'),status:capSt});var statusTd='<td>-</td>';if(conds.length){var worst=conds[0];conds.forEach(function(c){if(_statusSeverity(c.status)>_statusSeverity(worst.status))worst=c;});var title=conds.map(function(c){return c.metric+': '+_t(_statusLabel(c.status))+(c.extra?' ('+c.extra+')':'');}).join('; ');statusTd='<td>'+_statusBadge(worst.status,title)+'</td>';}return '<tr><td>'+escHtml(model)+'</td><td>'+szLabel+'</td><td>'+(useOrt?'ON':'OFF')+'</td><td>'+fmt(latMap[k],2)+'</td><td>'+fmt(tpMap[k],1)+'</td>'+fpsTd+capTd+tempTd+'<td>'+clkS+'</td>'+statusTd+'</tr>';}).join('');}).join('');
-    return '<section class="task-section"><h3>'+(TASK_MAP[task]?TASK_MAP[task].label:task)+'</h3><table class="summary-table detail-table"><colgroup><col style="width:20%"><col style="width:5%"><col style="width:5%"><col style="width:11%"><col style="width:12%"><col style="width:10%"><col style="width:11%"><col style="width:9%"><col style="width:9%"><col style="width:8%"></colgroup><thead><tr><th>' + _t('Model') + '</th><th>' + _t('Size') + '</th><th>ORT</th><th>' + _t('Latency (ms)') + '</th><th>' + _t('Throughput') + ' (FPS)</th><th>' + _t('E2E FPS') + '</th><th>' + _t('Max Channels') + '</th><th>' + _t('NPU Temp (°C)') + '</th><th>' + _t('NPU Clock (MHz)') + '</th><th>' + _t('Status') + '</th></tr></thead><tbody>'+body+'</tbody></table></section>';
+    var body=models.map(function(model){var ortRows=[true,false].filter(function(useOrt){return state.detailOrt==='all'||state.detailOrt===(useOrt?'on':'off');});var fpsOn=null,fpsOff=null,capOn=null,capOff=null;ortRows.forEach(function(useOrt){var k=model+'|'+(useOrt?'on':'off');var e2e=e2eMap[k]||{};if(useOrt){fpsOn=e2e.avg_e2e_fps!=null?Number(e2e.avg_e2e_fps):null;capOn=capMap[k]!=null?Number(capMap[k]):null;}else{fpsOff=e2e.avg_e2e_fps!=null?Number(e2e.avg_e2e_fps):null;capOff=capMap[k]!=null?Number(capMap[k]):null;}});var bestFpsOrt=null,bestCapOrt=null;if(fpsOn!=null&&fpsOff!=null){bestFpsOrt=fpsOn>=fpsOff?'on':'off';}else if(fpsOn!=null){bestFpsOrt='on';}else if(fpsOff!=null){bestFpsOrt='off';}if(capOn!=null&&capOff!=null){bestCapOrt=capOn>=capOff?'on':'off';}else if(capOn!=null){bestCapOrt='on';}else if(capOff!=null){bestCapOrt='off';}var sz=modelSizeChar(model);var szLabel=sz?sz.toUpperCase():'-';return ortRows.map(function(useOrt){var k=model+'|'+(useOrt?'on':'off');var e2e=e2eMap[k]||{};var ortKey=useOrt?'on':'off';var fpsVal=fmt(e2e.avg_e2e_fps,1);var capVal=capMap[k]!=null?capMap[k]:null;var fpsTd=bestFpsOrt===ortKey?'<td class="cell-best">'+fpsVal+'</td>':'<td>'+fpsVal+'</td>';var capTd=bestCapOrt===ortKey?'<td class="cell-best">'+(capVal!=null?capVal:'-')+'</td>':'<td>'+(capVal!=null?capVal:'-')+'</td>';var th=thermMap[k]||{};var tempS=_fmtTemp(th.tMin,th.tMax);var clkS=_fmtClock(th.cMin,th.cMax);var tempTd='<td>'+tempS+(th.throttled?' <span class="tag tag--warn" title="'+_t('NPU thermal throttling detected')+'">'+_t('Throttled')+'</span>':'')+'</td>';var conds=[];var stm=statusMap[k]||{};if(stm.lat&&stm.lat!=='ok')conds.push({metric:_t('Latency (ms)'),status:stm.lat});if(stm.tp&&stm.tp!=='ok')conds.push({metric:_t('Throughput'),status:stm.tp});var e2eRow=e2eMap[k];if(e2eRow&&e2eRow.status&&e2eRow.status!=='ok')conds.push({metric:_t('E2E FPS'),status:e2eRow.status,extra:(e2eRow.runs!=null&&e2eRow.requested_runs!=null)?(e2eRow.runs+'/'+e2eRow.requested_runs+' '+_t('runs completed')):null});var capSt=capStatusMap[k];if(capSt&&capSt!=='ok')conds.push({metric:_t('Max Channels'),status:capSt});var statusTd='<td>'+_t('OK')+'</td>';if(conds.length){var worst=conds[0];conds.forEach(function(c){if(_statusSeverity(c.status)>_statusSeverity(worst.status))worst=c;});var title=conds.map(function(c){return c.metric+': '+_t(_statusLabel(c.status))+(c.extra?' ('+c.extra+')':'');}).join('; ');statusTd='<td>'+_statusBadge(worst.status,title)+'</td>';}return '<tr><td>'+escHtml(model)+'</td><td>'+szLabel+'</td><td>'+(useOrt?'ON':'OFF')+'</td><td>'+fmt(latMap[k],2)+'</td><td>'+fmt(tpMap[k],1)+'</td>'+fpsTd+capTd+tempTd+'<td>'+clkS+'</td>'+statusTd+'</tr>';}).join('');}).join('');
+    return '<section class="task-section"><h3>'+(TASK_MAP[task]?_t(TASK_MAP[task].label):task)+'</h3><table class="summary-table detail-table"><colgroup><col style="width:20%"><col style="width:5%"><col style="width:5%"><col style="width:11%"><col style="width:12%"><col style="width:10%"><col style="width:11%"><col style="width:9%"><col style="width:9%"><col style="width:8%"></colgroup><thead><tr><th>' + _t('Model') + '</th><th>' + _t('Size') + '</th><th>ORT</th><th>' + _t('Latency (ms)') + '</th><th>' + _t('Throughput') + ' (FPS)</th><th>' + _t('E2E FPS') + '</th><th>' + _t('Max Channels') + '</th><th>' + _t('NPU Temp (°C)') + '</th><th>' + _t('NPU Clock (MHz)') + '</th><th>' + _t('Status') + '</th></tr></thead><tbody>'+body+'</tbody></table></section>';
   }).join('');
   dispatchBenchmarkHelpSync();
 }
@@ -1015,8 +1027,8 @@ function getTrendData(hwId,task,useOrt,metricKey){
 }
 function hideTrendEnvDetail(){var panel=document.getElementById('trendEnvDetail');if(panel)panel.style.display='none';var metaPanel=document.getElementById('trendModelMetaPanel');if(metaPanel)metaPanel.style.display='none';dispatchBenchmarkHelpSync();}
 function renderTrendEnvDetail(snap,options){
-  options=options||{};var panel=document.getElementById('trendEnvDetail');if(!panel)return;var env=snap&&snap.environment;if(!env){panel.style.display='none';document.getElementById('trendModelMetaPanel').style.display='none';dispatchBenchmarkHelpSync();return;}panel.style.display='';var dateStr=snap.timestamp?snap.timestamp.substring(0,10):snap.run_id;var ver=envVersion(env);document.getElementById('trendEnvDetailTitle').textContent=(env.hostname||'Environment')+' ('+(_envProductLabel(env)||'?')+') \u00b7 '+ver+' \u00b7 '+dateStr+' \u00b7 '+snap.run_id;renderHostInfo(document.getElementById('trendEnvHostInfo'),env);renderNpuInfo(document.getElementById('trendEnvNpuInfo'),env);renderToolsInfo(document.getElementById('trendEnvToolsInfo'),env);
-  var metaPanel=document.getElementById('trendModelMetaPanel');metaPanel.style.display='';document.getElementById('trendModelMetaTitle').textContent='Benchmarked Models \u2013 '+TASK_MAP[state.trendTask].label+' \u00b7 '+snap.run_id;renderModelMetaForTask(document.getElementById('trendModelMetaSection'),env,state.trendTask);
+  options=options||{};var panel=document.getElementById('trendEnvDetail');if(!panel)return;var env=snap&&snap.environment;if(!env){panel.style.display='none';document.getElementById('trendModelMetaPanel').style.display='none';dispatchBenchmarkHelpSync();return;}panel.style.display='';var dateStr=snap.timestamp?snap.timestamp.substring(0,10):snap.run_id;var ver=envVersion(env);document.getElementById('trendEnvDetailTitle').textContent=envName(env)+' \u00b7 '+ver+' \u00b7 '+dateStr+' \u00b7 '+snap.run_id;renderHostInfo(document.getElementById('trendEnvHostInfo'),env);renderNpuInfo(document.getElementById('trendEnvNpuInfo'),env);renderToolsInfo(document.getElementById('trendEnvToolsInfo'),env);
+  var metaPanel=document.getElementById('trendModelMetaPanel');metaPanel.style.display='';document.getElementById('trendModelMetaTitle').textContent=_t('Benchmarked Models')+' \u2013 '+_t(TASK_MAP[state.trendTask].label)+' \u00b7 '+snap.run_id;renderModelMetaForTask(document.getElementById('trendModelMetaSection'),env,state.trendTask);
   if(options.scroll!==false)panel.scrollIntoView({behavior:'smooth',block:'nearest'});
   dispatchBenchmarkHelpSync();
 }
@@ -1029,7 +1041,7 @@ function refreshTrend(){
     if(!firstData&&data.length&&data[0].points.length)firstData=data;
     var ids=_trendPanelIds(metric.key);
     var subtitleEl=document.getElementById(ids.subtitle);
-    if(subtitleEl)subtitleEl.textContent=(TASK_MAP[task]?TASK_MAP[task].label:task)+'  \u00b7  ORT '+(useOrt?'ON':'OFF')+'  \u00b7  '+_t('All Sizes (N / S / M / L / X)');
+    if(subtitleEl)subtitleEl.textContent=(TASK_MAP[task]?_t(TASK_MAP[task].label):task)+'  \u00b7  ORT '+(useOrt?'ON':'OFF')+'  \u00b7  '+_t('All Sizes (N / S / M / L / X)');
   });
   var selectedIdx=firstData?_latestTrendPointIndex(firstData):-1;
   state.trendSelectedIdx=selectedIdx;
@@ -1181,7 +1193,7 @@ function refreshOrtCompare() {
   var env=_envById(state.ortEnvId);
   var subtitleEl=document.getElementById('ortChartSubtitle');
   if(subtitleEl){
-    var envLbl=env?(env.hostname+' ('+(_envProductLabel(env)||'?')+')'):'';
+    var envLbl=env?envName(env):'';
     subtitleEl.textContent=envLbl+'  ·  '+(TASK_MAP[state.ortTask]?TASK_MAP[state.ortTask].label:state.ortTask)+'  ·  '+_t(metric.label);
   }
   OrtChart.setMetric(metric);
@@ -1193,7 +1205,7 @@ function refreshOrtCompare() {
 function initOrtCompareTab() {
   var sel=document.getElementById('ortEnvFilter');if(!sel)return;
   var envs=state.dataset.environments||[];
-  sel.innerHTML=envs.map(function(e){return '<option value="'+escHtml(e.env_id)+'">'+escHtml(e.hostname)+' ('+escHtml(_envProductLabel(e)||'?')+')</option>';}).join('');
+  sel.innerHTML=envs.map(function(e){return '<option value="'+escHtml(e.env_id)+'">'+escHtml(envName(e))+'</option>';}).join('');
   if(envs.length){state.ortEnvId=envs[0].env_id;sel.value=state.ortEnvId;}
   document.getElementById('ortTaskFilter').value=state.ortTask;
   document.getElementById('ortMetricFilter').value=state.ortMetric;
@@ -1243,6 +1255,7 @@ function initOrtCompareTab() {
     },
     refreshAllCharts: function() {
       if (!state.dataset) return;
+      if (document.getElementById('meta')) renderMeta();   // Environments · Generated follow the chosen language too
       refreshFpsCompare();
       refreshChart();
       if (Object.keys(state.trendCharts).length) refreshTrend();

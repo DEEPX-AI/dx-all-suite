@@ -1,0 +1,70 @@
+{{- if .Values.devicePlugin.enabled }}
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ .Release.Name }}-device-plugin
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "dx-npu.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: dx-npu
+      app.kubernetes.io/component: device-plugin
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        {{- include "dx-npu.labels" . | nindent 8 }}
+        app.kubernetes.io/component: device-plugin
+    spec:
+      priorityClassName: system-node-critical
+      {{- with .Values.devicePlugin.nodeSelectorLabel }}
+      nodeSelector:
+        {{ . }}: "true"
+      {{- end }}
+      containers:
+        - name: device-plugin
+          image: "{{ .Values.devicePlugin.image.repository }}:{{ .Values.devicePlugin.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.devicePlugin.image.pullPolicy }}
+          {{- if .Values.metrics.enabled }}
+          ports:
+            - name: metrics
+              containerPort: {{ .Values.metrics.port }}
+          {{- end }}
+          env:
+            - name: PATH
+              value: /usr/local/bin:/usr/bin:/bin
+            - name: LD_LIBRARY_PATH
+              value: /usr/local/lib
+            - name: METRICS_ADDR
+              value: {{ if .Values.metrics.enabled }}":{{ .Values.metrics.port }}"{{ else }}""{{ end }}
+            - name: NFD_FEATURE_DIR
+              value: {{ if .Values.featureFile.enabled }}"/nfd-features"{{ else }}""{{ end }}
+          securityContext:
+            privileged: {{ .Values.devicePlugin.privileged }}
+          resources:
+            {{- toYaml .Values.devicePlugin.resources | nindent 12 }}
+          volumeMounts:
+            - { name: device-plugin, mountPath: /var/lib/kubelet/device-plugins }
+            - { name: cdi, mountPath: /etc/cdi }
+            - { name: dev, mountPath: /dev }
+            - { name: sys, mountPath: /sys, readOnly: true }
+            - { name: usrlocal, mountPath: /usr/local, readOnly: true }
+            {{- if .Values.featureFile.enabled }}
+            - { name: nfd-features, mountPath: /nfd-features }
+            {{- end }}
+      volumes:
+        - { name: device-plugin, hostPath: { path: {{ .Values.hostPaths.devicePluginDir }}, type: Directory } }
+        - { name: cdi, hostPath: { path: {{ .Values.hostPaths.cdiDir }}, type: DirectoryOrCreate } }
+        - { name: dev, hostPath: { path: /dev, type: Directory } }
+        - { name: sys, hostPath: { path: /sys, type: Directory } }
+        - { name: usrlocal, hostPath: { path: {{ .Values.hostPaths.usrLocal }}, type: Directory } }
+        {{- if .Values.featureFile.enabled }}
+        - { name: nfd-features, hostPath: { path: {{ .Values.featureFile.hostDir }}, type: DirectoryOrCreate } }
+        {{- end }}
+      tolerations:
+        - { key: node-role.kubernetes.io/control-plane, operator: Exists, effect: NoSchedule }
+        - { key: node-role.kubernetes.io/master, operator: Exists, effect: NoSchedule }
+{{- end }}

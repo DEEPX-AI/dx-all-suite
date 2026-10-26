@@ -32,7 +32,7 @@ KB-based judgment, and the human-in-the-loop steps a tool cannot do.
    COMPLETE transcript (with Wall-clock + Cost + the closing narration) is rendered
    from that capture AFTER the process exits — the in-session sentinel reads the
    session store, which has no `result` event and is therefore incomplete.
-3. **MUST read the routed `.github/toolsets/*` before generating code** — the build
+3. **MUST read the routed `.deepx/toolsets/*` before generating code** — the build
    reads the canonical KB (e.g. `ultralytics-train-eval.md`, `ultralytics-deepx-export.md`)
    rather than improvising from prior outputs/memory. `verify` FAILS a showcase whose
    transcript read **no** toolset (the pills gap).
@@ -72,7 +72,7 @@ KB-based judgment, and the human-in-the-loop steps a tool cannot do.
    `dx-agent-dev-showcase/...` — vendor the pipeline INTO the app and keep all code/model
    paths app-relative (`$SCRIPT_DIR`/`APP_DIR`). This applies to **every** fork-based AND
    dx_app showcase (and is the same self-containment retrain-eval requires per §6 of
-   `dx-compiler/.github/toolsets/ultralytics-train-eval.md`).
+   `dx-compiler/.deepx/toolsets/ultralytics-train-eval.md`).
 10. **dx_app-based showcases MUST follow the dx_app relocatable script patterns.** A
     showcase whose app uses a dx_app model / `dx_engine` MUST author `setup.sh`/`run.sh` per
     `dx-runtime/dx_app/.github/skills/dx-agent-app-build-python/SKILL.md` — run.sh: derive the
@@ -81,7 +81,7 @@ KB-based judgment, and the human-in-the-loop steps a tool cannot do.
     model-not-found bug); setup.sh: reuse `venv-dx-runtime` or write a `dx_runtime_bridge.pth`,
     NEVER a local venv that only FATALs on missing `dx_engine` (the stretching
     `ModuleNotFoundError` bug). Retrain-eval showcases MUST be self-contained per
-    `dx-compiler/.github/toolsets/ultralytics-train-eval.md` §6 (no absolute paths in `*.json`;
+    `dx-compiler/.deepx/toolsets/ultralytics-train-eval.md` §6 (no absolute paths in `*.json`;
     regenerate-if-missing). `verify` enforces all three (model-discovery / venv-bridge / abs-paths).
 
 ## Setup

@@ -17,7 +17,7 @@ function initBenchPage(){
   var hasResults=S.benchRes&&Object.keys(S.benchRes).length>0;
   var skipRebuild=_benchRunning; // don't wipe results during a running benchmark
   var cats=[...new Set(S.models.map(function(m){return m.category}))].sort();
-  $('b-cat').innerHTML='<option value="">'+T('All Categories')+'</option>'+cats.map(function(c){return '<option>'+c+'</option>'}).join('');
+  $('b-cat').innerHTML='<option value="">'+T('All Categories')+'</option>'+cats.map(function(c){return '<option value="'+esc(c)+'">'+esc(catText(c))+'</option>'}).join('');
   api('/api/images').then(function(imgs){
     var list=Array.isArray(imgs)?imgs:[];
     $('b-img-sel').innerHTML='<option value="">'+T('Default (built-in)')+'</option>'+list.map(function(f){return '<option value="'+esc(f)+'">'+esc(f.split('/').pop())+'</option>'}).join('');
@@ -36,9 +36,9 @@ function initBenchPage(){
         if(chk.value===target){chk.checked=true;found=true;}
       });
       if(found){
-        toast('📊 "'+target+'" '+T('auto-selected')+' — '+T('choose comparison models and start benchmark'),'ok');
+        toast('"'+target+'" '+T('auto-selected')+' — '+T('choose comparison models and start benchmark'),'ok');
       }else{
-        toast('⚠️ "'+target+'" '+T('not found in model list'),'warn');
+        toast('"'+target+'" '+T('not found in model list'),'warn');
       }
     },200);
   }
@@ -66,9 +66,9 @@ function filterBenchModels(){
     return true;
   });
   $('bench-sel').querySelector('tbody').innerHTML=list.map(function(m){
-    return '<tr><td><input type="checkbox" class="b-chk" value="'+esc(m.name)+'" data-cat="'+m.category+'"/></td>'
+    return '<tr><td><input type="checkbox" class="b-chk" value="'+esc(m.name)+'" aria-label="'+esc(m.name)+'" data-cat="'+m.category+'"/></td>'
       +'<td>'+esc(m.name)+'</td><td><span class="badge b-cat">'+m.category+'</span></td>'
-      +'<td>'+(m.cpp?'\u2713':'')+' '+(m.python?'\u2713':'')+'</td></tr>';
+      +'<td>'+(m.cpp?DXIcon('check'):'')+' '+(m.python?DXIcon('check'):'')+'</td></tr>';
   }).join('');
 }
 
@@ -78,6 +78,7 @@ function bDesel(){document.querySelectorAll('.b-chk').forEach(c=>c.checked=false
 async function doBench(){
   const checks=[...document.querySelectorAll('.b-chk:checked')];
   if(!checks.length){toast(T('Select models to benchmark'),'warn');return}
+  if($('b-input-type').value==='rtsp'&&rtspAddressMissing('b-rtsp-ip'))return;
   _benchRunning=true;
   const lang=$('b-lang').value||'cpp';
   const mode=$('b-mode').value||'sync';
@@ -90,7 +91,7 @@ async function doBench(){
   tb.innerHTML='';
   S.benchRes={};
   const rc=$('b-result-card');if(rc)rc.classList.remove('hidden');
-  const runBtn=$('b-run-btn');if(runBtn){runBtn.disabled=true;runBtn.textContent='\u23f3 '+T('Running...')}
+  const runBtn=$('b-run-btn');if(runBtn){runBtn.disabled=true;DXIcon.label(runBtn,'spinner',T('Running...'))}
   for(const chk of checks){
     const name=chk.value,cat=chk.dataset.cat;
     const m=findModel(name);if(!m)continue;
@@ -122,10 +123,10 @@ async function doBench(){
         +'<td><span class="badge b-cat">'+cat+'</span></td><td>'+statusBadge+'</td>'
         +'<td class="txt-acc">'+(res.fps||'\u2014')+'</td>'
         +'<td>'+(res.latency?res.latency+'ms':'\u2014')+'</td>'
-        +'<td><button class="bench-detail-btn" onclick="event.stopPropagation();showBenchDetail(\''+ename+'\')">🔍 Detail</button></td>';
+        +'<td><button class="bench-detail-btn" onclick="event.stopPropagation();showBenchDetail(\''+ename+'\')">' + DXIcon('search') + ' Detail</button></td>';
     }
   }
-  if(runBtn){runBtn.disabled=false;runBtn.textContent='\u23f1\ufe0f '+T('Start Benchmark')}
+  if(runBtn){runBtn.disabled=false;DXIcon.label(runBtn,'clock',T('Start Benchmark'))}
   _benchRunning=false;
   const items=results.filter(function(r){return r.fps}).map(function(r){return{label:r.name.length>15?r.name.slice(0,14)+'\u2026':r.name,val:parseFloat(r.fps),color:_cv('--app-accent')}});
   if(items.length)drawBarChart($('bench-chart'),items);
@@ -137,12 +138,12 @@ function showBenchDetail(name){
   var h='';
   if(r.error){
     var errMsg=_benchErrorMessage(r);
-    h+='<div style="background:rgba(248,81,73,.12);border:1px solid rgba(248,81,73,.4);border-radius:6px;padding:10px 14px;margin-bottom:12px;color:#F85149">'
-      +'<strong>'+T('⚠️ Run Error:')+'</strong> '+esc(errMsg)+'</div>';
+    h+='<div style="background:rgba(248,81,73,.12);border:1px solid rgba(248,81,73,.4);border-radius:6px;padding:10px 14px;margin-bottom:12px;color:#ff453a">'
+      +'<strong>'+DXIcon('alert')+' '+T('Run Error:')+'</strong> '+esc(errMsg)+'</div>';
   }
   h+='<div class="flex gap8 mb12">';
   h+='<span class="badge b-cat">'+(r.cat||r.category||'')+'</span>';
-  h+='<span class="badge" style="background:var(--bg-3);color:var(--text-1)">'+(r.lang||'cpp')+'</span>';
+  h+='<span class="badge" style="background:var(--surface-hover);color:var(--text-primary)">'+(r.lang||'cpp')+'</span>';
   if(r.elapsed_s)h+='<span class="txt-dim txt-sm">'+T('elapsed: ')+r.elapsed_s+'s</span>';
   h+='</div>';
   var hasOrig=(r._inputType==='image'&&r._imgPath)||(r._inputType==='video'&&r._vidPath);
@@ -150,13 +151,13 @@ function showBenchDetail(name){
   if(hasOrig||hasResult){
     h+='<div style="display:grid;grid-template-columns:'+(hasOrig&&hasResult?'1fr 1fr':'1fr')+';gap:12px;margin-bottom:12px">';
     if(hasOrig){
-      h+='<div><div style="font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;margin-bottom:4px">'+T('Original')+'</div>';
+      h+='<div><div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;margin-bottom:4px">'+T('Original')+'</div>';
       if(r._inputType==='video'&&r._vidPath)h+='<video src="/file/'+esc(r._vidPath)+'" controls style="max-width:100%;border-radius:6px"></video>';
       else if(r._imgPath)h+='<img src="/file/'+esc(r._imgPath)+'" class="res-img" onclick="previewImg(this.src)" style="max-height:300px;max-width:100%"/>';
       h+='</div>';
     }
     if(hasResult){
-      h+='<div><div style="font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;margin-bottom:4px">'+T('Result')+'</div>';
+      h+='<div><div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;margin-bottom:4px">'+T('Result')+'</div>';
       if(r.result_video_url)h+='<video src="'+r.result_video_url+'" controls style="max-width:100%;border-radius:6px"></video>';
       else if(r.result_image)h+='<img src="data:image/jpeg;base64,'+r.result_image+'" class="res-img" onclick="previewImg(this.src)" style="max-height:300px;max-width:100%"/>';
       h+='</div>';
@@ -171,7 +172,7 @@ function showBenchDetail(name){
 
   if(r.elapsed_s)h+='<div class="pcard"><div class="pv">'+r.elapsed_s+'s</div><div class="pk">Total</div></div>';
   var ec=r.exit_code===0;
-  h+='<div class="pcard"><div class="pv" style="color:'+(ec?'var(--success)':'var(--error)')+'">'+(ec?'\u2705':'\u274c')+'</div><div class="pk">Exit '+r.exit_code+'</div></div>';
+  h+='<div class="pcard"><div class="pv" style="color:'+(ec?'var(--status-ok)':'var(--status-error)')+'">'+(ec?DXIcon('check'):DXIcon('x'))+'</div><div class="pk">Exit '+r.exit_code+'</div></div>';
   h+='</div>';
   if(r.perf&&r.perf.pipeline&&r.perf.pipeline.length)h+='<div class="mt12">'+renderWaterfall(r.perf)+'</div>';
   var hw=r.hw_after;
@@ -185,8 +186,8 @@ function showBenchDetail(name){
       if(n.power_est_mW!=null)h+='<div class="pcard"><div class="pv">'+n.power_est_mW+'mW</div><div class="pk">Power</div></div>';}
     h+='</div>';
   }
-  if(r.output)h+='<details class="mt12"><summary class="clickable txt-dim">'+T('📋 Full Output')+' ('+esc(r.output).length+' chars)</summary><div class="code mt8 txt-sm" style="max-height:300px;overflow:auto">'+esc(r.output)+'</div></details>';
-  $('md-title').innerHTML=T('🔋 Benchmark Detail — ')+esc(name);
+  if(r.output)h+='<details class="mt12"><summary class="clickable txt-dim">'+DXIcon('clipboard')+' '+T('Full Output')+' ('+esc(r.output).length+' chars)</summary><div class="code mt8 txt-sm" style="max-height:300px;overflow:auto">'+esc(r.output)+'</div></details>';
+  $('md-title').innerHTML=DXIcon('bolt')+' '+T('Benchmark Detail — ')+esc(name);
   $('md-body').innerHTML=h;
   openModal('modal-detail');
 }
@@ -225,27 +226,27 @@ function benchExportReport(){
   h+='*{margin:0;padding:0;box-sizing:border-box}';
   h+='body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#0b0f19;color:#cbd5e1;padding:40px}';
   h+='.rpt{max-width:1000px;margin:0 auto}';
-  h+='.rpt h1{font-size:28px;margin-bottom:8px;color:#58A6FF}';
+  h+='.rpt h1{font-size:28px;margin-bottom:8px;color:#2997ff}';
   h+='.rpt h2{font-size:18px;margin:24px 0 12px;color:#f0f6fc;border-bottom:1px solid #1e293b;padding-bottom:6px}';
   h+='.rpt-meta{font-size:12px;color:#94a3b8;margin-bottom:24px}';
   h+='.rpt-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:24px}';
-  h+='.rpt-card{background:#111827;border:1px solid #1e293b;border-radius:8px;padding:16px;text-align:center}';
+  h+='.rpt-card{background:#1d1d1f;border:1px solid #1e293b;border-radius:8px;padding:16px;text-align:center}';
   h+='.rpt-card .val{font-size:28px;font-weight:700} .rpt-card .lbl{font-size:11px;color:#94a3b8;margin-top:4px;text-transform:uppercase}';
-  h+='.rpt-card .val.green{color:#3FB950} .rpt-card .val.red{color:#F85149} .rpt-card .val.amber{color:#D29922} .rpt-card .val.blue{color:#58A6FF} .rpt-card .val.acc{color:#638CFF}';
+  h+='.rpt-card .val.green{color:#30d158} .rpt-card .val.red{color:#ff453a} .rpt-card .val.amber{color:#D29922} .rpt-card .val.blue{color:#2997ff} .rpt-card .val.acc{color:#2997ff}';
   h+='table{width:100%;border-collapse:collapse;font-size:13px}';
-  h+='th{text-align:left;padding:8px 12px;background:#111827;color:#94a3b8;font-size:11px;text-transform:uppercase;border-bottom:2px solid #1e293b}';
+  h+='th{text-align:left;padding:8px 12px;background:#1d1d1f;color:#94a3b8;font-size:11px;text-transform:uppercase;border-bottom:2px solid #1e293b}';
   h+='td{padding:8px 12px;border-bottom:1px solid #21262d}';
-  h+='tr:hover{background:#111827}';
+  h+='tr:hover{background:#1d1d1f}';
   h+='.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600}';
-  h+='.b-pass{background:rgba(63,185,80,.15);color:#3FB950} .b-fail{background:rgba(248,81,73,.15);color:#F85149} .b-err{background:rgba(210,153,34,.15);color:#D29922}';
-  h+='.rank{font-weight:700;color:#638CFF}';
+  h+='.b-pass{background:rgba(63,185,80,.15);color:#30d158} .b-fail{background:rgba(248,81,73,.15);color:#ff453a} .b-err{background:rgba(210,153,34,.15);color:#D29922}';
+  h+='.rank{font-weight:700;color:#2997ff}';
   h+='.bar-container{height:20px;background:#21262d;border-radius:4px;overflow:hidden;min-width:60px}';
-  h+='.bar-fill{height:100%;background:linear-gradient(90deg,#638CFF,#58A6FF);border-radius:4px;transition:width .3s}';
+  h+='.bar-fill{height:100%;background:linear-gradient(90deg,#2997ff,#2997ff);border-radius:4px;transition:width .3s}';
   h+='.footer{margin-top:32px;padding-top:16px;border-top:1px solid #1e293b;font-size:11px;color:#484f58;text-align:center}';
   h+='@media print{body{background:#fff;color:#1f2937} .rpt-card{border-color:#e5e7eb;background:#f9fafb} th{background:#f3f4f6;color:#6b7280} td{border-color:#e5e7eb} tr:hover{background:transparent}}';
   h+='</style></head><body><div class="rpt">';
 
-  h+='<h1>'+T('📊 DX-APP Benchmark Report')+'</h1>';
+  h+='<h1>'+DXIcon('dashboard')+' '+T('DX-APP Benchmark Report')+'</h1>';
   h+='<div class="rpt-meta">'+T('Generated: ')+esc(ts)+' | '+T('Language: ')+esc(lang)+' | '+T('Input: ')+esc(inputType)+' | '+T('Loop: ')+esc(loopCount)+'</div>';
 
   h+='<div class="rpt-summary">';
@@ -256,7 +257,7 @@ function benchExportReport(){
   h+='<div class="rpt-card"><div class="val acc">'+avgFps+'</div><div class="lbl">'+T('Avg FPS')+'</div></div>';
   h+='</div>';
 
-  h+='<h2>'+T('🏆 Performance Ranking')+'</h2>';
+  h+='<h2>'+DXIcon('award')+' '+T('Performance Ranking')+'</h2>';
   h+='<table><thead><tr><th>#</th><th>'+T('Model')+'</th><th>'+T('Category')+'</th><th>'+T('Status')+'</th><th>FPS</th><th>'+T('Latency')+'</th><th>'+T('Elapsed')+'</th><th>'+T('FPS Bar')+'</th></tr></thead><tbody>';
   var maxFps=ranked.length?Math.max.apply(null,ranked.map(function(r){return parseFloat(r.fps)||0})):1;
   ranked.forEach(function(r,i){
@@ -267,7 +268,7 @@ function benchExportReport(){
     var barPct=maxFps>0?Math.round(fpsVal/maxFps*100):0;
     h+='<tr><td class="rank">'+(i+1)+'</td><td><strong>'+esc(r.name)+'</strong></td>';
     h+='<td>'+esc(r.category)+'</td><td>'+statusBadge+'</td>';
-    h+='<td style="color:#638CFF;font-weight:600">'+esc(r.fps)+'</td>';
+    h+='<td style="color:#2997ff;font-weight:600">'+esc(r.fps)+'</td>';
     h+='<td>'+esc(r.latency)+'</td><td>'+esc(r.elapsed)+'</td>';
     h+='<td><div class="bar-container"><div class="bar-fill" style="width:'+barPct+'%"></div></div></td></tr>';
   });
@@ -283,13 +284,13 @@ function benchExportReport(){
     else if(r.status==='ERROR')cats[r.category].errors++;
     else cats[r.category].failed++;
   });
-  h+='<h2>'+T('📂 Category Summary')+'</h2>';
+  h+='<h2>'+DXIcon('folder')+' '+T('Category Summary')+'</h2>';
   h+='<table><thead><tr><th>'+T('Category')+'</th><th>'+T('Models')+'</th><th>'+T('Passed')+'</th><th>'+T('Failed')+'</th><th>'+T('Errors')+'</th><th>'+T('Avg FPS')+'</th></tr></thead><tbody>';
   Object.keys(cats).sort().forEach(function(c){
     var d=cats[c];
     h+='<tr><td><strong>'+esc(c)+'</strong></td><td>'+d.count+'</td>';
-    h+='<td style="color:#3FB950">'+d.passed+'</td><td style="color:#F85149">'+d.failed+'</td><td style="color:#D29922">'+d.errors+'</td>';
-    h+='<td style="color:#638CFF">'+(d.fpsN?(d.fps/d.fpsN).toFixed(1):'-')+'</td></tr>';
+    h+='<td style="color:#30d158">'+d.passed+'</td><td style="color:#ff453a">'+d.failed+'</td><td style="color:#D29922">'+d.errors+'</td>';
+    h+='<td style="color:#2997ff">'+(d.fpsN?(d.fps/d.fpsN).toFixed(1):'-')+'</td></tr>';
   });
   h+='</tbody></table>';
 
@@ -309,7 +310,7 @@ function benchExportReport(){
       ?((latVals[latVals.length/2-1].val+latVals[latVals.length/2].val)/2).toFixed(2)
       :latVals[Math.floor(latVals.length/2)].val.toFixed(2);
     var latP95=latVals[Math.min(Math.floor(latVals.length*0.95),latVals.length-1)];
-    h+='<h2>'+T('⚡ Latency Analysis')+'</h2>';
+    h+='<h2>'+DXIcon('bolt')+' '+T('Latency Analysis')+'</h2>';
     h+='<div class="rpt-summary">';
     h+='<div class="rpt-card"><div class="val green">'+latMin.val+'ms</div><div class="lbl">'+T('Min')+' ('+esc(latMin.name)+')</div></div>';
     h+='<div class="rpt-card"><div class="val red">'+latMax.val+'ms</div><div class="lbl">'+T('Max')+' ('+esc(latMax.name)+')</div></div>';
@@ -326,8 +327,8 @@ function benchExportReport(){
     if(allFps.length>1&&allLat.length>1){
       var fpsMin2=Math.min.apply(null,allFps)*0.9, fpsMax2=Math.max.apply(null,allFps)*1.1;
       var latMin2=Math.min.apply(null,allLat)*0.9, latMax2=Math.max.apply(null,allLat)*1.1;
-      h+='<h2>'+T('📈 FPS vs Latency')+'</h2>';
-      h+='<div style="overflow-x:auto"><svg width="'+svgW+'" height="'+svgH+'" style="background:#111827;border-radius:8px;border:1px solid #1e293b">';
+      h+='<h2>'+DXIcon('dashboard')+' '+T('FPS vs Latency')+'</h2>';
+      h+='<div style="overflow-x:auto"><svg width="'+svgW+'" height="'+svgH+'" style="background:#1d1d1f;border-radius:8px;border:1px solid #1e293b">';
       h+='<line x1="'+pad+'" y1="'+(svgH-pad)+'" x2="'+(svgW-20)+'" y2="'+(svgH-pad)+'" stroke="#1e293b" stroke-width="1"/>';
       h+='<line x1="'+pad+'" y1="20" x2="'+pad+'" y2="'+(svgH-pad)+'" stroke="#1e293b" stroke-width="1"/>';
       h+='<text x="'+(svgW/2)+'" y="'+(svgH-8)+'" text-anchor="middle" fill="#94a3b8" font-size="11">FPS →</text>';
@@ -339,7 +340,7 @@ function benchExportReport(){
         h+='<text x="'+(pad-4)+'" y="'+(gy+4)+'" text-anchor="end" fill="#484f58" font-size="9">'+(latMin2+(latMax2-latMin2)*gi/4).toFixed(0)+'</text>';
         h+='<text x="'+gx+'" y="'+(svgH-pad+14)+'" text-anchor="middle" fill="#484f58" font-size="9">'+(fpsMin2+(fpsMax2-fpsMin2)*gi/4).toFixed(0)+'</text>';
       }
-      var colors=['#638CFF','#58A6FF','#fb923c','#bc8cff','#ff7b72','#79c0ff','#56d364','#e3b341','#ffa657','#d2a8ff'];
+      var colors=['#2997ff','#2997ff','#fb923c','#bc8cff','#ff7b72','#79c0ff','#56d364','#e3b341','#ffa657','#d2a8ff'];
       models.forEach(function(name,mi){
         var r=S.benchRes[name];
         var fp=parseFloat(r.fps)||0, lt=parseFloat(r.latency)||0;
@@ -368,7 +369,7 @@ function benchExportReport(){
     hwData.push(item);
   });
   if(hwData.length){
-    h+='<h2>'+T('🔧 Hardware Resources (Post-Run)')+'</h2>';
+    h+='<h2>'+DXIcon('wrench')+' '+T('Hardware Resources (Post-Run)')+'</h2>';
     h+='<table><thead><tr><th>Model</th><th>CPU %</th><th>RAM %</th>';
     var hasNpu=hwData.some(function(d){return d.temp!=null||d.freq!=null||d.power!=null});
     if(hasNpu)h+='<th>NPU Temp</th><th>NPU Clock</th><th>Power</th>';
@@ -390,8 +391,8 @@ function benchExportReport(){
       if(d.power!=null){powerSum+=d.power;powerN++;}
     });
     h+='<tr style="font-weight:700;border-top:2px solid #1e293b"><td>'+T('Average')+'</td>';
-    h+='<td style="color:#58A6FF">'+(cpuN?(cpuSum/cpuN).toFixed(1)+'%':'-')+'</td>';
-    h+='<td style="color:#58A6FF">'+(memN?(memSum/memN).toFixed(1)+'%':'-')+'</td>';
+    h+='<td style="color:#2997ff">'+(cpuN?(cpuSum/cpuN).toFixed(1)+'%':'-')+'</td>';
+    h+='<td style="color:#2997ff">'+(memN?(memSum/memN).toFixed(1)+'%':'-')+'</td>';
     if(hasNpu){
       h+='<td style="color:#fb923c">'+(tempN?(tempSum/tempN).toFixed(1)+'°C':'-')+'</td>';
       h+='<td>-</td>';
@@ -401,7 +402,7 @@ function benchExportReport(){
 
     // Power Efficiency (FPS/Watt) if power data exists
     if(powerN>0){
-      h+='<h2>'+T('🏅 Power Efficiency (FPS / Watt)')+'</h2>';
+      h+='<h2>'+DXIcon('award')+' '+T('Power Efficiency (FPS / Watt)')+'</h2>';
       var effRows=[];
       models.forEach(function(name){
         var r=S.benchRes[name];
@@ -417,7 +418,7 @@ function benchExportReport(){
         effRows.forEach(function(e,i){
           h+='<tr><td class="rank">'+(i+1)+'</td><td><strong>'+esc(e.name)+'</strong></td>';
           h+='<td>'+e.fps+'</td><td>'+e.power+'mW</td>';
-          h+='<td style="color:#638CFF;font-weight:700">'+e.eff+'</td></tr>';
+          h+='<td style="color:#2997ff;font-weight:700">'+e.eff+'</td></tr>';
         });
         h+='</tbody></table>';
       }
@@ -426,11 +427,11 @@ function benchExportReport(){
 
   var imgModels=models.filter(function(n){return S.benchRes[n].result_image});
   if(imgModels.length){
-    h+='<h2>'+T('🖼️ Result Gallery')+'</h2>';
+    h+='<h2>'+DXIcon('image')+' '+T('Result Gallery')+'</h2>';
     h+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px">';
     imgModels.forEach(function(name){
       var r=S.benchRes[name];
-      h+='<div style="background:#111827;border:1px solid #1e293b;border-radius:8px;overflow:hidden">';
+      h+='<div style="background:#1d1d1f;border:1px solid #1e293b;border-radius:8px;overflow:hidden">';
       h+='<img src="data:image/jpeg;base64,'+r.result_image+'" style="width:100%;height:160px;object-fit:cover"/>';
       h+='<div style="padding:8px 10px">';
       h+='<div style="font-weight:600;font-size:12px;margin-bottom:4px">'+esc(name)+'</div>';
@@ -442,12 +443,12 @@ function benchExportReport(){
 
   var errModels=models.filter(function(n){var r=S.benchRes[n];return !!r.error});
   if(errModels.length){
-    h+='<h2>'+T('❌ Runtime Errors')+'</h2>';
+    h+='<h2>'+DXIcon('x')+' '+T('Runtime Errors')+'</h2>';
     errModels.forEach(function(name){
       var r=S.benchRes[name];
       h+='<div style="background:rgba(248,81,73,.06);border:1px solid rgba(248,81,73,.25);border-radius:8px;padding:12px 16px;margin-bottom:8px">';
       h+='<div style="font-weight:700;margin-bottom:4px">'+esc(name)+'</div>';
-      if(r.error)h+='<div style="color:#F85149;font-size:12px;margin-bottom:4px">'+esc(_benchErrorMessage(r))+'</div>';
+      if(r.error)h+='<div style="color:#ff453a;font-size:12px;margin-bottom:4px">'+esc(_benchErrorMessage(r))+'</div>';
       if(r.exit_code!=null)h+='<div style="font-size:11px;color:#94a3b8">Exit code: '+r.exit_code+'</div>';
       if(r.output){
         var lastLines=r.output.trim().split('\n').slice(-5).join('\n');
@@ -459,7 +460,7 @@ function benchExportReport(){
   }
   var failModels=models.filter(function(n){var r=S.benchRes[n];return !r.error&&r.exit_code!=null&&r.exit_code!==0});
   if(failModels.length){
-    h+='<h2>'+T('⚠️ Accuracy Failures')+'</h2>';
+    h+='<h2>'+DXIcon('alert')+' '+T('Accuracy Failures')+'</h2>';
     failModels.forEach(function(name){
       var r=S.benchRes[name];
       h+='<div style="background:rgba(248,81,73,.06);border:1px solid rgba(248,81,73,.25);border-radius:8px;padding:12px 16px;margin-bottom:8px">';
@@ -474,7 +475,7 @@ function benchExportReport(){
     });
   }
 
-  h+='<h2>'+T('🖥️ Environment')+'</h2>';
+  h+='<h2>'+DXIcon('monitor')+' '+T('Environment')+'</h2>';
   h+='<table><tbody>';
   h+='<tr><td>'+T('Language')+'</td><td>'+esc(lang)+'</td></tr>';
   h+='<tr><td>'+T('Input Type')+'</td><td>'+esc(inputType)+'</td></tr>';
@@ -490,7 +491,7 @@ function benchExportReport(){
   a.href=URL.createObjectURL(blob);
   a.download='benchmark_report_'+new Date().toISOString().slice(0,10)+'.html';
   a.click();
-  toast('📄 '+T('Benchmark report downloaded'),'ok');
+  toast(T('Benchmark report downloaded'),'ok');
 }
 
 if (typeof registerLangRefresher === 'function') {

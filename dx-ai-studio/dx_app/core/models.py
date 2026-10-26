@@ -4,8 +4,11 @@ import os, re, json
 from pathlib import Path
 from dx_app.core.config import (BUILD_DIR, CPP_DIR, PY_DIR, ASSETS_DIR, CONFIG_FILE, SAMPLE_DIR,
                     SKIP_CAT, CATEGORIES, CAT_LABEL, CAT_IMAGE, CAT_VIDEO,
-                    TASK_TYPES, POSTPROCESSORS, DX_APP_ROOT)
+                    TASK_TYPES, POSTPROCESSORS, DX_APP_ROOT, resolve_model_path)
 from dx_app.core.inference_exec import _find_fallback_binary, _is_executable_file, _python_runtime_ready
+from shared import dx_app_layout as _layout
+from shared.paths import SUITE_ROOT as _SUITE_ROOT
+from shared.tasks import canonical as _canonical_task
 from shared.catalog_sources import parse_test_models_conf as _shared_parse_test_models_conf
 
 _BUNDLED_MODEL_CATALOG = Path(__file__).resolve().parents[2] / "dx_modelzoo" / "data" / "model_catalog.json"
@@ -93,7 +96,7 @@ def _to_class_name(model_name):
 def _pp_info(lang,cat,mn):
     i={"name":None,"file":None}
     if lang=="cpp":
-        fd=CPP_DIR/cat/mn/"factory"
+        fd=_layout.example_dir(DX_APP_ROOT,"cpp",cat,mn)/"factory"
         if fd.is_dir():
             for hpp in fd.glob("*.hpp"):
                 m=re.search(r'#include\s+"[^"]*?([a-z_]+_postprocessor)\.hpp"',hpp.read_text(errors="replace"))
@@ -102,7 +105,7 @@ def _pp_info(lang,cat,mn):
                     if pp.exists():i["file"]=str(pp.relative_to(DX_APP_ROOT))
                 break
     else:
-        fd=PY_DIR/cat/mn/"factory"
+        fd=_layout.example_dir(DX_APP_ROOT,"python",cat,mn)/"factory"
         if fd.is_dir():
             for pyf in fd.glob("*.py"):
                 if "__init__" in pyf.name:continue
@@ -133,65 +136,98 @@ def _read_config_cached(cf):
     return parsed
 
 
+def _installed(path):
+    """Whether this is an installed model file; 0 bytes means a partial download."""
+    try:
+        return path.is_file() and path.stat().st_size > 0
+    except OSError:
+        return False
+
+
 def _required_dxnn_exists(model_file):
     if model_file.startswith("-"):
         import shlex as _shlex
         _args=_shlex.split(model_file)
-        return all((DX_APP_ROOT/a).exists() for a in _args if not a.startswith("-") and a.endswith(".dxnn"))
-    return bool(model_file)and(DX_APP_ROOT/model_file).exists()
+        return all(_installed(resolve_model_path(a, DX_APP_ROOT)) for a in _args if not a.startswith("-") and a.endswith(".dxnn"))
+    return bool(model_file)and _installed(resolve_model_path(model_file, DX_APP_ROOT))
 
 
-def _cpp_runner_ready(category,model_name,variant):
+def _cpp_runner_ready(category,model_name,variant,allow_fallback=True):
     direct=BUILD_DIR/f"{model_name}_{variant}"
     if _is_executable_file(direct):
         return True
+    # A per-model layout binary has its own model's pre/postprocessing built in; another model's binary gives wrong
+    # results. A borrowed binary is only for custom models without an example (registry-only).
+    if not allow_fallback:
+        return False
     return _is_executable_file(_find_fallback_binary(category,variant,build_dir=BUILD_DIR))
 
 
 def _python_runner_ready(category,model_name,variant,runtime_ready):
-    return bool(runtime_ready and (PY_DIR/category/model_name/f"{model_name}_{variant}.py").is_file())
+    if not runtime_ready:return False
+    if (PY_DIR/category/model_name/f"{model_name}_{variant}.py").is_file():return True
+    return _layout.python_script(DX_APP_ROOT,category,model_name,variant).is_file()
 
 
 def get_models():
     models={}
-    for lang,base in[("cpp",CPP_DIR),("python",PY_DIR)]:
-        if not base.is_dir():continue
-        for cd in sorted(base.iterdir()):
-            if not cd.is_dir() or cd.name in SKIP_CAT:continue
-            cat=cd.name
-            for md in sorted(cd.iterdir()):
-                if not md.is_dir() or md.name in SKIP_CAT or md.name.startswith("_"):continue
-                mn=md.name;ext=".cpp" if lang=="cpp" else ".py"
-                hs=(md/f"{mn}_sync{ext}").exists();ha=(md/f"{mn}_async{ext}").exists()
-                if ext==".py":hsp=(md/f"{mn}_sync_cpp_postprocess.py").exists();hap=(md/f"{mn}_async_cpp_postprocess.py").exists()
-                if not hs and not ha:continue
-                key=f"{cat}/{mn}"
-                if key not in models:
-                    reg=_REG.get(mn,{});mf=reg.get("file","")
-                    _mexists=_required_dxnn_exists(mf)
-                    models[key]={"name":mn,"category":cat,"category_label":CAT_LABEL.get(cat,cat),
-                     "cpp":False,"python":False,"cpp_sync":False,"cpp_async":False,
-                     "py_sync":False,"py_async":False,
-                     "py_sync_cpp_postprocess":False,"py_async_cpp_postprocess":False,"model_file":mf,
-                     "model_exists":_mexists,
-                     "npu_core":"","dataset":"","input_resolution":"","config":{}}
-                    cfg=_read_config_cached(md/"config.json")
-                    if isinstance(cfg,dict):
-                        models[key].update({"config":cfg,
-                         "npu_core":cfg.get("npu_core",cfg.get("NPU_CORE","")),
-                         "dataset":cfg.get("dataset",cfg.get("DATASET","")),
-                         "input_resolution":cfg.get("input_size",cfg.get("INPUT_SIZE",""))})
-                if lang=="cpp":models[key].update({"cpp":True,"cpp_sync":hs,"cpp_async":ha})
-                else:models[key].update({"python":True,"py_sync":hs,"py_async":ha,
-                     "py_sync_cpp_postprocess":hsp,"py_async_cpp_postprocess":hap})
+    # The resolver finds example folders, both legacy (<task>/<model>) and per-model (<task>/<family>/<stem>)
+    # (shared/dx_app_layout.py).
+    _per_model=_layout.detect(DX_APP_ROOT)==_layout.PER_MODEL
+    for ex in sorted(_layout.examples(DX_APP_ROOT),key=lambda e:(e.task,e.name)):
+        cat,mn=ex.task,ex.name
+        key=f"{cat}/{mn}"
+        for lang,md in(("cpp",ex.cpp_dir),("python",ex.py_dir)):
+            if md is None:continue
+            ext=".cpp" if lang=="cpp" else ".py"
+            hs=(md/f"{mn}_sync{ext}").exists();ha=(md/f"{mn}_async{ext}").exists()
+            if ext==".py":hsp=(md/f"{mn}_sync_cpp_postprocess.py").exists();hap=(md/f"{mn}_async_cpp_postprocess.py").exists()
+            if not hs and not ha:continue
+            if key not in models:
+                spec=_read_config_cached(md/"config.json")
+                spec=spec if isinstance(spec,dict) else {}
+                nested=_per_model and "variant" in spec
+                if nested and spec.get("dxnn_file"):mf="assets/models/"+spec["dxnn_file"]
+                else:reg=_REG.get(mn,{});mf=reg.get("file","")
+                _mexists=_required_dxnn_exists(mf)
+                cfg=_layout.flat_config(spec) if spec else {}
+                models[key]={"name":mn,"category":cat,"category_label":CAT_LABEL.get(cat,cat),
+                 "family":ex.family,
+                 "cpp":False,"python":False,"cpp_sync":False,"cpp_async":False,
+                 "py_sync":False,"py_async":False,
+                 "py_sync_cpp_postprocess":False,"py_async_cpp_postprocess":False,"model_file":mf,
+                 "model_exists":_mexists,
+                 "npu_core":"","dataset":"","input_resolution":"","config":cfg}
+                if nested:
+                    models[key].update({"image_only":bool(spec.get("image_only")),
+                     "default_image":spec.get("default_image") or "","default_video":spec.get("default_video") or "",
+                     "input_resolution":f"{spec.get('input_width')}x{spec.get('input_height')}" if spec.get("input_width") else ""})
+                elif cfg:
+                    models[key].update({"npu_core":cfg.get("npu_core",cfg.get("NPU_CORE","")),
+                     "dataset":cfg.get("dataset",cfg.get("DATASET","")),
+                     "input_resolution":cfg.get("input_size",cfg.get("INPUT_SIZE",""))})
+            if lang=="cpp":models[key].update({"cpp":True,"cpp_sync":hs,"cpp_async":ha})
+            else:models[key].update({"python":True,"py_sync":hs,"py_async":ha,
+                 "py_sync_cpp_postprocess":hsp,"py_async_cpp_postprocess":hap})
     # Also include registry-only models (deployed via compiler but no source code yet)
+    # In the per-model layout the registry's old names (yolo26n, …) already exist as stem examples; only model
+    # files no example uses (custom models deployed by the Compiler) are added as registry-only.
+    _covered={(m.get("model_file") or "").rsplit("/",1)[-1] for m in models.values()} if _per_model else set()
     for mn,reg in _REG.items():
         cat=reg.get("category","custom")
         key=f"{cat}/{mn}"
+        if _per_model and ((reg.get("file") or "").rsplit("/",1)[-1] in _covered or not _required_dxnn_exists(reg.get("file",""))):
+            continue
+        # Old names (yolo26n, efficientnet_lite0, …) become their example's name at run time and never borrow a binary
+        # (server _validate_inference_payload). Listed separately, they would offer C++ and fail with "Binary not found".
+        if _per_model and _layout.example_name(DX_APP_ROOT,cat,mn,reg.get("file",""))!=mn:
+            continue
+        if _per_model:
+            cat=_canonical_task(cat);key=f"{cat}/{mn}"
         if key not in models:
             mf=reg.get("file","")
             _mexists=_required_dxnn_exists(mf)
-            models[key]={"name":mn,"category":cat,"category_label":CAT_LABEL.get(cat,cat),
+            models[key]={"name":mn,"category":cat,"category_label":CAT_LABEL.get(cat,cat),"registry_only":True,
              "cpp":True,"python":False,"cpp_sync":True,"cpp_async":False,
              "py_sync":False,"py_async":False,"model_file":mf,
              "model_exists":_mexists,
@@ -201,12 +237,19 @@ def get_models():
     _python_ready=_python_runtime_ready() if any(any(m.get(k) for k in _py_modes) for m in models.values()) else False
     for m in models.values():
         for key in _cpp_modes:
-            m[key]=bool(m.get(key) and _cpp_runner_ready(m["category"],m["name"],key[4:]))
+            m[key]=bool(m.get(key) and _cpp_runner_ready(m["category"],m["name"],key[4:],
+                        allow_fallback=not _per_model or m.get("registry_only",False)))
         for key in _py_modes:
             m[key]=bool(m.get(key) and _python_runner_ready(m["category"],m["name"],key[3:],_python_ready))
         m["cpp"]=any(m[key] for key in _cpp_modes)
         m["python"]=any(m[key] for key in _py_modes)
     models={key:m for key,m in models.items() if m["model_exists"] and (m["cpp"] or m["python"])}
+    # Containers DX-RT cannot read (Model Zoo 2_5_0 = v9, while DX-RT 3.4.2 reads 6–8) stay listed with a reason.
+    # run_inference blocks running them.
+    from shared import dxrt as _dxrt
+    for m in models.values():
+        mf=m.get("model_file") or ""
+        m["needs_dxrt"]=None if mf.startswith("-") else _dxrt.needs_for_file(resolve_model_path(mf, DX_APP_ROOT))
     # Attach the ModelZoo Q-Lite download link so the Models table can pull a not-yet-installed
     # model straight from the catalog, same as the ModelZoo page. Join by any of: the .dxnn
     # filename, the normalized class_name, or the normalized model name — local example-dir
@@ -304,31 +347,80 @@ def _download_index() -> dict:
     _DL_URLS = idx
     return _DL_URLS
 
+def _find_example(name, model_file=""):
+    """name (registry model_name, example name or catalog name) -> this tree's example. The task is unknown."""
+    stem = Path(model_file).name[:-5] if str(model_file).endswith(".dxnn") else ""
+    _variants = _layout._registry_variants(str(DX_APP_ROOT))
+    variant = _variants.get(name) or next((v for k, v in _variants.items() if k.lower() == str(name).lower()), "")
+    for cand in (name, stem, variant):
+        if not cand:
+            continue
+        hits = [e for e in _layout.examples(DX_APP_ROOT) if e.name == cand]
+        if hits:
+            return hits[0]
+    return None
+
+
 def get_model_info(name):
-    info={"name":name,"files":{},"postprocessors":{}};reg=_REG.get(name,{})
+    """Detail dialog of the Models table, for either layout (shared.dx_app_layout). Model files are looked up in both
+    layouts, so category, files and 'Model File' are filled in the per-model tree too."""
+    info={"name":name,"files":{},"postprocessors":{}}
+    # A catalog name (SCRFD10G) differs from its registry key (scrfd10g) only in case
+    reg=_REG.get(name) or next((v for k,v in _REG.items() if k.lower()==str(name).lower()),{})
     mf=reg.get("file","")
     if mf.startswith("-"):
         import shlex as _shlex
-        _args=_shlex.split(mf)
-        _mexists=all((DX_APP_ROOT/a).exists() for a in _args if not a.startswith("-") and a.endswith(".dxnn"))
+        _args=[a for a in _shlex.split(mf) if not a.startswith("-") and a.endswith(".dxnn")]
+        _mexists=bool(_args) and all(_layout.find_model(a,DX_APP_ROOT,_SUITE_ROOT) is not None for a in _args)
     else:
-        _mexists=bool(mf)and(DX_APP_ROOT/mf).exists()
+        _mexists=bool(mf) and _layout.find_model(mf,DX_APP_ROOT,_SUITE_ROOT) is not None
     info.update({"model_file":mf,"model_exists":_mexists})
-    for lang,base in[("cpp",CPP_DIR),("python",PY_DIR)]:
-        for cd in base.iterdir():
-            if not cd.is_dir() or cd.name in SKIP_CAT:continue
-            md=cd/name
-            if not md.is_dir():continue
-            info["category"]=cd.name;info["category_label"]=CAT_LABEL.get(cd.name,cd.name)
-            lk="cpp" if lang=="cpp" else "python"
-            info["files"][lk]=[str(f.relative_to(DX_APP_ROOT)) for f in sorted(md.rglob("*")) if f.is_file()]
-            cf=md/"config.json"
-            if cf.exists():
-                try:info["config"]=json.loads(cf.read_text())
-                except Exception:info["config"]={}
-            pp=_pp_info(lk,cd.name,name)
-            if pp["name"]:info["postprocessors"][lk]=pp
+    ex=_find_example(name, mf if not mf.startswith("-") else "")
+    if ex is None:
+        return info
+    info["category"]=ex.task;info["category_label"]=CAT_LABEL.get(ex.task,ex.task)
+    for lk in ("cpp","python"):
+        d=ex.dir(lk)
+        if d is None or not d.is_dir():
+            continue
+        info["files"][lk]=[str(f.relative_to(DX_APP_ROOT)) for f in sorted(d.rglob("*")) if f.is_file()]
+        pp=_pp_info(lk,ex.task,ex.name)
+        if pp["name"]:info["postprocessors"][lk]=pp
+    cfg=_layout.load_config(DX_APP_ROOT,ex.task,ex.name)
+    if cfg:
+        info["config"]=cfg
     return info
+
+
+_GENERATED_CATALOG = Path(__file__).resolve().parents[2] / "dx_modelzoo" / "data" / "generated_catalog.json"
+
+
+def _generated_catalog_rows():
+    """generated catalog -> [{name, task (label), dxnn_url, json_url, class_name}] ([] if missing)."""
+    try:
+        data = json.loads(_GENERATED_CATALOG.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return []
+    try:
+        from dx_modelzoo.core.config import CATEGORIES as _MZ_CATS
+    except Exception:
+        _MZ_CATS = {}
+    rows = []
+    for gm in data.get("models", []) if isinstance(data, dict) else []:
+        disp = gm.get("display") or {}
+        arts = gm.get("artifacts") or {}
+
+        def url(tier, kind):
+            u = ((arts.get(f"{tier}_{kind}") or {}).get("remote_url")) or None
+            return u if u and u not in ("-",) else None
+        from shared.tasks import legacy as _legacy_task
+        task = _legacy_task(disp.get("task") or "")     # the same grouping as Model Zoo (image_classification -> classification)
+        label = (_MZ_CATS.get(task) or {}).get("label_en") or task.replace("_", " ").title() or "Other"
+        rows.append({"name": disp.get("name") or gm.get("id"), "task": label,
+                     "dxnn_url": url("qlite", "dxnn") or url("qpro", "dxnn") or url("qmaster", "dxnn"),
+                     "json_url": url("qlite", "json") or url("qpro", "json"),
+                     "class_name": disp.get("class_name") or gm.get("id")})
+    return rows
 
 
 def get_catalog():
@@ -367,7 +459,8 @@ def get_catalog():
         # Always point at THIS variant's own .dxnn (not a matched sibling example's file),
         # so Run/exists reflect the exact row the user sees and downloaded.
         model_file = ("assets/models/" + fn) if fn else ""
-        exists = bool(fn) and (DX_APP_ROOT / "assets" / "models" / fn).exists()
+        # resolve_model_path honours DX_APP_MODELS_DIR, like every other install check on this page.
+        exists = bool(fn) and _installed(resolve_model_path(model_file, DX_APP_ROOT))
         lm = None
         for k in (_norm(fn[:-5] if fn and fn.endswith(".dxnn") else fn), _norm(class_name), _norm(name)):
             if k and k in lk:
@@ -390,15 +483,23 @@ def get_catalog():
                 ent[k] = lm.get(k, ent[k])
         return ent
 
-    # Catalog source: prefer the BAKED snapshot (offline-safe). ModelZoo's live listing is a
+    # Catalog source 1: the Model Zoo module's own catalog (dx_modelzoo/data/generated_catalog.json, synced
+    # from the internal publish page) — the same list the Model Zoo page shows, so App > Models does not
+    # drift from it (the baked public snapshot below is older and smaller). The snapshot / live listing
+    # remain the fallback.
+    out = []
+    gen_rows = _generated_catalog_rows()
+    for g in gen_rows:
+        out.append(mk(g["name"], g["task"], g["dxnn_url"], g["json_url"], g.get("class_name")))
+
+    # Catalog source 2: prefer the BAKED snapshot (offline-safe). ModelZoo's live listing is a
     # network fetch (developer.deepx.ai), so on an air-gapped / closed-network install the live
     # call times out and the Models page would collapse to almost nothing. A snapshot baked at
     # release time (scripts/modelzoo_catalog_public.json, refreshed by scripts/bake_modelzoo_catalog.py)
     # lets offline users still see the full catalog. Fall back to live only when no snapshot exists.
-    out = []
-    r = None
+    r = {"models": []} if gen_rows else None
     _baked = Path(__file__).resolve().parents[1] / "scripts" / "modelzoo_catalog_public.json"
-    if _baked.exists():
+    if r is None and _baked.exists():
         try:
             r = json.loads(_baked.read_text(encoding="utf-8"))
         except Exception:
@@ -427,4 +528,26 @@ def get_catalog():
                 out.append(mk(e.get("name"), e.get("category") or "PPU", e.get("dxnn_url"), e.get("json_url")))
     except Exception:
         pass
+    return out
+
+
+_LANGS = ("en", "ko", "ja", "zh-CN", "zh-TW", "es")
+
+
+def category_labels():
+    """slug -> {language: name}, so the screen never shows raw snake_case.
+
+    Names come from Model Zoo's category table (6 languages), so both modules call a task the same. When dx_app's slug
+    differs (legacy <-> per-model, shared.tasks) its pair is used; failing that, the slug spelled out in English."""
+    try:
+        from dx_modelzoo.core.config import CATEGORIES as _MZ
+    except Exception:
+        _MZ = {}
+    from shared.tasks import canonical, legacy
+    out = {}
+    for slug in sorted(set(CATEGORIES) | set(_MZ)):
+        info = _MZ.get(slug) or _MZ.get(canonical(slug)) or _MZ.get(legacy(slug)) or {}
+        en = info.get("label_en") or " ".join(w.upper() if w in ("ppu", "obb", "3d") else w.capitalize()
+                                             for w in slug.split("_"))
+        out[slug] = {lang: info.get(f"label_{lang}") or en for lang in _LANGS}
     return out

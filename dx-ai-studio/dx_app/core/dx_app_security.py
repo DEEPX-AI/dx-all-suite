@@ -1,7 +1,4 @@
-"""DX-APP 보안 헬퍼 — 경로/파일명 검증 유틸리티.
-
-Phase 5 Task 1.1: Audit IDs 1-5, 18, 85-88
-"""
+"""DX-APP security helpers: path and filename validation."""
 from __future__ import annotations
 
 import os
@@ -16,22 +13,28 @@ def _absolute_under_root(candidate: Path, root: Path) -> Path | None:
     Path traversal via ``..`` is rejected.
     """
     root_abs = root.expanduser().resolve()
+    # The root as written, too: when the root itself is reached through a symlink (a suite whose
+    # dx_app links to an SDK checkout elsewhere) callers build paths under the link, which are
+    # not lexically under the resolved target.
+    root_lexical = Path(os.path.abspath(root.expanduser()))
     full = candidate.expanduser()
     if not full.is_absolute():
         full = root_abs / full
     if ".." in full.parts:
         return None
-    try:
-        full.relative_to(root_abs)
-    except ValueError:
-        return None
-    return full
+    for base in (root_abs, root_lexical):
+        try:
+            full.relative_to(base)
+        except ValueError:
+            continue
+        return full
+    return None
 
 
 def resolve_under(path: str, roots: tuple[Path, ...]) -> Path:
-    """경로를 해석하고 허용된 루트 목록 안에 있는지 검증.
+    """Resolve a path and check that it lies inside one of the allowed roots.
 
-    허용된 루트 자체 또는 그 하위 디렉토리/파일만 통과.
+    Only an allowed root itself or a directory/file below it passes.
     """
     candidate = Path(path).expanduser()
     for root in roots:
@@ -42,23 +45,23 @@ def resolve_under(path: str, roots: tuple[Path, ...]) -> Path:
 
 
 def sanitize_filename(name: str, allowed_extensions: tuple[str, ...]) -> str:
-    """업로드 파일명을 안전한 basename으로 정리.
+    """Reduce an uploaded filename to a safe basename.
 
-    - 경로 구분자(/ \\)로 분리 후 마지막 요소만 사용
-    - '.' 또는 '..' 만으로 된 이름 거부
-    - 허용되지 않은 확장자 거부
-    - 빈 이름 거부
+    - split on path separators (/ \\) and keep only the last part
+    - reject names made only of '.' or '..'
+    - reject extensions that are not allowed
+    - reject empty names
     """
     if not name or not name.strip():
         raise ValueError("Filename must not be empty")
 
-    # 경로 구분자 제거 → basename만 추출
+    # Drop path separators -> keep only the basename
     base = name.replace("\\", "/").split("/")[-1].strip()
 
     if not base or base in (".", ".."):
         raise ValueError(f"Invalid filename: {name}")
 
-    # 확장자 검증
+    # Check the extension
     ext = os.path.splitext(base)[1].lower()
     if ext not in allowed_extensions:
         raise ValueError(
@@ -70,7 +73,7 @@ def sanitize_filename(name: str, allowed_extensions: tuple[str, ...]) -> str:
 
 def resolve_existing_file(path: str, roots: tuple[Path, ...],
                          allowed_extensions: tuple[str, ...] | None = None) -> Path:
-    """경로를 해석하고 파일이 존재하며 허용된 확장자인지 검증."""
+    """Resolve a path and check that the file exists and has an allowed extension."""
     candidate = resolve_under(path, roots)
     if not candidate.is_file():
         raise ValueError(f"File not found: {path}")
@@ -81,11 +84,11 @@ def resolve_existing_file(path: str, roots: tuple[Path, ...],
 
 def resolve_existing_path(path: str, roots: tuple[Path, ...],
                           allowed_extensions: tuple[str, ...] | None = None) -> Path:
-    """파일 또는 디렉터리를 해석/검증 (허용 루트 안에 존재해야 함).
+    """Resolve and check a file or directory (must exist inside an allowed root).
 
-    reid/embedding 데모는 이미지 쌍 디렉터리(sample/img/person_pair, face_pair)를
-    입력으로 받으므로 디렉터리도 허용한다. 디렉터리는 확장자 검사를 건너뛰고,
-    파일은 allowed_extensions를 적용한다. 경로 탈출 방지는 resolve_under가 담당.
+    The reid/embedding demos take image-pair directories (sample/img/person_pair, face_pair) as input,
+    so directories are allowed. Directories skip the extension check; files get allowed_extensions.
+    resolve_under prevents path escapes.
     """
     candidate = resolve_under(path, roots)
     if not candidate.exists():
@@ -96,7 +99,7 @@ def resolve_existing_path(path: str, roots: tuple[Path, ...],
 
 
 def resolve_output_child(name: str, root: Path) -> Path:
-    """출력 하위 경로를 해석하고 root 안에 있는지 검증."""
+    """Resolve an output sub-path and check that it lies inside root."""
     if not name or not str(name).strip():
         raise ValueError("Output directory must not be empty")
     raw = Path(str(name))
@@ -122,14 +125,14 @@ def existing_json(path: str, roots: tuple[Path, ...]) -> Path:
 
 
 def safe_content_disposition(disposition: str, filename: str) -> str:
-    """Content-Disposition 헤더 값을 안전하게 생성.
+    """Build a safe Content-Disposition header value.
 
-    파일명에서 경로 구분자를 제거하고, 따옴표를 이스케이프하여 인용.
+    Removes path separators from the filename and quotes it with quotes escaped.
     """
-    # basename만 추출
+    # Keep only the basename
     safe = filename.replace("\\", "/").split("/")[-1]
     if safe in (".", ".."):
         safe = "download"
-    # 따옴표 이스케이프
+    # Escape quotes
     safe = safe.replace('"', '\\"')
     return f'{disposition}; filename="{safe}"'

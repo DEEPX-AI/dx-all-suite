@@ -1,4 +1,4 @@
-"""_html_parser / _yaml_parser 분리 모듈에 대한 포커스 테스트."""
+"""Focused tests for the separate _html_parser / _yaml_parser modules."""
 
 import os
 import textwrap
@@ -19,7 +19,7 @@ class TestModuleExists:
 
 
 class TestHtmlParser:
-    """_html_parser 모듈의 헬퍼 함수 테스트."""
+    """Helper functions of the _html_parser module."""
 
     def test_parse_internal_table_models_empty_html(self):
         from dx_modelzoo.metadata._html_parser import parse_internal_table_models
@@ -53,7 +53,7 @@ class TestHtmlParser:
         """)
         models = parse_internal_table_models(html)
         assert len(models) > 0
-        # canonical key 가 존재해야 한다
+        # the canonical key must exist
         assert any("mymodel" in k for k in models)
 
     def test_parse_internal_table_models_artifact_link(self):
@@ -112,7 +112,7 @@ class TestHtmlParser:
 
 
 class TestYamlParser:
-    """_yaml_parser 모듈의 헬퍼 함수 테스트."""
+    """Helper functions of the _yaml_parser module."""
 
     @pytest.mark.parametrize(
         "raw,expected",
@@ -203,7 +203,7 @@ class TestYamlParser:
 
 
 class TestAdaptersCompatibility:
-    """adapters.py 의 기존 public API 가 여전히 작동하는지 확인."""
+    """The public API of adapters.py must keep working."""
 
     def test_parse_internal_table_html_still_available(self):
         from dx_modelzoo.metadata.adapters import parse_internal_table_html
@@ -223,3 +223,14 @@ class TestAdaptersCompatibility:
         assert len(result) == 1
         cid = next(iter(result))
         assert result[cid]["display.name"] == "CompatModel"
+
+
+def test_the_display_name_column_is_the_name_people_see():
+    """The publish page gives 'Name' (DenseNet121-1, the internal name) and 'Display Name' (DenseNet-121)
+    separately; Model Zoo and App > Models must show the display name, not the internal one."""
+    from dx_modelzoo.metadata.adapters import parse_internal_table_html
+
+    html = """<table><thead><tr><th>Task</th><th>Name</th><th>Display Name</th><th>Input Resolution</th></tr></thead>
+    <tbody><tr><td>Image Classification</td><td>DenseNet121-1</td><td>DenseNet-121</td><td>224x224x3</td></tr></tbody></table>"""
+    models = parse_internal_table_html(html)["models"]
+    assert models and all(m["display.name"] == "DenseNet-121" for m in models.values()), models

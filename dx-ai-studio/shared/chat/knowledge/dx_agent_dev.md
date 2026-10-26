@@ -1,20 +1,20 @@
-# DX Agent Dev — 자연어 NPU 앱 빌드 에이전트 (v1.0.0)
+# DX Agent Dev — 자연어 NPU 앱 빌드 에이전트
 
 ## [section:overview,소개,개요] DX Agent Dev 개요
 
-DX Agent Dev (포트 8099)는 DX AI Studio의 8번째 모듈로, **자연어 명령만으로 NPU 애플리케이션을 빌드**하는 대화형 AI 에이전트 콘솔입니다.
+DX Agent Dev (Studio 경로 `/agent/`)는 DX AI Studio의 8번째 모듈로, **자연어 명령만으로 NPU 애플리케이션을 빌드**하는 대화형 AI 에이전트 콘솔입니다.
 
 - **자연어 → 파이프라인**: "YOLO 객체 감지 데모 만들어줘" 한 줄로 모델 준비·파이프라인 구성·실행 스크립트를 자동 생성
 - **대화형 콘솔 UI**: 채팅 입력창 + 터미널풍 실시간 출력(빌드 로그 스트리밍)
-- **하니스 래핑**: 팀 내부 `copilot` 기반 에이전트 하니스(`.deepx`)를 표준 모듈 규격(서버/프록시/i18n)으로 래핑
+- **하니스 래핑**: 에이전트 하니스(`.deepx`)를 표준 모듈 규격(서버/프록시/i18n)으로 래핑 — 설치된 코딩 에이전트 CLI 중 아무거나 사용: `claude`, `codex`, `copilot`, `cursor` (`cursor-agent`), `opencode`
 - **폐쇄망 안전 설계**: 하니스/CLI가 없는 환경에서는 자동으로 **강등(degraded) 모드** — 쇼케이스 갤러리(오프라인)를 제공
 - **6개 언어 지원**: 한국어/영어/일본어/중국어 간체·번체/스페인어 UI
 
 ## [section:usage,사용법,실행,run] 사용 방법
 
-1. 런처(`http://localhost:8890`)에서 **🤖 Agent Dev** 카드 클릭 (또는 상단 탭)
+1. 런처 (`./launcher.sh` 가 시작할 때 출력하는 주소)에서 **DX Agent Dev** 카드 클릭 (또는 왼쪽 rail 아이콘)
 2. 콘솔 하단 채팅창에 만들고 싶은 것을 자연어로 입력 (예: "카메라로 사람 감지하는 앱")
-3. **전송** → 에이전트가 요청을 분석하고 빌드 명령을 실행
+3. **Send** → 에이전트가 요청을 분석하고 빌드 명령을 실행 (실행 중에는 **Stop** 버튼이 나타나 진행 중인 빌드를 멈출 수 있음)
 4. 터미널 영역에 실시간 빌드 로그(SSE 스트리밍)가 표시됨
 5. 완료 시 생성된 파이프라인·스크립트 요약 확인
 
@@ -27,7 +27,7 @@ DX Agent Dev (포트 8099)는 DX AI Studio의 8번째 모듈로, **자연어 명
 | **브랜드 헤더** | DX Agent Dev 로고 + 언어 토글 |
 | **터미널 출력** | 에이전트 메시지·명령(`$`)·로그·상태를 타입별로 색상 구분 표시 |
 | **상태 배지** | 에이전트 가용성(available / degraded) 표시 |
-| **채팅 입력** | 자연어 프롬프트 입력 + 전송 |
+| **채팅 입력** | 자연어 프롬프트 입력 + **Send** / 실행 중 **Stop** |
 
 이벤트 타입: `status`(세션 상태), `message`(에이전트 응답), `command`(실행 명령), `log`(빌드 로그), `done`(완료), `error`(오류), `degraded`(강등).
 
@@ -43,7 +43,7 @@ DX Agent Dev (포트 8099)는 DX AI Studio의 8번째 모듈로, **자연어 명
 
 다음 조건에서 자동으로 강등됩니다:
 
-- `copilot` CLI가 PATH에 없음 → `reason: cli_missing`
+- 지원 에이전트 CLI (`claude`, `codex`, `copilot`, `cursor-agent`, `opencode`)가 **하나도** PATH에 없음 → `reason: cli_missing` (하나라도 있으면 사용 가능)
 - `.deepx` 에이전트 하니스 디렉토리를 찾을 수 없음 → `reason: harness_missing`
 
 강등 시 `/api/agent/run` 요청은 404가 아니라 **200 SSE로 `degraded` 프레임 한 개**를 반환하고, 콘솔은 쇼케이스 갤러리를 표시합니다. 환경 변수 `DX_AGENT_ADAPTER=mock`으로 결정적 Mock 어댑터를 강제할 수 있습니다(검증용).

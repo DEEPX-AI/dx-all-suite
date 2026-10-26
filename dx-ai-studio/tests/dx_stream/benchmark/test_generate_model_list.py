@@ -1,4 +1,4 @@
-"""generate_model_list.py 테스트 — test_models.conf → model_list.json 변환기"""
+"""generate_model_list.py — converts test_models.conf to model_list.json"""
 import importlib.util
 import json
 import os
@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-# generate_model_list.py는 설치 불가 독립 스크립트이므로 동적 임포트
+# generate_model_list.py is a standalone script that cannot be installed, so import it dynamically
 _SCRIPT_PATH = (
     Path(__file__).resolve().parent.parent.parent.parent.parent
     / "dx-runtime"
@@ -71,7 +71,7 @@ class TestExtractFamily:
         assert gml.extract_family("totally_unknown_model_xyz") == ""
 
     def test_case_insensitive(self, gml):
-        # 모델명은 소문자로 오지만 혹시 대소문자 섞여도 동작해야 함
+        # Model names arrive lowercase, but mixed case must still work
         assert gml.extract_family("YoloV8n".lower()) == "yolov8"
 
 
@@ -99,16 +99,16 @@ class TestExtractSize:
         assert gml.extract_size("resnet50") == ""
 
     def test_suffix_at_word_boundary(self, gml):
-        # "yolov8s_face" — 's' 뒤에 '_'가 오므로 size == "s"
+        # "yolov8s_face" — '_' follows 's', so size == "s"
         assert gml.extract_size("yolov8s_face") == "s"
 
     def test_no_match_mid_word(self, gml):
-        # "scrfd_10g_bnkps" — 숫자 중간의 문자는 size로 취급 안 함
+        # "scrfd_10g_bnkps" — a letter between digits is not a size
         result = gml.extract_size("scrfd_10g_bnkps")
         assert result == ""
 
 
-# convert_test_models_conf() — 기본 변환
+# convert_test_models_conf() — basic conversion
 
 SAMPLE_CONF = """\
 # 주석은 무시
@@ -158,13 +158,13 @@ class TestConvertTestModelsConf:
         assert cats["dncnn"] == "image_denoising"
 
     def test_pipeline_skip_pixel_output(self):
-        """image_denoising 등 픽셀 출력 카테고리는 pipeline_skip=True"""
+        """Pixel-output categories such as image_denoising get pipeline_skip=True"""
         result = self.gml.convert_test_models_conf(str(self.conf), str(self.out))
         model = next(m for m in result["models"] if m["name"] == "dncnn")
         assert model["pipeline_skip"] is True
 
     def test_pipeline_skip_text_only(self):
-        """TEXT_ONLY_MODELS에 속하면 pipeline_skip=True"""
+        """Models in TEXT_ONLY_MODELS get pipeline_skip=True"""
         result = self.gml.convert_test_models_conf(str(self.conf), str(self.out))
         model = next(m for m in result["models"] if m["name"] == "clip_vit_b_16_text_encoder")
         assert model["pipeline_skip"] is True
@@ -196,7 +196,7 @@ class TestConvertTestModelsConf:
         assert model["size"] == "n"
 
 
-# 실제 test_models.conf 전체 변환 테스트
+# Converting the full real test_models.conf
 
 @pytest.mark.skipif(not _CONF_PATH.exists(), reason="test_models.conf not found")
 class TestFullConversion:
@@ -250,5 +250,5 @@ class TestFullConversion:
     def test_generated_at_is_iso(self):
         from datetime import datetime
         ts = self.result["generated_at"]
-        # ISO 8601 형식이면 파싱 가능
+        # Must parse as ISO 8601
         datetime.fromisoformat(ts)

@@ -37,7 +37,7 @@ TEST SUITE COMMANDS:
 # Getting-started workflow (11 tests, ~30-60 minutes)
 ./test.sh getting_started
 
-# Version compatibility tests (13 tests, <1 minute)
+# Version compatibility tests (17 tests, <1 minute)
 ./test.sh version_compatibility
 
 
@@ -252,12 +252,12 @@ getting_started (11 tests):
   - 6 compiler workflow tests
   - 5 runtime workflow tests
 
-version_compatibility (13 tests):
-  - 4 parser tests
-  - 7 release.ver tests
+version_compatibility (17 tests):
+  - 7 parser tests
+  - 8 release.ver tests
   - 2 optional CLI tests
 
-Total: 91 tests
+Total: 95 tests
 
 
 FILE LOCATIONS:
@@ -332,8 +332,8 @@ Sanity tests:           ~5-10 seconds
 docker_install:         ~6-8 hours (15 tests)
 local_install:          ~8-12 hours (48 tests)
 getting_started:        ~30-60 minutes (11 tests)
-version_compatibility:  <1 minute (13 tests)
-Full suite (all):       ~12-20 hours (91 tests)
+version_compatibility:  <1 minute (17 tests)
+Full suite (all):       ~12-20 hours (95 tests)
 
 
 =============================================================================

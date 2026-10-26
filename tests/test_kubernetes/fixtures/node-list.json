@@ -1,0 +1,37 @@
+{
+  "apiVersion": "v1",
+  "kind": "List",
+  "items": [
+    {
+      "apiVersion": "v1",
+      "kind": "Node",
+      "metadata": {
+        "name": "sangminkang",
+        "labels": {
+          "deepx.ai/dx-m1.count": "1",
+          "deepx.ai/dx-m1.driver-version": "v2.5.1",
+          "deepx.ai/dx-m1.fw-version": "v2.7.6",
+          "deepx.ai/dx-m1.pcie-driver-version": "v2.4.1",
+          "deepx.ai/dx-m1.present": "true",
+          "deepx.ai/dx-m1.product": "M1",
+          "kubernetes.io/hostname": "sangminkang"
+        }
+      },
+      "status": {
+        "allocatable": {
+          "cpu": "20",
+          "deepx.ai/dx-m1": "1",
+          "memory": "65165376Ki"
+        },
+        "capacity": {
+          "cpu": "20",
+          "deepx.ai/dx-m1": "1",
+          "memory": "65165376Ki"
+        }
+      }
+    }
+  ],
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

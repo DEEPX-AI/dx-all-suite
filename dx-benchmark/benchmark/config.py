@@ -25,7 +25,15 @@ POSTPROCESS_LIB_DIR = Path("/usr/local/share/gstdxstream/lib")
 # Self-describing model manifest (single source of truth for download + catalog).
 MODEL_LIST_JSON = APP_DIR / "model_list.json"
 
-PROTOCOL_VERSION = "v1"  # v1: first public measurement methodology — adaptive buffer-count probe + pre-E2E cooldown
+PROTOCOL_VERSION = "v2"  # v2: buffer-count sweep delegated to `dxrun --max-throughput` (v1: in-house adaptive probe)
+
+# dxrun measures each candidate buffer count this many times and averages
+# (a dxrun constant, mirrored here to size the timeout).
+BC_SWEEP_REPEATS = 3
+# Rounds the sweep timeout allows; dxrun normally stops after 5-12.
+BC_SWEEP_ROUND_BUDGET = 25
+# Per-round engine setup beyond the probe time, in seconds.
+BC_SWEEP_ROUND_OVERHEAD_SEC = 3
 MULTI_STREAM_SEARCH_MODE = "single-stream-estimate-linear-boundary"
 STABLE_CAPACITY_RULE = "status_ok_and_all_runs_success_and_avg_per_channel_fps_ge_threshold"
 
@@ -82,31 +90,31 @@ TASK_MODEL_META = {
         "input_size": (640, 640),
         "preprocess": "Letterbox resize + pad (pad=114), keep-ratio=true",
         "output": "Bounding boxes + class scores",
-        "ort_offload": "Yes (NMS on CPU)",
+        "ort_offload": "Yes",
     },
     "pose_estimation": {
         "input_size": (640, 640),
         "preprocess": "Letterbox resize + pad (pad=114), keep-ratio=true",
         "output": "Bounding boxes + 17 keypoints",
-        "ort_offload": "Yes (NMS + keypoint decode on CPU)",
+        "ort_offload": "Yes",
     },
     "segmentation": {
         "input_size": (640, 640),
         "preprocess": "Letterbox resize + pad (pad=114), keep-ratio=true",
         "output": "Bounding boxes + instance masks",
-        "ort_offload": "Yes (NMS + mask decode on CPU)",
+        "ort_offload": "Yes",
     },
     "oriented_bbox": {
         "input_size": (1024, 1024),
         "preprocess": "Letterbox resize + pad (pad=114), keep-ratio=true",
         "output": "Rotated bounding boxes (OBB)",
-        "ort_offload": "Yes (NMS on CPU)",
+        "ort_offload": "Yes",
     },
     "classification": {
         "input_size": (224, 224),
         "preprocess": "Direct resize, keep-ratio=false",
         "output": "Class index + confidence (ImageNet-1k)",
-        "ort_offload": "No (pure NPU inference)",
+        "ort_offload": "No",
     },
 }
 
@@ -205,16 +213,12 @@ class BenchmarkConfig:
     model_latency_runs: int = 1     # repeated measurements per latency benchmark
     model_throughput_runs: int = 3  # repeated measurements per throughput benchmark
 
-    # ── buffer-count adaptive probe (protocol v1, throughput only) ────
-    # Throughput vs run_model --buffer-count is a unimodal saturation curve; probe
-    # ascending from the per-chip core-count floor and measure at the knee.
-    buffer_count_probe_start: int = 3      # M1/M1M/H1 = 3 cores per chip
-    buffer_count_probe_floor_max: int = 8  # always probe start..8 (covers default 6 + margin)
-    buffer_count_probe_sec: int = 10       # per-probe duration (-t)
-    buffer_count_probe_retries: int = 1    # retry a probe that returns 0 fps (transient stall)
-    buffer_count_improve_eps: float = 0.01
-    buffer_count_decline_eps: float = 0.02
-    buffer_count_max_probe: int = 16
+    # ── buffer-count sweep (protocol v2, throughput only) ────────────
+    # dxrun --max-throughput runs the search. No --buffer-count range is passed:
+    # an explicit range disables its early stop.
+    bc_probe_sec: int = 10          # --probe-time per repeat. Mean loss 1.02% at 5s vs 0.76% at 10s.
+    bc_sweep_tolerance_pct: float = 1.0  # --sweep-tolerance: FPS within this % of the peak is a tie; the smallest buffer count wins.
+    bc_sweep_timeout_sec: int = 900 # Whole-sweep timeout FLOOR; see effective_sweep_timeout_sec().
 
     # ── E2E pipeline params ───────────────────────────────────────────
     e2e_runs: int = 3               # repeated measurements per condition
@@ -269,6 +273,18 @@ class BenchmarkConfig:
         return APP_DIR.parent / "results"
 
 
+def effective_sweep_timeout_sec(cfg: "BenchmarkConfig") -> int:
+    """Whole-sweep timeout actually enforced.
+
+    ``bc_sweep_timeout_sec`` is a floor: the sweep must also fit
+    ``BC_SWEEP_ROUND_BUDGET`` rounds of ``probe x BC_SWEEP_REPEATS`` plus setup, so a
+    longer ``bc_probe_sec`` cannot starve it. dxrun stops when the curve flattens, so
+    this is a ceiling, not a prediction.
+    """
+    per_round = cfg.bc_probe_sec * BC_SWEEP_REPEATS + BC_SWEEP_ROUND_OVERHEAD_SEC
+    return max(cfg.bc_sweep_timeout_sec, BC_SWEEP_ROUND_BUDGET * per_round)
+
+
 def get_protocol_metadata(cfg: BenchmarkConfig) -> dict:
     """Return the fixed measurement protocol metadata for the current run."""
     return {
@@ -281,11 +297,12 @@ def get_protocol_metadata(cfg: BenchmarkConfig) -> dict:
         "model_run_retries": cfg.model_run_retries,
         "model_latency_runs": cfg.model_latency_runs,
         "model_throughput_runs": cfg.model_throughput_runs,
-        "buffer_count_probe_start": cfg.buffer_count_probe_start,
-        "buffer_count_probe_floor_max": cfg.buffer_count_probe_floor_max,
-        "buffer_count_probe_sec": cfg.buffer_count_probe_sec,
-        "buffer_count_probe_retries": cfg.buffer_count_probe_retries,
-        "buffer_count_max_probe": cfg.buffer_count_max_probe,
+        "bc_sweep_mode": "auto-stop",
+        "bc_sweep_repeats": BC_SWEEP_REPEATS,
+        "bc_sweep_tolerance_pct": cfg.bc_sweep_tolerance_pct,
+        "bc_probe_sec": cfg.bc_probe_sec,
+        "bc_sweep_timeout_sec": cfg.bc_sweep_timeout_sec,
+        "bc_sweep_timeout_effective_sec": effective_sweep_timeout_sec(cfg),
         "e2e_runs": cfg.e2e_runs,
         "e2e_stall_timeout": cfg.e2e_stall_timeout,
         "e2e_hard_cap": cfg.e2e_hard_cap,

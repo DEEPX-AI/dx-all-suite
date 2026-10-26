@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+import traceback
 from pathlib import Path
 
 from . import __version__
@@ -99,12 +100,29 @@ def main(argv: list[str] | None = None) -> int:
             print(f"ERROR: {repo} does not contain .deepx/ directory", file=sys.stderr)
             return 1
 
+    try:
+        return _dispatch(args, repo)
+    except Exception as e:  # noqa: BLE001
+        # Anything outside the documented RuntimeError contract (drift = 1,
+        # `error: <msg>` = 1) is a TOOL failure — e.g. an import-time TypeError
+        # on an old interpreter. Exit 2 so callers (subrepo_check.sh, run_all.sh)
+        # never mistake it for drift; keep the traceback for debugging.
+        print(f"error: internal failure ({type(e).__name__}): {e}", file=sys.stderr)
+        traceback.print_exc()
+        return 2
+
+
+def _dispatch(args: argparse.Namespace, repo: Path) -> int:
     from .generator import Generator
 
     gen = Generator(repo)
 
     if args.command == "generate":
-        results = gen.generate(platform=args.platform, dry_run=args.dry_run)
+        try:
+            results = gen.generate(platform=args.platform, dry_run=args.dry_run)
+        except RuntimeError as e:
+            print(f"error: {e}", file=sys.stderr)
+            return 1
         if args.dry_run:
             for path, action in results.items():
                 print(f"  {action}: {path}")
@@ -128,7 +146,11 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     elif args.command == "check":
-        clean, report = gen.check(platform=args.platform)
+        try:
+            clean, report = gen.check(platform=args.platform)
+        except RuntimeError as e:
+            print(f"error: {e}", file=sys.stderr)
+            return 1
         for line in report:
             print(line)
         return 0 if clean else 1

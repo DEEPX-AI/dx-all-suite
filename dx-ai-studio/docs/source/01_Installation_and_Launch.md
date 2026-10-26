@@ -1,25 +1,46 @@
 # Installation & Launch
 
-!!! warning "Beta release (v0.1.0)"
+!!! warning "Beta release (v0.1.1)"
     DX-AI-Studio is a **beta** release. Features, APIs, and the UI may change before the
     general-availability release.
 
 ## Prerequisites
 
 - **Python 3.8+**. `./launcher.sh` installs the package automatically on first run —
-  no manual install step, no third-party dependencies.
-- For **real** compilation and inference: the **DEEPX SDK** (from `dx-runtime` /
-  `dx-compiler`) and a DEEPX **NPU**. Without them the studio still launches in
-  **demo / mock mode** for exploring the UI.
+  no manual install step. The base Studio package uses the Python standard library
+  (`dependencies = []`); the optional requirements below apply only to their features.
+- **Local compilation** needs the DX Compiler SDK; **real NPU inference** needs DX-RT,
+  a compatible driver, a DEEPX NPU and prepared models / examples (from `dx-runtime` /
+  `dx_app`). Without these the Studio still launches; tools report missing requirements.
 - **DX Stream** additionally needs the system **GStreamer + PyGObject** (`python3-gi`,
   `gstreamer1.0-*`) — standard on desktop Linux — to run pipelines.
+- **Live DX App runs** (camera, RTSP, Continuous, Run Demo video, and Graph Live) draw the example's
+  window on a virtual display and stream it to the browser. They need the OS packages
+  **`xvfb`**, **`libxcb1`**, and **Pillow** (typically `python3-pil` on Debian/Ubuntu).
+  These display dependencies are not required for ordinary image or batch-video inference.
+  A missing dependency is reported rather than replaced with a successful mock run.
+- **Graph Composer**, a feature of DX App, needs a dx_app build containing
+  **`multi_model_graph_sync` / `multi_model_graph_async`** and the models used by the graph.
+  Build the graph runners with dx_app's `./build.sh`; Studio detects the installed build's
+  capabilities. **Edit on the frame…** needs Pillow, and reading a video's first frame or
+  using **Layers for this frame** also needs **`ffmpeg`**. See
+  [Graph Composer](05_DX_App.md#graph-composer).
+- **DX Cloud** requires the optional **`boto3`** AWS extra for real AWS operations, plus
+  host-side credentials and the relevant AWS subscriptions / permissions. Browsing the
+  page and its guide does not require this extra. See [DX Cloud](13_DX_Edge_AWS.md).
 
 !!! note "How the studio finds these"
     `./launcher.sh` creates its virtualenv with **`--system-site-packages`**, so it inherits
     the platform-provided `dx_engine` (DEEPX runtime) and `gi` (GStreamer bindings). The
-    studio's *own* code stays stdlib-only (no pip third-party); these are platform runtimes,
-    like the NPU driver. If `dx_engine` is missing, **DX Monitor** shows mock data and live
-    inference is unavailable; if `gi` is missing, **DX Stream** can build but not run pipelines.
+    base Studio stays stdlib-only; feature-specific packages are not base dependencies.
+    If `dx_engine` is missing, **DX Monitor** shows *NPU telemetry
+    unavailable* and live inference is unavailable; if `gi` is missing, **DX Stream** can build but not run pipelines.
+
+Camera discovery and preview decoding use a separate media Python with compatible
+NumPy and OpenCV; the Studio web server does not import `cv2`. If no compatible
+interpreter is available, Setup diagnostics and camera selection report the missing
+media runtime rather than treating it as an empty camera list. These are
+feature-specific requirements, not base Studio dependencies.
 
 !!! note "Check your NPU"
     Once the DEEPX runtime is installed, `dxrt-cli --status` lists each NPU device with its
@@ -41,8 +62,11 @@ a tool isn't ready yet.
 
 | Option | Effect |
 |--------|--------|
-| `--port <PORT>` / `-p <PORT>` | Hub port (default **8890**; auto-bumps if busy). |
+| `--port <PORT>` / `-p <PORT>` | Preferred hub port (default **8890**). If another service holds it, the next free port is used; the last port is remembered in `.launcher-port`. Open the URL the launcher prints. |
 | `--no-browser` | Start the servers but do not open a browser. |
+| `--no-kill` | Keep a studio that is already running (by default a new launch replaces your previous one). |
+| `--fast` | Skip the boot animation in the terminal. |
+| `--debug[=PATH]` | Log user actions to `var/log/studio-debug.log` (or to `PATH`). |
 
 Run `./launcher.sh --help` for the full flag list. The hub proxies all modules, so you
 only ever open the hub port.
@@ -73,7 +97,7 @@ Build NPU applications from natural language:
 
 1. **[Agent Dev](10_DX_Agent_Dev.md)** — Describe what you want; the agent generates and runs it
 
-See **[The Hub](02_The_Hub.md)** for details on all eight tools and navigation.
+See **[The Hub](02_The_Hub.md)** for details on all nine tools and navigation.
 
 ## How to Use This Manual
 
@@ -98,6 +122,7 @@ See **[The Hub](02_The_Hub.md)** for details on all eight tools and navigation.
 **🚀 Development:**
 
 - **[Agent Dev](10_DX_Agent_Dev.md)** — Generate NPU apps from natural language
+- **[DX Cloud](13_DX_Edge_AWS.md)** — Compile on AWS and deploy to edge devices
 
 **📚 Reference:**
 
@@ -110,62 +135,79 @@ See **[The Hub](02_The_Hub.md)** for details on all eight tools and navigation.
 
 ## Stopping
 
-`Ctrl+C` in the terminal running `./launcher.sh`. Re-running on a busy port auto-bumps
-to the next free port unless you pass `--no-kill`.
+`Ctrl+C` in the terminal running `./launcher.sh`. Running `./launcher.sh` again replaces your
+previous studio; pass `--no-kill` to leave it running (the new one then takes the next free
+port).
 
-## Remote access & security
+## Remote access & security {#remote-access-security}
 
-By default the hub binds **all network interfaces**, so a studio running on a headless
-NPU board is reachable from another machine's browser at `http://<board-ip>:8890`.
-Convenient — but it also means **anyone on the same network can open it** (no login), and
-they share the board's files (uploads, runs, downloads). Choose the access model that fits:
+By default the hub listens on **all network interfaces**, so a studio running on a headless
+NPU board can be opened from another machine's browser. The launcher prints that address
+under **other computers:** in its URL banner (for example `http://192.168.0.42:8890`), and the
+**Connected browsers** button in the top bar shows it too.
+Remote browsers must be **paired** first — nobody on the network can use the studio without
+the code shown on the board. The module servers behind the hub (App, Stream, Compiler …)
+only listen on the board's `127.0.0.1`; everything goes through the hub.
 
-### Private access via SSH tunnel (recommended)
+| Who | What they need |
+|-----|----------------|
+| You, on the board itself (or through an SSH / VS Code tunnel) | Nothing — works as before. |
+| A browser on another machine | The **6-digit code** printed in the board's `./launcher.sh` terminal — once per browser. |
+| A script / API client | `DX_API_TOKEN` (header `Authorization: Bearer <token>` or `X-DX-Api-Token`). |
+
+### Pair a browser (open LAN access)
+
+1. On the board, run `./launcher.sh`. Next to the URL banner it prints
+   **`Remote access code: 123456`**.
+2. On your laptop, open the address printed under **other computers:** (or shown in
+   **Connected browsers** on the board). You see **Connect this browser** — type the code.
+3. That browser is remembered for 30 days (`DX_SESSION_DAYS`). The code works once; a new one
+   is printed after each use, and after 5 wrong tries the studio pauses for a minute and
+   prints a new code.
+
+**Connected browsers** (top bar) lists every paired browser — browser and OS, IP, last
+active, paired date — with **Disconnect**. On the board you see and disconnect all of them;
+a paired browser sees only itself and can **Disconnect this browser**. Scripts can use
+`GET /api/auth/sessions`, `POST /api/auth/sessions/revoke` (board only) and
+`POST /api/auth/logout`.
+
+!!! tip "Watching DX Stream from another computer"
+    Choose **Playback → Remote (MJPEG)** in DX Stream. **Local (WebRTC)** is for the board
+    itself or the same LAN segment and does not cross an SSH tunnel.
+
+!!! note "Worked example — laptop → board at `192.168.0.42`"
+    - **On the board:** `./launcher.sh` → note `Remote access code: 482915`.
+    - **In your laptop browser:** open `http://192.168.0.42:8890`, enter `482915`.
+
+### Private access via SSH tunnel (no network exposure)
 
 Keeps the studio invisible to the network — only someone who can SSH into the board can
-reach it. No password feature needed; it reuses the SSH login you already have.
+reach it, and no code is needed (the tunnel arrives on the board's `localhost`).
 
 1. On the board, bind to localhost only:
    ```bash
    DX_BIND_LOCAL=1 ./launcher.sh
    ```
-   The studio now listens on `127.0.0.1:8890` and is **not** visible on the network.
-2. From your laptop (Windows PowerShell, macOS/Linux terminal), forward the port over SSH:
+2. From your laptop, forward the port over SSH:
    ```bash
    ssh -L 8890:localhost:8890 <user>@<board-ip>
    ```
    (On Windows, PuTTY/MobaXterm can save this as a stored port-forward.)
-3. Open `http://localhost:8890` in your laptop browser — traffic rides the encrypted SSH
-   tunnel to the board. Keep the SSH session open while you use it.
+3. Open `http://localhost:8890` in your laptop browser.
 
-!!! note "Worked example — laptop → board at `192.168.0.42`"
-    Find the board's IP on the board with `hostname -I` (or `ip addr`) — say it's
-    `192.168.0.42`, login `deepx`.
+### What the studio refuses
 
-    - **On the board:** `DX_BIND_LOCAL=1 ./launcher.sh`
-    - **On your laptop** (Windows PowerShell / macOS / Linux terminal):
-      ```bash
-      ssh -L 8890:localhost:8890 deepx@192.168.0.42
-      ```
-    - **In your laptop browser:** open `http://localhost:8890`
-
-    Nobody else on the network can reach it — even though the studio runs on the board,
-    it only answers on the board's `localhost`, and the tunnel is yours alone.
-
-### Open LAN access
-
-Just run `./launcher.sh` (default) and open `http://<board-ip>:8890` from any machine on the
-network — e.g. a board at `192.168.0.42` → `http://192.168.0.42:8890` in your laptop
-browser (find the IP with `hostname -I` on the board). Use this only on a **trusted** network — there is no browser login, so treat it as
-"anyone who can reach the port can use the studio". For programmatic/API clients you can
-require a token:
-
-```bash
-DX_API_TOKEN=<your-secret> ./launcher.sh   # module API calls must send this token
-```
-
-(The token gates the module API; it does not add a browser login screen — for private
-browser access use the SSH tunnel above.)
+- Requests whose `Host` is a name other than `localhost`, this machine's hostname or an
+  address listed in `DX_ALLOWED_HOSTS` (an IP address is always fine) — this blocks DNS
+  rebinding.
+- Cross-site requests: no `Access-Control-Allow-Origin: *`, and a state-changing request
+  (POST/PUT/PATCH/DELETE) carrying another site's `Origin`/`Referer` is refused, even on the
+  board itself.
+- Compile paths outside the allowed folders — the suite folder, the studio's `var/`, your home
+  folder, `/media` and `/mnt` (add more with `DX_COMPILER_ALLOWED_ROOTS`).
+- For HTTPS or access from outside the LAN, put the hub behind an approved reverse proxy
+  that terminates TLS; requests that come through a proxy (`X-Forwarded-For`) are treated as
+  remote and must be paired.
 
 ### Multiple people
 
@@ -184,17 +226,30 @@ browser access use the SSH tunnel above.)
 | Variable | Effect |
 |----------|--------|
 | `DX_BIND_LOCAL=1` | Bind `127.0.0.1` only — no network exposure (use with an SSH tunnel). |
-| `DX_BIND_HOST=<host>` | Bind an explicit interface/address. |
-| `DX_API_TOKEN=<secret>` | Require this token on module API requests (`Authorization` / `X-DX-Api-Token`). |
+| `DX_BIND_HOST=<host>` | Bind the hub to an explicit interface/address. |
+| `DX_API_TOKEN=<secret>` | Lets scripts call the studio from another machine (`Authorization: Bearer` / `X-DX-Api-Token`). Required to run a module server on its own beyond `127.0.0.1`. |
+| `DX_PAIRING=off` | Disable browser pairing — remote access only with `DX_API_TOKEN`. |
+| `DX_SESSION_DAYS=<n>` | How long a paired browser stays connected (default 30). |
+| `DX_ALLOWED_HOSTS=<a,b>` | Extra host names the studio answers to (e.g. a DNS alias). |
+| `DX_COMPILER_ALLOWED_ROOTS=<dir:dir>` | Extra folders the compiler may read from and write to. |
 
 ## Troubleshooting
 
-- **Everything shows sample / mock data** — the NPU or SDK isn't detected. Confirm the
+- **DX Monitor says *NPU telemetry unavailable* / tools say the SDK is missing** — the NPU or SDK isn't detected. Confirm the
   driver is loaded with `lsmod | grep dx` (expect `dxrt_driver` and `dx_dma`) and the
   device with `dxrt-cli --status`; **DX Monitor**'s version panel shows what the studio sees.
 - **A tool stays on the splash / "not ready"** — module servers may still be starting;
   wait a moment and reload. If it persists, check the terminal running `./launcher.sh` for errors.
 - **"Port already in use"** — 8890 auto-bumps to the next free port; pin one with `-p`, or
   pass `--no-kill` to leave an existing instance alone.
-- **UI works but compile / inference fails** — the DEEPX SDK is missing. Use the in-app
-  **Setup** panel in DX App and DX Compiler to check and install the required runtime.
+- **UI works but compile / inference fails** — inspect the error rather than assuming
+  the UI proves readiness. Use **Setup** in DX Compiler for its SDK, or DX App / DX Stream
+  for the runtime, driver, example binaries and models required by the action.
+- **Stream refuses to launch after a runtime change** — open **Setup → DX-Runtime
+  Dependencies** and **NPU Linux Driver**, inspect the failed check and follow its
+  remediation. After an authorized installation or a requested reboot, run the checks
+  again before retrying the pipeline. A browsable Dashboard is not proof that the runtime
+  and driver passed validation.
+- **Graph validation / Run once is unavailable** — check that Studio is using a dx_app
+  checkout with the graph runners, build them there, and prepare the graph's models.
+  A missing runner or model is not an automatic mock mode.

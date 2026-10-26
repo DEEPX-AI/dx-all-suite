@@ -51,6 +51,19 @@ class TestDockerBuildSanity:
         )
         assert result.returncode == 0, "docker compose command not found"
 
+    def test_dx_runtime_variant_tag_suffix(self):
+        """Verify dx-runtime --variant stage/tag wiring (stubs docker, builds nothing)"""
+        script = Path(__file__).parent / "variant_tag_check.sh"
+        result = subprocess.run(
+            ["bash", str(script)],
+            capture_output=True,
+            text=True,
+            cwd=PROJECT_ROOT,
+        )
+        assert result.returncode == 0, (
+            f"variant tag checks failed:\n{result.stdout}\n{result.stderr}"
+        )
+
     def test_project_structure(self):
         """Verify essential project directories exist"""
         essential_dirs = [

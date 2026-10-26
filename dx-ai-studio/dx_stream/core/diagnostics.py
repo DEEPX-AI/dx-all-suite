@@ -4,7 +4,7 @@ import shutil
 import subprocess
 
 from dx_stream.core.gst_env import gi_capable_python
-from shared.runtime_context import RuntimeContextError, resolve_active_runtime_context
+from shared.runtime_context import RuntimeContextError, resolve_launch_context
 from shared.runtime_environment import RuntimeEnvironmentError, build_child_environment
 from shared.runtime_validation import validate_stream_pipeline
 
@@ -187,7 +187,7 @@ def _check_gst_plugin():
     # GST_PLUGIN_PATH points at the installed plugin dir — matching how the Stream pipeline
     # is actually launched. Fall back to the inherited env if no active profile is resolved.
     try:
-        env = build_child_environment(resolve_active_runtime_context())
+        env = build_child_environment(resolve_launch_context("dx_stream"))
     except (RuntimeContextError, RuntimeEnvironmentError):
         env = None
     rc, _, _ = _run(["gst-inspect-1.0", "--exists", "dxinfer"], env=env)
@@ -203,7 +203,7 @@ def _check_gst_plugin():
 
 def _check_gst_pipeline():
     try:
-        context = resolve_active_runtime_context()
+        context = resolve_launch_context("dx_stream")
         result = validate_stream_pipeline(
             _DXINFER_PARSE_PROBE,
             python_executable=gi_capable_python(context.python_executable),
@@ -291,8 +291,12 @@ def deep_diagnostics():
         (_check_disk, "disk_space", "advisory", _DIAGNOSTIC_CHECK_SPECS[9]),
         (_check_memory, "memory", "advisory", _DIAGNOSTIC_CHECK_SPECS[10]),
     )
-    checks = []
-    for checker, check_id, severity, presentation in check_specs:
+    # The probes are independent subprocesses — run them together and keep the order. One after
+    # another they took 6.2 s on a set-up board, and the page waited for the sum.
+    from concurrent.futures import ThreadPoolExecutor
+
+    def _one(spec):
+        checker, check_id, severity, presentation = spec
         try:
             result = checker()
             if not isinstance(result, dict):
@@ -316,7 +320,10 @@ def deep_diagnostics():
                 "fix": presentation["fix"],
                 "severity": severity,
             }
-        checks.append(check)
+        return check
+
+    with ThreadPoolExecutor(max_workers=len(check_specs)) as pool:
+        checks = list(pool.map(_one, check_specs))
 
     passed = sum(1 for c in checks if c["ok"])
     blockers = sum(1 for c in checks if not c["ok"] and c["severity"] == "blocker")

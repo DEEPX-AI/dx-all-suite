@@ -83,7 +83,7 @@ def test_launcher_serves_shared_css_foundation(launcher_server):
 
 def test_launcher_serves_shared_font_binary(launcher_server):
     resp = urlopen(
-        f"{launcher_server}/static/shared/fonts/inter-v20-latin-regular.woff2",
+        f"{launcher_server}/static/shared/fonts/inter-4.1-var-latin.woff2",
         timeout=5,
     )
     body = resp.read()
@@ -110,7 +110,7 @@ def test_launcher_serves_shared_chat_widget_static(launcher_server, asset_path):
     (
         "/static/sdk-library-data.json",
         "/static/about-data.json",
-        "/static/fonts/inter-v20-latin-regular.woff2",
+        "/static/fonts/inter-4.1-var-latin.woff2",
         "/static/img/deepx-logo.svg",
         "/static/img/about/dx-m1-die.jpg",
     ),
@@ -146,6 +146,26 @@ def test_launcher_serves_general_static_images_even_with_subapp_referer(launcher
     body = resp.read()
     assert resp.status == 200
     assert body.startswith(b"<svg")
+
+
+def test_launcher_graph_example_images_stay_with_the_app(monkeypatch):
+    module = _load_launcher_module()
+    calls = _install_proxy_spy(monkeypatch, module)
+    server, base_url = _start_launcher_server(module.LauncherHandler)
+    try:
+        path = "/static/img/graph-examples/line_counting.jpg"
+        request = Request(f"{base_url}{path}", headers={"Referer": f"{base_url}/app/"})
+        with urlopen(request, timeout=5) as response:
+            assert response.status == 200
+        assert calls == [{
+            "target_port": module.APP_PORT,
+            "path": path,
+            "inject_widget": True,
+            "method": "GET",
+        }]
+    finally:
+        server.shutdown()
+        server.server_close()
 
 
 def test_launcher_rejects_shared_static_path_traversal(launcher_server):
@@ -260,6 +280,32 @@ def test_launcher_subapp_referer_static_stays_proxied(monkeypatch):
         server.server_close()
 
 
+@pytest.mark.parametrize("path", ["/static/img/graph-examples/cascade_od_attr.jpg",
+                                  "/static/img/graph-tutorial/preview.json"])
+def test_launcher_subapp_referer_module_images_stay_proxied(monkeypatch, path):
+    """DX App's own images (Graph Composer thumbnails, the graph tutorial preview) sit under /static/img/ as the
+    launcher's do: only the launcher's own folders there are the launcher's, the rest go to the module."""
+    module = _load_launcher_module()
+    calls = _install_proxy_spy(monkeypatch, module)
+    server, base_url = _start_launcher_server(module.LauncherHandler)
+    try:
+        resp = urlopen(Request(f"{base_url}{path}", headers={"Referer": f"{base_url}/app/"}), timeout=5)
+        assert '"proxied": true' in resp.read().decode()
+        assert [(c["target_port"], c["path"]) for c in calls] == [(module.APP_PORT, path)]
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
+def test_every_launcher_image_folder_stays_the_launchers():
+    """The launcher keeps each entry of launcher/static/img for itself, from a module page too."""
+    module = _load_launcher_module()
+    owned = module.LauncherHandler._LAUNCHER_OWNED_STATIC_PREFIXES
+    for entry in (ROOT / "launcher" / "static" / "img").iterdir():
+        path = f"/static/img/{entry.name}" + ("/x" if entry.is_dir() else "")
+        assert any(path.startswith(p) for p in owned), path
+
+
 def _read_all_launcher_js():
     """Read concatenated launcher JS source (all split modules + bootstrap)."""
     parts = []
@@ -291,9 +337,11 @@ def test_launcher_tutorial_mode_defaults_on():
     assert "_stored !== 'off'" in tutorial_js
     assert "_stored === 'on'" not in tutorial_js
     assert "type: _tutorialMode ? 'dx-tutorial-start' : 'dx-tutorial-stop'" in tutorial_js
-    # first step spotlights the Tutorial Mode on/off card so users know where to turn it off
-    assert "#dxt-tutorial-card" in tutorial_js
-    assert tutorial_js.index("target: '#dxt-tutorial-card'") < tutorial_js.index("target: '.top-bar'")
+    # The tour row (Tutorial Mode switch + Replay intro) has its own step that says how to turn
+    # the tours off. The tour walks the stage in reading order and puts the tour row after the bar.
+    step = tutorial_js[tutorial_js.index("target: '#homeTour'"):]
+    step = step[:step.index("} }")]
+    assert "Tutorial Mode" in step and "off" in step
 
 
 def test_launcher_index_rewrites_root_assets_with_content_hashes():

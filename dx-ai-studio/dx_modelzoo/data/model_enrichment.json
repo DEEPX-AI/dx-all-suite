@@ -2116,7 +2116,7 @@
   },
   "yolov5m6": {
     "dataset": "COCO",
-    "input_resolution": "1280x1280x3",
+    "input_resolution": "640x640x3",
     "license": "GPL-3.0",
     "operations": "26.07",
     "parameters": "21.27",
@@ -2124,7 +2124,7 @@
   },
   "yolov5m_6_1": {
     "dataset": "COCO",
-    "input_resolution": "640x640x3",
+    "input_resolution": "1280x1280x3",
     "license": "GPL-3.0",
     "operations": "106.41",
     "parameters": "36.11",

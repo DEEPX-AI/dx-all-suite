@@ -2,25 +2,24 @@
    DX Chat Widget — Shared Chat UI Component
    ═══════════════════════════════════════════════════════ */
 
+/* The widget keeps its own variable names, but the values sit on the semantic
+   tokens so it follows the studio theme (light/dark). */
 :root {
-  --chat-bg: #1e1e2e;
-  --chat-surface: #282840;
-  --chat-border: #3a3a5c;
-  --chat-text: #e0e0e8;
-  --chat-text-muted: #9090a8;
-  --chat-primary: #7c3aed;
-  --chat-primary-hover: #6d28d9;
-  --chat-user-bg: #7c3aed;
-  --chat-user-text: #fff;
-  --chat-ai-bg: #2a2a44;
-  --chat-ai-text: #e0e0e8;
-  --chat-input-bg: #2a2a44;
-  --chat-input-border: #3a3a5c;
-  --chat-banner-bg: #3b2e1e;
-  --chat-banner-border: #d97706;
-  --chat-banner-text: #fbbf24;
-  --chat-code-bg: #1a1a2e;
-  --chat-shadow: 0 8px 32px rgba(0,0,0,.4);
+  --chat-bg: var(--surface-panel);
+  --chat-surface: var(--surface-raised);
+  --chat-border: var(--border-subtle);
+  --chat-text: var(--text-primary);
+  --chat-text-muted: var(--text-muted);
+  --chat-primary: var(--accent);
+  --chat-primary-hover: var(--accent-light);
+  --chat-user-bg: var(--accent);
+  --chat-user-text: var(--text-on-accent);
+  --chat-ai-bg: var(--surface-raised);
+  --chat-ai-text: var(--text-primary);
+  --chat-input-bg: var(--control-bg);
+  --chat-input-border: var(--control-border);
+  --chat-code-bg: var(--surface-sunken);
+  --chat-shadow: var(--shadow);
 }
 
 /* ── FAB Button ─────────────────────────────────────── */
@@ -42,14 +41,14 @@
   align-items: center;
   justify-content: center;
   font-size: var(--fs-3xl);
-  transition: transform .2s, background .2s;
+  transition: transform .2s var(--ease), background .2s var(--ease);
 }
 .dx-chat-fab:hover {
   background: var(--chat-primary-hover);
   transform: scale(1.08);
 }
 .dx-chat-fab.open {
-  transform: rotate(45deg) scale(1.08);
+  transform: scale(1.08);
 }
 
 /* ── Chat Window ────────────────────────────────────── */
@@ -108,41 +107,66 @@
   color: var(--chat-text);
   background: var(--chat-border);
 }
+/* Text link to the web chatbot — reads as a name next to the three icon buttons. */
+.dx-chat-header-actions { align-items: center; }
+.dx-chat-header-link {
+  padding: var(--sp-1) var(--sp-2);
+  border-radius: var(--radius-sm);
+  color: var(--chat-primary);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.dx-chat-header-link:hover {
+  color: var(--chat-primary-hover);
+  background: var(--chat-border);
+  text-decoration: none;
+}
 
-/* ── Banner ─────────────────────────────────────────── */
-
-.dx-chat-banner {
-  padding: 10px 14px;
-  background: var(--chat-banner-bg);
-  border-bottom: 1px solid var(--chat-banner-border);
-  color: var(--chat-banner-text);
+/* ── Who answers (status line) ─────────────────────── */
+/* A line that is always there, not a warning strip. */
+.dx-chat-source {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px var(--sp-2);
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--chat-border);
+  color: var(--text-secondary, var(--chat-text-muted));
   font-size: var(--fs-sm);
-  line-height: 1.5;
+  line-height: 1.4;
   flex-shrink: 0;
 }
-.dx-chat-banner a {
-  color: var(--chat-banner-text);
-  text-decoration: underline;
+.dx-chat-source:empty { display: none; }
+.dx-chat-source-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--status-ok);
+  flex: none;
 }
-.dx-chat-banner-action {
-  margin-left: 6px;
-  padding: 2px 8px;
-  border: 1px solid var(--chat-banner-border);
-  border-radius: var(--radius-pill);
+.dx-chat-source.is-none .dx-chat-source-dot { background: var(--text-muted); }
+.dx-chat-source-text { min-width: 0; overflow-wrap: anywhere; }
+.dx-chat-source-change {
+  margin-left: auto;
+  min-height: 24px;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: var(--radius-sm, 4px);
   background: transparent;
-  color: var(--chat-banner-text);
-  cursor: pointer;
+  color: var(--accent-ink);
   font: inherit;
+  cursor: pointer;
 }
-.dx-chat-banner-action:hover {
-  background: rgba(251,191,36,.14);
-}
+.dx-chat-source-change:hover { text-decoration: underline; }
+.dx-chat-source-change:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 /* ── Settings Panel ─────────────────────────────────── */
 
 .dx-chat-settings-panel {
   flex-shrink: 0;
-  padding: 12px 14px;
+  padding: 12px 12px;
   background: var(--chat-bg);
   border-bottom: 1px solid var(--chat-border);
   max-height: 52vh;
@@ -154,7 +178,7 @@
 .dx-chat-settings-form {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 .dx-chat-settings-title {
   color: var(--chat-text);
@@ -164,7 +188,7 @@
 .dx-chat-settings-field {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 4px;
   color: var(--chat-text-muted);
   font-size: var(--fs-sm);
 }
@@ -177,7 +201,7 @@
   color: var(--chat-text);
   font: inherit;
   font-size: var(--fs-base);
-  padding: 7px 9px;
+  padding: 8px 8px;
   outline: none;
 }
 .dx-chat-settings-field input:focus,
@@ -196,7 +220,7 @@
 .dx-chat-settings-actions button {
   border: 1px solid var(--chat-border);
   border-radius: var(--radius);
-  padding: 7px 10px;
+  padding: 8px 8px;
   cursor: pointer;
   color: var(--chat-text);
   background: var(--chat-surface);
@@ -218,11 +242,78 @@
   line-height: 1.4;
 }
 .dx-chat-settings-status.success {
-  color: #34d399;
+  color: var(--status-ok);
 }
 .dx-chat-settings-status.error {
-  color: #f87171;
+  color: var(--status-error);
 }
+
+/* One question — which AI answers */
+.dx-chat-settings-kind {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.dx-chat-settings-kind legend {
+  margin-bottom: 4px;
+  padding: 0;
+  color: var(--chat-text);
+  font-weight: 600;
+  font-size: var(--fs-sm);
+}
+.dx-chat-kind-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--chat-border);
+  border-radius: var(--radius);
+  background: var(--chat-surface);
+  cursor: pointer;
+}
+.dx-chat-kind-card:has(input:checked) {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+.dx-chat-kind-card input { margin: 4px 0 0; accent-color: var(--chat-primary); }
+.dx-chat-kind-card span { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.dx-chat-kind-card b { color: var(--chat-text); font-weight: 600; font-size: var(--fs-sm); }
+.dx-chat-kind-card small { color: var(--text-muted); font-size: var(--fs-xs); }
+.dx-chat-settings-field[hidden] { display: none; }
+.dx-chat-settings-advanced > summary {
+  cursor: pointer;
+  color: var(--text-secondary, var(--chat-text-muted));
+  font-size: var(--fs-sm);
+}
+.dx-chat-settings-advanced[open] { display: flex; flex-direction: column; gap: 8px; }
+.dx-chat-settings-advanced .dx-chat-settings-refresh-kb {
+  align-self: flex-start;
+  border: 1px solid var(--chat-border);
+  border-radius: var(--radius);
+  padding: 8px 8px;
+  background: var(--chat-surface);
+  color: var(--chat-text);
+  font: inherit;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+.dx-chat-settings-force {
+  align-self: flex-start;
+  border: 1px solid var(--chat-border);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  background: var(--chat-surface);
+  color: var(--chat-text);
+  font: inherit;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+.dx-chat-settings-force[hidden] { display: none; }
 
 /* ── Messages ───────────────────────────────────────── */
 
@@ -238,7 +329,7 @@
 
 .dx-chat-msg {
   max-width: 85%;
-  padding: 10px 14px;
+  padding: 8px 12px;
   border-radius: var(--radius-lg);
   line-height: 1.6;
   word-break: break-word;
@@ -261,14 +352,14 @@
 .dx-chat-msg.ai strong { font-weight: 700; }
 .dx-chat-msg.ai code {
   background: var(--chat-code-bg);
-  padding: 2px 6px;
+  padding: 2px 4px;
   border-radius: var(--radius-xs);
   font-size: var(--fs-base);
   font-family: 'Fira Code', 'Cascadia Code', monospace;
 }
 .dx-chat-msg.ai pre {
   background: var(--chat-code-bg);
-  padding: 10px 12px;
+  padding: 8px 12px;
   border-radius: var(--radius);
   overflow-x: auto;
   margin: 8px 0;
@@ -280,7 +371,7 @@
 }
 .dx-chat-msg.ai ul, .dx-chat-msg.ai ol {
   margin: 4px 0;
-  padding-left: 20px;
+  padding-left: 16px;
 }
 .dx-chat-msg.ai li { margin: 2px 0; }
 .dx-chat-msg.ai table {
@@ -301,7 +392,7 @@
 .dx-chat-suggestions {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 4px;
   padding: 8px 16px;
   border-top: 1px solid var(--chat-border);
   flex-shrink: 0;
@@ -311,10 +402,10 @@
   color: var(--chat-text-muted);
   border: 1px solid var(--chat-border);
   border-radius: var(--radius-xl);
-  padding: 5px 12px;
+  padding: 4px 12px;
   font-size: var(--fs-sm);
   cursor: pointer;
-  transition: background .15s;
+  transition: background .15s var(--ease);
 }
 .dx-chat-suggestion:hover {
   background: var(--chat-primary);
@@ -327,7 +418,7 @@
 .dx-chat-input-area {
   display: flex;
   gap: var(--sp-2);
-  padding: 12px 14px;
+  padding: 12px 12px;
   border-top: 1px solid var(--chat-border);
   background: var(--chat-surface);
   flex-shrink: 0;
@@ -357,13 +448,13 @@
   border: none;
   color: #fff;
   border-radius: 10px;
-  padding: 8px 14px;
+  padding: 8px 12px;
   cursor: pointer;
   font-size: var(--fs-lg);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background .15s;
+  transition: background .15s var(--ease);
 }
 .dx-chat-send-btn:hover {
   background: var(--chat-primary-hover);
@@ -408,6 +499,10 @@
     bottom: 16px;
     right: 16px;
   }
+  /* An open chat fills the width and the round button would cover Send; the header has a close button, so hide it while open */
+  .dx-chat-fab.open {
+    display: none;
+  }
 }
 
 /* ── Scrollbar ──────────────────────────────────────── */
@@ -418,3 +513,9 @@
   background: var(--chat-border);
   border-radius: 3px;
 }
+
+/* Error bubble — warning icon + error colour. */
+.dx-chat-msg.is-error { color: var(--status-error); }
+.dx-chat-msg.is-error > .dx-ico:first-child,
+.dx-chat-banner > .dx-ico:first-child,
+.dx-chat-settings-status > .dx-ico:first-child { margin-right: var(--sp-1); }

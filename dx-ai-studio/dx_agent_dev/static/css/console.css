@@ -1,46 +1,10 @@
-/* DX Agent Dev — 콘솔 스타일 (shared 토큰 재사용) */
+/* DX Agent Dev — console styles (reuses the shared tokens) */
 
-/* 상단 바 — 다른 모듈(monitor/benchmark)과 동일한 표준 chrome.
-   .top-bar는 shared로 추출되어 있지 않아 모듈마다 정의가 필요하다. */
-.top-bar {
-  position: fixed;
-  top: 0; left: 0; right: 0;
-  height: var(--dx-module-header-h);
-  z-index: 8999;
-  display: flex;
-  align-items: center;
-  gap: var(--sp-4);
-  padding: 0 var(--sp-5);
-  background: var(--dx-module-header-bg);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  border-bottom: 1px solid var(--dx-module-header-border);
-  box-shadow: var(--dx-module-header-elevation);
-  overflow: visible;
-}
-.app-title {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-2);
-  flex-shrink: 0;
-  white-space: nowrap;
-}
-.toolbar {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-2);
-  margin-left: auto;
-  flex-shrink: 0;
-  flex-wrap: wrap;
-  max-width: 100%;
-  overflow-x: auto;
-  position: relative;
-  z-index: 1;
-}
-
+/* Top bar — the same standard chrome as the other modules (monitor/benchmark).
+   .top-bar is not in shared, so each module defines it. */
+/* In the shared shell, .dx-shell-main already fills the remaining space;
+   position:fixed + inset would cover the 56px module rail. */
 .agent-layout {
-  position: fixed;
-  inset: var(--dx-module-header-h) 0 0 0;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(min(100%, 560px), 880px) minmax(0, 1fr);
   gap: var(--sp-3);
@@ -58,7 +22,7 @@
   overflow: visible;
 }
 
-/* 양옆 예제 패널 */
+/* Example panels on both sides */
 .examples-panel {
   overflow-y: auto;
   min-height: 0;
@@ -71,8 +35,8 @@
   display: block;
   flex-shrink: 0;
   text-decoration: none;
-  background: var(--bg-2);
-  border: 1px solid var(--border);
+  background: var(--control-bg);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius);
   overflow: hidden;
   transition: var(--transition);
@@ -84,28 +48,28 @@
   height: auto;
   max-height: 280px;
   object-fit: contain;
-  background: var(--bg-0, #0b1020);
+  background: var(--surface-page, #0b1020);
 }
 .example-title {
   display: block;
   font-size: var(--fs-base);
   font-weight: 700;
-  color: var(--text-1);
-  padding: 8px 10px 2px;
+  color: var(--text-primary);
+  padding: 8px 8px 2px;
 }
 .example-tag {
   display: block;
   font-size: var(--fs-sm);
-  color: var(--text-2);
-  padding: 0 10px 10px;
+  color: var(--text-secondary);
+  padding: 0 8px 8px;
 }
 
 .console-header {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 6px;
-  padding: 10px 0;
+  gap: 4px;
+  padding: 8px 0;
   flex-shrink: 0;
   overflow: visible;
   position: relative;
@@ -120,47 +84,57 @@
   margin: 0;
   font-size: var(--fs-sm);
   line-height: 1.45;
-  color: var(--text-2);
+  color: var(--text-secondary);
 }
 .console-session-hint {
   margin: 0;
   font-size: var(--fs-xs);
   line-height: 1.4;
-  color: var(--text-2);
+  color: var(--text-secondary);
   opacity: 0.85;
 }
-.console-title { font-size: var(--fs-xl); font-weight: 700; color: var(--text-1); }
+.console-title { font-size: var(--fs-xl); font-weight: 700; color: var(--text-primary); }
 .status-badge {
   font-size: var(--fs-sm);
-  padding: 2px 10px;
+  padding: 2px 8px;
   border-radius: var(--radius-pill);
-  background: var(--bg-2);
-  color: var(--text-2);
-  border: 1px solid var(--border);
+  background: var(--control-bg);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
 }
-.status-badge.ok { color: var(--success); border-color: var(--success); }
+.status-badge.ok { color: var(--status-ok); border-color: var(--status-ok); }
 .status-badge.running { color: var(--accent); border-color: var(--accent); }
-.status-badge.failed { color: var(--error); border-color: var(--error); }
+.status-badge.failed { color: var(--status-error); border-color: var(--status-error); }
 
 #console-output {
   flex: 1;
   overflow-y: auto;
   padding: var(--sp-3);
-  background: var(--bg-1);
-  border: 1px solid var(--border);
+  background: var(--surface-panel);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius);
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
+}
+/* The empty box on the first screen says what will appear here. :empty stops matching once the first turn arrives. */
+#console-output:empty::before {
+  content: attr(data-empty-hint);
+  margin: auto;
+  max-width: 40ch;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  line-height: 1.6;
 }
 #console-status-bar {
   font-size: var(--fs-sm);
-  color: var(--text-2);
+  color: var(--text-secondary);
   padding: 4px 8px;
   min-height: 24px;
   border-radius: var(--radius-sm);
-  background: var(--bg-2);
-  border: 1px dashed var(--border);
+  background: var(--control-bg);
+  border: 1px dashed var(--border-subtle);
   line-height: 1.4;
   word-break: break-word;
 }
@@ -174,9 +148,9 @@
 .user-line {
   align-self: flex-end;
   max-width: 85%;
-  background: var(--accent);
+  background: var(--accent-fill);
   color: #fff;
-  padding: 10px 14px;
+  padding: 8px 12px;
   border-radius: 16px 16px 4px 16px;
   white-space: pre-wrap;
   word-break: break-word;
@@ -186,20 +160,20 @@
 .assistant-line {
   align-self: flex-start;
   max-width: 92%;
-  background: var(--bg-2);
-  color: var(--text-1);
-  padding: 10px 14px;
+  background: var(--control-bg);
+  color: var(--text-primary);
+  padding: 8px 12px;
   border-radius: 16px 16px 16px 4px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-subtle);
   font-size: var(--fs-md);
   line-height: 1.55;
 }
 .assistant-line--spec {
   max-width: 100%;
   align-self: stretch;
-  padding: 14px 18px;
+  padding: 12px 16px;
   border-radius: var(--radius);
-  background: var(--bg-1);
+  background: var(--surface-panel);
 }
 .assistant-body {
   font-family: var(--font, system-ui, -apple-system, sans-serif);
@@ -216,13 +190,13 @@
 .assistant-body .md-h2, .assistant-body .md-h3, .assistant-body .md-h4, .assistant-body .md-h5 {
   margin: 0.85em 0 0.4em;
   font-weight: 700;
-  color: var(--text-1);
+  color: var(--text-primary);
   line-height: 1.35;
 }
 .assistant-body .md-h2 { font-size: 1.12em; }
 .assistant-body .md-h3, .assistant-body h3 { font-size: 1.05em; }
 .assistant-body .md-h4, .assistant-body h4 { font-size: 1em; }
-.assistant-body .md-h5 { font-size: 0.95em; color: var(--text-2); }
+.assistant-body .md-h5 { font-size: 0.95em; color: var(--text-secondary); }
 .assistant-body p { margin: 0.4em 0; }
 .assistant-body ul, .assistant-body ol,
 .assistant-body .md-list {
@@ -232,7 +206,7 @@
 .assistant-body .md-list li + li { margin-top: 0.2em; }
 .assistant-body .md-hr {
   border: none;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--border-subtle);
   margin: 0.85em 0;
 }
 .assistant-body .md-link {
@@ -245,7 +219,7 @@
   overflow-x: auto;
   margin: 0.65em 0;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-subtle);
 }
 .assistant-body table,
 .assistant-body .md-table {
@@ -255,28 +229,28 @@
   font-size: var(--fs-base);
 }
 .assistant-body th, .assistant-body td {
-  border: 1px solid var(--border);
-  padding: 6px 10px;
+  border: 1px solid var(--border-subtle);
+  padding: 4px 8px;
   text-align: left;
   vertical-align: top;
 }
 .assistant-body .md-table tr:first-child th,
 .assistant-body .md-table tr:first-child td {
-  background: color-mix(in srgb, var(--accent) 8%, var(--bg-2));
+  background: color-mix(in srgb, var(--accent) 8%, var(--control-bg));
   font-weight: 600;
 }
 .assistant-line--spec .assistant-body .md-table tr:nth-child(even) td {
-  background: color-mix(in srgb, var(--bg-0) 40%, transparent);
+  background: color-mix(in srgb, var(--surface-page) 40%, transparent);
 }
 .assistant-body pre {
   margin: 0.55em 0;
   padding: 0;
   overflow-x: auto;
   max-width: 100%;
-  background: var(--bg-0, #0b1020);
+  background: var(--surface-page, #0b1020);
   border-radius: var(--radius-sm);
   font-size: var(--fs-sm);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-subtle);
 }
 .assistant-body pre.code-block,
 .assistant-body pre.code-citation {
@@ -284,7 +258,7 @@
 }
 .assistant-body pre code {
   display: block;
-  padding: 10px 12px;
+  padding: 8px 12px;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.88em;
   line-height: 1.45;
@@ -292,12 +266,12 @@
   overflow-x: auto;
 }
 .assistant-body .code-citation .citation-meta {
-  padding: 6px 12px;
+  padding: 4px 12px;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.78em;
-  color: var(--text-2);
-  background: color-mix(in srgb, var(--accent) 6%, var(--bg-0));
-  border-bottom: 1px solid var(--border);
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--accent) 6%, var(--surface-page));
+  border-bottom: 1px solid var(--border-subtle);
   word-break: break-all;
 }
 .assistant-body code,
@@ -306,7 +280,7 @@
   font-size: 0.9em;
   padding: 0.1em 0.35em;
   border-radius: 3px;
-  background: color-mix(in srgb, var(--bg-0) 70%, transparent);
+  background: color-mix(in srgb, var(--surface-page) 70%, transparent);
 }
 .assistant-body pre code,
 .assistant-body pre .md-inline-code {
@@ -318,8 +292,8 @@
   margin: 0.6em 0;
   padding: var(--sp-2);
   overflow-x: auto;
-  background: var(--bg-1);
-  border: 1px solid var(--border);
+  background: var(--surface-panel);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius);
 }
 .assistant-body .mermaid-diagram svg {
@@ -329,7 +303,7 @@
 .assistant-body pre.mermaid-fallback {
   margin: 0.5em 0;
 }
-.assistant-empty { color: var(--text-2); font-style: italic; }
+.assistant-empty { color: var(--text-secondary); font-style: italic; }
 
 .console-typing {
   display: inline-flex;
@@ -341,7 +315,7 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--text-2);
+  background: var(--text-secondary);
   animation: console-typing 1.2s infinite ease-in-out;
 }
 .console-typing span:nth-child(2) { animation-delay: 0.15s; }
@@ -354,8 +328,8 @@
 .activity-panel {
   align-self: stretch;
   max-width: 100%;
-  background: var(--bg-0, #0b1020);
-  border: 1px solid var(--border);
+  background: var(--surface-page, #0b1020);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius);
   font-size: var(--fs-sm);
 }
@@ -363,13 +337,13 @@
 .activity-summary {
   cursor: pointer;
   padding: 8px 12px;
-  color: var(--text-2);
+  color: var(--text-secondary);
   font-weight: 600;
   list-style: none;
 }
 .activity-summary::-webkit-details-marker { display: none; }
 .activity-body {
-  padding: 0 12px 10px;
+  padding: 0 12px 8px;
   display: flex;
   flex-direction: column;
   gap: var(--sp-1);
@@ -386,18 +360,18 @@
 }
 .activity-item.command {
   border-left: 2px solid var(--accent);
-  color: var(--text-1);
+  color: var(--text-primary);
 }
 .activity-item.log {
-  color: var(--text-2);
+  color: var(--text-secondary);
 }
 
 /* legacy line classes (degraded/errors) */
 .chat-line {
   align-self: flex-start;
   max-width: 80%;
-  background: var(--bg-2);
-  color: var(--text-1);
+  background: var(--control-bg);
+  color: var(--text-primary);
   padding: 8px 12px;
   border-radius: 12px 12px 12px 2px;
   white-space: pre-wrap;
@@ -406,37 +380,42 @@
 .terminal-line {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: var(--fs-base);
-  color: var(--text-2);
-  background: var(--bg-0, #0b1020);
+  color: var(--text-secondary);
+  background: var(--surface-page, #0b1020);
   border-left: 2px solid var(--accent);
-  padding: 4px 10px;
+  padding: 4px 8px;
   white-space: pre-wrap;
   word-break: break-word;
 }
 .error-line {
   font-family: ui-monospace, monospace;
   font-size: var(--fs-base);
-  color: var(--error);
+  color: var(--status-error);
   background: rgba(239, 68, 68, .08);
-  padding: 4px 10px;
+  padding: 4px 8px;
   border-radius: var(--radius-xs);
   white-space: pre-wrap;
 }
 
-#console-form { display: flex; gap: var(--sp-2); padding: 12px 0 0; flex-shrink: 0; position: relative; z-index: 5; }
+/* The right side is reserved for the chat button (56px); Send would hide beneath it */
+#console-form { display: flex; gap: var(--sp-2); padding: var(--sp-3) calc(var(--sp-7) + var(--sp-5)) 0 0; flex-shrink: 0; position: relative; z-index: 5; }
+/* At phone width, reserving 72px on the right shrinks the input to 124px; leave room below for the chat button instead */
+@media (max-width: 600px) {
+  #console-form { padding-right: 0; margin-bottom: calc(var(--sp-7) + var(--sp-3)); }
+}
 #console-input {
   flex: 1;
-  padding: 10px 14px;
-  background: var(--bg-input, var(--bg-2));
-  color: var(--text-1);
-  border: 1px solid var(--border);
+  padding: 8px 12px;
+  background: var(--surface-panel, var(--control-bg));
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius);
   font-size: var(--fs-md);
 }
 #console-input:focus { outline: none; border-color: var(--accent); }
 #console-send {
-  padding: 10px 18px;
-  background: var(--accent);
+  padding: 8px 16px;
+  background: var(--accent-fill);
   color: #fff;
   border: none;
   border-radius: var(--radius);
@@ -445,16 +424,26 @@
   transition: var(--transition);
 }
 #console-send:hover { filter: brightness(1.1); }
+#console-stop {
+  padding: 8px 16px;
+  background: transparent;
+  color: var(--status-error);
+  border: 1px solid var(--status-error);
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: var(--fs-md);
+}
+#console-stop:disabled { opacity: 0.55; cursor: progress; }
 #console-send:disabled, #console-input:disabled {
   opacity: 0.55;
   cursor: not-allowed;
 }
 .console-form--busy #console-input {
-  border-color: var(--warning, #f59e0b);
+  border-color: var(--status-warn, #f59e0b);
 }
 
 #showcase-gallery { padding: 16px 0; overflow-y: auto; }
-.gallery-note { color: var(--warning); margin-bottom: 10px; }
+.gallery-note { color: var(--status-warn); margin-bottom: 8px; }
 .gallery-note--title { color: var(--text, inherit); font-size: 1.05em; }
 .gallery-note code, .gallery-install-options code {
   background: var(--surface-2, rgba(127, 127, 127, 0.15));
@@ -463,19 +452,19 @@
 }
 .gallery-install-options {
   list-style: none;
-  margin: 0 0 14px;
+  margin: 0 0 12px;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 .gallery-install-options li {
-  padding: 6px 10px;
-  border: 1px solid var(--border, rgba(127, 127, 127, 0.3));
+  padding: 4px 8px;
+  border: 1px solid var(--border-subtle, rgba(127, 127, 127, 0.3));
   border-radius: 6px;
 }
 
-/* 에이전트/모델 툴바 — 콘솔 헤더 바로 아래 */
+/* Agent/model toolbar, right below the console header */
 #agent-controls[hidden] { display: none; }
 .agent-toolbar {
   display: flex;
@@ -483,8 +472,8 @@
   gap: var(--sp-2);
   margin-top: var(--sp-1);
   padding: var(--sp-3);
-  background: var(--bg-0, var(--bg-1));
-  border: 1px solid var(--border);
+  background: var(--surface-page, var(--surface-panel));
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
   position: relative;
@@ -499,7 +488,7 @@
 .agent-toolbar-row.agent-toolbar-row--single {
   grid-template-columns: minmax(200px, 2fr) auto;
 }
-@media (max-width: 720px) {
+@media (max-width: 768px) {
   .agent-toolbar-row,
   .agent-toolbar-row.agent-toolbar-row--single {
     grid-template-columns: 1fr;
@@ -509,7 +498,7 @@
 .agent-picker {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   min-width: 0;
 }
 .agent-picker-label {
@@ -517,7 +506,7 @@
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--text-3);
+  color: var(--text-muted);
 }
 .agent-picker-field {
   display: flex;
@@ -529,11 +518,11 @@
 .console-select {
   width: 100%;
   min-width: 0;
-  background: var(--bg-input, var(--bg-2));
-  color: var(--text-1);
-  border: 1px solid var(--border);
+  background: var(--surface-panel, var(--control-bg));
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius);
-  padding: 9px 36px 9px 12px;
+  padding: 8px 32px 8px 12px;
   font-size: var(--fs-base);
   line-height: 1.35;
   appearance: none;
@@ -544,7 +533,7 @@
   cursor: pointer;
   position: relative;
   z-index: 31;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition: border-color 0.15s var(--ease), box-shadow 0.15s var(--ease);
 }
 .agent-select--model {
   font-family: var(--mono, ui-monospace, monospace);
@@ -552,7 +541,7 @@
 }
 .agent-select:hover,
 .console-select:hover {
-  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border-subtle));
 }
 .agent-select:focus,
 .console-select:focus {
@@ -567,22 +556,24 @@
 }
 .agent-auth-badge {
   font-size: var(--fs-xs);
-  padding: 3px 8px;
+  padding: 4px 8px;
   border-radius: var(--radius-pill);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-subtle);
   white-space: nowrap;
   flex-shrink: 0;
   line-height: 1.2;
 }
+.agent-auth-badge { display: inline-flex; align-items: center; }
+.agent-auth-badge .dx-ico { width: 14px; height: 14px; }
 .agent-auth-badge.ok {
-  color: var(--success);
-  border-color: var(--success);
-  background: color-mix(in srgb, var(--success) 12%, transparent);
+  color: var(--status-ok);
+  border-color: var(--status-ok);
+  background: color-mix(in srgb, var(--status-ok) 12%, transparent);
 }
 .agent-auth-badge.warn {
-  color: var(--warning);
-  border-color: var(--warning);
-  background: color-mix(in srgb, var(--warning) 12%, transparent);
+  color: var(--status-warn);
+  border-color: var(--status-warn);
+  background: color-mix(in srgb, var(--status-warn) 12%, transparent);
 }
 .agent-toolbar-meta {
   display: flex;
@@ -591,36 +582,36 @@
 }
 .agent-login-hint {
   font-size: var(--fs-sm);
-  color: var(--text-2);
+  color: var(--text-secondary);
   padding: 0;
   line-height: 1.45;
 }
 .agent-login-hint code {
   font-family: var(--mono);
   font-size: var(--fs-xs);
-  padding: 1px 6px;
+  padding: 1px 4px;
   border-radius: var(--radius-xs);
-  background: var(--bg-2);
-  border: 1px solid var(--border);
+  background: var(--control-bg);
+  border: 1px solid var(--border-subtle);
 }
 .agent-login-hint button {
   margin-left: var(--sp-2);
-  padding: 4px 10px;
+  padding: 4px 8px;
   font-size: var(--fs-sm);
   border-radius: var(--radius);
-  border: 1px solid var(--border);
-  background: var(--bg-3);
-  color: var(--text-1);
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-hover);
+  color: var(--text-primary);
   cursor: pointer;
 }
 .model-quality-hint {
   font-size: var(--fs-sm);
   line-height: 1.45;
-  color: var(--warning-light, var(--warning));
+  color: var(--status-warn);   /* --warning-light gives only 1.16:1 on the light theme's beige */
   padding: var(--sp-1) var(--sp-2);
   border-radius: var(--radius);
-  background: color-mix(in srgb, var(--warning) 10%, transparent);
-  border: 1px solid color-mix(in srgb, var(--warning) 35%, var(--border));
+  background: color-mix(in srgb, var(--status-warn) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--status-warn) 35%, var(--border-subtle));
 }
 .model-quality-hint[hidden] { display: none; }
 .console-select,
@@ -633,9 +624,9 @@
   margin: 0.75em 0;
   padding: 0;
   border-radius: var(--radius);
-  border: 1px solid var(--warning);
+  border: 1px solid var(--status-warn);
   background: rgba(210, 153, 34, 0.08);
-  color: var(--text-2);
+  color: var(--text-secondary);
   font-size: var(--fs-sm);
   line-height: 1.5;
 }
@@ -643,12 +634,12 @@
   cursor: pointer;
   padding: 8px 12px;
   font-weight: 600;
-  color: var(--warning-light, var(--warning));
+  color: var(--warning-light, var(--status-warn));
   list-style: none;
 }
 .assistant-body details.agent-model-notice summary::-webkit-details-marker { display: none; }
 .assistant-body details.agent-model-notice .notice-body {
-  padding: 0 12px 10px;
+  padding: 0 12px 8px;
   white-space: pre-wrap;
 }
 .assistant-body .mermaid-diagram {
@@ -657,14 +648,14 @@
 }
 .assistant-body pre.mermaid-error {
   margin: 0.5em 0;
-  padding: 8px 10px;
-  border: 1px dashed var(--warning);
+  padding: 8px 8px;
+  border: 1px dashed var(--status-warn);
   background: rgba(210, 153, 34, 0.06);
-  color: var(--text-2);
+  color: var(--text-secondary);
   font-size: var(--fs-xs);
 }
 
-@media (max-width: 1100px) {
+@media (max-width: 1200px) {
   .agent-layout { grid-template-columns: 1fr; }
   .examples-panel { display: none; }
 }

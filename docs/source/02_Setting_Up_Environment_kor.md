@@ -12,14 +12,133 @@
 **[공통] 1. 사전 준비**: 소스 코드를 확보하고 가상 환경 관리 정책을 이해합니다.  
 
 **[선택]** 설치 경로를 선택합니다.  
-- **[Route A] 2. Docker 설치**: 컨테이너 기반의 격리된 설치 방식입니다.  
-- **[Route B] 3. 로컬 설치**: 호스트 OS에 직접 설치하는 방식입니다.  
+- **[Route A] 2. 로컬 설치**: 호스트 OS에 직접 설치하는 방식입니다.  
+- **[Route B] 3. Docker 설치**: 컨테이너 기반의 격리된 설치 방식입니다.  
 
 ---
 
+## Quick Install (one-line)
+
+단일 컴포넌트만 필요하다면 저장소 clone이나 submodule 동기화 없이 바로 설치할 수 있습니다.
+
+```Bash
+# DX-Compiler (x86_64 Host PC)
+curl -fsSL https://raw.githubusercontent.com/DEEPX-AI/dx-compiler/main/oneline-install.sh | sh
+
+# DX-Runtime (DEEPX NPU가 장착된 target device: NPU driver + dx_rt + firmware)
+curl -fsSL https://raw.githubusercontent.com/DEEPX-AI/dx-runtime/main/oneline-install.sh | sh
+```
+
+각 설치 스크립트는 최신 버전을 스스로 결정합니다 — DX-Compiler는 PyPI의 최신 릴리즈를,
+DX-Runtime은 각 컴포넌트 `main` branch의 `latest` pointer를 사용합니다. 버전을 지정하려면
+DX-Compiler는 `DX_VERSION=2.4.1`, DX-Runtime은 컴포넌트별로 `DX_RT_VERSION=3.4.2`,
+`DX_DRIVER_VERSION=2.6.0`, `DX_FW_VERSION=2.7.4`를 사용하십시오. DX-Compiler는 설치 루트를 옮기는
+`DX_INSTALL_DIR=<dir>`(기본값 `~/deepx`)도 지원합니다. DX-Runtime은 사용자가 고른 디렉터리가 아니라
+`dpkg`로 system package를 설치하므로 이에 해당하는 옵션이 없습니다.
+
+!!! warning "DX-Runtime은 `main`을 따르므로 기본적으로 재현성이 보장되지 않습니다"  
+    버전이 실행 시점에 결정되고, 다운로드한 artifact는 checksum 검증을 거치지 않으며, 세
+    컴포넌트가 각자의 branch를 독립적으로 따릅니다 — dx-runtime 릴리즈 사이에 실행하면 함께
+    검증되지 않은 조합이 설치될 수 있습니다. 검증된 조합이 필요하면 위의 버전을 고정하거나
+    저장소의 `install.sh`를 사용하십시오.
+
+!!! note "DX-Compiler는 system package 설치에 root 권한이 필요합니다"  
+    `dx-com`은 PyPI에서 `$DX_INSTALL_DIR/venv-dx-compiler`(기본값
+    `~/deepx/venv-dx-compiler`)에 설치되고, `dxcom` launcher는 `DX_BIN_DIR`(기본값
+    `~/.local/bin`)에 link되어 venv를 활성화하지 않고도 실행됩니다. 설치 스크립트는
+    `libgl1-mesa-dev`와 `libglib2.0-0`도 apt로 설치합니다. `dx-com`은 `opencv-python`에
+    의존하며, 그 `cv2` extension이 이 library들에 link되어 있어 없으면 import에 실패합니다.
+    Debian 또는 Ubuntu에서 root로, 또는 `sudo`를 사용할 수 있는 환경에서 실행하십시오.
+    이 방법은 sample data를 설치하지 않습니다 — sample data가 필요하면 저장소를 clone하십시오.
+
+!!! warning "DX-Runtime: 재부팅 필수"
+    설치 후 kernel이 NPU driver를 로드하도록 반드시 재부팅해야 합니다. NPU device가 감지되지
+    않으면 firmware 업데이트 단계는 건너뛰므로, 재부팅 후 같은 명령을 다시 실행하여 완료하십시오.
+
+!!! note "한 줄 설치의 범위"
+    DX-Runtime의 한 줄 설치는 `dx_fw`, `dx_rt`, `dx_rt_npu_linux_driver`를 다룹니다.
+    `dx_app`, `dx_stream`, source build, Docker 방식은 모두 아래의 전체 설치 절차를 따릅니다.
+
+### 한 줄 설치 제거
+
+```Bash
+# DX-Compiler
+curl -fsSL https://raw.githubusercontent.com/DEEPX-AI/dx-compiler/main/oneline-uninstall.sh | sh
+
+# DX-Runtime
+curl -fsSL https://raw.githubusercontent.com/DEEPX-AI/dx-runtime/main/oneline-uninstall.sh | sh
+```
+
+DX-Compiler는 설치 때 사용한 것과 같은 `DX_INSTALL_DIR` / `DX_BIN_DIR`를 지정해야 합니다.
+그렇지 않으면 기본 위치를 찾아 아무것도 제거하지 못합니다. DX-Runtime은 이런 인자가 없습니다:
+두 설치 방식이 모두 같은 Debian package를 만들기 때문에 이 명령으로 `install.sh` 설치도
+함께 제거됩니다.
+
+!!! warning "제거로 되돌릴 수 없는 것"
+    NPU에 이미 기록된 firmware는 되돌리지 않습니다 — firmware에 대한 제거 경로는 없습니다.
+    `dx_engine` Python wheel도 그대로 남습니다: `libdxrt-bin`은 wheel이 어느 interpreter나
+    virtualenv에 설치되었는지 알 수 없으므로, 자체 purge 과정에서 제거 방법을 출력합니다.
+    `dx_app`과 `dx_stream`은 한 줄 설치가 설치하지 않으므로 건드리지 않습니다. 이 두 모듈은
+    저장소의 `uninstall.sh`를 사용하십시오.
+
+## APT 저장소 설치 (DX-Runtime)
+
+NPU driver와 DX-RT runtime은 DEEPX APT 저장소에 Debian package로도 배포됩니다(Ubuntu /
+Debian, `amd64` / `arm64`). 다른 system package처럼 `apt`로 설치·업그레이드·제거하고 싶을 때 이
+방법을 사용하십시오.
+
+```Bash
+# 1. DEEPX 서명 키 다운로드 및 fingerprint 확인
+wget -O deepx-archive-keyring.asc https://apt.releases.deepx.ai/gpg
+gpg --show-keys deepx-archive-keyring.asc
+
+# 2. fingerprint가 일치할 때만 키를 설치하고 다운로드한 파일 삭제
+sudo gpg --dearmor -o /usr/share/keyrings/deepx-archive-keyring.gpg deepx-archive-keyring.asc
+rm deepx-archive-keyring.asc
+
+# 3. 현재 Ubuntu / Debian 릴리즈에 맞는 저장소 추가
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/deepx-archive-keyring.gpg] https://apt.releases.deepx.ai $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") main" | sudo tee /etc/apt/sources.list.d/deepx.list
+
+# 4. Driver와 runtime 설치
+sudo apt update
+sudo apt install dxrt-driver-dkms
+sudo apt install libdxrt-bin
+```
+
+!!! danger "2단계 전에 키 fingerprint 확인"
+    변조된 키(예: 중간자 공격)를 막기 위해, 키를 설치하기 전에 `gpg --show-keys` 출력을
+    확인하십시오. 다음 40자 fingerprint와 정확히 일치해야 합니다 — `3A20CC853C64AE328D0F58CFD816AAC6689DBDEA`:
+    ```
+    pub   rsa4096 2026-08-11 [SCEA]
+          3A20CC853C64AE328D0F58CFD816AAC6689DBDEA
+    uid                      DeepX APT Repo <jhsa@deepx.ai>
+    ```
+    다르면 중단하고 `deepx-archive-keyring.asc`를 삭제한 뒤 DEEPX 기술 지원에 문의하십시오.
+
+| Package | 내용 |
+|---|---|
+| `dxrt-driver-dkms` | NPU kernel driver. DKMS로 현재 kernel에 맞춰 빌드되며(`dkms`, `build-essential` 의존) kernel 업데이트 시 자동으로 다시 빌드됩니다 |
+| `libdxrt-bin` | `/usr/local` 아래의 pre-built DX-RT library와 header, `dxrt-cli` 등 runtime 도구, `dxrt` service |
+
+!!! warning "재부팅과 firmware"
+    `dxrt-driver-dkms` 설치 후 kernel이 NPU driver를 로드하도록 재부팅하십시오. Firmware는
+    APT 저장소에 포함되지 않으므로 한 줄 설치 또는 `./dx-runtime/install.sh --target=dx_fw`로
+    업데이트한 뒤, **DX-Runtime 설치** 섹션의 안내대로 cold boot 하십시오.
+
+!!! note "`dx_engine` Python package 설치"
+    `libdxrt-bin`은 어떤 interpreter나 virtualenv를 쓰는지 알 수 없기 때문에 `dx_engine` Python
+    binding을 설치하지 않습니다. 설치된 `libdxrt-bin`과 버전이 맞는 wheel(CPython ABI별 1개)이
+    `/usr/share/libdxrt-bin/python`에 들어 있으므로, 사용하는 Python 버전에 맞는 wheel을
+    virtualenv에 설치하십시오. package 설치 후 정확한 `pip install` 명령이 출력됩니다.
+
+이후 릴리즈는 `sudo apt update && sudo apt upgrade`로 업그레이드하고, 제거는
+`sudo apt purge libdxrt-bin dxrt-driver-dkms`로 합니다. 이 방법은 driver와 runtime만
+다루며, `dx_app`과 `dx_stream`은 아래 전체 설치 절차를 따릅니다.
+
 ## Prerequisites
 
-안정적인 설치를 위해 다음 단계를 먼저 수행하십시오.  
+안정적인 설치를 위해 다음 단계를 먼저 수행하십시오. 이는 전체 suite 설치 경로입니다 —
+위의 한 줄 설치로 충분하다면 이 단계는 건너뛰어도 됩니다.  
 
 ### Repository Cloning and Submodule Synchronization
 
@@ -59,13 +178,14 @@ Docker 경로를 사용할 계획이지만 Docker가 설치되어 있지 않은 
 
 - **컴파일러 환경**: `dx-compiler/venv-dx-compiler`에 생성됨    
 - **런타임 환경**: `dx-runtime/venv-dx-runtime`에 생성됨    
+- **ModelZoo 환경**: `dxmz`가 NPU 평가에 `dx_engine`을 사용할 수 있도록 DX-ModelZoo는 런타임 환경(`dx-runtime/venv-dx-runtime`)에 설치됨. Docker 이미지에는 `/venv-dxnn`에 사전 설치됨    
 
 !!! warning "주의"  
     개별 모듈(예: `dx-rt`만 설치)을 설치하는 경우, 설치 실패를 방지하기 위해 스크립트에 의해 생성된 해당 가상 환경을 반드시 활성화(`source .../activate`)해야 합니다.  
 
 ### SDK Workflow Guide
 
-**DX-AllSuite**는 사용자 본인의 모델을 가져오느냐, 아니면 사전 최적화된 모델을 사용하느냐에 따라 DEEPX NPU를 활용하는 두 가지 경로를 제공합니다. SDK는 원활한 개발 경험을 보장하기 위해 필요한 가상 환경과 의존성을 자동으로 관리합니다.  
+**DX-AllSuite**는 사용자 본인의 모델을 가져오느냐, 사전 최적화된 모델을 사용하느냐, DEEPX ModelZoo 모델을 평가하느냐에 따라 DEEPX NPU를 활용하는 세 가지 경로를 제공합니다. SDK는 원활한 개발 경험을 보장하기 위해 필요한 가상 환경과 의존성을 자동으로 관리합니다.  
 
 **[경로 A] 사용자 정의 모델 추론 경로**  
 사용자가 직접 훈련시킨 모델을 변환하고 배포하는 표준 워크플로우입니다.  
@@ -99,211 +219,13 @@ Docker 경로를 사용할 계획이지만 Docker가 설치되어 있지 않은 
 - **단계 2 (DX-RT)**: 별도의 컴파일 과정 없이 런타임 환경(`venv-dx-runtime`)에서 선택한 모델을 즉시 로드합니다.  
 - **단계 3 (NPU Acceleration)**: 하드웨어 가속 추론을 실행하고 **FPS** 및 **지연 시간(Latency)**과 같은 주요 성능 지표를 분석합니다.  
 
----
+**[경로 C] 모델 평가 경로 (DX-ModelZoo)**  
+단일 CLI(`dxmz`)로 사전 구성된 모델의 정확도와 성능을 측정하는 경로입니다.  
 
-## Docker Installation
-
-Docker를 사용하면 복잡한 의존성 설정 없이 격리된 환경에서 **DX-AllSuite**를 실행할 수 있습니다.  
-
-### Host System Preparation (Critical)
-
-Docker 컨테이너는 호스트 커널을 공유하므로, NPU 하드웨어 인식을 위해 **반드시 호스트 시스템(PC)에 드라이버가 먼저 설치되어 있어야 합니다**.  
-
-**NPU 드라이버 설치 (호스트)**  
-먼저 **호스트 PC**에서 설치 스크립트를 실행하십시오.   
-```Bash
-./dx-runtime/install.sh --target=dx_rt_npu_linux_driver
-```
-
-**B. 서비스 데몬(`dxrtd`) 충돌 방지**  
-`dxrtd` 인스턴스는 호스트와 컨테이너를 통틀어 단 하나만 실행될 수 있습니다. 컨테이너를 실행하기 전에 호스트 서비스를 중지하십시오.  
-```Bash
-sudo systemctl stop dxrt.service
-```
-
-### Build Docker Image and Run Container
-
-**A. 이미지 빌드**  
-`--all` 옵션을 사용하면 컴파일러, 런타임, ModelZoo가 포함된 통합 이미지를 빌드합니다.  
-```Bash
-# Build integrated image (Based on Ubuntu 24.04)
-./docker_build.sh --all --ubuntu_version=24.04
-
-# Build specific environment only (Using --target)
-./docker_build.sh --target=dx-runtime --ubuntu_version=24.04
-```
-
-**B. 컨테이너 실행**  
-이미지 빌드가 완료된 후 컨테이너를 실행합니다.  
-```Bash
-./docker_run.sh --all --ubuntu_version=24.04
-```
-
-!!! warning "GUI 환경에 대한 참고사항"  
-    X11 경고나 마운트 오류(예: cannot open display)가 발생하면, 이는 호스트 OS가 **Wayland** 세션을 사용하고 있기 때문일 가능성이 높습니다. [**FAQ Troubleshooting Guide**](05_FAQ_Troubleshooting_Guide.md)의 **Q2. X11 Session Warnings & Mount Errors (Wayland Issues)**를 참조하십시오.
-#### A. DX-Compiler 환경 (모델 변환)
-DX-Compiler 환경은 하드웨어에 최적화된 `.dxnn` 바이너리를 생성하는 데 사용됩니다.  
-
-**A-1. 컨테이너 접속**  
-컨테이너 내에서 작업을 수행하려면, **반드시** 먼저 실행 중인 컨테이너의 쉘에 로그인해야 합니다.  
-```Bash
-# 1. Run in Host Terminal: Enter the container
-docker exec -it dx-compiler-24.04 bash 
-
-# 2. Inside Container: Navigate to the work directory
-cd /deepx/dx-compiler/dx_com
-```
-
-!!! warning "경로 논리 주의"  
-    `/deepx` 경로는 컨테이너 내부의 절대 경로입니다. 이 경로는 호스트 머신에는 존재하지 않습니다. 명령을 실행하기 전에 터미널 프롬프트가 `root@...` 또는 `user@container_id`로 변경되었는지 확인하십시오.  
-
-**A-2. 샘플 모델 컴파일**  
-샘플 모델은 설치 시 `./sample_models/` 디렉토리에 미리 다운로드됩니다. 다음 두 가지 방법 중 하나를 사용하여 컴파일할 수 있습니다.  
-
-- **방법 1**: 일괄 컴파일 (권장)  
-제공된 스크립트를 사용하여 모든 샘플 모델을 자동으로 컴파일합니다.  
-```Bash
-../example/3-compile_sample_models.sh
-```
-
-- **방법 2**: 수동 컴파일 (CLI)  
-세밀한 제어를 위해 가상 환경을 활성화하고 `dxcom` 도구를 직접 사용합니다.  
-```Bash
-source ../venv-dx-compiler/bin/activate  # Activate venv
-
-dxcom -m sample_models/onnx/YOLOV5S-1.onnx \
-      -c sample_models/json/YOLOV5S-1.json \
-      -o output/YOLOV5S-1
-```
-
-**A-3. 결과 확인**  
-성공적으로 완료되면 최적화된 `.dxnn` 바이너리가 `output/` 디렉토리(또는 `-o` 플래그로 지정한 경로)에 생성됩니다.  
-
-- **출력 파일:**: `output/YOLOV5S-1.dxnn`  
-- **다음 단계**: 이 파일을 하드웨어 실행을 위해 **런타임 환경**으로 전달합니다.  
-
-#### B. DX-Runtime 환경 (NPU 추론 및 스트리밍)
-**DX-Runtime** 환경은 DEEPX NPU 하드웨어를 사용하여 모델 추론을 실행하고 고성능 비디오 스트림을 처리하기 위해 설계되었습니다.  
-
-**B-1. 컨테이너 접속 및 상태 확인**  
-추론을 실행하기 전에 컨테이너가 NPU 하드웨어와 통신할 수 있는지 확인하십시오.  
-```Bash
-# 1. Run from the host terminal: Enter the container
-docker exec -it dx-runtime-24.04 
-
-# 2. Inside Container: Verify NPU hardware recognition
-dxrt-cli -s
-```
-
-**B-2. 샘플 애플리케이션 실행 (`dx_app`)**  
-이 모듈은 다양한 비전 작업에 대한 추론 데모를 제공합니다.  
-
-- **작업 디렉토리**: `/deepx/dx-runtime/dx_app`  
-
-```Bash
-cd /deepx/dx-runtime/dx_app
-
-# 1. Prepare resources (Download .dxnn models and sample images)
-./setup.sh
-
-# 2. Run demo 
-./run_demo.sh 			# Run C++ based demo
-./run_demo_python.sh 		# Run Python demo
-```
-
-!!! note "데모 선택"  
-    실행 시 터미널에 사용 가능한 데모 목록(0, 1, 2...)이 표시됩니다. 해당 번호를 입력하고 **Enter**를 누르면 시작됩니다.  
-
-**B-3. 스트리밍 프레임워크 실행 (`dx_stream`)**  
-이 모듈은 실시간 다채널 비디오 스트림 처리에 최적화된 GStreamer 기반 모듈입니다.  
-
-- **작업 디렉토리**: `/deepx/dx-runtime/dx_stream`  
-
-```Bash
-cd /deepx/dx-runtime/dx_stream
-
-# 1. Prepare assets (Downloads streaming-specific models and video assets) 
-./setup.sh
-
-# 2. Run the streaming demo (C++ based)
-./run_demo.sh
-```
-
-!!! note "시나리오 선택"  
-    터미널에 표시되는 시나리오 번호를 입력하여 특정 스트리밍 시나리오를 선택할 수 있습니다.  
-
-**경로 관련 주의사항**  
-"`File not found`" 오류를 방지하려면 **호스트** 터미널과 **컨테이너** 터미널을 명확히 구분하는 것이 중요합니다.  
-
-- **Docker 컨테이너 내부**: 항상 `/deepx` 로 시작하는 절대 경로를 사용하십시오. (예: `cd /deepx/dx-runtime/...`).  
-- **로컬 호스트 환경**: 현재 디렉토리를 기준으로 상대 경로를 사용하십시오 (예: `cd ./dx-runtime/...`).  
-
-!!! warning "일반적인 오류"  
-    호스트 터미널에서 `/deepx`로 시작하는 경로로 진입을 시도하면 시스템은 "`No such file or directory`" 오류를 반환합니다. 이동하기 전에 항상 프롬프트가 `root@...` 또는 `user@container_id`로 시작하는지 확인하십시오.  
-
-### [Docker] Advanced Troubleshooting (Multi-Runtime Containers)
-
-`dxrtd` 데몬은 시스템 내에서 단일 인스턴스(Singleton)로 실행되어야 합니다. 여러 컨테이너를 동시에 실행하려면, **반드시** 자동 실행을 방지하도록 `Entrypoint`를 수정해야 합니다.  
-
-- **방법 1**: Dockerfile 수정  
-`docker/Dockerfile.dx-runtime` 파일을 편집하여 기본 시작 명령을 주석 처리하고 영구 대기 상태로 대체합니다.  
-```Dockerfile
-# 1. Comment out the existing settings
-# ENTRYPOINT [ "/usr/local/bin/dxrtd" ]
-
-# 2. Enable infinite wait settings to keep containers running
-ENTRYPOINT ["tail", "-f", "/dev/null"]
-```
-
-- **방법 2**: docker-compose 수정  
-Docker Compose를 사용하는 경우, `docker/docker-compose.yml`의 해당 서비스 섹션에서 기본 Entrypoint를 직접 덮어쓸 수 있습니다.  
-```YAML
-services:
-dx-runtime:
-		entrypoint: ["/bin/sh", "-c"]
-		command: ["sleep infinity"]
-```
-
-!!! note "수동 시작"  
-    위 설정이 적용되면 NPU는 대기 상태가 됩니다. 컨테이너에 접속한 후 `dxrtd &` 명령을 사용하여 수동으로 실행하십시오.  
-
-### [Docker] Verification of Installation Results (Sanity Check)
-
-설치가 성공적으로 완료되었는지, 소프트웨어와 하드웨어가 올바르게 통신하는지 최종 점검을 수행합니다.  
-
-#### A. 하드웨어 인식 확인 (`dxrt-cli`)
-컨테이너 내부에서 다음 명령을 실행하여 NPU가 보이고 작동하는지 확인합니다.   
-```Bash
-dxrt-cli -s
-```
-
-**성공 체크리스트**  
-출력이 다음 세 가지 조건을 충족하면 하드웨어 통합에 성공한 것입니다.   
-
-- **[x] 장치 인식**: `Device 0: M1` (또는 특정 모델명)이 표시됨.  
-- **[x] 버전 정보**: `RT Driver version`, `FW version` 등에 유효한 버전 번호가 나타남.  
-- **[x] 데몬 상태**: "`Other instance of dxrtd is running`" 과 같은 오류 메시지가 없음.  
-
-[정상 출력 예시]  
-```Plaintext
-DX-RT v3.2.0
-========================================================
-* Device 0: M1, Accelerator type
---------------------- Version ---------------------
-* RT Driver version : v2.1.0
-* FW version :      v2.5.0
--------------------------------------------------------
-... (Continued)
-```
-
-#### B. 시스템 일관성 확인
-이 스크립트는 모든 개별 모듈이 지정된 경로에 올바르게 배치되었고 실행 준비가 되었는지 일괄 점검합니다.  
-```Bash
-# Check the integrity of the runtime environment
-./dx-runtime/scripts/sanity_check.sh
-```
-
-모든 항목에 대해 **[OK]** 또는 **PASS**가 출력되면 서비스 개발을 시작할 준비가 된 것입니다.  
+- **단계 1 (Select)**: **DX-ModelZoo**에서 모델을 선택합니다(`dxmz list`, `dxmz info`). 각 모델은 하나의 YAML 파일(전처리, 후처리, 데이터셋, 프로파일)로 정의됩니다.  
+- **단계 2 (ONNX Baseline)**: CPU/GPU에서 ONNX 모델을 평가합니다(`--profile onnx`). 모델이 없으면 `DXMZ_MODEL_URL`에서 자동으로 다운로드합니다.  
+- **단계 3 (DX-COM)**: DXNN 프로파일(`c-lite`, `q-lite`, `q-pro`)로 ONNX 모델을 `.dxnn`으로 컴파일합니다.  
+- **단계 4 (DX-RT)**: 동일한 데이터셋으로 NPU에서 `.dxnn` 모델을 평가하고 ONNX 기준 결과와 지표를 비교합니다.  
 
 ---
 
@@ -311,7 +233,7 @@ DX-RT v3.2.0
 
 **DX-AllSuite**를 **호스트 OS**에 직접 설치하면 하드웨어 성능을 극대화하고 모든 소프트웨어 모듈 간의 원활한 호환성을 보장할 수 있습니다. 이 방법은 프로덕션 환경 및 고급 성능 벤치마킹에 권장됩니다.  
 
-### DX-Compiler Installation (DX-COM, DX-TRON)
+### DX-Compiler Installation (DX-COM)
 
 DX-Compiler(DX-COM)는 지원되는 Linux 배포판에서 CLI 도구 또는 Python 모듈로 사용할 수 있습니다.  
 
@@ -369,21 +291,12 @@ dxcom -h
     - `./dx-compiler/example/1-download_sample_models.sh` (모델 데이터)  
     - `./dx-compiler/example/2-download_sample_calibration_dataset.sh` (교정 데이터)  
 
-#### D. DX-TRON (GUI 시각화)
-**DX-TRON**은 모델 구조와 작업 부하 분산을 검사하기 위한 시각적 분석 도구입니다. 환경에 맞는 실행 모드를 선택하십시오.   
-
-- **로컬 실행 (데스크톱)**: 터미널에 `dxtron`을 입력하거나 다음 스크립트를 실행하십시오.  
+#### D. 모델 시각화
+**DX-TRON은 DX-Compiler v2.5.0부터 제거되었습니다.** 컴파일된 모델 구조와 CPU/NPU 작업 부하 분산을 확인하려면 DX-COM으로 인터랙티브 HTML **Compilation Summary Report**를 생성하십시오.  
 ```bash
-./dx-compiler/run_dxtron_appimage.sh
+dxcom -m model.onnx -c config.json -o output/ --export_html
 ```
-
-- **웹 서버 실행 (원격/Docker)**: 웹 서버 스크립트를 실행하고 포트를 지정하십시오.  
-```bash 
-./dx-compiler/run_dxtron_web.sh --port=8080
-```
-그 후, 브라우저에서 [**http://localhost:8080**](http://localhost:8080)으로 접속하십시오.  
-
-- **Windows 사용자**: [**DEEPX Developer Portal**](https://developer.deepx.ai)에서 전용 Windows 설치 프로그램을 직접 다운로드할 수 있습니다.  
+그 후, 브라우저에서 `output/<model_name>_summary.html`을 여십시오.  
 
 ### DX-Runtime Installation (RT, Driver, FW, App, Stream)
 
@@ -422,6 +335,54 @@ dxrt-cli -u ./dx-runtime/dx_fw/m1/X.X.X/mdot2/fw.bin
 **단계 3. 시스템 재부팅**  
 설치가 완료되면 반드시 `sudo reboot`를 수행하여 설치된 커널 드라이버를 활성화하십시오.  
 
+### DX-ModelZoo Installation
+
+**DX-ModelZoo**는 `dxmz` CLI로 동작하는 YAML 기반 모델 평가 및 NPU 컴파일 프레임워크입니다. `./dx-modelzoo` 서브모듈에 위치합니다.  
+
+#### A. 설치 전 요구 사항
+- **DX-Runtime**: DX-ModelZoo는 NPU 평가용 `dx_engine`을 제공하는 런타임 환경(`dx-runtime/venv-dx-runtime`)에 설치됩니다. DX-Runtime을 먼저 설치하십시오 (`./getting-started/runtime-0_install_dx-runtime.sh`).  
+- **DX-Compiler** (`dxmz compile` 사용 시에만): 동일한 환경에 `dx_com` wheel이 설치되어 있어야 합니다.  
+- **Python**: 3.8 이상  
+
+#### B. 설치 방법
+제공되는 스크립트로 DX-ModelZoo를 설치하고 워크스페이스를 준비합니다.  
+```Bash
+# 1. Install dx-modelzoo into dx-runtime/venv-dx-runtime (CPU ONNX Runtime by default)
+./getting-started/modelzoo-0_install_dx-modelzoo.sh
+
+# (Optional) GPU ONNX Runtime
+./getting-started/modelzoo-0_install_dx-modelzoo.sh --extra gpu
+
+# 2. Create getting-started/modelzoo (-> workspace/modelzoo) and dx-modelzoo/.env
+./getting-started/modelzoo-1_prepare_assets.sh
+```
+
+!!! note "GPU 추론 (ONNX Runtime GPU)"  
+    `--extra gpu`는 `.[gpu]`(`onnxruntime-gpu` 및 CUDA 라이브러리)를 설치하고, 두 패키지가 공존할 수 없으므로 `onnxruntime`을 제거합니다. `cpu`를 포함하는 `all`과 `gpu`를 함께 사용하지 마십시오. 요구 사항: NVIDIA GPU (Pascal/Turing/Ampere), NVIDIA Driver ≥ 535.230.02, CUDA 12.2, cuDNN 9.1. 설치 후 스크립트가 출력하는 NVIDIA 라이브러리 경로를 `LD_LIBRARY_PATH`에 추가하십시오.  
+
+`modelzoo-1_prepare_assets.sh`는 `.env`가 없을 때만 `dx-modelzoo/.env.example`을 `dx-modelzoo/.env`로 복사합니다. 환경에 맞게 수정하십시오.  
+
+| 변수 | 설명 |
+| :--- | :--- |
+| `DXMZ_MODEL_URL` | 모델 자동 다운로드 기본 URL. 자동 다운로드에 필수 (내장 기본값 없음); `.env.example`은 `https://sdk.deepx.ai/modelzoo`로 설정 |
+| `MODEL_ROOT` | 모델 파일 루트 디렉토리 (`--model-root`가 우선) |
+| `DATA_ROOT` | 데이터셋 루트 디렉토리 (`--data-root`가 우선) |
+
+#### C. 검증 및 사용
+```Bash
+# 1. Activate the Virtual Environment
+source ./dx-runtime/venv-dx-runtime/bin/activate
+
+# 2. Verify the CLI and the NPU Python API
+dxmz --help
+python3 -c "import dx_engine; print('dx_engine OK')"
+
+# 3. Inspect a model
+dxmz info resnet50_224x224
+```
+
+- **다음 단계**: `./getting-started/modelzoo-2_run_first_npu_model.sh`로 첫 번째 모델을 실행합니다. [**Running Your First NPU Model**](03_Running_Your_First_NPU_Model_kor.md)을 참조하십시오.  
+
 ### [Local] Installation Verification (Sanity Check)
 
 로컬 설치가 완료되면 하드웨어와 소프트웨어가 올바르게 통신하는지 최종 확인을 수행합니다.
@@ -445,5 +406,332 @@ dxrt-cli -s
 
 !!! note "팁"  
     어떤 항목이라도 **FAIL** 또는 **Not Found**를 반환하는 경우, **DX-Runtime 설치** 섹션(모듈 빌드 및 설치)을 다시 방문하여 모든 구성 요소가 올바르게 컴파일되었는지 확인하십시오.
+
+---
+
+## Docker Installation
+
+Docker를 사용하면 복잡한 의존성 설정 없이 격리된 환경에서 **DX-AllSuite**를 실행할 수 있습니다.  
+
+### Host System Preparation (Critical)
+
+Docker 컨테이너는 호스트 커널을 공유하므로, NPU 하드웨어 인식을 위해 **반드시 호스트 시스템(PC)에 드라이버가 먼저 설치되어 있어야 합니다**.  
+
+**NPU 드라이버 설치 (호스트)**  
+먼저 **호스트 PC**에서 설치 스크립트를 실행하십시오.   
+```Bash
+./dx-runtime/install.sh --target=dx_rt_npu_linux_driver
+```
+
+**B. 서비스 데몬(`dxrtd`) 충돌 방지**  
+`dxrtd` 인스턴스는 호스트와 컨테이너를 통틀어 단 하나만 실행될 수 있습니다. 컨테이너를 실행하기 전에 호스트 서비스를 중지하십시오.  
+```Bash
+sudo systemctl stop dxrt.service
+```
+
+### Build Docker Image and Run Container
+
+**A. 이미지 빌드**  
+`--all` 옵션을 사용하면 컴파일러, 런타임, ModelZoo가 포함된 통합 이미지를 빌드합니다.  
+```Bash
+# Build integrated image (Based on Ubuntu 24.04)
+./docker_build.sh --all --ubuntu_version=24.04
+
+# Build specific environment only (Using --target)
+./docker_build.sh --target=dx-runtime --ubuntu_version=24.04
+```
+
+**B. 컨테이너 실행**  
+이미지 빌드가 완료된 후 컨테이너를 실행합니다.  
+```Bash
+./docker_run.sh --all --ubuntu_version=24.04
+```
+
+!!! warning "GUI 환경에 대한 참고사항"  
+    X11 경고나 마운트 오류(예: cannot open display)가 발생하면, 이는 호스트 OS가 **Wayland** 세션을 사용하고 있기 때문일 가능성이 높습니다. [**FAQ Troubleshooting Guide**](05_FAQ_Troubleshooting_Guide.md)의 **Q2. X11 Session Warnings & Mount Errors (Wayland Issues)**를 참조하십시오.
+
+### GPU Acceleration Options (선택)
+
+Docker 이미지는 GPU 가속 옵션으로 빌드할 수 있습니다. 두 옵션은 **목적과 대상 컨테이너가 다르며**, 동시 사용은 불가합니다 (Ubuntu 전용):
+
+| 옵션 | 가속 대상 | 대상 컨테이너 | 주 사용 시나리오 |
+|---|---|---|---|
+| `--nvidia_gpu` | 연산 (CUDA) | `dx-compiler`, `dx-modelzoo` | ONNX raw accuracy 측정(dx-modelzoo), `q-pro` quantization calibration(dx-compiler) 시간 단축 |
+| `--intel_gpu_hw_acc` | 미디어 (VA-API) | `dx-runtime` — **dx_stream 파이프라인 한정** | video decode/scale을 Intel iGPU로 offload하여 멀티채널 GStreamer 파이프라인에서 CPU를 전·후처리에 집중 |
+
+**A. NVIDIA GPU (CUDA) — dx-compiler / dx-modelzoo**
+
+호스트 요구사항: NVIDIA driver 및 [nvidia-container-toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
+(`sudo nvidia-ctk runtime configure --runtime=docker && sudo systemctl restart docker`).
+
+```Bash
+# CUDA base image로 빌드 (기본 CUDA 버전: 12.8.1, --cuda_version=<ver>로 변경 가능)
+./docker_build.sh --target=dx-modelzoo --ubuntu_version=24.04 --nvidia_gpu
+./docker_build.sh --target=dx-compiler --ubuntu_version=24.04 --nvidia_gpu
+
+# 실행 / 종료 — GPU 이미지는 cuda<ver>-ubuntu-<os> 태그를 사용하며 CPU 이미지와 공존
+./docker_run.sh  --target=dx-modelzoo --ubuntu_version=24.04 --nvidia_gpu
+./docker_down.sh --target=dx-modelzoo --ubuntu_version=24.04 --nvidia_gpu
+```
+
+dx-modelzoo GPU 이미지에는 이미지의 CUDA 버전에 맞는 `onnxruntime-gpu`가 설치되어 있어 별도 설정 없이 ONNX 평가가 GPU로 실행됩니다.
+
+- CUDA 12 이미지: `onnxruntime-gpu<1.27`, CUDA 13 이미지: `onnxruntime-gpu>=1.27`. CUDA/cuDNN은 `nvidia/cuda` 베이스 이미지의 것을 사용합니다.
+- **컨테이너 내에서 `onnxruntime-gpu`를 업그레이드하지 마십시오** (예: `pip install -U onnxruntime-gpu`). 최신 릴리스가 다른 CUDA 메이저 버전용일 수 있으며, 그러면 평가가 CPU로 폴백됩니다. `[gpu]` extra 설치도 필요 없습니다. 베이스 이미지와 중복되는 pip CUDA 12 라이브러리만 추가됩니다.
+- 확인 방법: `python -c "import onnxruntime as ort; print(ort.__version__)"`를 실행하고, 평가 중 `nvidia-smi`를 확인하십시오.
+
+dx-compiler의 `q-pro` calibration은 GPU를 자동으로 사용합니다 (`quantization_device` auto-detection).
+
+**B. Intel GPU (VA-API 미디어 가속) — dx-runtime (dx_stream)**
+
+호스트 요구사항: `i915`/`xe` driver가 로드된 Intel GPU (호스트에 `/dev/dri/renderD*` 존재).
+
+```Bash
+./docker_build.sh --target=dx-runtime --ubuntu_version=24.04 --intel_gpu_hw_acc
+./docker_run.sh   --target=dx-runtime --ubuntu_version=24.04 --intel_gpu_hw_acc
+./docker_down.sh  --target=dx-runtime --ubuntu_version=24.04 --intel_gpu_hw_acc
+```
+
+dx_stream 코드 수정은 필요 없습니다 — GStreamer `decodebin`이 VA-API HW decoder(예: `vah264dec`)를 자동 선택하며, 파이프라인에 `vapostproc`를 추가하면 resize/color conversion까지 iGPU video-enhance 엔진으로 offload됩니다.
+
+!!! note "Intel GPU 적용 범위"
+    `--intel_gpu_hw_acc`는 **dx_stream(GStreamer) 파이프라인의 미디어 처리만** 가속합니다. dx-compiler/dx-modelzoo 워크로드는 가속하지 않으며(연산 가속은 `--nvidia_gpu`의 CUDA 전용), dx_app은 기본적으로 software decoding을 사용합니다.
+
+### Container Access and Task Guide
+
+#### A. DX-Compiler 환경 (모델 변환)
+DX-Compiler 환경은 하드웨어에 최적화된 `.dxnn` 바이너리를 생성하는 데 사용됩니다.  
+
+**A-1. 컨테이너 접속**  
+컨테이너 내에서 작업을 수행하려면, **반드시** 먼저 실행 중인 컨테이너의 쉘에 로그인해야 합니다.  
+```Bash
+# 1. Run in Host Terminal: Enter the container
+docker exec -it dx-compiler-24.04 bash
+
+# 2. Inside Container: Navigate to the work directory
+cd /deepx/dx-compiler/dx_com
+```
+
+!!! warning "경로 논리 주의"  
+    `/deepx` 경로는 컨테이너 내부의 절대 경로입니다. 이 경로는 호스트 머신에는 존재하지 않습니다. 명령을 실행하기 전에 터미널 프롬프트가 `root@...` 또는 `user@container_id`로 변경되었는지 확인하십시오.  
+
+**A-2. 샘플 모델 컴파일**  
+샘플 모델은 설치 시 `./sample_models/` 디렉토리에 미리 다운로드됩니다. 다음 두 가지 방법 중 하나를 사용하여 컴파일할 수 있습니다.  
+
+- **방법 1**: 일괄 컴파일 (권장)  
+제공된 스크립트를 사용하여 모든 샘플 모델을 자동으로 컴파일합니다.  
+```Bash
+../example/3-compile_sample_models.sh
+```
+
+- **방법 2**: 수동 컴파일 (CLI)  
+세밀한 제어를 위해 가상 환경을 활성화하고 `dxcom` 도구를 직접 사용합니다.
+
+```Bash
+dxcom -m sample_models/onnx/YOLOV5S-1.onnx \
+      -c sample_models/json/YOLOV5S-1.json \
+      -o output/YOLOV5S-1
+```
+
+**A-3. 결과 확인**  
+성공적으로 완료되면 최적화된 `.dxnn` 바이너리가 `output/` 디렉토리(또는 `-o` 플래그로 지정한 경로)에 생성됩니다.  
+
+- **출력 파일:**: `output/YOLOV5S-1.dxnn`  
+- **다음 단계**: 이 파일을 하드웨어 실행을 위해 **런타임 환경**으로 전달합니다.  
+
+#### B. DX-Runtime 환경 (NPU 추론 및 스트리밍)
+**DX-Runtime** 환경은 DEEPX NPU 하드웨어를 사용하여 모델 추론을 실행하고 고성능 비디오 스트림을 처리하기 위해 설계되었습니다.  
+
+**B-1. 컨테이너 접속 및 상태 확인**  
+추론을 실행하기 전에 컨테이너가 NPU 하드웨어와 통신할 수 있는지 확인하십시오.  
+```Bash
+# 1. Run from the host terminal: Enter the container
+docker exec -it dx-runtime-24.04
+
+# 2. Inside Container: Verify NPU hardware recognition
+dxrt-cli -s
+```
+
+**B-2. 샘플 애플리케이션 실행 (`dx_app`)**  
+이 모듈은 다양한 비전 작업에 대한 추론 데모를 제공합니다.  
+
+- **작업 디렉토리**: `/deepx/dx-runtime/dx_app`  
+
+```Bash
+cd /deepx/dx-runtime/dx_app
+
+# 1. Prepare resources (Download .dxnn models and sample images)
+./setup.sh
+
+# 2. Run demo 
+./run_demo.sh 			# Run C++ based demo
+./run_demo_python.sh 		# Run Python demo
+```
+
+!!! note "데모 선택"  
+    실행 시 터미널에 사용 가능한 데모 목록(0, 1, 2...)이 표시됩니다. 해당 번호를 입력하고 **Enter**를 누르면 시작됩니다.  
+
+**B-3. 스트리밍 프레임워크 실행 (`dx_stream`)**  
+이 모듈은 실시간 다채널 비디오 스트림 처리에 최적화된 GStreamer 기반 모듈입니다.  
+
+- **작업 디렉토리**: `/deepx/dx-runtime/dx_stream`  
+
+```Bash
+cd /deepx/dx-runtime/dx_stream
+
+# 1. Prepare assets (Downloads streaming-specific models and video assets) 
+./setup.sh
+
+# 2. Run the streaming demo (C++ based)
+./run_demo.sh
+```
+
+!!! note "시나리오 선택"  
+    터미널에 표시되는 시나리오 번호를 입력하여 특정 스트리밍 시나리오를 선택할 수 있습니다.  
+
+#### C. DX-ModelZoo 환경 (모델 평가)
+**DX-ModelZoo** 환경은 사전 구성된 모델을 ONNX Runtime 및 DEEPX NPU에서 평가하고 `.dxnn`으로 컴파일합니다. 이미지에는 DX-ModelZoo(`dxmz`)가 `/venv-dxnn`에 사전 설치되어 있습니다.
+
+!!! note "구버전 이미지는 재빌드 필요"  
+    `dxmz`는 이미지 빌드 시점에 설치됩니다. `Dockerfile.dx-modelzoo`에 DX-ModelZoo가 추가되기 전에 빌드된 이미지에는 포함되어 있지 않으므로, `docker run --rm --entrypoint /venv-dxnn/bin/dxmz dx-modelzoo:ubuntu-24.04 --help`로 확인하고 실패하면 재빌드하십시오.  
+    ```Bash
+    ./docker_build.sh --target=dx-modelzoo --ubuntu_version=24.04
+    ```  
+
+**C-1. 컨테이너 접속**  
+```Bash
+# 1. Run from the host terminal: Enter the container
+docker exec -it dx-modelzoo-ubuntu-24.04 bash
+
+# 2. Inside Container: Verify the CLI
+dxmz --help
+```
+
+!!! note "NPU 접근"  
+    `dx-modelzoo` 컨테이너는 자체 `dxrtd`를 실행하지 않고 `dx-runtime` 컨테이너(또는 호스트)에서 실행 중인 DX-RT 서비스를 사용합니다. NPU(`dxnn`) 평가 전에 `dx-runtime` 컨테이너를 실행하십시오.  
+
+!!! note "GPU 이미지 (ONNX Runtime GPU)"  
+    기본 이미지는 `.[cpu]`를 설치합니다. NVIDIA GPU에서 ONNX 모델을 평가하려면 `--nvidia_gpu`로 빌드 및 실행하십시오. CUDA/cuDNN이 포함된 `nvidia/cuda` cuDNN runtime 베이스 이미지를 사용하고 CUDA 버전에 맞는 `onnxruntime-gpu`를 설치하므로(위 GPU 가속 옵션 참고) `LD_LIBRARY_PATH` 설정이 필요 없습니다. 호스트에는 NVIDIA 드라이버와 NVIDIA Container Toolkit이 필요합니다.  
+    ```Bash
+    ./docker_build.sh --target=dx-modelzoo --ubuntu_version=24.04 --nvidia_gpu
+    ./docker_run.sh --target=dx-modelzoo --ubuntu_version=24.04 --nvidia_gpu
+    ```
+    GPU 컨테이너 이름은 `dx-modelzoo-12.8.1-cudnn-runtime-ubuntu24.04`입니다.  
+    ```Bash
+    docker exec -it dx-modelzoo-12.8.1-cudnn-runtime-ubuntu24.04 bash
+    ```
+
+**C-2. 워크스페이스 및 `.env` 준비**  
+`modelzoo-1_prepare_assets.sh`는 `getting-started/modelzoo`를 `${DOCKER_VOLUME_PATH}/modelzoo`(호스트 `workspace/` 디렉토리에서 마운트됨)로 연결하고, `.env`가 없으면 `.env.example`로부터 `/deepx/dx-modelzoo/.env`를 생성합니다.  
+```Bash
+cd /deepx/getting-started
+./modelzoo-1_prepare_assets.sh
+```
+
+`/deepx/dx-modelzoo/.env`를 확인하고, 네트워크에서 모델 미러를 사용하는 경우 `DXMZ_MODEL_URL`을 설정하십시오. 평가용 데이터셋은 `getting-started/modelzoo/datasets` 아래에 배치합니다 (예: `ILSVRC2012/val`).  
+
+!!! tip "기존 데이터셋 디렉토리 마운트"  
+    데이터셋이 이미 호스트에 있는 경우(예: `/mnt/datasets/ILSVRC2012`) 복사 대신 read-only로 마운트하십시오. 컨테이너 실행 시 `DX_DATASETS_PATH`를 설정하면 `/deepx/datasets`에 마운트됩니다(`DX_DATASETS_TARGET`으로 변경 가능).  
+    ```Bash
+    # Host terminal
+    DX_DATASETS_PATH=/mnt/datasets ./docker_run.sh --target=dx-modelzoo --ubuntu_version=24.04
+    ```
+    컨테이너 안에서는 스크립트 또는 CLI에 마운트 경로를 지정합니다.  
+    ```Bash
+    # 스크립트: DATA_ROOT 재정의
+    DATA_ROOT=/deepx/datasets ./getting-started/modelzoo-2_run_first_npu_model.sh
+
+    # CLI: 실행 단위로 재정의
+    dxmz eval resnet50_224x224 --profile onnx --data-root /deepx/datasets --save
+    ```
+
+**C-3. 첫 번째 모델 실행**  
+```Bash
+./modelzoo-2_run_first_npu_model.sh
+```
+
+!!! note "컴파일"  
+    `dxmz compile`에는 `dx_com`이 필요합니다. 스크립트가 `pip`으로 자동 설치하며(`dx-compiler/compiler.properties`에 고정된 버전, 실패 시 PyPI 릴리스), 로컬 wheel을 사용하려면 `--dx-com-wheel /path/to/dx_com-*.whl`을 전달하십시오.  
+
+!!! tip "컴파일 없이 NPU 평가"  
+    `dxmz eval --profile q-lite`는 `DXMZ_MODEL_URL`에서 사전 빌드된 `.dxnn`을 다운로드하므로 `dx_com` 없이 NPU 평가가 가능합니다.  
+    ```Bash
+    ./modelzoo-2_run_first_npu_model.sh --skip-onnx --skip-compile
+    ```
+
+자세한 스크립트 흐름은 [**Running Your First NPU Model**](03_Running_Your_First_NPU_Model_kor.md)의 **DX-ModelZoo: Model Evaluation Scripts Guide** 섹션을 참조하십시오.  
+
+**경로 관련 주의사항**  
+"`File not found`" 오류를 방지하려면 **호스트** 터미널과 **컨테이너** 터미널을 명확히 구분하는 것이 중요합니다.  
+
+- **Docker 컨테이너 내부**: 항상 `/deepx` 로 시작하는 절대 경로를 사용하십시오. (예: `cd /deepx/dx-runtime/...`).  
+- **로컬 호스트 환경**: 현재 디렉토리를 기준으로 상대 경로를 사용하십시오 (예: `cd ./dx-runtime/...`).  
+
+!!! warning "일반적인 오류"  
+    호스트 터미널에서 `/deepx`로 시작하는 경로로 진입을 시도하면 시스템은 "`No such file or directory`" 오류를 반환합니다. 이동하기 전에 항상 프롬프트가 `root@...` 또는 `user@container_id`로 시작하는지 확인하십시오.  
+
+### [Docker] Advanced Troubleshooting (Multi-Runtime Containers)
+
+`dxrtd` 데몬은 시스템 내에서 단일 인스턴스(Singleton)로 실행되어야 합니다. 여러 컨테이너를 동시에 실행하려면, **반드시** 자동 실행을 방지하도록 `Entrypoint`를 수정해야 합니다.  
+
+- **방법 1**: Dockerfile 수정  
+`docker/Dockerfile.dx-runtime` 파일을 편집하여 기본 시작 명령을 주석 처리하고 영구 대기 상태로 대체합니다.  
+```Dockerfile
+# 1. Comment out the existing settings
+# ENTRYPOINT [ "/usr/local/bin/dxrtd" ]
+
+# 2. Enable infinite wait settings to keep containers running
+ENTRYPOINT ["tail", "-f", "/dev/null"]
+```
+
+- **방법 2**: docker-compose 수정  
+Docker Compose를 사용하는 경우, `docker/docker-compose.yml`의 해당 서비스 섹션에서 기본 Entrypoint를 직접 덮어쓸 수 있습니다.  
+```YAML
+services:
+  dx-runtime:
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["sleep infinity"]
+```
+
+!!! note "수동 시작"  
+    위 설정이 적용되면 NPU는 대기 상태가 됩니다. 컨테이너에 접속한 후 `dxrtd &` 명령을 사용하여 수동으로 실행하십시오.  
+
+### [Docker] Verification of Installation Results (Sanity Check)
+
+설치가 성공적으로 완료되었는지, 소프트웨어와 하드웨어가 올바르게 통신하는지 최종 점검을 수행합니다.  
+
+#### A. 하드웨어 인식 확인 (`dxrt-cli`)
+컨테이너 내부에서 다음 명령을 실행하여 NPU가 보이고 작동하는지 확인합니다.   
+```Bash
+dxrt-cli -s
+```
+
+**성공 체크리스트**  
+출력이 다음 세 가지 조건을 충족하면 하드웨어 통합에 성공한 것입니다.   
+
+- **[x] 장치 인식**: `Device 0: M1` (또는 특정 모델명)이 표시됨.  
+- **[x] 버전 정보**: `RT Driver version`, `FW version` 등에 유효한 버전 번호가 나타남.  
+- **[x] 데몬 상태**: "`Other instance of dxrtd is running`" 과 같은 오류 메시지가 없음.  
+
+[정상 출력 예시]  
+```Plaintext
+DX-RT v3.2.0
+========================================================
+* Device 0: M1, Accelerator type
+--------------------- Version ---------------------
+* RT Driver version : v2.1.0
+* FW version :      v2.5.0
+-------------------------------------------------------
+... (Continued)
+```
+
+#### B. 시스템 일관성 확인
+이 스크립트는 모든 개별 모듈이 지정된 경로에 올바르게 배치되었고 실행 준비가 되었는지 일괄 점검합니다.  
+```Bash
+# Check the integrity of the runtime environment
+./dx-runtime/scripts/sanity_check.sh
+```
+
+모든 항목에 대해 **[OK]** 또는 **PASS**가 출력되면 서비스 개발을 시작할 준비가 된 것입니다.  
 
 ---

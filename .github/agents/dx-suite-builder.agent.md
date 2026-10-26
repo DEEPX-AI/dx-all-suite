@@ -52,8 +52,8 @@ Skip this if you were invoked as a sub-agent via handoff from a higher-level age
 | Component | Path | Purpose |
 |---|---|---|
 | **dx-runtime** | `dx-runtime/` | Integration layer + cross-project orchestration |
-| **dx_app** | `dx-runtime/dx_app/` | Standalone inference apps (Python/C++, 133 models) |
-| **dx_stream** | `dx-runtime/dx_stream/` | GStreamer pipeline apps (13 elements, 6 categories) |
+| **dx_app** | `dx-runtime/dx_app/` | Standalone inference apps (Python/C++) — models: `config/model_registry.json`, tasks: `src/python_example/` |
+| **dx_stream** | `dx-runtime/dx_stream/` | GStreamer pipeline apps — elements: `gst-dxstream-plugin/src/`, pipelines: `dx_stream/pipelines/`, models: `model_list.json` |
 | **Docs** | `docs/` | MkDocs documentation site |
 | **dx-compiler** | `dx-compiler/` | DXNN model compiler (ONNX → .dxnn via DX-COM) |
 
@@ -117,7 +117,7 @@ python dx-compiler/.deepx/scripts/validate_framework.py
 
 - dx_app skills: `dx-runtime/dx_app/.github/skills/`
 - dx_stream skills: `dx-runtime/dx_stream/.github/skills/`
-- Integration: `dx-runtime/.github/instructions/integration.md`
+- Integration: `dx-runtime/.deepx/instructions/integration.md`
 - dx-compiler skills: `dx-compiler/.github/skills/`
 
 ### Final Step: Session Sentinel (DONE)

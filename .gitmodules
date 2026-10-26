@@ -10,3 +10,8 @@
 	path = dx-modelzoo
 	url = ../dx-modelzoo.git
 	ignore = dirty
+[submodule "dx-k8s-device-plugin"]
+	path = dx-k8s-device-plugin
+	url = ../dx-k8s-device-plugin.git
+	branch = main
+	ignore = dirty

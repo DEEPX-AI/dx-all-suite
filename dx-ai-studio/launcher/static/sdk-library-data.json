@@ -10,7 +10,7 @@
         "zh-TW": "產品手冊與簡報",
         "es": "Folletos y resúmenes"
       },
-      "icon": "📑",
+      "icon": "book",
       "color": "gold",
       "sections": [
         {
@@ -23,7 +23,7 @@
             "zh-TW": "產品手冊",
             "es": "Folletos de productos"
           },
-          "icon": "📑",
+          "icon": "book",
           "files": [
             {
               "path": "pdfs/DEEPX-AI-Accelerator-Products-Brochure.pdf",
@@ -67,7 +67,7 @@
             "zh-TW": "晶片與模組簡報",
             "es": "Resúmenes de chips y módulos"
           },
-          "icon": "🔖",
+          "icon": "file",
           "files": [
             {
               "path": "pdfs/DEEPX-DX-M1-Chip-Brief.pdf",
@@ -137,7 +137,7 @@
         "zh-TW": "DX All Suite",
         "es": "DX All Suite"
       },
-      "icon": "📁",
+      "icon": "folder",
       "color": "red",
       "sections": [
         {
@@ -150,7 +150,7 @@
             "zh-TW": "文件",
             "es": "Documentación"
           },
-          "icon": "📄",
+          "icon": "file",
           "files": [
             {
               "path": "docs/source/index.md",
@@ -219,7 +219,7 @@
             "zh-TW": "Agent Dev",
             "es": "Agent Dev"
           },
-          "icon": "🤖",
+          "icon": "agent",
           "files": [
             {
               "path": "docs/source/00_Agent_Driven_Development.md",
@@ -348,7 +348,7 @@
             "zh-TW": "頂層",
             "es": "Nivel superior"
           },
-          "icon": "📌",
+          "icon": "clipboard",
           "files": [
             {
               "path": "README.md",
@@ -374,7 +374,7 @@
         "zh-TW": "DX AI Studio",
         "es": "DX AI Studio"
       },
-      "icon": "🎛️",
+      "icon": "setup",
       "color": "blue",
       "sections": [
         {
@@ -387,7 +387,7 @@
             "zh-TW": "使用手冊",
             "es": "Manual del usuario"
           },
-          "icon": "📖",
+          "icon": "book",
           "files": [
             {
               "path": "dx-ai-studio/docs/source/01_Installation_and_Launch.md",
@@ -468,7 +468,7 @@
         "zh-TW": "DX Compiler",
         "es": "DX Compiler"
       },
-      "icon": "⚙️",
+      "icon": "compiler",
       "color": "green",
       "sections": [
         {
@@ -481,7 +481,7 @@
             "zh-TW": "DX Compiler",
             "es": "DX Compiler"
           },
-          "icon": "🔨",
+          "icon": "compiler",
           "files": [
             {
               "path": "dx-compiler/source/docs/01_DXNN_Compiler_Overview.md",
@@ -517,11 +517,6 @@
               "path": "dx-compiler/source/docs/02_06_Execution_of_DX-COM.md",
               "title": "02 06 Execution of DX COM",
               "size": 16060
-            },
-            {
-              "path": "dx-compiler/source/docs/04_01_Model_Viewer_DX-TRON.md",
-              "title": "04 01 Model Viewer DX TRON",
-              "size": 6739
             },
             {
               "path": "dx-compiler/source/docs/Appendix_Change_Log.md",
@@ -572,7 +567,7 @@
               "size": 10339
             },
             {
-              "path": "dx-compiler/source/docs/04_02_Compilation_Summary_Report.md",
+              "path": "dx-compiler/source/docs/04_Compilation_Summary_Report.md",
               "title": "Compilation Summary Report",
               "type": "md",
               "size": 3286
@@ -601,7 +596,7 @@
         "zh-TW": "DX Model Zoo",
         "es": "DX Model Zoo"
       },
-      "icon": "🧬",
+      "icon": "zoo",
       "color": "blue",
       "sections": [
         {
@@ -614,7 +609,7 @@
             "zh-TW": "DX Model Zoo",
             "es": "DX Model Zoo"
           },
-          "icon": "🦁",
+          "icon": "zoo",
           "files": [
             {
               "path": "dx-modelzoo/README.md",
@@ -627,104 +622,104 @@
               "size": 8026
             },
             {
-              "path": "dx-modelzoo/docs/source/getting-started/installation.md",
+              "path": "dx-modelzoo/docs/source/02_01_Installation.md",
               "title": "Model Zoo Installation",
               "type": "md",
               "size": 2330
             },
             {
-              "path": "dx-modelzoo/docs/source/getting-started/quickstart.md",
+              "path": "dx-modelzoo/docs/source/00_Quick_Start.md",
               "title": "Model Zoo Quickstart",
               "type": "md",
               "size": 2941
             },
             {
-              "path": "dx-modelzoo/docs/source/guides/yaml-config.md",
+              "path": "dx-modelzoo/docs/source/02_03_YAML_Configuration.md",
               "title": "YAML Config Reference",
               "type": "md",
               "size": 9189
             },
             {
-              "path": "dx-modelzoo/docs/source/guides/evaluation.md",
+              "path": "dx-modelzoo/docs/source/02_02_Model_Evaluation.md",
               "title": "Model Evaluation Guide",
               "type": "md",
               "size": 3669
             },
             {
-              "path": "dx-modelzoo/docs/source/guides/custom-models.md",
+              "path": "dx-modelzoo/docs/source/02_05_Custom_Models.md",
               "title": "Custom Models Guide",
               "type": "md",
               "size": 8636
             },
             {
-              "path": "dx-modelzoo/docs/source/index.md",
+              "path": "dx-modelzoo/docs/source/01_DX-ModelZoo_Overview.md",
               "title": "Model Zoo Documentation",
               "type": "md",
               "size": 2619
             },
             {
-              "path": "dx-modelzoo/docs/source/api/cli.md",
+              "path": "dx-modelzoo/docs/source/04_01_CLI_Reference.md",
               "title": "Model Zoo CLI Reference",
               "type": "md",
               "size": 6491
             },
             {
-              "path": "dx-modelzoo/docs/source/architecture/overview.md",
+              "path": "dx-modelzoo/docs/source/03_01_Architecture_Overview.md",
               "title": "Architecture Overview",
               "size": 6033
             },
             {
-              "path": "dx-modelzoo/docs/source/architecture/pipeline.md",
+              "path": "dx-modelzoo/docs/source/03_02_Execution_Pipeline.md",
               "title": "Pipeline Architecture",
               "size": 6401
             },
             {
-              "path": "dx-modelzoo/docs/source/architecture/registry.md",
+              "path": "dx-modelzoo/docs/source/03_03_Registry.md",
               "title": "Registry Architecture",
               "size": 8319
             },
             {
-              "path": "dx-modelzoo/docs/source/api/session.md",
+              "path": "dx-modelzoo/docs/source/04_03_Session_API.md",
               "title": "Session API",
               "size": 8299
             },
             {
-              "path": "dx-modelzoo/docs/source/api/model-builder.md",
+              "path": "dx-modelzoo/docs/source/04_02_ModelBuilder_API.md",
               "title": "Model Builder API",
               "size": 6616
             },
             {
-              "path": "dx-modelzoo/docs/source/api/dataloader.md",
+              "path": "dx-modelzoo/docs/source/04_04_DataLoader_API.md",
               "title": "DataLoader API",
               "size": 6426
             },
             {
-              "path": "dx-modelzoo/docs/source/api/datasets.md",
+              "path": "dx-modelzoo/docs/source/04_05_Datasets_API.md",
               "title": "Datasets API",
               "size": 17905
             },
             {
-              "path": "dx-modelzoo/docs/source/api/preprocessing.md",
+              "path": "dx-modelzoo/docs/source/04_07_Preprocessing_API.md",
               "title": "Preprocessing API",
               "size": 6544
             },
             {
-              "path": "dx-modelzoo/docs/source/api/postprocessing.md",
+              "path": "dx-modelzoo/docs/source/04_08_Postprocessing_API.md",
               "title": "Postprocessing API",
               "size": 7185
             },
             {
-              "path": "dx-modelzoo/docs/source/api/evaluator.md",
+              "path": "dx-modelzoo/docs/source/04_06_Evaluator_API.md",
               "title": "Evaluator API",
               "size": 9613
             },
             {
-              "path": "dx-modelzoo/docs/source/guides/datasets.md",
+              "path": "dx-modelzoo/docs/source/02_04_Datasets_Guide.md",
               "title": "Datasets Guide",
               "size": 10322
             },
             {
-              "path": "dx-modelzoo/docs/source/guides/custom-datasets.md",
+              "path": "dx-modelzoo/docs/source/02_06_Custom_Datasets.md",
               "title": "Custom Datasets Guide",
               "size": 6794
             }
@@ -742,7 +737,7 @@
         "zh-TW": "DX 執行環境",
         "es": "DX Runtime"
       },
-      "icon": "⚡",
+      "icon": "bolt",
       "color": "amber",
       "sections": [
         {
@@ -755,8 +750,14 @@
             "zh-TW": "DX 執行環境",
             "es": "DX Runtime"
           },
-          "icon": "🔄",
+          "icon": "cpu",
           "files": [
+            {
+              "path": "dx-runtime/README.md",
+              "title": "DX-Runtime README",
+              "size": 2897,
+              "type": "md"
+            },
             {
               "path": "dx-runtime/dx_rt/docs/source/docs/01_DXNN_Runtime_Overview.md",
               "title": "01 DXNN Runtime Overview",
@@ -863,9 +864,9 @@
               "size": 7633
             },
             {
-              "path": "dx-runtime/dx_rt/csharp_package/DxEngine_NuGet_Guide.md",
-              "title": "C# NuGet Package Guide",
-              "size": 3852
+              "path": "dx-runtime/dx_rt/examples/csharp/README.md",
+              "title": "Using DX-RT from C#",
+              "size": 8963
             },
             {
               "path": "dx-runtime/docs/source/agent_development.md",
@@ -889,7 +890,7 @@
             "zh-TW": "DX App",
             "es": "DX App"
           },
-          "icon": "📱",
+          "icon": "app",
           "files": [
             {
               "path": "dx-runtime/dx_app/docs/source/docs/04_DX-APP_CPP_Example_Test.md",
@@ -999,7 +1000,7 @@
             "zh-TW": "DX Stream",
             "es": "DX Stream"
           },
-          "icon": "📡",
+          "icon": "stream",
           "files": [
             {
               "path": "dx-runtime/dx_stream/docs/source/docs/01_DXNN_Streamer_Overview.md",
@@ -1092,16 +1093,6 @@
               "size": 2825
             },
             {
-              "path": "dx-runtime/dx_stream/docs/source/docs/Elements/03_16_DxVnpuPipeline.md",
-              "title": "03 16 DxVnpuPipeline",
-              "size": 3909
-            },
-            {
-              "path": "dx-runtime/dx_stream/docs/source/docs/Elements/03_17_DxVnpuOverlay.md",
-              "title": "03 17 DxVnpuOverlay",
-              "size": 2945
-            },
-            {
               "path": "dx-runtime/dx_stream/docs/source/docs/04_Writing_Your_Own_Application.md",
               "title": "04 Writing Your Own Application",
               "size": 26893
@@ -1190,11 +1181,6 @@
               "path": "dx-runtime/dx_stream/docs/source/docs/Appendix_Build_on_Windows.md",
               "title": "Appendix: Build on Windows",
               "size": 12918
-            },
-            {
-              "path": "dx-runtime/dx_stream/RELEASE_NOTES.md",
-              "title": "DX-STREAM Release Notes",
-              "size": 12362
             }
           ]
         },
@@ -1208,8 +1194,14 @@
             "zh-TW": "DX 韌體",
             "es": "DX Firmware"
           },
-          "icon": "⚙️",
+          "icon": "memory",
           "files": [
+            {
+              "path": "dx-runtime/dx_fw/README.md",
+              "title": "DX-FW README",
+              "size": 250,
+              "type": "md"
+            },
             {
               "path": "dx-runtime/dx_fw/RELEASE_NOTES.md",
               "title": "RELEASE_NOTES",
@@ -1227,7 +1219,7 @@
             "zh-TW": "NPU Linux驅動程式",
             "es": "Controlador NPU Linux"
           },
-          "icon": "🖥️",
+          "icon": "monitor",
           "files": [
             {
               "path": "dx-runtime/dx_rt_npu_linux_driver/README.md",

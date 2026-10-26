@@ -13,7 +13,8 @@
 ## System Architecture & Core Modules
 
 <div align="center">
-  <img src="./resources/DXNN-SDK-Full-Architecture.png" width="600">
+  <img src="./resources/DXNN-SDK-Full-Architecture.png#only-light" width="600">
+  <img src="./resources/DXNN-SDK-Full-Architecture-dark.png#only-dark" width="600">
   <p><strong>Figure. DXNN SDK Full Architecture Overview.</strong></p>
 </div>
 
@@ -21,15 +22,15 @@
 이 환경은 훈련된 AI 모델을 DEEPX NPU 전용 바이너리(`.dxnn`)로 변환하고 최적화합니다. **x86_64** PC 환경을 지원합니다.  
 
 - **DX-COM (컴파일러)**: ONNX 모델과 사용자 설정(JSON) 파일을 기반으로 `.dxnn` 바이너리를 생성하는 핵심 컴파일러입니다. 고유한 알고리즘을 사용하여 모델을 하드웨어에 최적화된 명령어로 변환하는 동시에 정확도 손실을 최소화하며, 저지연 및 고효율 추론을 가능하게 합니다.  
-- **DX-TRON (시각화 도구)**: `.dxnn` 모델의 구조를 시각화하고 분석하는 GUI 도구입니다. NPU와 CPU 간의 작업 부하 분산을 색상으로 구분된 그래프로 직관적으로 보여주어, 개발자가 실행 흐름을 이해하고 성능을 최적화할 수 있도록 돕습니다.  
+- **Compilation Summary Report**: DX-COM이 생성하는 인터랙티브 HTML 리포트(`--export_html`)입니다. 컴파일된 모델 그래프를 CPU/NPU 파티션 및 파티션 사유와 함께 시각화하여, 개발자가 실행 흐름을 이해하고 성능을 최적화할 수 있도록 돕습니다.  
 - **DX-ModelZoo**: DEEPX NPU에 최적화된 사전 훈련 모델 저장소입니다. ONNX 모델, JSON 설정 및 사전 컴파일된 `.dxnn` 바이너리를 제공함으로써, 개발자가 별도의 컴파일 과정 없이 즉시 모델을 테스트하고 배포할 수 있게 합니다.  
 
 **[2] AI 모델 런타임 환경 (타겟 플랫폼)**  
-이 환경은 최적화된 .dxnn 모델을 실제 NPU 하드웨어에서 실행하고 애플리케이션에 통합합니다. **x86_64** 및 **aarch64** 환경을 모두 지원합니다.  
+이 환경은 최적화된 `.dxnn` 모델을 실제 NPU 하드웨어에서 실행하고 애플리케이션에 통합합니다. **x86_64** 및 **aarch64** 환경을 모두 지원합니다.  
 
-- **DX-RT (런타임)**: 펌웨어 및 드라이버와 상호 작용하여 DEEPX NPU에서 .dxnn 모델을 실행하는 핵심 소프트웨어입니다. 모델 로딩, I/O 버퍼, 추론 실행 및 실시간 모니터링을 관리하며, C/C++ 및 Python API를 통해 유연한 제어를 제공합니다.  
+- **DX-RT (런타임)**: 펌웨어 및 드라이버와 상호 작용하여 DEEPX NPU에서 `.dxnn` 모델을 실행하는 핵심 소프트웨어입니다. 모델 로딩, I/O 버퍼, 추론 실행 및 실시간 모니터링을 관리하며, C/C++ 및 Python API를 통해 유연한 제어를 제공합니다.  
 - **DX-APP**: DX-RT 기반으로 제작된 샘플 애플리케이션입니다. 주요 비전 작업(객체 탐지, 얼굴 인식, 이미지 분류 등)에 대한 참조 코드를 제공하여 개발자가 이러한 템플릿을 사용해 독창적인 AI 앱을 빠르게 구축할 수 있도록 합니다.  
-- **DX-Stream**: 실시간 비디오 데이터를 DEEPX NPU 추론과 연결하는 GStreamer 기반 커스텀 플러그인입니다. 전처리, 추론, 후처리를 아우르는 모듈형 파이프라인을 제공하며, 지능형 카메라와 같은 고성능 비전 AI 애플리케이션에 최적화되어 있습니다.  
+- **DX-STREAM**: 실시간 비디오 데이터를 DEEPX NPU 추론과 연결하는 GStreamer 기반 커스텀 플러그인입니다. 전처리, 추론, 후처리를 아우르는 모듈형 파이프라인을 제공하며, 지능형 카메라와 같은 고성능 비전 AI 애플리케이션에 최적화되어 있습니다.  
 - **드라이버 및 펌웨어(Driver & FW)**: PCIe 인터페이스를 통한 고속 데이터 통신을 지원하고 NPU 자원 스케줄링 및 전력을 관리합니다. 하드웨어와 소프트웨어 간의 안정성을 보장하는 동시에 하드웨어의 잠재력을 극대화하여 원활한 추론 환경을 제공합니다.  
 
 **개발 워크플로우**  
@@ -78,16 +79,16 @@ DX-AllSuite는 리팩토링을 최소화하기 위해 업계 표준 프레임워
 
 ## DEEPX ModelZoo & Supported Tasks
 
-DEEPX ModelZoo는 **345개의 사전 검증된 모델**을 제공하는 종합 저장소입니다. 사용자는 수동 컴파일 과정 없이 다양한 하드웨어 프로파일에서 성능과 정확도를 즉시 확인할 수 있습니다.  
+DEEPX ModelZoo는 **300개 이상의 사전 검증된 모델**을 제공하는 종합 저장소입니다. 사용자는 수동 컴파일 과정 없이 다양한 하드웨어 프로파일에서 성능과 정확도를 즉시 확인할 수 있습니다.  
 
 | 작업 | 대표 모델 |
 | :--- | :--- |
-| **Image Classification** | ResNet, ResNeXt, MobileNet, EfficientNet (Lite/V2),<br>ViT/DeiT/BEiT, MobileViT, FastViT, CasViT,<br>RegNet, ShuffleNet, VGG |
-| **Object Detection** | YOLO families (YOLOv3–YOLOv11, YOLOX, YOLO26),<br>SSD, EfficientDet, NanoDet, DamoYOLO |
+| **Image Classification** | ResNet, ResNeXt, MobileNet, EfficientNet (Lite/V2),<br>ViT/DeiT/BEiT, FastViT, CasViT,<br>RegNet, ShuffleNet, VGG |
+| **Object Detection** | YOLO families (YOLOv3–YOLOv13, YOLOX, YOLO26), RT-DETR (v1/v2/v3),<br>SSD, EfficientDet, NanoDet, DamoYOLO |
 | **3D Object Detection** | 3D 객체 검출 모델 |
 | **Instance Segmentation** | YOLACT, YOLOv5-Seg, YOLOv8-Seg, YOLO26-Seg |
 | **Semantic Segmentation** | DeepLabV3/DeepLabV3+, SegFormer, BiSeNet, UNet |
-| **Panoptic Driving Perception** | 범용 주행 인식 모델 |
+| **Panoptic Driving Perception** | 파놉틱 주행 인식 모델 |
 | **Oriented Object Detection (OBB)** | YOLO26-OBB |
 | **Zero-shot Instance Segmentation** | FastSAM |
 | **Face Detection** | RetinaFace, SCRFD, ULFGFD, YOLOv5-Face, YOLOv7-Face |
