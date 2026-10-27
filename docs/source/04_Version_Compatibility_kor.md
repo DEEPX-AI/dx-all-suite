@@ -315,7 +315,7 @@
 NPU 상태 유틸리티를 사용하여 **펌웨어(FW)** 및 **NPU 드라이버** 버전을 즉시 확인할 수 있습니다.  
 ```Bash
 # Display NPU status and driver information
-dxrt-cli -s
+dxcli -s
 ```
 
 **단계 2. 컴파일러 (호스트 측)**  

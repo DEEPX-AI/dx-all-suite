@@ -503,7 +503,7 @@ Check items (variable by scenario; up to ~8):
 1. `sentinel_start` — `[DX-AGENT-DEV: START]` in first line of response
 2. `sentinel_done` — `[DX-AGENT-DEV: DONE (output-dir: ...)]` in last line
 3. `output_isolation_present` — Artifacts under `dx-agent-dev/<session_id>/`
-4. `session_id_format` — `YYYYMMDD-HHMMSS_<agent>_<model>_<task>` pattern
+4. `session_id_format` — `YYYYMMDD-HHMMSS_<agent>_<coding_model>_<target_model>_<task>` pattern
 5. `mandatory_deliverables` — All scenario-required files exist
 6. `ifactory_5_methods` — factory in dx_app/runtime/suite implements 5-method pattern
 7. `session_log_authentic` — session.log contains real command output (not heredoc)

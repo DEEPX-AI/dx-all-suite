@@ -204,7 +204,7 @@ DEEPX NPU 제어를 위한 핵심 소프트웨어 스택을 구축합니다.
 - **데이터셋은 다운로드되지 않음**: 평가와 캘리브레이션은 모델 YAML에 정의된 데이터셋을 사용합니다. 실행 전에 `getting-started/modelzoo/datasets` 아래에 배치하십시오. Docker에서는 호스트의 기존 데이터셋 디렉토리를 read-only로 마운트할 수도 있습니다: `DX_DATASETS_PATH=/mnt/datasets ./docker_run.sh --target=dx-modelzoo --ubuntu_version=24.04` 실행 시 `/deepx/datasets`에 마운트됩니다. 이후 스크립트를 `DATA_ROOT=/deepx/datasets`와 함께 실행하면 `getting-started/modelzoo/datasets` 대신 마운트된 데이터셋을 사용합니다.  
 
 !!! caution "전제 조건"  
-    NPU 평가에는 정상 동작하는 DX-RT 스택(`dxrt-cli -s`)이 필요합니다. 컴파일에는 동일한 환경에 `dx_com`이 필요하며, 실행 스크립트가 자동으로 설치합니다.  
+    NPU 평가에는 정상 동작하는 DX-RT 스택(`dxcli -s`)이 필요합니다. 컴파일에는 동일한 환경에 `dx_com`이 필요하며, 실행 스크립트가 자동으로 설치합니다.  
 
 ### C. Detailed Script Guide
 

@@ -140,10 +140,10 @@ Update the firmware using the all-in-one setup script.
 ./dx-runtime/install.sh --target=dx_fw
 ```
 
-**Method 2: Using the Dedicated CLI Tool (`dxrt-cli`)**  
+**Method 2: Using the Dedicated CLI Tool (`dxcli`)**  
 Update the firmware manually by pointing to the specific binary file.  
 ```Bash
-dxrt-cli -u ./dx-runtime/dx_fw/m1/X.X.X/mdot2/fw.bin
+dxcli -u ./dx-runtime/dx_fw/m1/X.X.X/mdot2/fw.bin
 ```
 
 **Critical Post-Update Action: Cold Booting**  
@@ -159,7 +159,7 @@ To completely initialize the hardware logic and ensure the new firmware version 
 **Final Verification**  
 After rebooting, enter the following command in the terminal to verify that the firmware has been updated successfully.  
 ```Bash
-dxrt-cli -s
+dxcli -s
 ```
 
 For more details, refer to the **Firmware (DX-FW) Update and Activation** section in [**Setting Up Environment**](02_Setting_Up_Environment.md).  
@@ -201,7 +201,7 @@ sudo reboot
 **Step 3. Verify Status**  
 After the reboot, confirm the update was successful.  
 ```Bash
-dxrt-cli -s
+dxcli -s
 ```
 
 !!! caution "Warning for Docker Users"  
@@ -467,7 +467,7 @@ DX-RT inside the container and the NPU device driver on the **host** are separat
 
 Check the installed versions on the host:  
 ```Bash
-dxrt-cli --status | grep -A2 Version
+dxcli --status | grep -A2 Version
 ```
 
 ### Solution: Update the Host NPU Driver
@@ -484,7 +484,7 @@ git submodule status dx-runtime/dx_rt_npu_linux_driver
 
 **Step 3. Verify the driver version and re-run the evaluation**  
 ```Bash
-dxrt-cli --status | grep "RT Driver version"
+dxcli --status | grep "RT Driver version"
 ```
 
 !!! note "Host and Container Must Be Upgraded Together"  

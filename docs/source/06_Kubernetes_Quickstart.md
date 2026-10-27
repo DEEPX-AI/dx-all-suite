@@ -172,6 +172,14 @@ The device plugin serves Prometheus metrics on `:9400` (headless Service
 | Device reported unhealthy | Card present in sysfs but absent from `dxcli -s` — usually needs a host power cycle |
 | Inference Pod stays `Running`, `dxrun` never exits | Host `dxrt.service` is running on the node — `sudo systemctl disable --now dxrt.service` (Prerequisites, step 1) |
 | `dxrun: symbol lookup error: undefined symbol` in a Pod | Node DX-RT and Pod image DX-RT differ — CDI mounts the host `libdxrt.so.3`; install the same DX-RT build on the node and in the image |
-| `GLIBC_2.xx not found` running `dxcli` in a pod | The image's glibc is older than the host runtime's. DXRT v3.4.2 needs GLIBC_2.38 — use `ubuntu:24.04` or newer as the base |
+| `GLIBC_2.xx not found` running `dxcli` in a pod | The Pod image's glibc is older than the host DX-RT that CDI injects — use `ubuntu:24.04` or newer as the base (see the note below) |
+
+!!! note "glibc required by the host DX-RT"
+    CDI mounts the node's `dxcli` and `libdxrt.so.3` into the Pod, so the Pod image needs at least the glibc those binaries were built against:
+
+    - Prebuilt `libdxrt-bin` package: glibc ≥ 2.27
+    - DX-RT built from source on the node: follows the node's glibc (e.g. `GLIBC_2.38` on Ubuntu 24.04)
+
+    Check the actual requirement on the node with `objdump -T /usr/local/bin/dxcli /usr/local/lib/libdxrt.so.3 | grep -o 'GLIBC_[0-9.]*' | sort -uV | tail -1`.
 
 Full chart values and details: `deploy/k8s/README.md`.

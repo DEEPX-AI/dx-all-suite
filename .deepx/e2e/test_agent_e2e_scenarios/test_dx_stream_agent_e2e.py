@@ -640,7 +640,7 @@ class TestMandatoryArtifacts:
         sid = data.get("session_id", "")
         assert "copilot" in sid, (
             f"session.json session_id '{sid}' does not contain agent identifier 'copilot'.\n"
-            "Fix: session_id must use format YYYYMMDD-HHMMSS_<agent>_<model>_<task> "
+            "Fix: session_id must use format YYYYMMDD-HHMMSS_<agent>_<coding_model>_<target_model>_<task> "
             "where <agent> is 'copilot'."
         )
 

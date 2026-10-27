@@ -133,9 +133,9 @@ kubectl get node -o json | jq '.items[].metadata.labels | with_entries(select(.k
 ```json
 {
   "deepx.ai/dx-m1.count": "1",
-  "deepx.ai/dx-m1.driver-version": "v2.5.1",
+  "deepx.ai/dx-m1.driver-version": "v2.7.0",
   "deepx.ai/dx-m1.fw-version": "v2.7.6",
-  "deepx.ai/dx-m1.pcie-driver-version": "v2.4.1",
+  "deepx.ai/dx-m1.pcie-driver-version": "v2.7.0",
   "deepx.ai/dx-m1.present": "true",
   "deepx.ai/dx-m1.product": "M1"
 }
@@ -152,7 +152,7 @@ kubectl logs dx-m1-test
 === /dev/dxrt* ===
 crw-rw-rw- 1 root root 507, 0 ... /dev/dxrt0
 === dxcli -s ===
-DXRT v3.4.2
+DXRT v3.5.0
  * Device 0: M1, Accelerator type
  ...
 NPU 0: voltage 750 mV, clock 1000 MHz, temperature 43'C
@@ -314,7 +314,7 @@ The **Graph** tab shows how it changed over time. A Grafana dashboard lives at
 | No `/dev/dxrt0` inside the Pod | The delivery helper (CDI) didn't run | containerd CDI setup ([Quickstart](06_Kubernetes_Quickstart.md) step 2) |
 | `ImagePullBackOff` | The child can't find their bag (image) | Image name, whether it's published, whether it was imported locally |
 | `dxrt service is not running` | The block helper (`dxrtd`) wasn't started | Run `dxrtd &` first in the Pod command |
-| `GLIBC_2.38 not found` | The desk is too old to read the booklet | Use `ubuntu:24.04` or newer as the Pod image |
+| `GLIBC_2.xx not found` | The desk is too old to read the booklet | Use `ubuntu:24.04` or newer as the Pod image ([Quickstart](06_Kubernetes_Quickstart.md#troubleshooting) has the details) |
 
 ---
 

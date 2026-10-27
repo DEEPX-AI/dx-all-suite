@@ -493,7 +493,7 @@ python3 analyze.py --round 6 7 8 9 10     # 추가 5 라운드
 1. `sentinel_start` — 응답 첫 줄에 `[DX-AGENT-DEV: START]`
 2. `sentinel_done` — 마지막 줄에 `[DX-AGENT-DEV: DONE (output-dir: ...)]`
 3. `output_isolation_present` — 산출물이 `dx-agent-dev/<session_id>/` 하위
-4. `session_id_format` — `YYYYMMDD-HHMMSS_<agent>_<model>_<task>` 패턴
+4. `session_id_format` — `YYYYMMDD-HHMMSS_<agent>_<coding_model>_<target_model>_<task>` 패턴
 5. `mandatory_deliverables` — 시나리오별 필수 파일 모두 존재
 6. `ifactory_5_methods` — dx_app/runtime/suite의 factory가 5-method 패턴 준수
 7. `session_log_authentic` — session.log가 hand-written heredoc이 아닌 실 명령 출력

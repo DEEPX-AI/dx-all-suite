@@ -134,9 +134,9 @@ kubectl get node -o json | jq '.items[].metadata.labels | with_entries(select(.k
 ```json
 {
   "deepx.ai/dx-m1.count": "1",
-  "deepx.ai/dx-m1.driver-version": "v2.5.1",
+  "deepx.ai/dx-m1.driver-version": "v2.7.0",
   "deepx.ai/dx-m1.fw-version": "v2.7.6",
-  "deepx.ai/dx-m1.pcie-driver-version": "v2.4.1",
+  "deepx.ai/dx-m1.pcie-driver-version": "v2.7.0",
   "deepx.ai/dx-m1.present": "true",
   "deepx.ai/dx-m1.product": "M1"
 }
@@ -153,7 +153,7 @@ kubectl logs dx-m1-test
 === /dev/dxrt* ===
 crw-rw-rw- 1 root root 507, 0 ... /dev/dxrt0
 === dxcli -s ===
-DXRT v3.4.2
+DXRT v3.5.0
  * Device 0: M1, Accelerator type
  ...
 NPU 0: voltage 750 mV, clock 1000 MHz, temperature 43'C
@@ -316,7 +316,7 @@ Grafana의 **Dashboards → New → Import**에 붙여 넣으면 됩니다.
 | Pod 안에 `/dev/dxrt0`가 없음 | 배달 도우미(CDI)가 일을 안 함 | containerd CDI 설정 ([Quickstart](06_Kubernetes_Quickstart_kor.md) 2단계) |
 | `ImagePullBackOff` | 아이가 가방(이미지)을 못 찾음 | 이미지 이름, 레지스트리 게시 여부, 로컬 import 여부 |
 | `dxrt service is not running` | 블록 도우미(`dxrtd`)를 안 켬 | Pod 명령에서 `dxrtd &`를 먼저 실행 |
-| `GLIBC_2.38 not found` | 아이 책상이 너무 낡아 설명서를 못 읽음 | Pod 이미지를 `ubuntu:24.04` 이상으로 |
+| `GLIBC_2.xx not found` | 아이 책상이 너무 낡아 설명서를 못 읽음 | Pod 이미지를 `ubuntu:24.04` 이상으로 (상세: [Quickstart](06_Kubernetes_Quickstart_kor.md#troubleshooting)) |
 
 ---
 

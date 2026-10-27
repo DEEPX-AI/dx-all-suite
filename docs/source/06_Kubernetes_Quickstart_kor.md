@@ -168,6 +168,14 @@ prometheus-operator가 있다면 `metrics.serviceMonitor.enabled=true`를 설정
 | device unhealthy 보고 | sysfs에는 있으나 `dxcli -s`에 없음 — 대부분 host 전원 재인가 필요 |
 | 추론 Pod가 `Running`에 머물고 `dxrun`이 종료되지 않음 | 노드에서 host `dxrt.service`가 동작 중 — `sudo systemctl disable --now dxrt.service` (사전 준비 1단계) |
 | Pod에서 `dxrun: symbol lookup error: undefined symbol` | 노드 DX-RT와 Pod image DX-RT가 다름 — CDI가 host `libdxrt.so.3`를 마운트하므로 노드와 image에 같은 DX-RT build 설치 |
-| pod에서 `dxcli` 실행 시 `GLIBC_2.xx not found` | image의 glibc가 host runtime보다 낮음. DXRT v3.4.2는 GLIBC_2.38 필요 — base를 `ubuntu:24.04` 이상으로 |
+| pod에서 `dxcli` 실행 시 `GLIBC_2.xx not found` | Pod image의 glibc가 CDI로 주입되는 host DX-RT보다 낮음 — base를 `ubuntu:24.04` 이상으로 (아래 note 참고) |
+
+!!! note "host DX-RT가 요구하는 glibc"
+    CDI는 node의 `dxcli`와 `libdxrt.so.3`를 Pod에 마운트하므로, Pod image에는 해당 바이너리가 빌드된 glibc 이상이 있어야 합니다.
+
+    - prebuilt `libdxrt-bin` 패키지: glibc ≥ 2.27
+    - node에서 소스 빌드한 DX-RT: node의 glibc를 따름 (예: Ubuntu 24.04 빌드는 `GLIBC_2.38`)
+
+    실제 요구 버전은 node에서 `objdump -T /usr/local/bin/dxcli /usr/local/lib/libdxrt.so.3 | grep -o 'GLIBC_[0-9.]*' | sort -uV | tail -1`로 확인하십시오.
 
 전체 chart values와 상세 내용: `deploy/k8s/README.md`.

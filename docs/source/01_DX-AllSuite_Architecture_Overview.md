@@ -58,7 +58,7 @@ The following table outlines the supported environments for both the compilation
 | Category | DX-Compiler (Host) | DX-Runtime (Target) |
 | :--- | :--- | :--- |
 | **Architecture** | x86_64 | x86_64, aarch64 |
-| **OS** | Ubuntu 26.04/24.04/22.04/20.04,<br>Fedora, Redhat, CentOS | Ubuntu 26.04/24.04/22.04/20.04,<br>Debian 13/12, Windows 11/10 |
+| **OS** | Ubuntu 26.04/24.04/22.04/20.04,<br>Fedora 42–45, RHEL 9–10, CentOS Stream 9–10 | Ubuntu 26.04/24.04/22.04/20.04,<br>Debian 13/12, Windows 11/10 |
 | **Languages** | Python 3.8, 3.9, 3.10, 3.11, 3.12, 3.13, 3.14 | Python 3.8 or higher,<br>C++14 or higher (C++17 for MSVC/Windows) |
 
 ### Model & Software Ecosystem
@@ -101,7 +101,7 @@ DEEPX ModelZoo is a comprehensive repository providing **300+ pre-validated mode
 | **Object Pose Estimation** | Object pose estimation models |
 | **Keypoint Detection** | Keypoint detection models |
 | **Person Attribute** | DeepMAR (ResNet18/50) |
-| **Person Re-identification** | CasViT |
+| **Person Re-identification** | RepVGG |
 | **Depth Estimation** | FastDepth, SCDepthV3 |
 | **Image Denoising** | DnCNN variants |
 | **Low-light Enhancement** | ZeroDCE |

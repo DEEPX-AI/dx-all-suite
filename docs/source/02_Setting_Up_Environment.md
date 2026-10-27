@@ -124,7 +124,10 @@ sudo apt install libdxrt-bin
 | Package | Contents |
 |---|---|
 | `dxrt-driver-dkms` | NPU kernel driver, built for the running kernel through DKMS (pulls in `dkms` and `build-essential`) and rebuilt automatically on kernel updates |
-| `libdxrt-bin` | Pre-built DX-RT library and headers under `/usr/local`, `dxrt-cli` and the other runtime tools, and the `dxrt` service |
+| `libdxrt-bin` | Pre-built DX-RT library and headers under `/usr/local`, `dxcli` and the other runtime tools, and the `dxrt` service |
+
+!!! note "CLI command names"
+    Since DX-RT v3.4.0, `dxrt-cli`, `parse_model`, and `run_model` have been renamed to `dxcli`, `dxparse`, and `dxrun`. The old names remain available as backward-compatible aliases.
 
 !!! warning "Reboot and firmware"
     Reboot after installing `dxrt-driver-dkms` so the kernel loads the NPU driver. Firmware
@@ -207,7 +210,7 @@ This path is designed for users who have a specific model architecture trained i
 
 - **Step 1 (Source)**: Secure your trained models and source code from major AI frameworks such as PyTorch or TensorFlow.     
 - **Step 2 (Export)**: Export the model to **ONNX**, the standard format recognized by **DX-COM**.  
-    : Tip: Set input tensor size and use **Opset 11 or higher** to ensure maximum compatibility with NPU specifications.  
+    : Tip: Set input tensor size and use **Opset 11–21 (17 recommended)** to ensure maximum compatibility with NPU specifications.  
 - **Step 3 (DX-COM)**: Convert the ONNX model into an NPU-optimized `.dxnn` binary within the compiler virtual environment (`venv-dx-compiler`).  
 - **Step 4 (DX-RT)**: Load the generated model and run inference on the target device using the runtime virtual environment (`venv-dx-runtime`).  
 - **Step 5 (NPU Acceleration)**: Verify real-time AI inference performance and inspect the final output.  
@@ -331,8 +334,8 @@ You can update the firmware using the automated installation script or the dedic
 # Method 1. Using the installation script
 ./dx-runtime/install.sh --target=dx_fw
 
-# Method 2. Manual update using dxrt-cli
-dxrt-cli -u ./dx-runtime/dx_fw/m1/X.X.X/mdot2/fw.bin
+# Method 2. Manual update using dxcli
+dxcli -u ./dx-runtime/dx_fw/m1/X.X.X/mdot2/fw.bin
 ```
 
 **Step 2. Perform a Cold Boot**  
@@ -364,7 +367,7 @@ The provided scripts install DX-ModelZoo and prepare its workspace.
 ```
 
 !!! note "GPU Inference (ONNX Runtime GPU)"  
-    `--extra gpu` installs `.[gpu]` (`onnxruntime-gpu` and CUDA libraries) and removes `onnxruntime`, because the two packages cannot coexist. Do not combine `gpu` with `all`, which includes `cpu`. Requirements: NVIDIA GPU (Pascal/Turing/Ampere), NVIDIA Driver ≥ 535.230.02, CUDA 12.2, cuDNN 9.1. After installation, add the NVIDIA library paths printed by the script to `LD_LIBRARY_PATH`.  
+    `--extra gpu` installs `.[gpu]` (`onnxruntime-gpu` and CUDA libraries) and removes `onnxruntime`, because the two packages cannot coexist. Do not combine `gpu` with `all`, which includes `cpu`. Requirements: NVIDIA GPU (Pascal/Turing/Ampere), NVIDIA Driver ≥ 535.230.02, CUDA 12.2, cuDNN 9.1. After installation, add the NVIDIA library paths printed by the script to `LD_LIBRARY_PATH`. These requirements apply to the local (pip) install; Docker GPU images have their own driver requirement (see GPU Acceleration Options below).  
 
 `modelzoo-1_prepare_assets.sh` copies `dx-modelzoo/.env.example` to `dx-modelzoo/.env` only when `.env` does not exist. Edit it for your environment:  
 
@@ -396,7 +399,7 @@ Once the local installation is finished, perform a final check to confirm that t
 #### A. Hardware and Version Check  
 Run the following command to display information about the NPU devices recognized by the system.  
 ```Bash
-dxrt-cli -s
+dxcli -s
 ```
 
 **Success Checklist**  
@@ -471,6 +474,12 @@ Docker images can optionally be built with GPU acceleration. The two options ser
 Host requirements: NVIDIA driver and [nvidia-container-toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
 (`sudo nvidia-ctk runtime configure --runtime=docker && sudo systemctl restart docker`).
 
+The NVIDIA driver must support the image's CUDA version, which the container toolkit checks at container start:
+
+- Default CUDA 12.8.1 image: driver **R570 or newer** (`nvidia-smi` shows CUDA Version ≥ 12.8).
+- Datacenter/professional GPUs on the R535, R550, R560, or R565 branches can also run it through CUDA forward compatibility. Other GPUs (e.g. GeForce) on these branches fail with `unsatisfied condition: cuda>=12.8`.
+- With `--cuda_version=<ver>`, the driver must support that CUDA version. Ubuntu 24.04 cuDNN base images start at CUDA 12.6.3 (no lower tag exists), which needs driver R560 or newer on GeForce and other non-datacenter GPUs.
+
 ```Bash
 # Build on a CUDA base image (default CUDA version: 12.8.1, override with --cuda_version=<ver>)
 ./docker_build.sh --target=dx-modelzoo --ubuntu_version=24.04 --nvidia_gpu
@@ -487,7 +496,7 @@ The dx-modelzoo GPU image already includes an `onnxruntime-gpu` build that match
 - **Do not upgrade `onnxruntime-gpu` inside the container** (e.g. `pip install -U onnxruntime-gpu`): the newest release may target a different CUDA major version, and evaluation then falls back to the CPU. The `[gpu]` extra is not needed either; it only adds pip CUDA 12 libraries that duplicate the base image.
 - To check: `python -c "import onnxruntime as ort; print(ort.__version__)"`, and watch `nvidia-smi` during evaluation.
 
-For dx-compiler, `q-pro` calibration uses the GPU automatically (`quantization_device` auto-detection).
+For dx-compiler, `q-pro` calibration runs on the GPU automatically when one is available (`--use_gpu`, default `True`). Use `--use_gpu False` to force CPU, or set `CUDA_VISIBLE_DEVICES` to select a specific GPU.
 
 **B. Intel GPU (VA-API Media Acceleration) — dx-runtime (dx_stream)**
 
@@ -558,7 +567,7 @@ Before running any inference, ensure the container can communicate with the NPU 
 docker exec -it dx-runtime-24.04 bash
 
 # 2. Inside Container: Verify NPU hardware recognition
-dxrt-cli -s
+dxcli -s
 ```
 
 **B-2. Running Sample Applications (`dx_app`)**  
@@ -572,13 +581,18 @@ cd /deepx/dx-runtime/dx_app
 # 1. Prepare resources (Download .dxnn models and sample images)
 ./setup.sh
 
-# 2. Run demo 
-./run_demo.sh 			# Run C++ based demo
-./run_demo_python.sh 		# Run Python demo
+# 2. Run demo (interactive menu covers both C++ and Python examples)
+./run_demo.sh
 ```
 
 !!! note "Demo Selection"  
-    Upon execution, the terminal will display a list of available demos (0, 1, 2...). Simply enter the corresponding number and press **Enter** to start.
+    `run_demo.sh` is a text-based menu with three steps:
+
+    1. **AI task**
+    2. **Language and execution mode**: C++ sync/async, Python sync/async, or Python with C++ post-processing
+    3. **Input**: video or image
+
+    Enter the number at each prompt, or press **Enter** to accept the default. Use `./run_demo.sh --help` to pre-select options without the menu.
 
 **B-3. Running the Streaming Framework (`dx_stream`)**  
 This module is a GStreamer-based module optimized for real-time multi-channel video stream processing.  
@@ -620,7 +634,7 @@ dxmz --help
     The `dx-modelzoo` container does not start its own `dxrtd`. It uses the DX-RT service running in the `dx-runtime` container (or on the host). Start the `dx-runtime` container before NPU (`dxnn`) evaluation.  
 
 !!! note "GPU Image (ONNX Runtime GPU)"  
-    The default image installs `.[cpu]`. To evaluate ONNX models on an NVIDIA GPU, build and run with `--nvidia_gpu`. It uses the `nvidia/cuda` cuDNN runtime base image (CUDA/cuDNN included) and installs an `onnxruntime-gpu` build matching the image's CUDA version (see GPU Acceleration Options above), so no `LD_LIBRARY_PATH` setup is needed. The host requires the NVIDIA driver and NVIDIA Container Toolkit.  
+    The default image installs `.[cpu]`. To evaluate ONNX models on an NVIDIA GPU, build and run with `--nvidia_gpu`. It uses the `nvidia/cuda` cuDNN runtime base image (CUDA/cuDNN included) and installs an `onnxruntime-gpu` build matching the image's CUDA version (see GPU Acceleration Options above), so no `LD_LIBRARY_PATH` setup is needed. The host requires the NVIDIA driver (R570 or newer for the default CUDA 12.8.1 image) and NVIDIA Container Toolkit.  
     ```Bash
     ./docker_build.sh --target=dx-modelzoo --ubuntu_version=24.04 --nvidia_gpu
     ./docker_run.sh --target=dx-modelzoo --ubuntu_version=24.04 --nvidia_gpu
@@ -709,10 +723,10 @@ services:
 
 This performs a final check to ensure that the installation was completed successfully and that the software and hardware communicate correctly.  
 
-#### A. Hardware Recognition Check (`dxrt-cli`)
+#### A. Hardware Recognition Check (`dxcli`)
 Run the following command inside the container to verify that the NPU is visible and operational:  
 ```Bash
-dxrt-cli -s
+dxcli -s
 ```
 
 **Success Checklist**  
@@ -724,12 +738,14 @@ If your output meets the following three conditions, the hardware integration is
 
 [Example of Normal Output]  
 ```Plaintext
-DX-RT v3.2.0
-========================================================
-* Device 0: M1, Accelerator type
---------------------- Version ---------------------
-* RT Driver version : v2.1.0
-* FW version :      v2.5.0
+DXRT v3.5.0 (build: x.xxxxxxx)
+=======================================================
+ * Device 0: M1, Accelerator type
+---------------------   Version   ---------------------
+ * RT Driver version   : v2.7.0
+ * PCIe Driver version : v2.7.0
+-------------------------------------------------------
+ * FW version          : v2.7.6
 -------------------------------------------------------
 ... (Continued)
 ```
