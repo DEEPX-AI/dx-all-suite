@@ -94,7 +94,7 @@ InferenceEngine 설정, DxPreprocess/DxInfer 엘리먼트 연결 — 따라서 *
 |---|---|
 | **DEEPX 개발 환경** | DX-RT 설치 완료 (dx-runtime `install.sh`) |
 | **AI 코딩 에이전트** (택1) | Claude Code, GitHub Copilot (VS Code), Cursor, OpenCode, 또는 Codex CLI |
-| **Python** | 3.10+ (dx-all-suite 패키지 설치 완료) |
+| **Python** | 3.8–3.14 (dx-all-suite 패키지 설치 완료) |
 
 ## 아키텍처 개요
 
@@ -517,7 +517,7 @@ dx-all-suite 메타 가이드는 모든 서브 프로젝트 시나리오로 라�
 | **기본 (격리)** | `dx-agent-dev/<session_id>/` | 사용자가 달리 지정하지 않는 한 항상 |
 | **프로덕션** | `src/` | 사용자가 명시적으로 요청한 경우에만 |
 
-세션 ID 형식: `YYYYMMDD-HHMMSS_<agent>_<model>_<task>` — `<agent>`는 `claude`, `codex`, `copilot`, `cursor`, `opencode` 중 하나.
+세션 ID 형식: `YYYYMMDD-HHMMSS_<agent>_<coding_model>_<target_model>_<task>` — `<agent>`는 `claude`, `codex`, `copilot`, `cursor`, `opencode` 중 하나.
 
 각 세션 디렉토리에는 다음이 포함됩니다:
 - `README.md` — 세션 메타데이터, 생성된 파일 목록, 실행 지침

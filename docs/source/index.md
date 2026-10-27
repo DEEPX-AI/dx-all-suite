@@ -54,12 +54,13 @@ DX-STREAM is a GStreamer Custom Plugin designed to simplify the development of V
   - DX-COM: Converts ONNX models into highly optimized, NPU-ready binaries.
 
 **Flexibility & Support**
-  - OS: Compatible with Debian-based Linux
-  - Architecture: Supports x86_64 only
+  - OS: Ubuntu 26.04/24.04/22.04/20.04, Fedora 42–45, RHEL 9–10, CentOS Stream 9–10  
+  - Architecture: Supports x86_64 only  
+  - Languages: Python 3.8 – 3.14
 
 **Easy Installation**
-  - Our single script automates the full setup process
-  - All DX-Compiler components are ready to use upon completion.
+  - Our single script automates the full setup process  
+  - All DX-Compiler components are ready to use upon completion.  
 
 **You can install dx-compiler by following the instructions at this [LINK](02_Setting_Up_Environment.md).**
 
@@ -69,17 +70,18 @@ DX-STREAM is a GStreamer Custom Plugin designed to simplify the development of V
   - Must be installed on the Target system where the DEEPX M1 M.2 module is attached and the DEEPX AI model (.dxnn) will be executed.  
 
 **Core Components**
-  - DX-RT & DX-FW & NPU Driver: Foundational software for NPU control
-  - DX-APP: C++ and Python examples to jump-start your projects
-  - DX-STREAM: GStreamer integration for seamless multimedia pipelines
+  - DX-RT & DX-FW & NPU Driver: Foundational software for NPU control  
+  - DX-APP: C++ and Python examples to jump-start your projects  
+  - DX-STREAM: GStreamer integration for seamless multimedia pipelines  
 
 **Flexibility & Support**
-  - OS: Compatible with Debian-based Linux
-  - Architecture: Supports both x86_64 and arm64
+  - OS: Ubuntu 26.04/24.04/22.04/20.04, Debian 13/12, Windows 11/10  
+  - Architecture: Supports both x86_64 and aarch64  
+  - Languages: Python 3.8 or higher, C++14 or higher (C++17 for MSVC/Windows)  
 
 **Easy Installation**
-  - Our script automates the entire process
-  - One-time reboot is required after installation to finalize the NPU Driver setup
+  - Our script automates the entire process  
+  - One-time reboot is required after installation to finalize the NPU Driver setup  
 
 **You can install dx-runtime by following the instructions at this [LINK](02_Setting_Up_Environment.md).**
 

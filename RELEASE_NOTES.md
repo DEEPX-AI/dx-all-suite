@@ -16,114 +16,86 @@
 Here are the **DX-AllSuite v2.5.0** Release Notes.
 
 ### What's New?
+This release focuses on how you install and deploy the DEEPX SDK. Prebuilt container images are now published to GHCR, DX-Compiler and DX-Runtime can be installed with a single `curl | sh` command or from the DEEPX apt repository, and DX-M1 NPUs can be scheduled on Kubernetes. Model Zoo 2_5_0 models use the V9 `.dxnn` container format, which requires DX-RT v3.5.0 together with NPU Driver v2.7.0 and DX_FW v2.7.6, so upgrade all components together. This release also ends support for Ubuntu 18.04 and DX-TRON.
 
-This release focuses on **how you install and deploy** the DEEPX SDK. Prebuilt container images are now published to the GitHub Container Registry, DX-Compiler and DX-Runtime can be installed with a single `curl | sh` command or from the DEEPX apt repository, and DEEPX DX-M1 NPUs can now be scheduled on Kubernetes.
-
-It also retires **Ubuntu 18.04** and **DX-TRON** — please read the notice below before upgrading.
-
-> **Important notice: Ubuntu 18.04 and DX-TRON are no longer supported**
+> **Important notice before upgrading**
 >
-> - **Ubuntu 18.04 (Bionic Beaver)** has been dropped from the install scripts and Docker builds. The minimum supported version is now **Ubuntu 20.04**.
-> - **DX-TRON** has been removed from DX-Compiler as of v2.5.0. To inspect the compiled model structure and the CPU/NPU workload split, generate the interactive HTML **Compilation Summary Report** with DX-COM (`--export_html`).
+> - **Ubuntu 18.04 is no longer supported**: Ended Ubuntu 18.04 support in the install scripts, Docker builds, DX-Runtime, and DX-APP; upgrade the host to Ubuntu 20.04 or later (DX-Runtime also supports Debian 12 / 13)
+> - **DX-TRON has been removed**: Removed DX-TRON from DX-Compiler, including the `dx_tron` install target, the `dxtron` CLI/AppImage, the web-server variant, and `run_dxtron_web.sh` / `run_dxtron_appimage.sh`; use the DX-COM Compilation Summary Report (`--export_html`), install with `--target=dx_com`, and remove a leftover DEB with `sudo apt-get remove dxtron`
+> - **Supported environments**: The NPU driver and firmware are supported on bare-metal hosts with the NPU installed; virtual machines with PCI passthrough are not supported, so install DX-Runtime on the physical host. DX-Compiler and DX-ModelZoo do not require the NPU and can run in a VM or container
 
-#### New: Prebuilt container images on GHCR
-
-**DEEPX All Suite images are now published to the GitHub Container Registry** — pull one instead of building the suite yourself.
-
-| Image | Tags | Platforms |
-|---|---|---|
-| `ghcr.io/deepx-ai/dx-runtime` | `rt`, `rt-app`, `rt-stream`, `rt-app-stream`, `latest` (+ immutable `v<ver>-…`) | `linux/amd64`, `linux/arm64` |
-| `ghcr.io/deepx-ai/dx-compiler` | `latest` (+ immutable `v<ver>`) | `linux/amd64` |
-| `ghcr.io/deepx-ai/dx-modelzoo` | `latest` (+ immutable `v<mz-ver>`) | `linux/amd64` |
-
-```bash
-docker pull ghcr.io/deepx-ai/dx-runtime:rt-app-stream
-docker pull ghcr.io/deepx-ai/dx-compiler:latest
-```
-
-**Learn more** — see [`docker/README.md`](docker/README.md).
-
-#### New: One-line install
-
-Install DX-Compiler or DX-Runtime without cloning this repository:
-
-```bash
-# DX-Compiler (x86_64 Host PC)
-curl -fsSL https://raw.githubusercontent.com/DEEPX-AI/dx-compiler/main/oneline-install.sh | sh
-
-# DX-Runtime (target device: NPU driver + dx_rt + firmware)
-curl -fsSL https://raw.githubusercontent.com/DEEPX-AI/dx-runtime/main/oneline-install.sh | sh
-```
-
-- Pin versions with `DX_VERSION` (DX-Compiler) or `DX_RT_VERSION` / `DX_DRIVER_VERSION` / `DX_FW_VERSION` (DX-Runtime).
-- Matching `oneline-uninstall.sh` scripts remove each install; the DX-Runtime uninstaller also removes an `install.sh` install.
-- DX-Runtime one-line install covers `dx_fw`, `dx_rt`, and `dx_rt_npu_linux_driver`; `dx_app` and `dx_stream` still use the full installation guide.
-- **Note:** the DX-Runtime one-line install downloads artifacts that are **not checksum-verified**, and each component tracks its own `main` branch, so a run between releases may install an unvalidated combination. Use the version pins or `install.sh` when you need a known-good set.
-
-#### New: DEEPX apt repository
-
-The NPU driver and runtime can now be installed from the DEEPX apt repository:
-
-```bash
-wget -O - https://apt.releases.deepx.ai/gpg | sudo gpg --dearmor -o /usr/share/keyrings/deepx-archive-keyring.gpg
-
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/deepx-archive-keyring.gpg] https://apt.releases.deepx.ai $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") main" | sudo tee /etc/apt/sources.list.d/deepx.list
-
-sudo apt update
-sudo apt install dxrt-driver-dkms
-sudo apt install libdxrt-bin
-```
-
-#### New: Kubernetes support
-
-**DEEPX DX-M1 NPUs can now be scheduled on Kubernetes (k3s)** through the new `dx-npu` Helm chart and the [`dx-k8s-device-plugin`](dx-k8s-device-plugin) submodule.
-
+#### New: Simplified Installation & Deployment
 **Highlights**
-- **Device plugin** — advertises `deepx.ai/dx-m1` as a schedulable resource; pods request it with `deepx.ai/dx-m1: 1`.
-- **CDI injection** — the device nodes (`/dev/dxrtN`) and host libraries are injected into the pod by containerd via CDI.
-- **Node labeling** — a NodeFeatureRule labels NPU nodes through node-feature-discovery (optionally installed by the chart with `nfd.enabled=true`).
-- **Published OCI chart** on GHCR:
-  ```bash
-  helm install dx-npu oci://ghcr.io/deepx-ai/charts/dx-npu \
-    -n dx-system --create-namespace --set nfd.enabled=true
-  ```
+- **Prebuilt container images on GHCR** — Published `ghcr.io/deepx-ai/dx-runtime` (`rt`, `rt-app`, `rt-stream`, `rt-app-stream`, `latest`; `linux/amd64`, `linux/arm64`), `ghcr.io/deepx-ai/dx-compiler` (`latest`; `linux/amd64`), and `ghcr.io/deepx-ai/dx-modelzoo` (`latest`; `linux/amd64`), each with immutable version tags, so you can pull an image instead of running `docker_build.sh`; use lowercase `deepx-ai` in the registry path (see `docker/README.md`)
+- **One-line install and DEEPX apt repository** — Added `oneline-install.sh` to DX-Compiler and DX-Runtime for installation without cloning, with version pins via `DX_VERSION` (DX-Compiler) or `DX_RT_VERSION` / `DX_DRIVER_VERSION` / `DX_FW_VERSION` (DX-Runtime) and removal via `oneline-uninstall.sh`; the DX-Runtime one-line install covers the NPU driver, DX-RT, and firmware, while DX-APP and DX-STREAM still use the full installation guide
+    ```bash
+    # DX-Compiler (x86_64 Host PC)
+    curl -fsSL https://raw.githubusercontent.com/DEEPX-AI/dx-compiler/main/oneline-install.sh | sh
 
-**Learn more** — see the [Kubernetes Quickstart](docs/source/06_Kubernetes_Quickstart.md), [Kubernetes Beginner Guide](docs/source/07_Kubernetes_Beginner_Guide.md), and [`deploy/k8s/README.md`](deploy/k8s/README.md).
+    # DX-Runtime (target device: NPU driver + DX-RT + firmware)
+    curl -fsSL https://raw.githubusercontent.com/DEEPX-AI/dx-runtime/main/oneline-install.sh | sh
+    ```
+    Added the DEEPX apt repository for installing the NPU driver (`dxrt-driver-dkms`) and DX-RT (`libdxrt-bin`):
+    ```bash
+    wget -O - https://apt.releases.deepx.ai/gpg | sudo gpg --dearmor -o /usr/share/keyrings/deepx-archive-keyring.gpg
 
----
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/deepx-archive-keyring.gpg] https://apt.releases.deepx.ai $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") main" | sudo tee /etc/apt/sources.list.d/deepx.list
+
+    sudo apt update
+    sudo apt install dxrt-driver-dkms
+    sudo apt install libdxrt-bin
+    ```
+- **Kubernetes support for DX-M1** — Added the `dx-npu` Helm chart and the `dx-k8s-device-plugin` submodule, which advertise `deepx.ai/dx-m1` as a schedulable resource (request with `deepx.ai/dx-m1: 1`), inject `/dev/dxrtN` and host libraries via CDI, and label NPU nodes through node-feature-discovery; install with `helm install dx-npu oci://ghcr.io/deepx-ai/charts/dx-npu -n dx-system --create-namespace --set nfd.enabled=true` (see `docs/source/06_Kubernetes_Quickstart.md` and `deploy/k8s/README.md`)
+
+#### **Additional Improvements**
+- **Broader DX-COM operator coverage** — Added NPU support for 3D `Conv` / `ConvTranspose` (5D input), two-input `Einsum` equations that reduce to (batched) matrix multiplication, and 2-D `Gather` indices; added segmentation QAT through the `task_type` block in the `qmaster` config
+- **DX-RT throughput tuning and latency visibility** — Added `dxrun --max-throughput` to auto-tune the I/O buffer count, and E2E Response Time (`GetE2EResponseTime()`) and Core Latency (`GetCoreLatency*`) APIs for C++, C, and Python
+- **147 DX Model Zoo models in DX-APP** — Registered 147 models, including RT-DETR, YOLOv12, YOLOv13, anomaly detection, image matting, and CLIP retrieval, and added `multi_model_graph_sync` / `multi_model_graph_async` runners with `--check`, `--list-models`, and `--report`
+- **DX-H1 V-NPU acceleration in DX-STREAM** — Added hardware-accelerated decode, encode, transform, preprocessing, and inference through `dxvnpudec`, `dxvnpuenc`, and `dxinfer` (`./build.sh --dxvnpu`)
+
+#### Breaking Changes & Deprecations
+- **DX-COM**: Renamed the `pre_optimize` passes `yolo_postprocess` → `yolo_dfl_postprocess` and `yolo26_postprocess` → `yolo_no_dfl_postprocess`; the YOLO passes now require `task` (`base` / `seg` / `pose`) and reject `input_height` / `input_width` with `ValueError`; update existing configs
+- **DX-COM**: Replaced the Python QAT arguments `quantization_mode`, `qat_config`, `qat_skip_training`, and `qat_resume_from_checkpoint` with a single `qmaster` argument that takes `QMasterConfig`; changed `dx_com.compile()` to take keyword arguments; deprecated `quantization_device`, which is now ignored with a `UserWarning`, so remove it and select the device with `--use_gpu` / `use_gpu` and `CUDA_VISIBLE_DEVICES`
+- **DX-ModelZoo**: Renamed the compile YAML key `compile.quantization` to `compile.calibration` and removed the public `--use-gpu` CLI option; update custom compile YAML files
+- **DX-RT**: Raised the minimum versions to Linux Driver 2.7.0, Linux PCIe Driver 2.7.0, Windows PCIe Driver 2.0.1, and Firmware 2.7.6; upgrade NPU Driver and DX_FW together with DX-RT
+- **DX-RT**: Redefined `GetLatency*` to return E2E Response Time; to measure latency without buffer-pool and queue-wait time, switch to `GetCoreLatency*` (C++), `dxrt_engine_get_core_latency*` (C), or `get_core_latency*` (Python)
+- **DX-RT**: Added a version check that makes `import dx_engine` raise `RuntimeError` when its major.minor version differs from `libdxrt.so`; set `DX_ENGINE_SKIP_VERSION_CHECK=1` to bypass it
+- **DX-RT**: Removed the C++/CLI `csharp_package`; call the C API via P/Invoke as described in `examples/csharp/README.md`
+- **DX-APP**: Renamed task directories, executables, build targets, and Python scripts (e.g. `yolov9s_sync` → `yolov9-s_640x640_sync`) and changed `add_model.sh` to take a variant (the `.dxnn` stem) as its first argument; update any scripts that use the old names or arguments
+- **DX-STREAM**: Removed the SCRFD500M PPU and YOLOv5Pose PPU demos and moved V3 DSP / RGA kernels to optional backend plugins; update scripts that call the removed demos, and build with `./build.sh --dxv3` to keep V3 DSP acceleration
 
 ### Key Updates
+**Performance & Efficiency**
+- **DX_FW**: Enhanced power-save mode with NPU power gating
+- **DX-RT**: Added SIMD float32 → int8 input quantization with NEON/SSE4.1 kernels, reducing DMA write time
+- **NPU Driver**: Changed the EP PCIe device task period during driver probe
+- **DX-RT**: Changed the `dxcli` version output to `version (build: hash)`, added the DDR type to `dxtop`, reported failed pending Windows driver requests as errors, and restricted Windows `dxrtd` named pipes to reject remote clients
+- **DX-APP**: Changed `scripts/extract_model_package.sh` to copy only the `common/` files the extracted model depends on (`--no-prune` keeps the full copy); migrated the model-zoo manifest to the `2_5_0` URL hierarchy
+- **DX-STREAM / DX-APP**: Updated DX-STREAM sample models to DX-COM v2.5.0 builds; switched the EfficientNet-Lite0 samples from 256x256 to 224x224
+- **DX-ModelZoo**: Reorganized the PPU and pre-optimized model configuration; standardized DXNN download paths to the latest version; propagated compile profile parameters to `dx_com.compile()`
+
+**Stability & Fixes**
+- **DX_FW**: Fixed LPDDR5X clear logic and mailbox ACK starvation; reported HW op-timeouts as NPU hangs, with HW timeouts (2s) set below the SW timeout (3s)
+- **NPU Driver**: Fixed a latency spike when unmapping user buffers
+- **DX-RT**: Fixed a segfault on empty PPU outputs, deadlock and heap corruption on `ServiceDevice` shutdown, `dxrtd` NPU memory leaks and Windows service crashes, and `find_package(dxrt)` failures on Windows; fixed `dxrun` to exit with an error when no inference succeeds
+- **DX-STREAM**: Fixed OC-SORT observation history, association/GIoU handling, momentum weighting, and tracker-config recovery
+- **DX-APP**: Fixed `dx_postprocess` results that differed from the Python and C++ examples (`ClassificationPostProcess`, `VitPosePostProcess`, DAMO-YOLO and NanoDet NMS, CenterPose); fixed Python postprocessors ignoring `score_threshold`; fixed concurrent shared-postprocessor calls in async runners
+- **DX-Compiler**: Fixed `install.sh` to use the OS default `python3` when `--python_version` is not given; fixed `uninstall.sh` to remove a leftover `dx_tron/` directory
+- **DX-ModelZoo**: Strengthened dataset structure, file, and label validation; improved YAML metadata and compile configuration consistency
+- **DX-Runtime(installer)**: Fixed `scripts/install_python_and_venv.sh` to recognize Ubuntu 26.04
 
 **New Features & Tools**
+- **DX-COM**: Added the `--use_gpu` and `--verbose` CLI flags (and the `use_gpu` / `verbose` Python arguments), the public `QMasterConfig` object, pose and segmentation post-processing via the `pre_optimize` `task` key, and the `rtmdet_postprocess` pass
+- **DX-Compiler**: Added uv-based installation to `install.sh` (`--uv=true|false`), falling back to pip
+- **DX-AllSuite**: Added GPU options to `docker_run.sh` for Ubuntu-based images: `--nvidia_gpu` (`--cuda_version`, default `12.8.1`) for dx-compiler / dx-modelzoo with `nvidia-container-toolkit`, and `--intel_gpu_hw_acc` for dx-runtime VA-API acceleration with `/dev/dri`
+- **DX-RT**: Added V9 `.dxnn` parsing, device-removed error codes, per-engine `showModelInfo`, fan control modes, `SLT` / `VNPU` board types, H1M FCT/OTP authentication, a C# usage guide, and an Authenticode signing guide
+- **DX_FW**: Added EQ failure recovery, manual fan control for H1/H1M VNPU, and a PCIe message API
+- **DX-STREAM**: Added the `gstdxstream-gles` transform backend with zero-copy DMA-BUF import; added Raspberry Pi camera pipelines (`libcamerasrc`) and a YOLO26 depth-estimation pipeline to `run_demo.sh`
+- **DX-APP**: Added sample galleries for person re-id, image retrieval, and visual place recognition, and eight `dx_postprocess` classes (50 → 58), including `RTDETRPostProcess` and `CLIPTextPostProcess`
+- **DX-ModelZoo**: Added YOLO26 depth, pose, classification, and segmentation, PaddlePaddle, CLIP image and text encoder, anomaly detection, and person re-id models; added MVTec AD evaluation, dataset integrity and model input contract validation, and CLIP embedding generation and caching
 
-- **DX-AS (Docker)**: GPU acceleration options for `docker_run.sh` (Ubuntu-based images only):
-    - `--nvidia_gpu` (with optional `--cuda_version`, default `12.8.1`) — runs **dx-compiler / dx-modelzoo** with NVIDIA GPU. Requires `nvidia-container-toolkit`.
-    - `--intel_gpu_hw_acc` — runs **dx-runtime** with Intel GPU VA-API media acceleration. Requires `/dev/dri`.
-- **DX-Compiler**: Added a **uv**-based installation method. It resolves and installs dependencies much faster than pip.
-- **DX-AS (CI)**: Release workflow publishes the suite images and the `dx-npu` Helm chart to GHCR on tag push.
-
-**Deprecations & Removals**
-
-- **DX-AS**: Ubuntu 18.04 support ended; minimum supported Ubuntu version is now 20.04.
-- **DX-Compiler**: DX-TRON removed. Use the DX-COM Compilation Summary Report (`--export_html`).
-
-**Supported Environments**
-
-- **DX-Runtime**: The NPU driver and firmware are supported on bare-metal hosts with the NPU installed. Virtual machines with PCI passthrough are not supported; install DX-Runtime on the physical host. (DX-Compiler and DX-ModelZoo do not require the NPU and can run in a VM or container.)
-
----
-
-### Migration Guide
-
-- **Ubuntu 18.04 users**: Upgrade the host OS to Ubuntu 20.04 or later before installing v2.5.0.
-- **DX-TRON users**: Replace DX-TRON with the HTML Compilation Summary Report generated by DX-COM (`--export_html`).
-- **Docker users**: Instead of running `docker_build.sh`, you can pull the prebuilt images from `ghcr.io/deepx-ai/*`. Use lowercase `deepx-ai` in the registry path — GHCR rejects uppercase repository names.
-- **DX-COM Python/QAT users**: Replace the former Python QAT arguments with `qmaster` and `QMasterConfig`. YOLO `pre_optimize` pass names and configuration changed: specify `task` (`base`, `seg`, or `pose`) and remove `input_height` / `input_width`.
-- **DX-ModelZoo users**: The compile YAML key `compile.quantization` was renamed to `compile.calibration`. Update custom compile YAML files. The public `--use-gpu` option was removed.
-- **DX-RT users**: DX-RT v3.5.0 now requires NPU Driver v2.7.0+, PCIe Driver v2.7.0+, and Firmware v2.7.6+. Update them before upgrading.
-- **DX-STREAM users**: The SCRFD500M PPU and YOLOv5Pose PPU demos and their pipeline launchers were removed. Update any scripts that call them.
-
-For detailed updated items, refer to **each environment & module's Release Notes**.
+### Known Issues
+- **DX-Runtime(installer)**: `oneline-install.sh` does not verify artifact checksums, and each component tracks its own `main` branch, so the installed combination may not be validated together. Workaround: Pin versions with `DX_RT_VERSION`, `DX_DRIVER_VERSION`, and `DX_FW_VERSION`, or use `install.sh`
 
 ---
 

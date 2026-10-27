@@ -140,10 +140,10 @@ Please update your firmware to version Y.Y.Y or higher.
 ./dx-runtime/install.sh --target=dx_fw
 ```
 
-**방법 2: 전용 CLI 도구(`dxrt-cli`) 사용**  
+**방법 2: 전용 CLI 도구(`dxcli`) 사용**  
 특정 바이너리 파일을 지정하여 수동으로 펌웨어를 업데이트합니다.  
 ```Bash
-dxrt-cli -u ./dx-runtime/dx_fw/m1/X.X.X/mdot2/fw.bin
+dxcli -u ./dx-runtime/dx_fw/m1/X.X.X/mdot2/fw.bin
 ```
 
 **업데이트 후 필수 조치: 콜드 부팅(Cold Booting)**  
@@ -159,7 +159,7 @@ dxrt-cli -u ./dx-runtime/dx_fw/m1/X.X.X/mdot2/fw.bin
 **최종 확인**  
 재부팅 후 터미널에 다음 명령어를 입력하여 펌웨어가 성공적으로 업데이트되었는지 확인합니다.  
 ```Bash
-dxrt-cli -s
+dxcli -s
 ```
 
 자세한 내용은 **Firmware (DX-FW) Update and Activation** 섹션을 [**Setting Up Environment**](02_Setting_Up_Environment_kor.md)에서 참조하십시오.  
@@ -201,7 +201,7 @@ sudo reboot
 **단계 3. 상태 확인**  
 재부팅 후 업데이트가 성공했는지 확인합니다.  
 ```Bash
-dxrt-cli -s
+dxcli -s
 ```
 
 !!! caution "Docker 사용자 주의사항"  
@@ -467,7 +467,7 @@ Please update your device driver to version 2.7.0 or higher.":lib/device_version
 
 호스트에 설치된 버전을 확인합니다.
 ```Bash
-dxrt-cli --status | grep -A2 Version
+dxcli --status | grep -A2 Version
 ```
 
 ### 해결 방법: 호스트 NPU 드라이버 업데이트
@@ -484,7 +484,7 @@ git submodule status dx-runtime/dx_rt_npu_linux_driver
 
 **Step 3. 드라이버 버전 확인 후 평가 재실행**
 ```Bash
-dxrt-cli --status | grep "RT Driver version"
+dxcli --status | grep "RT Driver version"
 ```
 
 !!! note "호스트와 컨테이너는 함께 업그레이드"

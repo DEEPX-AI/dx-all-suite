@@ -204,7 +204,7 @@ The scripts **must** be executed in the following order. DX-ModelZoo reuses the 
 - **Datasets Are Not Downloaded**: Evaluation and calibration read the dataset defined in the model YAML. Place it under `getting-started/modelzoo/datasets` before running. In Docker, an existing host dataset directory can be mounted read-only instead: `DX_DATASETS_PATH=/mnt/datasets ./docker_run.sh --target=dx-modelzoo --ubuntu_version=24.04` mounts it at `/deepx/datasets`. Then run the script with `DATA_ROOT=/deepx/datasets` so it reads the mounted dataset instead of `getting-started/modelzoo/datasets`.  
 
 !!! caution "Prerequisite"  
-    NPU evaluation requires a working DX-RT stack (`dxrt-cli -s`). Compilation requires `dx_com` in the same environment (installed automatically by the runner).  
+    NPU evaluation requires a working DX-RT stack (`dxcli -s`). Compilation requires `dx_com` in the same environment (installed automatically by the runner).  
 
 ### C. Detailed Script Guide
 

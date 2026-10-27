@@ -919,7 +919,7 @@ def write_markdown(evals: List[SessionEval], out_path: Path, meta: Dict) -> None
     lines.append("- `sentinel_start` — 응답 첫 줄 `[DX-AGENT-DEV: START]`")
     lines.append("- `sentinel_done` — 마지막 줄 `[DX-AGENT-DEV: DONE (output-dir: ...)]`")
     lines.append("- `output_isolation_present` — 산출물이 `dx-agent-dev/<session_id>/` 하위")
-    lines.append("- `session_id_format` — `YYYYMMDD-HHMMSS_<agent>_<model>_<task>` 패턴")
+    lines.append("- `session_id_format` — `YYYYMMDD-HHMMSS_<agent>_<coding_model>_<target_model>_<task>` 패턴")
     lines.append("- `mandatory_deliverables` — 시나리오별 필수 파일 존재 (setup.sh, run.sh, README.md, session.log, factory, *_sync.py 등)")
     lines.append("- `ifactory_5_methods` — dx_app factory 5-method 패턴")
     lines.append("- `session_log_authentic` — session.log 가 hand-written heredoc 아님")

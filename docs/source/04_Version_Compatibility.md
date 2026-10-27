@@ -315,7 +315,7 @@ To ensure system stability, identify the versions of your currently installed co
 You can immediately verify the **Firmware (FW)** and **NPU Driver** versions using the NPU status utility.  
 ```Bash
 # Display NPU status and driver information
-dxrt-cli -s
+dxcli -s
 ```
 
 **Step 2. Compiler (Host Side)**  
