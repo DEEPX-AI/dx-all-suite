@@ -1,0 +1,53 @@
+name: "Publish dx-benchmark dashboard"
+
+# Publishes the committed dx-benchmark dashboard (dx-benchmark/results/dashboard/) to GitHub Pages:
+#   https://<owner>.github.io/<repo>/dx-benchmark/
+# Runs only on github.com (never on GHE). Pages must be enabled once per repository:
+#   Settings -> Pages -> Build and deployment -> Source: "GitHub Actions"
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "dx-benchmark/results/dashboard/**"
+      - ".github/workflows/dx-benchmark-dashboard-pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: dx-benchmark-pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    if: github.server_url == 'https://github.com'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}dx-benchmark/
+    steps:
+      - name: Checkout dashboard only
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: dx-benchmark/results/dashboard
+          sparse-checkout-cone-mode: true
+
+      - name: Stage site
+        run: |
+          mkdir -p _site/dx-benchmark
+          cp -r dx-benchmark/results/dashboard/. _site/dx-benchmark/
+          printf '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=dx-benchmark/"><a href="dx-benchmark/">dx-benchmark dashboard</a>\n' > _site/index.html
+          ls -la _site _site/dx-benchmark
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - id: deploy
+        uses: actions/deploy-pages@v4
