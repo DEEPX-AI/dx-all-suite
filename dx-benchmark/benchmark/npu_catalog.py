@@ -1,47 +1,95 @@
-"""NPU product classification from dxrt-cli -s signals.
+"""NPU product classification from `dxrt-cli -s`.
 
-Single source of truth mapping per-device (Board, Memory) signals to canonical
-DEEPX product names (H1-Quattro / M1 / M1M) as listed on deepx.ai/shop_now.
-`dxrt-cli -s` reports the *chip* ("M1") on the Device line for every product, so
-product type is inferred from Board prefix + Memory technology instead.
+Three signals per device, in order of authority:
+
+1. **Board** -- the form factor: ``H1`` is the 4-chip H1-Quattro card, ``M.2`` a single-chip
+   M.2 card.
+2. **Chip** -- the name on the ``* Device N: <chip>`` line. Every product reports ``M1`` there
+   (the H1 board is four M1 chips) except where the runtime names the card itself (``M1M``).
+   A chip other than ``M1`` on an M.2 card therefore *is* the product.
+3. **Memory** -- a description of the card, not its identity. The M1 M.2 card ships with
+   LPDDR5 (5600 Mbps) and with LPDDR5x (6000 Mbps); only LPDDR4 marks the M1M, and only as a
+   fallback for older runtimes that reported the M1M chip as "M1".
+
+The per-device record (`parse_devices`) is stored in the fingerprint so the classification
+can be audited and redone when this catalog changes.
 """
 
 from __future__ import annotations
 
 import re
 
-# (board_prefix, memory_substr | None, product, chips_per_card)
-# Ordered: more specific memory match first (LPDDR5X before the LPDDR5 substring).
-NPU_SIGNATURES: list[tuple[str, str | None, str, int]] = [
-    ("H1",  None,       "H1-Quattro", 4),
-    ("M.2", "LPDDR4",   "M1M",        1),
-    ("M.2", "LPDDR5X",  "H1",         1),   # future standalone H1 M.2; matched before LPDDR5
-    ("M.2", "LPDDR5",   "M1",         1),
-]
+# H1 board chips fold into one card; every other product is one chip per card.
+H1_QUATTRO = "H1-Quattro"
+CHIPS_PER_CARD = {H1_QUATTRO: 4}
 
 UNKNOWN_PRODUCT = "unknown"
 
+_DEVICE_RE = re.compile(r"\*\s*Device\s+(\d+)\s*:\s*([^,\s]+)")
 
-def classify_device(board: str | None, memory: str | None) -> tuple[str, int]:
+
+def parse_devices(raw: str) -> list[dict]:
+    """One record per ``* Device N`` block of dxrt-cli -s output.
+
+    Each record has ``chip``, ``board``, ``memory``, ``chip_offset`` and ``pcie`` (None when
+    the runtime does not print that line).
+    """
+    devices: list[dict] = []
+    current: dict | None = None
+    for line in raw.splitlines():
+        s = line.strip()
+        m = _DEVICE_RE.match(s)
+        if m:
+            current = {"chip": m.group(2), "board": None, "memory": None,
+                       "chip_offset": None, "pcie": None}
+            devices.append(current)
+            continue
+        if current is None or ":" not in s:
+            continue
+        value = s.split(":", 1)[1].strip()
+        if "Chip Offset" in s:
+            current["chip_offset"] = int(value) if value.isdigit() else None
+        elif "Board" in s:
+            current["board"] = value
+        elif "Memory" in s:
+            current["memory"] = value
+        elif "PCIe" in s and "Gen" in s:
+            current["pcie"] = value
+    return devices
+
+
+def classify_device(board: str | None, memory: str | None,
+                    chip: str | None = None) -> tuple[str, int]:
     """Classify one NPU device. Returns (product, chips_per_card)."""
     b = (board or "").strip().upper()
     m = (memory or "").strip().upper()
-    for prefix, mem, product, per_card in NPU_SIGNATURES:
-        if b.startswith(prefix.upper()) and (mem is None or mem in m):
-            return product, per_card
+    c = (chip or "").strip()
+    if b.startswith("H1"):
+        return H1_QUATTRO, CHIPS_PER_CARD[H1_QUATTRO]
+    if b.startswith("M.2"):
+        if c and c.upper() != "M1":
+            return c, 1                    # the runtime names the card (M1M, a standalone H1, ...)
+        if "LPDDR4" in m:
+            return "M1M", 1                # older runtimes reported the M1M chip as "M1"
+        return "M1", 1
+    if c:
+        return c, 1                        # unfamiliar board: the chip is the best identity we have
     return UNKNOWN_PRODUCT, 1
 
 
-def classify_devices(devices: list[tuple[str | None, str | None]]) -> list[dict]:
+def classify_devices(devices: list[tuple]) -> list[dict]:
     """Aggregate per-device signals into [{"product", "count"}], first-seen order.
+
+    Each signal is ``(board, memory)`` or ``(board, memory, chip)``.
 
     H1 chips fold into cards: count = chips // chips_per_card (>=1 if any chip seen).
     """
     chips: dict[str, int] = {}
     per_card: dict[str, int] = {}
     order: list[str] = []
-    for board, memory in devices:
-        product, cpc = classify_device(board, memory)
+    for signal in devices:
+        board, memory, *rest = signal
+        product, cpc = classify_device(board, memory, rest[0] if rest else None)
         if product not in chips:
             chips[product] = 0
             per_card[product] = cpc
@@ -80,25 +128,5 @@ def format_badge(modules: list[dict]) -> str:
 
 
 def classify_from_raw(raw: str) -> list[dict]:
-    """Backfill path: parse per-device (Board, Memory) from dxrt-cli -s raw text."""
-    devices: list[tuple[str | None, str | None]] = []
-    board = memory = None
-    started = False
-    for line in raw.splitlines():
-        s = line.strip()
-        if s.startswith("* Device"):
-            if started:
-                devices.append((board, memory))
-            board = memory = None
-            started = True
-        elif "Board" in s and ":" in s and "Chip" not in s:
-            mm = re.search(r":\s*(.+)", s)
-            if mm:
-                board = mm.group(1).strip()
-        elif "Memory" in s and ":" in s:
-            mm = re.search(r":\s*(.+)", s)
-            if mm:
-                memory = mm.group(1).strip()
-    if started:
-        devices.append((board, memory))
-    return classify_devices(devices)
+    """Classify from dxrt-cli -s raw text (backfill and aggregation path)."""
+    return classify_devices([(d["board"], d["memory"], d["chip"]) for d in parse_devices(raw)])

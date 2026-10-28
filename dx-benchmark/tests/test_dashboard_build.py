@@ -370,3 +370,79 @@ def test_cleanver_parity_in_real_v8(tmp_path):
             "the JS-to-Python translation is unfaithful for %r: engine %r != translated %r"
             % (raw, got, translated(raw))
         )
+
+
+def test_trend_labels_drawn_after_every_dot():
+    """Version Trend value labels are drawn in a pass after all dots, so a later line's
+    dot can never paint over an earlier line's label."""
+    js = APP_JS.read_text(encoding="utf-8")
+    body = js[js.index("function createTrendChart("):js.index("if(this._showLegend===false)return;var lx")]
+    assert body.rfind("ctx.arc(") < body.find("ctx.strokeText("), "labels must be drawn after the last dot"
+    assert "_stackTrendLabels(" in body
+
+
+def _run_stack_labels_in_chrome(chrome, tmp_path, cases):
+    page = tmp_path / "labels.html"
+    page.write_text(
+        '<!doctype html><body><pre id="out"></pre>\n'
+        '<script src="file://%s"></script>\n<script>\n'
+        "var M = String.fromCharCode(2);\nvar CASES = %s;\nvar res = [], err = null;\n"
+        "try { for (var i = 0; i < CASES.length; i++) { var c = CASES[i];"
+        " res.push(_stackTrendLabels(c.ys, c.lo, c.hi, c.gap)); } }\n"
+        "catch (e) { err = String(e); }\n"
+        "document.getElementById('out').textContent =\n"
+        "  M + JSON.stringify({fn: typeof _stackTrendLabels, err: err, res: res}) + M;\n"
+        "</script></body>" % (APP_JS, json.dumps(cases)),
+        encoding="utf-8",
+    )
+    try:
+        dom = subprocess.run(
+            [chrome, "--headless", "--disable-gpu", "--no-sandbox",
+             "--allow-file-access-from-files", "--virtual-time-budget=5000",
+             "--user-data-dir=%s" % (tmp_path / "profile"),
+             "--dump-dom", "file://%s" % page],
+            capture_output=True, text=True, timeout=120,
+        ).stdout
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    found = re.search("\x02(.*?)\x02", dom, re.S)
+    if not found:
+        return None
+    payload = json.loads(html.unescape(found.group(1)))
+    if payload["fn"] != "function" or payload["err"]:
+        return None
+    return payload["res"]
+
+
+@pytest.mark.skipif(_chrome() is None, reason="no Chrome/Chromium to execute app.js")
+@pytest.mark.skipif(sys.platform == "win32", reason="file:// harness is POSIX-only here")
+def test_trend_labels_keep_value_order_and_stay_in_plot(tmp_path):
+    """Each column's labels keep value order (a higher value is never labelled below a lower
+    one), never overlap, stay inside the plot (a 0 never reaches the version labels under the
+    x axis), and only move when they must."""
+    gap, lo, hi = 12, 61, 369
+    cases = [
+        {"ys": [753 - 400, 738 - 400, 721 - 400, 703 - 400, 641 - 400], "lo": lo, "hi": hi, "gap": gap},  # latency n..x
+        {"ys": [650 - 400, 650 - 400, 662 - 400, 695 - 400, 745 - 400], "lo": lo, "hi": hi, "gap": gap},  # max channel 17,17,16,12,6
+        {"ys": [375, 375, 300], "lo": lo, "hi": hi, "gap": gap},  # two zeros on the x axis
+        {"ys": [100, 300], "lo": lo, "hi": hi, "gap": gap},       # far apart: untouched
+    ]
+    placed = _run_stack_labels_in_chrome(_chrome(), tmp_path, cases)
+    if placed is None:
+        pytest.skip("Chrome present but could not execute the harness")
+    for case, out in zip(cases, placed):
+        ys = case["ys"]
+        order = sorted(range(len(ys)), key=lambda i: (ys[i], i))
+        got = [out[i] for i in order]
+        assert all(b - a >= gap - 1e-6 for a, b in zip(got, got[1:])), (ys, out)
+        assert all(lo - 1e-6 <= y <= hi + 1e-6 for y in out), (ys, out)
+    assert placed[3] == [100, 300]
+
+
+def test_trend_integer_metric_has_integer_ticks():
+    """Max Channel is an integer metric: its y-axis step is at least 1 and ticks follow the step,
+    so small ranges (0-2 channels) never show repeated tick labels like 2, 2, 1, 1."""
+    js = APP_JS.read_text(encoding="utf-8")
+    body = js[js.index("function createTrendChart("):js.index("chart._hitTest=")]
+    assert "precision===0)niceStep=Math.max(1,niceStep)" in body
+    assert "nTicks" in body and "t<=5" not in body

@@ -33,6 +33,7 @@ from .config import (
 )
 from .model_catalog import ModelEntry
 from .npu_monitor import NpuMonitor, NpuStats, read_npu_temp_c, read_npu_clock_mhz
+from .thermal import target_for
 from .npu_stats_util import merge_npu_stats as _merge_npu_stats
 
 
@@ -895,15 +896,8 @@ def wait_until_cool(cfg: BenchmarkConfig) -> tuple[float, float]:
     is unavailable. Raises RuntimeError when the target is not reached within
     ``thermal_cooldown_max_sec``.
     """
-    idle_temp = cfg.thermal_idle_temp_c
-    if idle_temp is None:
-        # Use a conservative fixed target when idle temp is unknown
-        idle_temp = 45.0
-
-    target_temp = min(
-        idle_temp + cfg.thermal_cooldown_target_delta_c,
-        cfg.thermal_cooldown_abs_cap_c,
-    )
+    # One target for the whole campaign, shared with dxrun's --cool-down-temp.
+    target_temp = target_for(cfg)
     start = time.monotonic()
     deadline = start + cfg.thermal_cooldown_max_sec
 

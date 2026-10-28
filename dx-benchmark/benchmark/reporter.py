@@ -491,6 +491,8 @@ def _add_protocol_section(lines: list[str], fingerprint: dict) -> None:
     lines.append(f"| Throughput Time | {protocol.get('model_time_sec', 'N/A')} s |")
     lines.append(f"| Latency Loops | {protocol.get('model_latency_loops', protocol.get('model_time_sec', 'N/A'))} |")
     lines.append(f"| Model Warmup | {protocol.get('model_warmup_runs', 'N/A')} |")
+    if protocol.get('model_wakeup_sec'):
+        lines.append(f"| Throughput Wake-up | {protocol['model_wakeup_sec']} s before each run |")
     # v2: split latency/throughput runs
     if 'model_latency_runs' in protocol:
         lines.append(f"| Model Latency Runs | {protocol.get('model_latency_runs', 'N/A')} |")
@@ -501,12 +503,23 @@ def _add_protocol_section(lines: list[str], fingerprint: dict) -> None:
     lines.append(f"| FPS Threshold | {protocol.get('fps_threshold', 'N/A')} |")
     lines.append(f"| Multi-Stream Search | {protocol.get('multi_stream_search', 'N/A')} |")
     lines.append(f"| Stable Capacity Rule | {protocol.get('stable_capacity_rule', 'N/A')} |")
+    # Thermal baseline recorded at the start of the campaign (settled idle -> target).
+    thermal = fingerprint.get("thermal") or {}
+    if thermal.get("idle_temp_c") is not None:
+        lines.append(f"| NPU Idle Temp (settled) | {thermal['idle_temp_c']:.1f} °C |")
+        lines.append(f"| Cool-down Target | ≤ {thermal.get('cooldown_target_c', 0):.1f} °C |")
+        if thermal.get("hot_start_override"):
+            lines.append("| Hot Start | allowed (idle at or above the cap; target raised) |")
     # Buffer-count sweep (protocol v2): how the throughput buffer count was chosen.
     if 'bc_sweep_mode' in protocol:
         lines.append(f"| Buffer-count Sweep | {protocol.get('bc_sweep_mode')} |")
         lines.append(f"| Sweep Probe | {protocol.get('bc_probe_sec', 'N/A')} s x "
                      f"{protocol.get('bc_sweep_repeats', 'N/A')} repeats |")
         lines.append(f"| Sweep Tolerance | {protocol.get('bc_sweep_tolerance_pct', 'N/A')} % |")
+        if protocol.get('bc_sweep_cooldown'):
+            lines.append(f"| Sweep Cool-down | {protocol['bc_sweep_cooldown']} |")
+        if protocol.get('cooldown_before_each_run'):
+            lines.append("| Cool-down Before Each Throughput Run | yes |")
         lines.append(f"| Sweep Timeout | "
                      f"{protocol.get('bc_sweep_timeout_effective_sec', protocol.get('bc_sweep_timeout_sec', 'N/A'))} s |")
     # v2 thermal params (conditionally)
@@ -685,6 +698,10 @@ def _add_environment_section(lines: list[str], fingerprint: dict) -> None:
     lines.append(f"| RAM | {host.get('ram_gb', 'N/A')} GiB |")
     n_dev = npu.get("device_count") or 0
     lines.append(f"| NPU SKU | {npu.get('sku', 'N/A')} |")
+    chip_board = sorted({f"{d.get('chip') or '?'} · {d.get('board') or '?'}"
+                         for d in (npu.get("devices") or [])})
+    if chip_board:
+        lines.append(f"| NPU Chip / Board | {' + '.join(chip_board)} |")
     if n_dev:
         lines.append(f"| NPU Devices | {n_dev} ({npu.get('sku', 'N/A')}) |")
     lines.append(f"| DX-AllSuite | {fingerprint.get('dx_all_suite_version') or 'N/A'} |")

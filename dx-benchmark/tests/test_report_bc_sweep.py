@@ -83,16 +83,17 @@ def test_effective_sweep_timeout_is_a_floor_not_a_cap():
     """Raising probe time must widen the timeout, never starve the sweep."""
     from benchmark.config import BenchmarkConfig, effective_sweep_timeout_sec, get_protocol_metadata
 
-    # Default: dxrun's auto-stop sweep (no fixed range) is bounded by the floor.
-    assert effective_sweep_timeout_sec(BenchmarkConfig()) == 900
-    # A long probe time scales the timeout: 25 rounds x (30s x 3 repeats + 3s).
-    assert effective_sweep_timeout_sec(BenchmarkConfig(bc_probe_sec=30)) == 25 * (30 * 3 + 3)
-    # A short probe time falls back to the configured floor.
-    assert effective_sweep_timeout_sec(BenchmarkConfig(bc_probe_sec=2)) == 900
+    # Default: 25 rounds x (3 x 10 s probe + 3 s setup + 3 x 90 s cool-down allowance).
+    assert effective_sweep_timeout_sec(BenchmarkConfig()) == 25 * (10 * 3 + 3 + 3 * 90)
+    # A long probe time scales the timeout instead of timing out unconditionally.
+    assert effective_sweep_timeout_sec(BenchmarkConfig(bc_probe_sec=30)) == 25 * (30 * 3 + 3 + 3 * 90)
+    # With no cool-down allowance and a short probe, the configured floor applies.
+    assert effective_sweep_timeout_sec(
+        BenchmarkConfig(bc_probe_sec=2, bc_cooldown_allowance_sec=0)) == 900
     # Both the floor and what is actually enforced are recorded.
     md = get_protocol_metadata(BenchmarkConfig())
     assert md["bc_sweep_timeout_sec"] == 900
-    assert md["bc_sweep_timeout_effective_sec"] == 900
+    assert md["bc_sweep_timeout_effective_sec"] == 25 * (10 * 3 + 3 + 3 * 90)
 
 
 def test_protocol_metadata_describes_the_auto_stop_sweep():
@@ -118,7 +119,7 @@ def test_report_protocol_table_documents_the_sweep():
     assert "| Buffer-count Sweep | auto-stop |" in out
     assert "| Sweep Probe | 10 s x 3 repeats |" in out
     assert "| Sweep Tolerance | 1.0 % |" in out
-    assert "| Sweep Timeout | 900 s |" in out
+    assert "| Sweep Timeout | 7575 s |" in out
 
 
 def test_report_protocol_table_omits_sweep_rows_for_v1_runs():
