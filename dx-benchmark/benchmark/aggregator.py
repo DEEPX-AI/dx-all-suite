@@ -51,17 +51,28 @@ def _parse_board_from_raw(raw: str) -> str | None:
     return None
 
 
-# NOTE: unlike result_layout._get_sku (fresh-fingerprint path, trusts stamped `sku`),
-# this backfill path IGNORES a possibly-stale on-disk `sku` and re-derives from
-# `modules`/`raw` so legacy data reclassifies under the current catalog.
+# NOTE: unlike result_layout._get_sku (fresh-fingerprint path, trusts the stamped `sku`),
+# this aggregation path re-derives the product from the stored dxrt-cli output with the
+# *current* catalog, so results stamped by an older (wrong) classification are corrected
+# when they are aggregated. The stamped `modules` are only a fallback when no raw output
+# was kept.
+_PRODUCT = r"(?:H1-Quattro|H1|M1M|M1)(?:x\d+)?"
+_FOLDER_SKU_RE = re.compile(rf"_({_PRODUCT}(?:-{_PRODUCT})*)$")
+
+
+def _folder_sku_suffix(env_id: str) -> str | None:
+    """The NPU SKU a tool-generated folder name ends with, or None for a free-form name."""
+    m = _FOLDER_SKU_RE.search(env_id)
+    return m.group(1) if m else None
+
+
 def _resolve_modules(npu: dict) -> list[dict]:
-    modules = npu.get("modules")
-    if modules:
-        return modules
     raw = npu.get("raw")
     if isinstance(raw, str) and raw:
-        return classify_from_raw(raw)
-    return []
+        modules = classify_from_raw(raw)
+        if modules:
+            return modules
+    return npu.get("modules") or []
 
 
 def _build_environment_summary(env_id: str, run_id: str, fingerprint: dict) -> dict:
@@ -445,6 +456,7 @@ def aggregate_result_directories(results_root: Path) -> dict:
     warnings: list[str] = []
     env_products: dict[str, set] = {}
     env_hostnames: dict[str, set] = {}
+    folder_sku_mismatch: dict[str, set] = {}
     runs: list[dict] = []
     model_summary: list[dict] = []
     e2e_single_summary: list[dict] = []
@@ -459,6 +471,9 @@ def aggregate_result_directories(results_root: Path) -> dict:
         sku = format_sku(modules)
         if sku != UNKNOWN_PRODUCT:
             env_products.setdefault(env_id, set()).add(sku)
+            named = _folder_sku_suffix(env_id)
+            if named is not None and named != sku:
+                folder_sku_mismatch.setdefault(env_id, set()).add(sku)
         host = fingerprint.get("host", {}).get("hostname")
         if host:
             env_hostnames.setdefault(env_id, set()).add(host)
@@ -486,6 +501,12 @@ def aggregate_result_directories(results_root: Path) -> dict:
             warnings.append(
                 f"Folder '{env_id}' contains runs classified as different NPU "
                 f"products: {sorted(products)}. Check the folder name / hardware.")
+
+    for env_id, skus in folder_sku_mismatch.items():
+        warnings.append(
+            f"Folder '{env_id}' is named for a different NPU than the current catalog derives "
+            f"from its dxrt-cli output ({', '.join('_' + k for k in sorted(skus))}); it may "
+            f"have been named by an older classification. Rename it or re-run.")
 
     for env_id, hosts in env_hostnames.items():
         if len(hosts) > 1:

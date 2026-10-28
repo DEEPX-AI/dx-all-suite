@@ -3,11 +3,11 @@
 Reproducible YOLO26 performance benchmarking on the DEEPX NPU — one standardized
 procedure across any Host PC + NPU combination. It measures two tiers:
 
-- **Model-Level** (`run_model`) — **Latency** (single-core, sync) and **Throughput** (multi-core, async)
+- **Model-Level** (`dxrun`) — **Latency** (single-core, sync) and **Throughput** (multi-core, async)
 - **E2E Pipeline** (DX-Stream) — **Single-Stream** FPS and **Multi-Stream** channel capacity
 
 Both tiers run automatic ONNX-Runtime ON/OFF comparison with thermal-throttle detection,
-then render an interactive dashboard for cross-environment and cross-version comparison.
+then render a dashboard for cross-environment and cross-version comparison.
 
 > **Status:** Beta. The CLI and output schema may still evolve. Tool version: `./run.sh --version`.
 
@@ -15,50 +15,33 @@ then render an interactive dashboard for cross-environment and cross-version com
 
 ## Results
 
-- [`docs/ANALYSIS_EN.md`](docs/ANALYSIS_EN.md) · [한국어](docs/ANALYSIS_KOR.md) — findings, method and data tables.
-- The interactive dashboard below — generated from `results/`.
-- `results/<hw_id>/<run_id>/REPORT.md` — the full report of each run.
+YOLO26 (sizes n–x, five tasks) is measured on **six hardware environments** — each a Host PC +
+DEEPX NPU combination. Every environment runs the same procedure, so the results compare directly
+across environments and across dx-all-suite releases.
+
+| Environment | Host PC | DEEPX NPU | PCIe link |
+|-------------|---------|-----------|:---------:|
+| BIOSTAR_H1-Quattro | AMD Ryzen 5 9600X (x86_64) | H1-Quattro card (4 chips) | Gen3 ×4 |
+| DX-AIPlayer-N97_M1 | Intel N97 (x86_64) | M1 module | Gen3 ×2 |
+| OrangePi5+_M1 | Rockchip RK3588 (aarch64) | M1 module | Gen3 ×4 |
+| ROCK5B+_M1 | Rockchip RK3588 (aarch64) | M1 module | Gen3 ×2 |
+| RPi5B_M1 | Broadcom BCM2712, Raspberry Pi 5 (aarch64) | M1 module | Gen3 ×1 |
+| RPi5B_M1M | Broadcom BCM2712, Raspberry Pi 5 (aarch64) | M1M module | Gen3 ×1 |
+
+The results are published in three forms, from conclusions to raw data:
+
+| | What it gives you |
+|---|---|
+| **Analysis** — [English](docs/ANALYSIS_EN.md) · [한국어](docs/ANALYSIS_KOR.md) | Key findings, which configuration fits a target channel count, and why: the host-side limits (video decoding, CPU, PCIe, thermal) behind each number. |
+| **[Dashboard](https://deepx-ai.github.io/dx-all-suite/dx-benchmark/)** | Charts and tables of every measured value, compared across environments and across dx-all-suite releases. |
+| **Per-run reports** — `results/<hw_id>/<run_id>/REPORT.md` | Every measured value of one run, with its environment and test conditions. |
 
 ---
 
-## Interactive Dashboard
+## Dashboard
 
-Every result set renders to a self-contained HTML dashboard (no CDN, works offline).
-Four tabs cover the full picture — from a one-glance comparison to raw per-model tables
-and release-over-release trends:
-
-<table>
-  <tr>
-    <td width="50%" valign="top">
-      <a href="docs/images/dashboard-01-fps-overview.png"><img src="docs/images/dashboard-01-fps-overview.png" width="100%"></a>
-      <br><b>E2E FPS Overview</b> — grouped E2E FPS by model size × environment, with max-channel badges.
-    </td>
-    <td width="50%" valign="top">
-      <a href="docs/images/dashboard-02-full-metrics.png"><img src="docs/images/dashboard-02-full-metrics.png" width="100%"></a>
-      <br><b>Full Metrics</b> — latency (line) + throughput + E2E FPS + max channels in one combo chart.
-    </td>
-  </tr>
-  <tr>
-    <td width="50%" valign="top">
-      <a href="docs/images/dashboard-03-detailed-data.png"><img src="docs/images/dashboard-03-detailed-data.png" width="100%"></a>
-      <br><b>Detailed Data</b> — full numeric tables (latency/throughput/E2E/capacity) with filters.
-    </td>
-    <td width="50%" valign="top">
-      <a href="docs/images/dashboard-04-version-trend.png"><img src="docs/images/dashboard-04-version-trend.png" width="100%"></a>
-      <br><b>Version Trend</b> — per-metric trend across dx-all-suite releases for the same hardware.
-    </td>
-  </tr>
-</table>
-
-> Click any thumbnail for the full-resolution view.
-
-Launch it locally:
-
-```bash
-./run.sh dashboard results          # build results/dashboard/ from all runs
-cd results/dashboard && python3 -m http.server 8899
-# open http://localhost:8899/
-```
+The [dashboard](https://deepx-ai.github.io/dx-all-suite/dx-benchmark/) is published from `results/dashboard/` to GitHub Pages
+on each dx-all-suite release. It is self-contained HTML (no CDN), so it also works offline.
 
 | Tab | What it shows |
 |-----|---------------|
@@ -66,6 +49,14 @@ cd results/dashboard && python3 -m http.server 8899
 | **Full Metrics** | Cross-environment NPU latency, throughput, and E2E FPS per Task/Size/ORT (latency as a dashed line on the secondary axis). |
 | **Detailed Data** | Full numeric tables with Environment/Task/ORT filters and a Run-ID selector. |
 | **Version Trend** | Per-metric line charts across dx-all-suite releases for the same HW_ID (Latency / Throughput / E2E FPS / Max Channel). |
+
+Build and view it locally:
+
+```bash
+./run.sh dashboard results          # build results/dashboard/ from all runs
+cd results/dashboard && python3 -m http.server 8899
+# open http://localhost:8899/
+```
 
 ---
 
@@ -103,25 +94,27 @@ flowchart LR
 
 Inside `run`, each model × ORT mode goes through a thermal-normalized sequence —
 **cooldown → latency (cold) → throughput → cooldown → E2E → multi-stream** — so latency is
-measured cold, throughput heats the NPU, and a second cooldown lets E2E/multi measure their
-own steady state. Throttling is detected and flagged, never hidden. Full detail in
+measured cold, every throughput run starts from the same cooled temperature, and a second
+cooldown lets E2E/multi measure their own sustained load. Throttling is detected and
+flagged, never hidden. Full detail in
 [Per-Model Execution Order](#per-model-execution-order-thermal-normalization).
 
 ---
 
 ## Key Features
 
-- **Model-Level Benchmarks** — NPU throughput/latency via direct `run_model` execution.
+- **Model-Level Benchmarks** — NPU throughput/latency via direct `dxrun` execution.
 - **E2E Pipeline Benchmarks** — full GStreamer pipeline FPS through DX-Stream (single-stream).
 - **Multi-Stream Benchmarks** — maximum concurrent channels (each stream sustaining ≥ 30 fps).
   It *jumps* to an FPS-based estimate (single-stream FPS ÷ threshold) and boundary-searches
   up/down from there to pin the exact limit — it does **not** test every channel count from 1.
 - **Thermal monitoring & steady-state normalization** — NPU temp/clock (MHz) tracking,
-  hot-start rejection, per-model cooldown, and automatic throttle detection.
+  hot-start rejection, a cooldown target derived from the settled idle temperature,
+  per-model and per-throughput-run cooldown, and automatic throttle detection.
 - **Automatic ORT ON/OFF comparison** — both modes measured in every run.
 - **Environment fingerprinting** — full measurement context captured for reproducibility
   (host, NPU stack, tool version, protocol).
-- **Reports & dashboard** — Markdown `REPORT.md` per run + a static interactive HTML dashboard.
+- **Reports & dashboard** — Markdown `REPORT.md` per run + a static HTML dashboard.
 - **Version trend tracking** — performance across dx-all-suite releases for the same HW_ID.
 - **Resume / retry-failed** — continue interrupted runs or rerun only failed conditions.
 
@@ -144,7 +137,7 @@ own steady state. Throttling is detected and flagged, never hidden. Full detail 
 - **OS**: Linux (x86_64 or arm64) with a DEEPX NPU (DX-M1 / DX-H1).
 - **Python 3.9+** — standard library only, no third-party pip packages required.
 - **DEEPX runtime installed** — the benchmark drives already-installed artifacts, not source:
-  - `run_model`, `gst-launch-1.0`, `gst-inspect-1.0`, `dxrt-cli` on `PATH`
+  - `run_model` (DX-RT's `dxrun`, installed under both names), `gst-launch-1.0`, `gst-inspect-1.0`, `dxrt-cli` on `PATH`
   - dx_stream GStreamer plugin (`libgstdxstream.so`) and postprocess libraries under
     `/usr/local/share/gstdxstream/lib/`
   - Install via the suite: `dx-runtime/install.sh --all` (see the dx-all-suite README).
@@ -275,7 +268,7 @@ The version is captured per run, resolved in this order:
 | `--task` | `all` | Task type (`all`, `object_detection`, `pose_estimation`, `segmentation`, `oriented_bbox`, `classification`) |
 | `--sizes` | `n,s,m,l,x` | Model sizes to measure (comma-separated) |
 | `--family` | `all` | Benchmark family: `model`, `e2e`, `multi`, `all` |
-| `--model-time` | 30 | Model-level throughput measurement duration (seconds, `run_model -t`). Latency uses fixed 300 loops (`-l`) |
+| `--model-time` | 30 | Model-level throughput measurement duration (seconds, `dxrun -t`). Latency uses fixed 300 loops (`-l`) |
 | `--warmup` | 1 | Warmup run count |
 | `--runs` | — | Override all repetition counts to the same value. Defaults: latency=1, throughput=3, e2e=3 |
 | `--fps-threshold` | 30 | Per-channel minimum FPS threshold for multi-stream |
@@ -305,7 +298,7 @@ dx-benchmark/
 ├── run.sh          # launcher
 ├── setup_data.sh   # data setup: download models + videos (no sudo)
 ├── setup_host.sh   # one-time host provisioning (sudo): system deps + dxrt sudoers + journal
-├── docs/           # ANALYSIS_EN.md, ANALYSIS_KOR.md, images/ (dashboard screenshots)
+├── docs/           # ANALYSIS_EN.md, ANALYSIS_KOR.md
 ├── benchmark/      # python package (python3 -m benchmark)
 └── results/
     ├── <hw_id>/<run_id>/   # tracked: *_results.json + environment.json + REPORT.md
@@ -336,18 +329,19 @@ results/{hw_id}/{run_id}/
 
 | Parameter | Value |
 |-----------|-------|
-| Protocol version | v1 |
+| Protocol version | v2 |
 | Throughput duration (`-t`) | 30s |
-| Latency loops (`-l`) | 300 loops (`run_model -s` mode ignores `-t`, uses `-l` only) |
-| Warmup | 1 run |
+| Latency loops (`-l`) | 300 loops (`dxrun -s` mode ignores `-t`, uses `-l` only) |
+| Warmup | 1 run (latency, E2E, multi-stream) |
 | Latency runs | 1 |
-| Throughput runs | 3 |
+| Throughput buffer-count | `dxrun --max-throughput` auto-stop sweep: 10s probe × 3 repeats, 1% tolerance; `--cool-down-temp` = the cooldown target before every repeat |
+| Throughput runs | 3 — each after its own cooldown, preceded by a 2s throw-away `dxrun` (wake-up run) |
 | E2E runs | 3 (uniform across all tasks) |
 | ORT modes | ON + OFF |
 | Thermal mode | steady |
-| Hot-start block | 60°C (benchmark start rejected if exceeded) |
-| Cooldown points | ① before model-level (fatal) · ④ before E2E/multi |
-| Cooldown target | `min(idle + Δ10°C, 55°C)` |
+| Hot-start block | settled NPU idle above 60°C is rejected; at or above the 55°C cap it is rejected unless `--allow-hot-start` (target raised, run flagged) |
+| Cooldown points | ① before model-level (fatal) · before each throughput run · ④ before E2E/multi |
+| Cooldown target | `min(settled idle + Δ10°C, 55°C)` — the settled idle temperature is recorded in `environment.json` (`thermal`) |
 | Cooldown timeout | 1000s — model-level: RuntimeError; pre-E2E: warn + proceed |
 | NPU warmup / drain | 1.0s / 0.5s |
 | NPU clock monitoring | dxtop Core Clock MHz (during measurement) + dxrt-cli pre/post snapshots |
@@ -356,7 +350,7 @@ results/{hw_id}/{run_id}/
 | Multi-stream 1ch | Reuses single-stream result |
 | Multi-stream search | jump to a single-stream-FPS ÷ 30 estimate, then boundary-walk up/down (not 1-by-1) |
 | Multi-stream max streams | 128 (safety cap) |
-| Process timeout | `run_model`: 600s/run; E2E/multi: 90s no-progress stall + 1800s hard cap |
+| Process timeout | `dxrun`: 600s/run; E2E/multi: 90s no-progress stall + 1800s hard cap |
 | Graceful shutdown | SIGTERM → 10s wait → SIGKILL → 5s reap |
 | Retry (model / E2E / multi) | warmup: 1 retry on timeout; measured runs: up to 2 backfill attempts |
 | NPU recovery | Automatic dxrt.service restart after SIGKILL |
@@ -371,16 +365,18 @@ results/{hw_id}/{run_id}/
 
 ## Per-Model Execution Order (Thermal Normalization)
 
-Each model × ORT combination follows these steps sequentially. The protocol uses **two
-cooldown points** — one before the model-level phase, one before the E2E phase — so each
-measurement runs at a controlled thermal state:
+Each model × ORT combination follows these steps sequentially. The protocol cools the NPU
+before the model-level phase, before **each** measured throughput run, and before the E2E
+phase, so each of those measurements starts from a controlled thermal state (E2E and
+multi-stream then run back to back by design — see below):
 
 ```
 ── [1/N] yolo26-n_640x640.dxnn  ORT=ON  (object_detection) ──
 
-  ① Cooldown → reject start above 60°C; wait until ≤ min(idle + Δ10°C, 55°C)   (when the model family is included)
+  ① Cooldown → wait until ≤ min(settled idle + Δ10°C, 55°C)   (when the model family is included)
   ② Latency    → single-core sync mode (-l 300 loops), profiler-based NPU/CPU ms   (cold state)
-  ③ Throughput → multi-core async mode, FPS (3 runs)                              (sustained load heats the NPU)
+  ③ Throughput → dxrun auto-stop buffer-count sweep, then 3 measured runs, each after a
+                  cooldown and a 2s wake-up run (multi-core async mode, FPS)
   ④ Cooldown → shed the throughput burst's residual heat            (when the e2e/multi family is included)
   ⑤ E2E Single-Stream → full GStreamer pipeline FPS (3 runs)
   ⑥ Multi-Stream → jump to an FPS-based estimate (single-stream FPS ÷ 30), then boundary-search
@@ -393,11 +389,19 @@ measurement runs at a controlled thermal state:
   starts above 60 °C, then waits until the NPU is at ≤ min(idle + Δ10 °C, 55 °C), so a
   previous model's residual heat cannot bias the next one.
 - ② Latency runs from cold — the profiler cleanly separates NPU/CPU time with minimal heating.
-- ③ Throughput (30s × 3) heats the NPU to a sustained load.
+- ③ Throughput finds the buffer-count with dxrun's sweep (it waits for `--cool-down-temp`
+  before every repeat), then measures 3 × 30s runs. Each run is preceded by a cooldown to
+  the same target and by a 2s throw-away `dxrun`: the first process after minutes of
+  idle measures a few percent slower however many warm-up runs it does itself, and a
+  throw-away run removes that without re-heating the NPU. Throughput is therefore a
+  cooled-state value; consecutive runs cannot inherit each other's heat.
 - ④ The **pre-E2E cooldown** sheds the throughput burst's residual heat so
   E2E and multi-stream measure their *own* sustained steady state, rather than a state
   inflated by the preceding throughput burst.
-- ⑤/⑥ E2E then multi-stream run back-to-back at that steady state (no cooldown between them).
+- ⑤/⑥ E2E then multi-stream are continuous sustained-load measurements: the E2E runs
+  follow one another after a single warm-up, and multi-stream follows E2E without a
+  cooldown. On a board that throttles, the mean therefore includes the thermal ramp, and
+  a wide run-to-run spread is a sign of throttling; this is intended, not a bias to remove.
 - **Cooldown failure differs by point:** the model-level cooldown ① is fatal (RuntimeError
   on the 1000s timeout); the pre-E2E cooldown ④ is non-fatal — it warns and proceeds
   (E2E measured hot). If both latency and throughput time out, E2E/Multi-Stream are skipped
@@ -405,11 +409,11 @@ measurement runs at a controlled thermal state:
 
 ## Timeout Recovery and Retry Strategy
 
-GStreamer pipelines or `run_model` processes can occasionally hang (deadlock, NPU hang).
+GStreamer pipelines or `dxrun` processes can occasionally hang (deadlock, NPU hang).
 The tool has **three per-hang recovery layers**, plus a **run-level circuit breaker** that
 aborts early when recovery cannot help.
 
-**Layer 1 — Graceful shutdown (SIGTERM → SIGKILL).** On a `run_model` 600s timeout, an
+**Layer 1 — Graceful shutdown (SIGTERM → SIGKILL).** On a `dxrun` 600s timeout, an
 E2E/multi 90s no-progress stall, or the 1800s hard cap: SIGTERM to the process group →
 10s wait → SIGKILL if needed (→ 5s reap) → NPU device recovery (Layer 3).
 
@@ -421,7 +425,7 @@ E2E/multi 90s no-progress stall, or the 1800s hard cap: SIGTERM to the process g
 
 | Phase | Retries | Notes |
 |-------|:-------:|-------|
-| Warmup (model / E2E / multi) | 1 | one retry on timeout before giving up the cell |
+| Warmup (latency / E2E / multi) | 1 | one retry on timeout before giving up the cell (throughput has no separate warmup: its wake-up run is best effort) |
 | Measured runs (model / E2E / multi) | up to 2 | backfill failed/timed-out runs toward the target (`e2e_runs` = 3); the successful runs are averaged |
 | Multi-stream sweep (per stream count) | 1 | a stream count whose whole measurement times out is retried once — on top of the per-run backfill above |
 
@@ -429,7 +433,7 @@ When a model's model-level phase fails on **both** latency and throughput, its E
 multi-stream phases are skipped for that model × ORT combination.
 
 **Layer 3 — NPU device recovery** (triggered when Layer 1 needed a SIGKILL): kill orphaned
-`gst-launch-1.0` / `run_model` → `sudo -n systemctl restart dxrt.service` (3s settle).
+`gst-launch-1.0` / `run_model` (the `dxrun` processes) → `sudo -n systemctl restart dxrt.service` (3s settle).
 Mandatory because the SIGKILL tears down dxrtd's IPC message queue (the Error-43 case above),
 leaving the NPU unusable until the daemon restarts.
 

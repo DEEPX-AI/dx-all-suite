@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from . import __version__ as BENCHMARK_TOOL_VERSION
-from .npu_catalog import classify_devices, format_badge, format_sku
+from .npu_catalog import classify_devices, format_badge, format_sku, parse_devices
 
 
 def _normalize_version(raw: str) -> str:
@@ -171,8 +171,10 @@ MIN_TOOL_VERSIONS = {"run_model": (3, 5, 0), "dxrt-cli": (3, 5, 0)}
 
 
 # run_model options the sweep needs. A v3.5.0 rc build reports the same version as
-# the final one but lacks --sweep-tolerance.
-RUN_MODEL_REQUIRED_OPTIONS = ("--max-throughput", "--probe-time", "--sweep-tolerance")
+# the final one but lacks --sweep-tolerance; --cool-down-temp is what lets the sweep start
+# every repeat at the campaign's cool-down target.
+RUN_MODEL_REQUIRED_OPTIONS = ("--max-throughput", "--probe-time", "--sweep-tolerance",
+                              "--cool-down-temp")
 
 
 def _run_model_missing_options() -> list[str]:
@@ -290,7 +292,7 @@ def _get_dx_stream_version() -> str:
     return m.group(1) if m else "unknown"
 
 
-def _stamp_npu_products(info: dict, device_signals: list[tuple[str | None, str | None]]) -> None:
+def _stamp_npu_products(info: dict, device_signals: list[tuple]) -> None:
     """Classify per-device (board, memory) signals and stamp product fields."""
     modules = classify_devices(device_signals)
     info["modules"] = modules
@@ -594,26 +596,21 @@ def _get_npu_info() -> dict[str, Any]:
         return info
     info["raw"] = raw
 
-    # Parse structured fields from dxrt-cli -s output
-    device_count = 0
-    device_signals: list[tuple[str | None, str | None]] = []
-    current_board: str | None = None
-    current_memory: str | None = None
+    # Per-device record (chip, board, memory, offset, pcie): the classification inputs, kept
+    # so a result's product can be audited and redone if the catalog changes.
+    devices = parse_devices(raw)
+    info["devices"] = devices
+    device_count = len(devices)
+    device_signals = [(d["board"], d["memory"], d["chip"]) for d in devices]
+    if devices:
+        info["board"] = devices[-1]["board"] or info["board"]
+        info["memory"] = devices[-1]["memory"] or info["memory"]
+        info["pcie"] = devices[-1]["pcie"] or info["pcie"]
+
+    # Versions and per-core lines are runtime-wide, not per device.
     for line in raw.split("\n"):
         line = line.strip()
-        if line.startswith("* Device"):
-            if device_count > 0:
-                device_signals.append((current_board, current_memory))
-            current_board = None
-            current_memory = None
-            device_count += 1
-        elif "Board" in line and ":" in line and "Chip" not in line:
-            m = re.search(r":\s*(.+)", line)
-            if m:
-                val = m.group(1).strip()
-                current_board = val.split(",")[0].strip()  # e.g. "M.2" / "H1"
-                info["board"] = val
-        elif "RT Driver version" in line:
+        if "RT Driver version" in line:
             m = re.search(r":\s*(.+)", line)
             if m:
                 info["driver"] = m.group(1).strip()
@@ -625,19 +622,8 @@ def _get_npu_info() -> dict[str, Any]:
             m = re.search(r":\s*(.+)", line)
             if m:
                 info["firmware"] = m.group(1).strip()
-        elif "Memory" in line and ":" in line:
-            m = re.search(r":\s*(.+)", line)
-            if m:
-                current_memory = m.group(1).strip()
-                info["memory"] = current_memory
-        elif "PCIe" in line and "Gen" in line:
-            m = re.search(r":\s*(.+)", line)
-            if m:
-                info["pcie"] = m.group(1).strip()
         elif line.startswith("NPU"):
             info["cores"].append(line)
-    if device_count > 0:
-        device_signals.append((current_board, current_memory))
 
     info["device_count"] = device_count
     _stamp_npu_products(info, device_signals)

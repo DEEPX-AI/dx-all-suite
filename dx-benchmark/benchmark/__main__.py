@@ -210,6 +210,61 @@ def cmd_dry_run(args: argparse.Namespace) -> int:
     return 0
 
 
+def _establish_thermal_baseline(cfg, fp, existing_fp, resume_dir, allow_hot_start,
+                                read=None, settle=None) -> bool:
+    """Fix the campaign's NPU idle temperature and cool-down target. False blocks the run.
+
+    The idle temperature is a *settled* value (readings flat for a couple of minutes), not
+    the first reading: a device that was just used reads warm and a warm "idle" raised the
+    whole campaign's cool-down target. A resumed run reuses the recorded values so every
+    attempt cools to the same temperature. ``read``/``settle`` are injectable for tests.
+    """
+    from . import thermal as _thermal
+    if read is None:
+        from .npu_monitor import read_npu_temp_c as read
+    recorded = (existing_fp or {}).get("thermal") if resume_dir else None
+    override = None
+    hot_override = False
+    if cfg.thermal_idle_temp_c is None and recorded and recorded.get("idle_temp_c") is not None:
+        cfg.thermal_idle_temp_c = recorded["idle_temp_c"]
+        hot_override = bool(recorded.get("hot_start_override"))
+        if hot_override:
+            override = recorded.get("cooldown_target_c")
+            cfg.thermal_target_override_c = override
+        print(f"[INFO] Resuming with the recorded NPU idle temperature "
+              f"{cfg.thermal_idle_temp_c:.1f}°C (cool-down target ≤{_thermal.target_for(cfg):.1f}°C)")
+    elif cfg.thermal_idle_temp_c is None and read() is not None:
+        print("[INFO] Waiting for the NPU temperature to settle before recording idle ...",
+              flush=True)
+        if settle is None:
+            def settle():
+                return _thermal.settle_idle_temp(read)
+        idle = settle()
+        if idle is None:
+            print("[ERROR] NPU temperature did not settle (or is unreadable). Let the device "
+                  "idle and retry.")
+            return False
+        ok, override, message = _thermal.start_gate(
+            idle, cfg.thermal_cooldown_abs_cap_c, cfg.thermal_hot_start_block_c, allow_hot_start)
+        if message:
+            print(message)
+        if not ok:
+            return False
+        cfg.thermal_idle_temp_c = idle
+        cfg.thermal_target_override_c = override
+        hot_override = override is not None
+        print(f"[INFO] NPU idle temperature (settled): {idle:.1f}°C -> cool-down target "
+              f"≤{_thermal.target_for(cfg):.1f}°C")
+    fp["thermal"] = {
+        "idle_temp_c": cfg.thermal_idle_temp_c,
+        "cooldown_target_c": _thermal.target_for(cfg),
+        "abs_cap_c": cfg.thermal_cooldown_abs_cap_c,
+        "delta_c": cfg.thermal_cooldown_target_delta_c,
+        "hot_start_override": hot_override,
+    }
+    return True
+
+
 def cmd_run(args: argparse.Namespace) -> int:
     """Execute benchmarks."""
     cfg = _build_config(args)
@@ -284,19 +339,10 @@ def cmd_run(args: argparse.Namespace) -> int:
         existing_fp, cfg, families, resume_dir, retry_failed_flag, session_start_iso)
     fp["timing_history"] = timing_history
 
-    # Auto-detect NPU idle temperature for thermal steady-state
-    if cfg.thermal_idle_temp_c is None:
-        from .npu_monitor import read_npu_temp_c
-        idle_temp = read_npu_temp_c()
-        if idle_temp is not None:
-            if idle_temp > cfg.thermal_hot_start_block_c:
-                print(
-                    f"[ERROR] NPU start temperature {idle_temp:.1f}°C exceeds hot-start limit "
-                    f"{cfg.thermal_hot_start_block_c:.1f}°C. Cool the device before running the benchmark."
-                )
-                return 1
-            cfg.thermal_idle_temp_c = idle_temp
-            print(f"[INFO] NPU idle temperature: {idle_temp:.1f}°C")
+    # Settled NPU idle temperature -> the campaign's cool-down target (also handed to dxrun).
+    if not _establish_thermal_baseline(cfg, fp, existing_fp, resume_dir,
+                                       getattr(args, "allow_hot_start", False)):
+        return 1
 
     save_fingerprint(fp, out_dir)
 
@@ -499,7 +545,8 @@ def cmd_run(args: argparse.Namespace) -> int:
                         print(f"    retry [{existing.get('status', 'unknown')}]", flush=True)
                     t0 = time.monotonic()
                     try:
-                        r = run_throughput(m, use_ort, cfg, raw_dir)
+                        r = run_throughput(m, use_ort, cfg, raw_dir,
+                                           cooldown=lambda: wait_until_cool(cfg))
                     except Exception as exc:
                         traceback.print_exc()
                         print(f"  [ERROR] throughput {m.name} ORT={ort_s} raised {exc!r} → skipping cell", flush=True)
@@ -1569,6 +1616,9 @@ def _add_benchmark_args(parser: argparse.ArgumentParser, defaults: BenchmarkConf
                         help=f"Per-channel FPS threshold for multi-stream sweep (default: {defaults.fps_threshold:g})")
     parser.add_argument("--resume", default=None,
                         help="Resume and extend an existing result directory instead of starting a new run")
+    parser.add_argument("--allow-hot-start", action="store_true",
+                        help="Start even when the settled NPU idle temperature is at or above the "
+                             "cool-down cap (the cool-down target is raised and the run is flagged)")
     parser.add_argument("--retry-failed", action="store_true",
                         help="With --resume, rerun only entries whose latest status is not ok/partial")
 

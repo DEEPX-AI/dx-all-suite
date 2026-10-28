@@ -209,6 +209,7 @@ class BenchmarkConfig:
     model_latency_loops: int = 300  # inference loops per latency measurement (-l; run_model -s ignores -t)
     model_warmup: int = 1           # warmup runs before measurement
     model_warmup_retries: int = 1   # extra warmup attempts on timeout before giving up the cell
+    model_wakeup_sec: int = 2       # throw-away run_model before each throughput run (after the cool-down)
     model_run_retries: int = 2      # extra measured-run attempts to backfill failed runs up to the target count
     model_latency_runs: int = 1     # repeated measurements per latency benchmark
     model_throughput_runs: int = 3  # repeated measurements per throughput benchmark
@@ -219,6 +220,7 @@ class BenchmarkConfig:
     bc_probe_sec: int = 10          # --probe-time per repeat. Mean loss 1.02% at 5s vs 0.76% at 10s.
     bc_sweep_tolerance_pct: float = 1.0  # --sweep-tolerance: FPS within this % of the peak is a tie; the smallest buffer count wins.
     bc_sweep_timeout_sec: int = 900 # Whole-sweep timeout FLOOR; see effective_sweep_timeout_sec().
+    bc_cooldown_allowance_sec: int = 90  # per-repeat cool-down budget used to size the sweep watchdog
 
     # ── E2E pipeline params ───────────────────────────────────────────
     e2e_runs: int = 3               # repeated measurements per condition
@@ -239,7 +241,8 @@ class BenchmarkConfig:
     thermal_cooldown_abs_cap_c: float = 55.0  # hard cap for cooldown target temperature
     thermal_hot_start_block_c: float = 60.0  # abort benchmark start above this temperature
     thermal_cooldown_max_sec: float = 1000.0   # max cooldown wait seconds
-    thermal_idle_temp_c: Optional[float] = None  # measured at start; None = auto-detect
+    thermal_idle_temp_c: Optional[float] = None  # settled idle, measured at start; None = auto-detect
+    thermal_target_override_c: Optional[float] = None  # set only by an allowed hot start
 
     # ── Device-death circuit breaker (conservative abort) ─────────────
     # Abort the run ONLY when a dxrt-cli liveness probe confirms the device is
@@ -274,14 +277,15 @@ class BenchmarkConfig:
 
 
 def effective_sweep_timeout_sec(cfg: "BenchmarkConfig") -> int:
-    """Whole-sweep timeout actually enforced.
+    """Whole-sweep watchdog actually enforced.
 
-    ``bc_sweep_timeout_sec`` is a floor: the sweep must also fit
-    ``BC_SWEEP_ROUND_BUDGET`` rounds of ``probe x BC_SWEEP_REPEATS`` plus setup, so a
-    longer ``bc_probe_sec`` cannot starve it. dxrun stops when the curve flattens, so
-    this is a ceiling, not a prediction.
+    ``bc_sweep_timeout_sec`` is a floor: the sweep must also fit ``BC_SWEEP_ROUND_BUDGET``
+    rounds of ``BC_SWEEP_REPEATS`` x (probe + a cool-down allowance) plus setup. dxrun
+    cools down before every repeat, and a 10 s probe costs ~30 s to shed on a slow board.
+    dxrun stops when the curve flattens, so this is a ceiling, not a prediction.
     """
-    per_round = cfg.bc_probe_sec * BC_SWEEP_REPEATS + BC_SWEEP_ROUND_OVERHEAD_SEC
+    per_round = (cfg.bc_probe_sec * BC_SWEEP_REPEATS + BC_SWEEP_ROUND_OVERHEAD_SEC
+                 + BC_SWEEP_REPEATS * cfg.bc_cooldown_allowance_sec)
     return max(cfg.bc_sweep_timeout_sec, BC_SWEEP_ROUND_BUDGET * per_round)
 
 
@@ -294,11 +298,15 @@ def get_protocol_metadata(cfg: BenchmarkConfig) -> dict:
         "model_latency_loops": cfg.model_latency_loops,
         "model_warmup_runs": cfg.model_warmup,
         "model_warmup_retries": cfg.model_warmup_retries,
+        "model_wakeup_sec": cfg.model_wakeup_sec,
         "model_run_retries": cfg.model_run_retries,
         "model_latency_runs": cfg.model_latency_runs,
         "model_throughput_runs": cfg.model_throughput_runs,
         "bc_sweep_mode": "auto-stop",
         "bc_sweep_repeats": BC_SWEEP_REPEATS,
+        "bc_sweep_cooldown": "dxrun --cool-down-temp, before every repeat",
+        "cooldown_before_each_run": True,
+        "bc_cooldown_allowance_sec": cfg.bc_cooldown_allowance_sec,
         "bc_sweep_tolerance_pct": cfg.bc_sweep_tolerance_pct,
         "bc_probe_sec": cfg.bc_probe_sec,
         "bc_sweep_timeout_sec": cfg.bc_sweep_timeout_sec,

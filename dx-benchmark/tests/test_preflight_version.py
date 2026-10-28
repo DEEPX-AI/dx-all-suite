@@ -194,7 +194,7 @@ _V350_RUN_MODEL = "DXRT v3.5.0 run_model"
 
 
 # Stubbed help lists the sweep options so these tests exercise only the version gate.
-_STUB_HELP_OPTIONS = "\n  --max-throughput\n  --probe-time\n  --sweep-tolerance\n"
+_STUB_HELP_OPTIONS = "\n  --max-throughput\n  --probe-time\n  --sweep-tolerance\n  --cool-down-temp\n"
 
 
 def _stub_dxrt_banners(monkeypatch, run_model_help, dxrt_cli_version):
@@ -401,6 +401,12 @@ _HELP_FINAL = """DXRT v3.5.0 run_model
       --max-throughput       Search buffer counts for peak throughput
       --probe-time arg       Seconds to measure each candidate buffer count
       --sweep-tolerance arg  FPS difference (%) treated as noise
+      --cool-down-temp arg   Wait until the NPU is below this temperature before each measurement
+"""
+_HELP_NO_COOLDOWN = """DXRT v3.5.0 run_model
+      --max-throughput       Search buffer counts for peak throughput
+      --probe-time arg       Seconds to measure each candidate buffer count
+      --sweep-tolerance arg  FPS difference (%) treated as noise
 """
 _HELP_RC = """DXRT v3.5.0 run_model
       --max-throughput       Search buffer counts for peak throughput
@@ -413,13 +419,20 @@ def test_missing_options_tells_final_from_pre_final_rc(monkeypatch):
     monkeypatch.setattr(ef, "_run", lambda cmd, default="unknown": _HELP_FINAL)
     assert ef._run_model_missing_options() == []
     monkeypatch.setattr(ef, "_run", lambda cmd, default="unknown": _HELP_RC)
-    assert ef._run_model_missing_options() == ["--sweep-tolerance"]
+    assert ef._run_model_missing_options() == ["--sweep-tolerance", "--cool-down-temp"]
+
+
+def test_missing_options_blocks_a_build_without_cool_down(monkeypatch):
+    """The sweep protocol cools the NPU through dxrun; a build that cannot do that would
+    silently reproduce the heat-soaked sweep."""
+    monkeypatch.setattr(ef, "_run", lambda cmd, default="unknown": _HELP_NO_COOLDOWN)
+    assert ef._run_model_missing_options() == ["--cool-down-temp"]
 
 
 def test_missing_options_fails_closed_when_help_is_unreadable(monkeypatch):
     monkeypatch.setattr(ef, "_run", lambda cmd, default="unknown": default)
     assert set(ef._run_model_missing_options()) == {
-        "--max-throughput", "--probe-time", "--sweep-tolerance"}
+        "--max-throughput", "--probe-time", "--sweep-tolerance", "--cool-down-temp"}
 
 
 def test_rc_build_with_right_version_is_blocked_by_capability(monkeypatch):

@@ -318,7 +318,7 @@ def test_sweep_is_given_the_effective_timeout_not_the_floor(monkeypatch):
                           model_run_retries=0, bc_probe_sec=30)
     floor, effective = cfg.bc_sweep_timeout_sec, effective_sweep_timeout_sec(cfg)
     # Guard the fixture: with equal values this test could not tell them apart.
-    assert (floor, effective) == (900, 2325)
+    assert (floor, effective) == (900, 25 * (30 * 3 + 3 + 3 * 90))
 
     seen = {}
 
