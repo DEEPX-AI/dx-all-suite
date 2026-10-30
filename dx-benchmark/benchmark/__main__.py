@@ -1480,10 +1480,17 @@ def _merge_fingerprint_scope(fp: dict, prior: dict) -> None:
         return
     # benchmarked_models: keyed by model name; current entry wins, prior-only preserved.
     cur_models = fp.get("benchmarked_models") or []
-    have = {m.get("name") for m in cur_models}
+    have = {m.get("name"): m for m in cur_models}
     for pm in (prior.get("benchmarked_models") or []):
-        if pm.get("name") not in have:
+        cm = have.get(pm.get("name"))
+        if cm is None:
             cur_models.append(pm)
+            continue
+        # Captured during a model's throughput run: a model not re-run in this session has
+        # no fresh value, so keep the prior one instead of dropping it.
+        for key in ("input_tensor_shape", "input_tensor_dtype"):
+            if key not in cm and key in pm:
+                cm[key] = pm[key]
     fp["benchmarked_models"] = cur_models
     # families: set-union, normalised to canonical order (unknown families appended).
     if isinstance(fp.get("benchmark_params"), dict):

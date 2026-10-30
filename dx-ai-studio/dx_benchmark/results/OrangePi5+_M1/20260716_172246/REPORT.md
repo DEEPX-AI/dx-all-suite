@@ -1,6 +1,6 @@
 # YOLO26 Benchmark Report
 
-**Generated:** 2026-07-21 20:13:36 (Local)
+**Generated:** 2026-07-29 10:29:14 (Local)
 
 ## Test Timing
 
@@ -98,6 +98,7 @@
 | RAM | 15.6 GB |
 | NPU SKU | M1 |
 | DX-AllSuite | v2.3.3 |
+| Benchmark Tool | N/A |
 | NPU RT | v3.3.2 |
 | NPU Driver (RT) | v2.4.1 |
 | NPU Driver (PCIe) | v2.2.0 |
@@ -134,7 +135,7 @@
 
 | Item | Value |
 |------|-------|
-| Version | v3 |
+| Version | v1 |
 | Thermal Mode | steady |
 | Throughput Time | 30 s |
 | Latency Loops | 300 |

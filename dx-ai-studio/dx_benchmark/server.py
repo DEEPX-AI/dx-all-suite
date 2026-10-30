@@ -31,7 +31,7 @@ SERVER_NAME = "DX Benchmark"
 # benchmark execution happens from the web server), and POST /api/config is
 # rejected (settings are deployment-fixed).
 CONFIG_THERMAL_COOLDOWN_ABS_CAP_C = 55.0
-CONFIG_THERMAL_COOLDOWN_MAX_SEC = 300.0
+CONFIG_THERMAL_COOLDOWN_MAX_SEC = 1000.0
 CONFIG_MODEL_LATENCY_LOOPS = 300
 CONFIG_MODEL_WARMUP = 1
 CONFIG_FPS_THRESHOLD = 30.0
