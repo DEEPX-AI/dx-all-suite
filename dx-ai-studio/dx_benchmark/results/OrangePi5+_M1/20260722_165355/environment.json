@@ -177,7 +177,7 @@
     "retry_failed": false
   },
   "protocol": {
-    "version": "v3",
+    "version": "v1",
     "thermal_mode": "steady",
     "model_time_sec": 30,
     "model_latency_loops": 300,

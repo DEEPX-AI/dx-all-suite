@@ -1,6 +1,6 @@
 # YOLO26 Benchmark Report
 
-**Generated:** 2026-07-28 16:50:35 (Local)
+**Generated:** 2026-07-29 10:29:14 (Local)
 
 ## Test Timing
 
@@ -138,7 +138,7 @@
 
 | Item | Value |
 |------|-------|
-| Version | v3 |
+| Version | v1 |
 | Thermal Mode | steady |
 | Throughput Time | 30 s |
 | Latency Loops | 300 |

@@ -431,11 +431,20 @@ def _get_cpu_model() -> str:
     if not shutil.which("lscpu"):
         return platform.processor() or "unknown"
     raw = _run(["lscpu"])
+    # big.LITTLE SoCs may print one "Model name" per cluster, the first possibly "-".
+    names: list[str] = []
+    seen_model_line = False
     for line in raw.split("\n"):
         if "Model name" in line:
+            seen_model_line = True
             m = re.search(r":\s*(.+)", line)
-            if m:
-                return m.group(1).strip()
+            name = m.group(1).strip() if m else ""
+            if name and name != "-" and name not in names:
+                names.append(name)
+    if names:
+        return " + ".join(names)
+    if seen_model_line:
+        return "unknown"
     return raw.split("\n")[0] if raw else "unknown"
 
 
