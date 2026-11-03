@@ -135,6 +135,8 @@ evaluation:
 
 - 카탈로그에서 **FPS** 기준 정렬 가능
 - 모델별 **FPS/와트** 효율 지표
+- **USE_ORT FPS / USE_ORT FPS/Watt**: ONNX Runtime 을 켠(ORT ON) 상태의 E2E 값이며 호스트 CPU tail 을 포함한다. 일반 FPS 와는 측정 범위가 달라 나란히 비교하지 않는다.
+- **Q-Master** 티어는 제공되는 모델에만 있다(2026-10-30 퍼블리시 기준 카탈로그 내 72 모델).
 - 카테고리 내 모델 간 스펙 비교
 - **정확도 ↔ 속도 트레이드오프** 한눈에 확인
 - DEEPX NPU에서 전 모델 최적화 보장 (INT8 Intelligent Quantization)

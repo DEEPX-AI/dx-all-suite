@@ -93,7 +93,10 @@ def _open(opener, url, timeout):
 
 
 def _fetch_page(source):
-    url = SOURCE_URLS.get(source, SOURCE_URLS[SOURCE_INTERNAL])
+    return _fetch_url(source, SOURCE_URLS.get(source, SOURCE_URLS[SOURCE_INTERNAL]))
+
+
+def _fetch_url(source, url):
     try:
         opener = _make_opener(source)
         # Bounded timeout: ModelZoo browses a REMOTE catalog (both sources are network hosts),
@@ -109,6 +112,44 @@ def _fetch_page(source):
 
 def _abs(href):
     return (DEVELOPER_PORTAL + href) if href.startswith("/") else href
+
+
+def _leaf_labels(header_rows):
+    """Leaf column labels of a (rowspan/colspan) header block: 'NPU Performance USE_ORT FPS' style."""
+    occupied = {}
+    for r, tr in enumerate(header_rows):
+        c = 0
+        for cell in tr.find_all(["th", "td"]):
+            while (r, c) in occupied:
+                c += 1
+            text = cell.get_text(strip=True)
+            rs, cs = int(cell.get("rowspan", 1) or 1), int(cell.get("colspan", 1) or 1)
+            for dr in range(rs):
+                for dc in range(cs):
+                    occupied[(r + dr, c + dc)] = text
+            c += cs
+    if not occupied:
+        return []
+    ncols = max(c for _, c in occupied) + 1
+    leaves = []
+    for c in range(ncols):
+        parts = []
+        for r in range(len(header_rows)):
+            t = occupied.get((r, c))
+            if t and (not parts or parts[-1] != t):
+                parts.append(t)
+        leaves.append(" ".join(parts))
+    return leaves
+
+
+def _col_finder(leaves):
+    """Return col(*labels) -> index of the first leaf whose label is one of labels (None if absent)."""
+    def col(*labels):
+        for label in labels:
+            if label in leaves:
+                return leaves.index(label)
+        return None
+    return col
 
 
 def _parse_models(html):
@@ -164,61 +205,79 @@ def _parse_models(html):
                 is_20col = True
 
         if is_20col:
-            # Header row 0 distinguishes the two server-rendered layouts:
-            #   internal devops page → [Task, Name, ClassName, Dataset, …]  (spec cols start at 2)
-            #   public developer.deepx.ai/modelzoo/ → [Class Name, Dataset, …]  (no Task/Name;
-            #     model name = Class Name, category = the section heading; spec cols start at 0)
-            hdr0 = [c.get_text(strip=True) for c in rows[0].find_all(["th", "td"])]
-            public_layout = bool(hdr0) and hdr0[0].replace(" ", "").lower() == "classname"
-            cstart = 0 if public_layout else 2
-            # public section headings carry a count suffix, e.g. "Object Detection (116)"
+            # Each field's column is found by its header label. The publish page adds Q-Master and USE_ORT
+            # columns, so a fixed index drifts. Headers without those labels (the legacy and public layouts)
+            # keep the historical fixed offsets, so their columns are read exactly as before.
+            leaves = _leaf_labels(rows[:3])
+            first_hdr = rows[0].find_all(["th", "td"])
+            hdr0 = first_hdr[0].get_text(strip=True) if first_hdr else ""
+            public_layout = hdr0.replace(" ", "").lower() == "classname"
             cat = re.sub(r"\s*\(\d+\)\s*$", "", current_category).strip() if public_layout else current_category
+            col = _col_finder(leaves)
+            labelled = col("NPU Q-Lite DXNN") is not None
+            cstart = 0 if public_layout else 2
+            if labelled:
+                index = {
+                    "name": col("Name"), "class": col("Class Name", "Display Name"), "task": col("Task"),
+                    "dataset": col("Dataset"), "input_res": col("Input Resolution"), "ops": col("Operations"),
+                    "params": col("Parameters"), "license": col("License"), "metric": col("Metric"),
+                    "raw_acc": col("Raw Accuracy"), "onnx": col("Raw ONNX"),
+                    "ql_acc": col("NPU Q-Lite Accuracy"), "ql_dxnn": col("NPU Q-Lite DXNN"), "ql_json": col("NPU Q-Lite JSON"),
+                    "qp_acc": col("NPU Q-Pro Accuracy"), "qp_dxnn": col("NPU Q-Pro DXNN"), "qp_json": col("NPU Q-Pro JSON"),
+                    "qm_acc": col("NPU Q-Master Accuracy"), "qm_dxnn": col("NPU Q-Master DXNN"), "qm_json": col("NPU Q-Master JSON"),
+                    "fps": col("NPU Performance FPS", "Performance FPS", "FPS"),
+                    "fps_w": col("NPU Performance FPS/Watt", "Performance FPS/Watt", "FPS/Watt"),
+                    "ort_fps": col("NPU Performance USE_ORT FPS"), "ort_fps_w": col("NPU Performance USE_ORT FPS/Watt"),
+                }
+            else:
+                index = {
+                    "name": 1, "class": cstart, "task": 0, "dataset": cstart + 1, "input_res": cstart + 2,
+                    "ops": cstart + 3, "params": cstart + 4, "license": cstart + 5, "metric": cstart + 6,
+                    "raw_acc": cstart + 8, "onnx": cstart + 9,
+                    "ql_acc": cstart + 10, "ql_dxnn": cstart + 11, "ql_json": cstart + 12,
+                    "qp_acc": cstart + 13, "qp_dxnn": cstart + 14, "qp_json": cstart + 15,
+                    "qm_acc": None, "qm_dxnn": None, "qm_json": None,
+                    "fps": cstart + 16, "fps_w": cstart + 17, "ort_fps": None, "ort_fps_w": None,
+                }
 
-            # Skip header rows (0,1,2), parse data rows
+            # The helpers read `cells`, which each row rebinds, so they are defined once per table.
+            cells = []
+
+            def cell(key):
+                idx = index.get(key)
+                return cells[idx] if idx is not None and idx < len(cells) else None
+
+            def text(key):
+                c = cell(key)
+                return c.get_text(strip=True) if c is not None else ""
+
+            def acc(key):
+                c = cell(key)
+                return _cell_text(c) if c is not None else ""
+
+            def link(key):
+                c = cell(key)
+                a = c.find("a", href=True) if c is not None else None
+                return _abs(a["href"]) if a else None
+
             for row in rows[3:]:
                 cells = row.find_all("td")
-                if len(cells) < cstart + 16:
-                    continue
 
-                class_name = cells[cstart].get_text(strip=True)
+                if not labelled and len(cells) < cstart + 16:
+                    continue
+                class_name = text("class")
                 if public_layout:
                     name = class_name
                     task = cat
                 else:
-                    task = cells[0].get_text(strip=True)
-                    name = cells[1].get_text(strip=True)
+                    task = text("task")
+                    name = text("name")
                 if not name or name == "-":
                     continue
 
-                dataset = cells[cstart + 1].get_text(strip=True)
-                input_res = cells[cstart + 2].get_text(strip=True)
-                ops = cells[cstart + 3].get_text(strip=True)
-                params = cells[cstart + 4].get_text(strip=True)
-                license_ = cells[cstart + 5].get_text(strip=True)
-                metric = _cell_text(cells[cstart + 6])
-                raw_acc = _cell_text(cells[cstart + 8])
-
-                onnx_a = cells[cstart + 9].find("a", href=True)
-                onnx_url = _abs(onnx_a["href"]) if onnx_a else None
-
-                ql_acc = _cell_text(cells[cstart + 10])
-                ql_dxnn_a = cells[cstart + 11].find("a", href=True)
-                ql_json_a = cells[cstart + 12].find("a", href=True)
-                ql_dxnn = _abs(ql_dxnn_a["href"]) if ql_dxnn_a else None
-                ql_json = _abs(ql_json_a["href"]) if ql_json_a else None
-
-                qp_acc = _cell_text(cells[cstart + 13])
-                qp_dxnn_a = cells[cstart + 14].find("a", href=True)
-                qp_json_a = cells[cstart + 15].find("a", href=True)
-                qp_dxnn = _abs(qp_dxnn_a["href"]) if qp_dxnn_a else None
-                qp_json = _abs(qp_json_a["href"]) if qp_json_a else None
-
-                fps = cells[cstart + 16].get_text(strip=True) if len(cells) > cstart + 16 else ""
-                fps_watt = cells[cstart + 17].get_text(strip=True) if len(cells) > cstart + 17 else ""
-
-                ql_exists = _installed_status(MODELS_DIR, ql_dxnn, ql_json)["exists"]
-                qp_exists = _installed_status(QPRO_DIR, qp_dxnn, qp_json)["exists"]
-
+                ql_dxnn, ql_json = link("ql_dxnn"), link("ql_json")
+                qp_dxnn, qp_json = link("qp_dxnn"), link("qp_json")
+                qm_dxnn, qm_json = link("qm_dxnn"), link("qm_json")
                 uid = f"{task}|{name}"
                 if uid in seen:
                     continue
@@ -228,28 +287,36 @@ def _parse_models(html):
                     "name": name,
                     "class_name": class_name,
                     "task": task or current_category,
-                    "dataset": dataset,
-                    "input_resolution": input_res,
-                    "ops": ops,
-                    "params": params,
-                    "license": license_,
-                    "metric": metric,
-                    "raw_accuracy": raw_acc,
-                    "onnx_url": onnx_url,
+                    "dataset": text("dataset"),
+                    "input_resolution": text("input_res"),
+                    "ops": text("ops"),
+                    "params": text("params"),
+                    "license": text("license"),
+                    "metric": acc("metric"),
+                    "raw_accuracy": acc("raw_acc"),
+                    "onnx_url": link("onnx"),
                     "qlite": {
-                        "accuracy": ql_acc,
+                        "accuracy": acc("ql_acc"),
                         "dxnn_url": ql_dxnn,
                         "json_url": ql_json,
-                        "exists": ql_exists,
+                        "exists": _installed_status(MODELS_DIR, ql_dxnn, ql_json)["exists"],
                     },
                     "qpro": {
-                        "accuracy": qp_acc,
+                        "accuracy": acc("qp_acc"),
                         "dxnn_url": qp_dxnn,
                         "json_url": qp_json,
-                        "exists": qp_exists,
+                        "exists": _installed_status(QPRO_DIR, qp_dxnn, qp_json)["exists"],
                     },
-                    "fps": fps,
-                    "fps_per_watt": fps_watt,
+                    "qmaster": {
+                        "accuracy": acc("qm_acc"),
+                        "dxnn_url": qm_dxnn,
+                        "json_url": qm_json,
+                        "exists": _installed_status(QMASTER_DIR, qm_dxnn, qm_json)["exists"],
+                    },
+                    "fps": text("fps"),
+                    "fps_per_watt": text("fps_w"),
+                    "use_ort_fps": text("ort_fps"),
+                    "use_ort_fps_per_watt": text("ort_fps_w"),
                 })
         else:
             # Fallback: legacy format (simple .dxnn scan)
@@ -388,6 +455,13 @@ def modelzoo_list(source="internal"):
     # Each source has a different document shape: the public page is inline JSON, the
     # internal publish page a 20-column table. _parse_models only parses tables.
     if source == SOURCE_PUBLIC:
+        # developer.deepx.ai/modelzoo/ wraps the catalog in a same-host iframe; read the frame's document.
+        from shared.modelzoo_payload import payload_frame_url
+        frame = payload_frame_url(html, SOURCE_URLS[SOURCE_PUBLIC])
+        if frame:
+            html, err = _fetch_url(source, frame)
+            if err:
+                return {"ok": False, "error": err, "models": []}
         try:
             models = _models_from_payload(html)
         except ValueError as e:

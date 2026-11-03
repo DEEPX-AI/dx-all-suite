@@ -128,7 +128,7 @@ function mzRenderTable() {
   if (MZ.loading) { mzRenderLoading(); return; }
 
   if (!list.length) {
-    tb.innerHTML = '<tr><td colspan="26" style="text-align:center;padding:30px;color:var(--text-faint)">' + T('No models found') + '</td></tr>';
+    tb.innerHTML = '<tr><td colspan="28" style="text-align:center;padding:30px;color:var(--text-faint)">' + T('No models found') + '</td></tr>';
     $('mz-count').textContent = '0 / ' + MZ.models.length;
     return;
   }
@@ -195,6 +195,8 @@ function mzRenderTable() {
       /* Performance */
       + '<td class="txt-dim">' + esc(m.fps || '–') + '</td>'
       + '<td class="txt-dim">' + esc(m.fps_per_watt || '–') + '</td>'
+      + '<td class="txt-dim">' + esc(m.use_ort_fps || '–') + '</td>'
+      + '<td class="txt-dim">' + esc(m.use_ort_fps_per_watt || '–') + '</td>'
       + '</tr>';
   }).join('');
 

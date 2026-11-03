@@ -44,9 +44,11 @@ _TABLE_FIELD_MAP = {
     "Performance FPS/Watt": "performance.fps_per_watt",
     "NPU Performance FPS": "performance.fps",
     "NPU Performance FPS/Watt": "performance.fps_per_watt",
+    "NPU Performance USE_ORT FPS": "performance.use_ort_fps",
+    "NPU Performance USE_ORT FPS/Watt": "performance.use_ort_fps_per_watt",
 }
 
-_FLOAT_FIELDS = {"performance.fps", "performance.fps_per_watt"}
+_FLOAT_FIELDS = {"performance.fps", "performance.fps_per_watt", "performance.use_ort_fps", "performance.use_ort_fps_per_watt"}
 
 _ACCURACY_FIELDS = {
     "evaluation.raw.accuracy",

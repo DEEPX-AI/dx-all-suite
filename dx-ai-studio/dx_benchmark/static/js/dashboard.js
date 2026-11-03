@@ -2,8 +2,31 @@
 
 var Dashboard = (function() {
 
-/* Dark-only color palette for Canvas charts */
+/* Canvas cannot read CSS variables, so the palette is picked per theme at draw time. The light check reads the
+   resolved panel colour, so an explicit data-theme and the 'system' mode (prefers-color-scheme) both count. */
+function _isLightTheme() {
+  try {
+    var rgb = getComputedStyle(document.documentElement).getPropertyValue('--surface-panel-rgb').split(',').map(Number);
+    if (rgb.length === 3 && rgb.every(isFinite)) return 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2] > 160;
+  } catch (e) {}
+  return document.documentElement.getAttribute('data-theme') === 'light';
+}
+
+/* Value labels are drawn as a halo (strokeText, `outline`) under the text (`emph`): the halo must be the
+   background's colour, or it smears over the digits. */
 function _cc() {
+  if (_isLightTheme()) return {
+    text:    '#4a5262',
+    dim:     '#6e7687',
+    strong:  '#1d1d1f',
+    emph:    '#1d1d1f',
+    noData:  '#6e7687',
+    grid:    'rgba(0,0,0,0.08)',
+    axes:    'rgba(0,0,0,0.25)',
+    outline: 'rgba(255,255,255,0.9)',
+    sel:     'rgba(0,113,227,0.10)',
+    selBdr:  'rgba(0,113,227,0.7)'
+  };
   return {
     text:    '#B0BDD0',
     dim:     '#8892A8',
@@ -1238,7 +1261,22 @@ function initOrtCompareTab() {
   refreshOrtCompare();
 }
 
+  /* Repaint every canvas chart when the theme changes (the palette is read at draw time). */
+  function _redrawCharts() {
+    var charts = [Chart, FpsChart, OrtChart];
+    Object.keys(state.trendCharts || {}).forEach(function(k) { charts.push(state.trendCharts[k]); });
+    charts.forEach(function(c) {
+      if (c && c._canvas && typeof c._draw === 'function') { try { c._draw(); } catch (e) {} }
+    });
+  }
+  window.addEventListener('dx-theme-applied', function() { requestAnimationFrame(_redrawCharts); });
+  if (window.matchMedia) {
+    var _mq = window.matchMedia('(prefers-color-scheme: light)');
+    if (_mq.addEventListener) _mq.addEventListener('change', function() { requestAnimationFrame(_redrawCharts); });
+  }
+
   return {
+    palette: _cc,
     init: function(dataset) {
       if (!dataset) return;
       var container = document.getElementById('tab-dashboard');

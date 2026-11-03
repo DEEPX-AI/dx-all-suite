@@ -31,17 +31,16 @@ def test_a_row_carries_the_fields_the_screen_uses():
     assert m["qlite"].get("dxnn_url", "").endswith(".dxnn"), m["qlite"]
 
 
-def test_internal_rows_carry_only_two_tiers():
-    """The public source offers Q-Master but this one does not; pin that asymmetry.
+def test_internal_rows_always_carry_the_qmaster_tier_but_only_fill_it_when_the_page_has_the_columns():
+    """The 2026-10-19 capture has no Q-Master columns; the 2026-10-30 page does (see test_modelzoo_publish_v2_columns).
 
-    `_CHIP_DIRS` and the frontend's `MZ_CHIPS` iterate over three tiers, but rows built here have no `qmaster`
-    key at all. That is handled quietly (`m.get(chip)` → None, `m[chip.key]` → undefined → '–'); this test makes
-    it a contract rather than an accident. The internal source lists no Q-Master models.
+    Every row carries a `qmaster` key, so the three-tier chip loop never has to guess. A capture without the
+    Q-Master columns leaves its URLs empty instead of borrowing another tier's.
     """
     m = _models()[0]
-    assert "qmaster" not in m, (
-        "internal 이 qmaster 를 내기 시작했다 — 화면과 설치 경로를 다시 확인할 것"
-    )
+    assert set(m["qmaster"]) >= {"accuracy", "dxnn_url", "json_url", "exists"}
+    assert m["qmaster"]["dxnn_url"] is None
+    assert m["qmaster"]["json_url"] is None
 
 
 def test_missing_numbers_are_dashes_here_not_nulls():

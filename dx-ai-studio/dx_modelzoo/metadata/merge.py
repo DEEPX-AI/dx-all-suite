@@ -3,6 +3,7 @@
 from datetime import datetime, timezone
 
 from dx_modelzoo.metadata.normalization import normalize_source_value
+from shared.tasks import runtime_key
 from dx_modelzoo.metadata.schema import SCHEMA_VERSION, ARTIFACT_IDS
 
 
@@ -196,7 +197,7 @@ def _build_structured_model(mid, flat, prov):
             missing.append(aid)
     model["missing"] = missing
 
-    task = flat.get("display.task", "")
+    task = runtime_key(flat.get("display.task", ""))
     editorial = _EDITORIAL_BY_TASK.get(task, f"AI model for {task} tasks." if task else "AI model.")
     category_label = task.replace("_", " ").title() if task else "Unknown"
     model["display"]["summary"] = {"en": editorial}

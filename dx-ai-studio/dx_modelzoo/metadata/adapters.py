@@ -285,6 +285,11 @@ def public_modelzoo_adapter(suite_root, publish_url=_PUBLIC_MODELZOO_URL, fetch_
     fetch_text = fetch_text or (lambda url: _fetch_url_text(url, verify_tls=verify_tls))
     try:
         html = fetch_text(publish_url)
+        # The public page wraps the catalog in a same-host iframe; read the frame's document.
+        from shared.modelzoo_payload import payload_frame_url
+        frame = payload_frame_url(html, publish_url)
+        if frame:
+            html = fetch_text(frame)
         from dx_modelzoo.metadata._public_parser import parse_public_modelzoo_html
         models, warns = parse_public_modelzoo_html(html)
     except Exception as exc:

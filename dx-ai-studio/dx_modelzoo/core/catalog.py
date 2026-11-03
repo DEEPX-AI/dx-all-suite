@@ -7,6 +7,7 @@ import time
 from pathlib import Path
 from collections import defaultdict
 
+from shared.tasks import runtime_key
 from dx_modelzoo.core.config import (CATALOG_FILE, CONFIG_FILE, CATEGORIES, EXAMPLE_TYPES,
                          DX_APP_ROOT, MODELS_DIR, CPP_DIR, PY_DIR, BUILD_DIR, DATA_DIR,
                          SAMPLE_IMAGES, MODEL_IMAGE_OVERRIDE, SAMPLE_IMG_DIR)
@@ -883,8 +884,11 @@ def _generated_only_models(generated, used_ids, metadata_source):
     out = []
     for gm in generated.get("models", []):
         mid = gm.get("id")
-        task = (gm.get("display") or {}).get("task") or ""
-        if not mid or mid in used_ids or task not in CATEGORIES:
+        task = runtime_key((gm.get("display") or {}).get("task") or "")
+        if not mid or mid in used_ids:
+            continue
+        if task not in CATEGORIES:
+            print(f"[WARNING] generated-only model {mid!r} skipped: unknown task {task!r}")
             continue
         url = ((gm.get("artifacts") or {}).get("qlite_dxnn") or {}).get("remote_url") or ""
         fname = url.rstrip("/").rsplit("/", 1)[-1] if url.endswith(".dxnn") else f"{mid}.dxnn"

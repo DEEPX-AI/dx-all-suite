@@ -799,14 +799,13 @@ yolo26_depth_n-1   Ultralytics YOLO26-n-depth   Depth Estimation
 
 확인하면서 드러난 두 소스의 차이:
 
-* **티어가 다르다.** public 은 Q-Master 를 주고 internal 은 주지 않는다 — 행에
-  `qmaster` 키 자체가 없다(실측: internal 496 모델 중 0 건). `_CHIP_DIRS` 와
-  프론트의 `MZ_CHIPS` 는 세 티어를 순회하지만 `m.get(chip)` / `m[chip.key]` 가
-  각각 None / undefined 로 떨어져 조용히 넘어간다. 우연히 맞는 것이 아니라
-  계약으로 고정해 두었다.
+* **티어가 다르다.** public 과 internal 모두 Q-Master 를 줄 수 있다. internal 은
+  2026-10-30 퍼블리시 페이지부터 Q-Master 열이 있고(카탈로그에 72 모델), 열이 없는 캡처에서는
+  행의 `qmaster` 키는 있어도 URL 이 비어 있다. `_CHIP_DIRS` 와 프론트의 `MZ_CHIPS`
+  는 세 티어를 항상 순회하므로, 빈 티어는 조용히 '–' 로 떨어진다.
 * **없는 값의 모양이 다르다.** public 은 숫자나 `None`, internal 은 `'-'` 문자열이다.
   같은 화면이 두 소스를 쓰므로 정렬이나 계산에 넣을 때 알고 있어야 한다.
-* **건수가 다르다.** internal 496, public 354. 같은 카탈로그의 다른 단면이다.
+* **건수가 다르다.** internal 은 페이지에 527 모델이 있지만 출처(Source)가 있는 497 만 카탈로그에 든다(나머지 30 은 출처가 비어 있어 보류). public 354. 같은 카탈로그의 다른 단면이다.
 
 #### Quarantined browser failures
 

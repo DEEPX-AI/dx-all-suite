@@ -156,6 +156,8 @@ def render_html(card, *, labels=None, lang="en", image_src=None, readme_href="RE
          t(L, "{metric} · {tier}", metric=acc["metrics"][0], tier=first["label"] if first else "Q-Lite")),
         (fmt_fps(card["fps"]) if card["fps"] is not None else None, "FPS · DX-M1"),
         (fmt_num(card["fps_per_watt"], 1) if card["fps_per_watt"] is not None else None, "FPS/W · DX-M1"),
+        (fmt_fps(card["use_ort_fps"]) if card["use_ort_fps"] is not None else None, "ORT FPS · DX-M1"),
+        (fmt_num(card["use_ort_fps_per_watt"], 1) if card["use_ort_fps_per_watt"] is not None else None, "ORT FPS/W · DX-M1"),
         (f"{fmt_num(card['params'])} M" if card["params"] is not None else None, t(L, "Parameters")),
     ] if performance else [
         (fmt_num(first_value) if first_value is not None else None,
