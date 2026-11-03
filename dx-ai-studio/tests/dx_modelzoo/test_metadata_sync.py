@@ -39,6 +39,8 @@ def test_artifact_ids_are_allowlisted():
         "qlite_json",
         "qpro_dxnn",
         "qpro_json",
+        "qmaster_dxnn",
+        "qmaster_json",
     }
 
 

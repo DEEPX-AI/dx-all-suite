@@ -67,10 +67,15 @@ def host_allowed(host_header: str, hostname: Optional[str] = None) -> bool:
 # ── Pairing code ──────────────────────────────────────────────────────────────
 
 def _announce_to_console(code: str) -> None:
-    print("\n  ┌────────────────────────────────────────────────────────────────┐")
-    print(f"  │  Remote access code: {code}   (enter it in the remote browser) │")
-    print("  │  원격 접속 코드      — 다른 PC의 브라우저에 한 번 입력하세요   │")
-    print("  └────────────────────────────────────────────────────────────────┘\n", flush=True)
+    width = 64
+    lines = [
+        f"  Remote access code: {code}",
+        "  Enter this code once in the browser of the other computer.",
+    ]
+    print("\n  ┌" + "─" * width + "┐")
+    for line in lines:
+        print("  │" + line.ljust(width) + "│")
+    print("  └" + "─" * width + "┘\n", flush=True)
 
 
 class Pairing:

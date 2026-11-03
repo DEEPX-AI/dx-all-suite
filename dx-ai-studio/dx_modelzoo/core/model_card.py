@@ -404,6 +404,8 @@ def build_card(model, registry_row, dx_app_root, *, asof, benchmark_rows=(), tas
         "accuracy": accuracy_table(model),
         "fps": _number(perf.get("fps")),
         "fps_per_watt": _number(perf.get("fps_per_watt")),
+        "use_ort_fps": _number(perf.get("use_ort_fps")),
+        "use_ort_fps_per_watt": _number(perf.get("use_ort_fps_per_watt")),
         "boards": board_rows(benchmark_rows, variant),
         "downloads": links,
         "license": legal.get("license"),

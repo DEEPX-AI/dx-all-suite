@@ -530,7 +530,7 @@
             <th colspan="4" class="mz-grp mz-grp-ql">Q-Lite</th>
             <th colspan="4" class="mz-grp mz-grp-qp">Q-Pro</th>
             <th colspan="4" class="mz-grp mz-grp-qm">Q-Master</th>
-            <th colspan="2" style="text-align:center;border-bottom:1px solid var(--border-subtle)">Performance</th>
+            <th colspan="4" style="text-align:center;border-bottom:1px solid var(--border-subtle)">Performance</th>
           </tr>
           <tr>
             <th data-i18n="Accuracy">Accuracy</th>
@@ -549,6 +549,8 @@
             <th class="mz-sub-qm">DL</th>
             <th>FPS</th>
             <th>FPS/W</th>
+            <th title="End-to-end FPS including the host CPU tail (ONNX Runtime ON)">USE_ORT FPS</th>
+            <th title="End-to-end FPS per watt including the host CPU tail (ONNX Runtime ON)">USE_ORT FPS/W</th>
           </tr>
         </thead>
         <tbody id="mz-tbody"></tbody>

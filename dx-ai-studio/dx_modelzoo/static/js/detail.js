@@ -453,6 +453,8 @@ function renderRuntimePerformance(model) {
   const rows = [
     ['FPS', performance.fps ?? model.specification?.fps, 'Benchmark required'],
     ['FPS/Watt', performance.fps_per_watt, 'Benchmark required'],
+    ['USE_ORT FPS', performance.use_ort_fps, 'Benchmark required'],
+    ['USE_ORT FPS/Watt', performance.use_ort_fps_per_watt, 'Benchmark required'],
     ['Status', performance.source_status ? _sourceStatusText(performance.source_status) : T('Benchmark required'), 'Benchmark required'],
   ];
   return `<div class="mz-datasheet-block">

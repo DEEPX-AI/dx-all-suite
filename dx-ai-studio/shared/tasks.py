@@ -23,6 +23,18 @@ LEGACY_TO_TASK = {
 }
 TASK_TO_LEGACY = {v: k for k, v in LEGACY_TO_TASK.items()}
 
+# Labels the publish page uses that are not runtime category keys (dx_modelzoo CATEGORIES / dx-runtime layout).
+PUBLISH_TO_RUNTIME = {
+    "face_landmark_detection": "face_landmark",
+    "face_attribute_recognition": "face_attribute",
+    "image_de-noising": "image_denoising",
+}
+
+
+def runtime_key(label: str) -> str:
+    """publish-page task label -> runtime category key (an unaliased label is returned unchanged)."""
+    return PUBLISH_TO_RUNTIME.get(label, label)
+
 NEW_TASKS = (
     "anomaly_detection",
     "zero_shot_image_classification",

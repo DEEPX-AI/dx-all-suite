@@ -259,3 +259,10 @@ class TestArtifactEndpoints:
             assert e.code in (400, 404)
         else:
             raise AssertionError("expected HTTPError")
+
+
+def test_validate_artifact_id_accepts_q_master():
+    """The publish page offers Q-Master DXNN/JSON; the download route must not 404 them."""
+    from dx_modelzoo.metadata.artifacts import validate_artifact_id
+    assert validate_artifact_id("qmaster_dxnn") == "qmaster_dxnn"
+    assert validate_artifact_id("qmaster_json") == "qmaster_json"

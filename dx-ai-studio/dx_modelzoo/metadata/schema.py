@@ -13,4 +13,4 @@ SOURCE_STATUS = {
     "suspect",
 }
 
-ARTIFACT_IDS = {"onnx", "qlite_dxnn", "qlite_json", "qpro_dxnn", "qpro_json"}
+ARTIFACT_IDS = {"onnx", "qlite_dxnn", "qlite_json", "qpro_dxnn", "qpro_json", "qmaster_dxnn", "qmaster_json"}

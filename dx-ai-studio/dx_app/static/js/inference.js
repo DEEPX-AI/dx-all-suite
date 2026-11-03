@@ -264,6 +264,7 @@ function _runMediaThumb(path){
 }
 
 function updateRunParams(cat){
+  cat=_taskLegacy(cat);
   // Categories that need detection params (confidence + NMS)
   var detectCats=['object_detection','face_detection','pose_estimation','obb_detection','instance_segmentation','ppu','hand_landmark','face_alignment'];
   // Categories that need classification params
@@ -642,7 +643,7 @@ window.renderInferenceResult=function(el,res){
   // "Before" image is either a picked sample (served via /file/) or an uploaded
   // data URL — support both so the compare slider also works for uploads.
   var beforeSrc=r._beforeSrc||null;
-  if(r.result_image&&!isVideo&&beforeSrc&&pairCats.indexOf(cat)===-1){
+  if(r.result_image&&!isVideo&&beforeSrc&&pairCats.indexOf(_taskLegacy(cat))===-1){
     var cmpId='cmp-'+Date.now();
     h+='<div class="cmp-wrap mb8" id="'+cmpId+'">';
     h+='<img class="cmp-before" src="'+beforeSrc+'" crossorigin="anonymous"/>';
@@ -1341,14 +1342,14 @@ function contShowSummary(){
     first=false;
     h+='<div class="ls-title">'+T('Slot ')+(lslot.slotIdx+1)+': '+esc(sl.model||'')+'</div>';
     if(result&&!result.error){
-      if(CLF_CATS.indexOf(cat)>=0&&lslot.confHistory.length>=4){
+      if(CLF_CATS.indexOf(_taskLegacy(cat))>=0&&lslot.confHistory.length>=4){
         h+='<div class="sparkline-wrap mb8"><div class="sparkline-label">'+T('Confidence Trend')+' ('+lslot.confHistory.length+' 폴링)</div>';
         h+=renderSparkline(lslot.confHistory,400,52)+'</div>';
       }
       // Tag-based summary (new): use task_tag/task_summary if available
       if(result.task_tag&&result.task_summary){
         h+='<div class="mt8">'+renderTaskSummary(result.task_tag,result.task_summary)+'</div>';
-      }else if(DET_CATS.indexOf(cat)>=0&&result.det_summary){
+      }else if(DET_CATS.indexOf(_taskLegacy(cat))>=0&&result.det_summary){
         // Fallback: legacy det_summary
         h+='<div class="mt8">'+renderDetSummary(result.det_summary)+'</div>';
       }

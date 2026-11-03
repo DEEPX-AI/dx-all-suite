@@ -30,6 +30,13 @@ body:has(.dx-shell-rail) .hw-float{left:calc(var(--dx-rail-w,56px) + var(--sp-3,
 .hw-rail-btn[data-state="warn"] .hw-rail-dot{background:var(--status-warn)}
 .hw-rail-btn[data-state="crit"] .hw-rail-dot{background:var(--status-error)}
 .hw-rail-btn[aria-expanded="true"]{color:var(--accent);background:var(--accent-dim)}
+/* The floating pill (no rail) carries the same state dot while folded, so it reads as live and is easy to find.
+   A colour change only — no animation. */
+.hw-float-dot{display:none;flex:none;width:7px;height:7px;border-radius:50%;background:var(--text-faint)}
+.hw-float.minimized .hw-float-dot{display:inline-block}
+.hw-float[data-state="ok"] .hw-float-dot{background:var(--status-ok)}
+.hw-float[data-state="warn"] .hw-float-dot{background:var(--status-warn)}
+.hw-float[data-state="crit"] .hw-float-dot{background:var(--status-error)}
 .hw-float-header{display:flex;justify-content:space-between;align-items:center;
   cursor:grab;touch-action:none;padding:0;gap:8px}
 .hw-float-header:active{cursor:grabbing}
@@ -59,6 +66,7 @@ body:has(.dx-shell-rail) .hw-float{left:calc(var(--dx-rail-w,56px) + var(--sp-3,
 </style>
 <div class="hw-float minimized" id="hw-float">
   <div class="hw-float-header" id="hw-float-drag">
+    <span class="hw-float-dot" aria-hidden="true"></span>
     <span class="hw-float-title"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#menu"></use></svg> <span data-i18n="NPU Monitor">NPU Monitor</span></span>
     <button class="hw-float-toggle" aria-label="Minimize" data-i18n-aria-label="Minimize" onclick="_hwFloatToggle()"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#chevd"></use></svg></button>
   </div>
@@ -91,6 +99,7 @@ body:has(.dx-shell-rail) .hw-float{left:calc(var(--dx-rail-w,56px) + var(--sp-3,
   /* ── Widget self-contained JS ── */
   var _hf = document.getElementById('hw-float');
   if (!_hf) return;
+  _hf.dataset.state = 'offline';
   /* Remember expanded/collapsed — collapsed at first. 'hw-float-open' = '1' means expanded. */
   var _OPEN_KEY = 'hw-float-open';
   try { if (localStorage.getItem(_OPEN_KEY) === '1') _hf.classList.remove('minimized'); } catch (e) {}
@@ -126,13 +135,27 @@ body:has(.dx-shell-rail) .hw-float{left:calc(var(--dx-rail-w,56px) + var(--sp-3,
     _railBtn.setAttribute('aria-label', label);
   }
   function _syncRailState(n) {
-    if (!_railBtn) return;
     var t = n && _isNum(n.temp_avg) ? n.temp_avg : null;
+    var state = t === null ? 'offline' : (_statusFor('npu_temp', t) || 'ok');
+    _hf.dataset.state = state;
+    if (!_railBtn) return;
     _railTemp = t === null ? '' : t.toFixed(1) + '°C';
-    _railBtn.dataset.state = t === null ? 'offline' : (_statusFor('npu_temp', t) || 'ok');
+    _railBtn.dataset.state = state;
     _syncRailBtn();
   }
   _syncRailBtn();
+
+  /* First visit, floating pill only: open once at desktop width so the monitor is noticed. Rail pages keep
+     starting folded (an open panel there covers module controls); a remembered choice always wins. */
+  var _SEEN_KEY = 'hw-float-seen';
+  if (!_railFoot) {
+    try {
+      if (localStorage.getItem(_OPEN_KEY) === null && !localStorage.getItem(_SEEN_KEY) && window.innerWidth >= 1024) {
+        _hf.classList.remove('minimized');
+      }
+      localStorage.setItem(_SEEN_KEY, '1');
+    } catch (e) {}
+  }
   var _drag = {active:false, ox:0, oy:0};
   var _sparkData = [], _sparkMode = 0;
   var _MODES = ['temp','volt','clock','ctemp','cpu','mem','dram','util'];

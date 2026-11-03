@@ -21,7 +21,10 @@ missing, it raises instead of building a partial catalog.
 from __future__ import annotations
 
 import json
+import re
+from html import unescape
 from typing import Any
+from urllib.parse import urljoin, urlparse
 
 _GLOBAL = "window.__MODEL_ZOO_DATA__"
 
@@ -40,6 +43,26 @@ _ARTIFACTS = {
     "qmDxnn": "qmaster_dxnn", "qmJson": "qmaster_json",
 }
 _ACCURACY = {"rawAcc": "raw", "qlAcc": "qlite", "qpAcc": "qpro", "qmAcc": "qmaster"}
+
+
+_FRAME_SRC = re.compile(r"""<iframe\b[^>]*\bsrc\s*=\s*["']([^"']*modelzoo[^"']*)["']""", re.I)
+
+
+def payload_frame_url(html: str, page_url: str) -> str | None:
+    """The same-host frame that carries the catalog, when the page itself does not.
+
+    developer.deepx.ai/modelzoo/ wraps the catalog in <iframe src=".../wp-content/uploads/modelzoo.html">, so the
+    outer page has no payload. A frame on another host is not followed (the URL comes from page content).
+    """
+    if _GLOBAL in html:
+        return None
+    match = _FRAME_SRC.search(html)
+    if not match:
+        return None
+    url = urljoin(page_url, unescape(match.group(1)))
+    if urlparse(url).hostname != urlparse(page_url).hostname:
+        return None
+    return url
 
 
 def _extract_payload(html: str) -> dict[str, Any]:
