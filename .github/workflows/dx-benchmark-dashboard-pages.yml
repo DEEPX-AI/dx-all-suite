@@ -40,7 +40,6 @@ jobs:
         run: |
           mkdir -p _site/dx-benchmark
           cp -r dx-benchmark/results/dashboard/. _site/dx-benchmark/
-          printf '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=dx-benchmark/"><a href="dx-benchmark/">dx-benchmark dashboard</a>\n' > _site/index.html
           ls -la _site _site/dx-benchmark
 
       - uses: actions/configure-pages@v5
