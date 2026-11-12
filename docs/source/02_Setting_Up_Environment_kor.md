@@ -126,7 +126,7 @@ sudo apt install libdxrt-bin
 !!! warning "재부팅과 firmware"
     `dxrt-driver-dkms` 설치 후 kernel이 NPU driver를 로드하도록 재부팅하십시오. Firmware는
     APT 저장소에 포함되지 않으므로 한 줄 설치 또는 `./dx-runtime/install.sh --target=dx_fw`로
-    업데이트한 뒤, **DX-Runtime 설치** 섹션의 안내대로 cold boot 하십시오.
+    업데이트한 뒤, **DX-Runtime Installation** 섹션의 안내대로 cold boot 하십시오.
 
 !!! note "`dx_engine` Python package 설치"
     `libdxrt-bin`은 어떤 interpreter나 virtualenv를 쓰는지 알 수 없기 때문에 `dx_engine` Python
@@ -408,7 +408,7 @@ dxcli -s
 ```
 
 !!! note "팁"  
-    어떤 항목이라도 **FAIL** 또는 **Not Found**를 반환하는 경우, **DX-Runtime 설치** 섹션(모듈 빌드 및 설치)을 다시 방문하여 모든 구성 요소가 올바르게 컴파일되었는지 확인하십시오.
+    어떤 항목이라도 **FAIL** 또는 **Not Found**를 반환하는 경우, [**DX-Runtime Installation**](#dx-runtime-installation-rt-driver-fw-app-stream) 섹션(모듈 빌드 및 설치)을 다시 방문하여 모든 구성 요소가 올바르게 컴파일되었는지 확인하십시오.
 
 ---
 
@@ -451,7 +451,7 @@ sudo systemctl stop dxrt.service
 ```
 
 !!! warning "GUI 환경에 대한 참고사항"  
-    X11 경고나 마운트 오류(예: cannot open display)가 발생하면, 이는 호스트 OS가 **Wayland** 세션을 사용하고 있기 때문일 가능성이 높습니다. [**FAQ Troubleshooting Guide**](05_FAQ_Troubleshooting_Guide.md)의 **Q2. X11 Session Warnings & Mount Errors (Wayland Issues)**를 참조하십시오.
+    X11 경고나 마운트 오류(예: cannot open display)가 발생하면, 이는 호스트 OS가 **Wayland** 세션을 사용하고 있기 때문일 가능성이 높습니다. [**FAQ Troubleshooting Guide**](05_FAQ_Troubleshooting_Guide_kor.md#q2-x11-session-warnings-mount-errors-wayland-issues)의 **Q2. X11 Session Warnings & Mount Errors (Wayland Issues)**를 참조하십시오.
 
 ### GPU Acceleration Options (선택)
 
@@ -515,7 +515,7 @@ DX-Compiler 환경은 하드웨어에 최적화된 `.dxnn` 바이너리를 생�
 컨테이너 내에서 작업을 수행하려면, **반드시** 먼저 실행 중인 컨테이너의 쉘에 로그인해야 합니다.  
 ```Bash
 # 1. Run in Host Terminal: Enter the container
-docker exec -it dx-compiler-24.04 bash
+docker exec -it dx-compiler-ubuntu-24.04 bash
 
 # 2. Inside Container: Navigate to the work directory
 cd /deepx/dx-compiler/dx_com
@@ -555,7 +555,7 @@ dxcom -m sample_models/onnx/YOLOV5S-1.onnx \
 추론을 실행하기 전에 컨테이너가 NPU 하드웨어와 통신할 수 있는지 확인하십시오.  
 ```Bash
 # 1. Run from the host terminal: Enter the container
-docker exec -it dx-runtime-24.04
+docker exec -it dx-runtime-ubuntu-24.04 bash
 
 # 2. Inside Container: Verify NPU hardware recognition
 dxcli -s

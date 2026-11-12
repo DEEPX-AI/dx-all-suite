@@ -10,12 +10,12 @@ video, a camera or an RTSP stream, watch live results, and benchmark or compare 
 The module opens on a set of pages (top tabs):
 
 - **Setup** — guided environment check; run it first so the NPU / runtime is ready.  
-- **Models** — the model list across 29 AI tasks in the October 2026 reference (detection, classification, segmentation,
+- **Models** — the model list across AI tasks (detection, classification, segmentation,
   pose, depth, super-resolution, 3D object detection, PPU and more), drawn from the Model
-  Zoo catalogue; open a model for details or its graph. The reference contains **497
-  canonical variants**, not 497 distinct architectures; counts depend on the loaded catalog.
-  The Hub / Zoo's **31 UI category groups** differ from the Graph palette's **29
-  canonical tasks**; this does not change the variant count.
+  Zoo catalogue; open a model for details or its graph. Entries are canonical variants,
+  not distinct architectures; counts depend on the loaded catalog.
+  The Hub / Zoo's **UI category groups** differ from the Graph palette's **canonical
+  tasks**; this does not change the variant count.
 - **Run Inference** — pick a **category → model → input**, then Run. Two tabs:  
     - **Single** — one image or video. Inputs adapt to the category: a sample image, your
       **own uploaded image**, or a video (some tasks are image-only; special inputs like 3D
@@ -90,8 +90,8 @@ runner yourself. It is part of DX App, not a separate Studio tool.
    names and descriptions follow the UI language.
 2. Check the template's models in the palette. Installed models are marked; use
    **Download** for missing files. The connected dx_app must provide the graph runners
-   and the required capabilities. At reference revision `2e20108a5`, **492 of 497
-   canonical variants** are graph-runnable: four anomaly-detection variants are not
+   and the required capabilities. At reference revision `2e20108a5`, **most
+   canonical variants** are graph-runnable: the anomaly-detection variants are not
    graph-ready, and the LiDAR model (`sfa3d_608x608`) needs an unsupported source.
 3. Select each **Source** and set its input. Start with a local sample image or video
    for **Run once**; camera and RTSP sources are for **Live**. For several sources,
@@ -117,7 +117,7 @@ on the NPU. It does **not** restore the original tracker, zone, dwell, condition
 gallery state: track IDs, event times and results can differ from the original video.
 It also needs a free NPU slot and the frame-reading dependencies.
 
-![DX App Graph results — a real NPU run using the official YOLOv8n model in v8 .dxnn format. This example demonstrates the selected graph, not execution of all 497 catalog variants.](resources/app-graph-results.png)
+![DX App Graph results — a real NPU run using the official YOLOv8n model in v8 .dxnn format. This example demonstrates the selected graph, not execution of every catalog variant.](resources/app-graph-results.png)
 
 ### Add logic, zones and events
 
