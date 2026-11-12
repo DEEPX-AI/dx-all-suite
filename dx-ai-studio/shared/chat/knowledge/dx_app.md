@@ -11,7 +11,7 @@ DX App (Studio 경로 `/app/`)은 DX AI Studio에서 추론 예제를 준비·�
 - 상단 탭: Setup · Models · Run Inference · Run Demo · Benchmark · A/B Compare · ModelZoo · Graph Composer · Lab · Outputs · Reference
 - ONNX → `.dxnn` 컴파일은 **DX Compiler** (`/compiler/`), NPU 하드웨어 모니터링은 **DX Monitor** (`/dx_monitor/`)에서 합니다
 - **Graph Composer는 DX App 내부 기능**이며 별도 제품이나 독립 module이 아닙니다.
-- 기준: dx_app dev `2e20108a5`, **canonical variant 497개 / task 29개**. 크기·입력·학습 변형을 포함한 수이며 architecture 497개가 아닙니다. Studio internal snapshot은 2026-10-13 기준 348 → 497개(+149)이며, 실제 표시는 연결된 app과 catalog revision을 확인합니다.
+- 기준: dx_app dev `2e20108a5`. 카탈로그 항목은 크기·입력·학습 변형을 포함한 canonical variant이며 architecture 수가 아닙니다. 모델 수를 물으면 숫자를 단정하지 말고 Model Zoo 화면의 개수와 sync 날짜, 연결된 app과 catalog revision을 확인하도록 안내합니다.
 - NPU 없이 UI를 둘러볼 수 있지만 모든 페이지가 자동 mock으로 실행되지는 않습니다. 실제 실행은 runtime·모델·binary·입력 준비가 필요하며, 미준비 상태는 오류나 unavailable로 안내합니다.
 
 ## [section:inference,run,predict,추론,실행] 추론 실행
@@ -58,7 +58,7 @@ Python 예제의 입력 옵션은 `--image/-i` · `--video/-v` · `--camera/-c` 
 | C++ binary | `./bin/yolo26n_sync` | `./bin/yolo26-n_640x640_sync` |
 | task 폴더 | `classification` · `obb_detection` · `ppu` · `face_alignment` · `embedding` … (22) | `image_classification` · `oriented_object_detection` · `face_landmark` · `face_recognition` … (29, ppu 는 `object_detection/yolo_ppu` 등으로) |
 | 새 task | — | anomaly_detection (EfficientAD · PatchCore), zero_shot_image_classification (CLIP), zero_shot_instance_segmentation (FastSAM), image_matting (PP-Matting), image_retrieval, visual_place_recognition, face_attribute |
-| model 수 | 해당 legacy checkout의 registry 확인 | 497 canonical variants (dev `2e20108a5`) |
+| model 수 | 해당 legacy checkout의 registry 확인 | 연결된 checkout의 registry 확인 |
 
 - per-model 의 `config.json` 은 중첩 spec 이고 threshold 는 `config` 안에 있다. 늘 `-m <model>.dxnn` 을 준다.
 - Model Zoo **2_5_0** 의 `.dxnn` 은 container **v9** 이고 **DX-RT 3.5.0 이상**이 필요하다. DX-RT 3.4.x 는 v6–8 만 읽는다
@@ -107,7 +107,7 @@ Python 예제의 입력 옵션은 `--image/-i` · `--video/-v` · `--camera/-c` 
 - 핫 리로드: 새 모델 추가 시 서버 재시작 불필요
 - 모델별: NPU 코어 수, 데이터셋, 입력 해상도, score/NMS threshold
 
-### 주요 카테고리 예시 (전체 29 tasks 중 일부)
+### 주요 카테고리 예시 (일부)
 | 카테고리 | 대표 모델 |
 |----------|-----------|
 | object_detection | YOLOv3~v12, YOLOX, NanoDet, SSD, DAMO-YOLO, EfficientDet |
@@ -203,7 +203,7 @@ artifacts/cpp_example/
 
 ### Graph Composer 탭
 - 여러 model을 하나의 graph로 연결한다: source, task별 model (설치 상태 표시, 없으면 Download), CPU op (headpose, volume), dx_app 예제 graph.
-- 지원 범위: 기준 revision의 497개 중 **492개**가 graph 실행 가능. anomaly_detection 4개는 graph-ready가 아니며, `sfa3d_608x608`은 LiDAR source가 필요해 거부된다. 전체 catalog 모델이 Graph에서 실행 가능하다고 답하지 않는다.
+- 지원 범위: 기준 revision에서 **대부분**의 variant가 graph 실행 가능. anomaly_detection 모델은 graph-ready가 아니며, `sfa3d_608x608`은 LiDAR source가 필요해 거부된다. 전체 catalog 모델이 Graph에서 실행 가능하다고 답하지 않는다.
 - 시작 예: Templates → intrusion 예제 → 필요한 model Download / 준비 → Source에 로컬 이미지·비디오 지정 → Inspector 확인 → Validate → Run once → 결과 / Layers / Events 확인. 연결 오류·모델 미준비·메모리 초과·다른 NPU job이 있으면 해당 사유를 해결하고 재시도한다. graph runner binary가 없으면 연결된 dx_app에서 `./build.sh`로 준비한다.
 - 편집할 때마다 dx_app `multi_model_graph_sync --check` 가 graph를 검사하고, 오류는 해당 node / edge 에 표시된다.
 - NPU memory bar: model마다 `parse_model` 의 Total 을 더한 값과 장치 여유 메모리. 넘치면 engine 공유, buffer 수 줄이기를 제안한다.
@@ -275,7 +275,7 @@ export 성공만으로 다른 host에서의 실행 성공이나 stateful event �
 ### 스토리지 제약 환경 (RPi, Edge)
 | 항목 | 수량 | 크기 |
 |------|------|------|
-| 전체 모델 | 497 canonical variants (기준 revision) | 선택한 artifact에 따라 다름 |
+| 전체 모델 | 카탈로그 전체 (기준 revision) | 선택한 artifact에 따라 다름 |
 | 샘플 비디오 | 20 | ~1.1 GB |
 | 샘플 이미지 (번들) | — | ~5 MB |
 

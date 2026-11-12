@@ -33,10 +33,10 @@ docker ps
 
 # Example Output: STATUS repeats 'Restarting (255)'
 CONTAINER ID   IMAGE                    COMMAND                 STATUS                          NAMES
-041b9a4933e3   dx-runtime:24.04         "/usr/local/bin/dxrtd"  Restarting (255) 4 seconds ago  dx-runtime-24.04
+041b9a4933e3   dx-runtime:ubuntu-24.04  "/usr/local/bin/dxrtd"  Restarting (255) 4 seconds ago  dx-runtime-ubuntu-24.04
 
 # Check container logs 
-docker logs dx-runtime-24.04 
+docker logs dx-runtime-ubuntu-24.04 
 # Output: "Other instance of dxrtd is running"
 ```
 

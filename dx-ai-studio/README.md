@@ -120,7 +120,7 @@ inference.
 |------|----------------|
 | **DX App** | Run NPU inference on images, video, camera or RTSP; Run Demo, live multi-stream, benchmark & compare, and Graph Composer for multi-model / logic workflows. → [guide](docs/source/05_DX_App.md) |
 | **DX Stream** | Real-time GStreamer vision-AI pipelines with live playback (WebRTC, or MJPEG from another computer). → [guide](dx_stream/README.md) |
-| **DX Model Zoo** | Browse 497 canonical model variants across 29 tasks in the October 2026 reference; inspect artifacts, examples and metrics. → [guide](dx_modelzoo/README.md) |
+| **DX Model Zoo** | Browse the full model catalog across AI tasks; inspect artifacts, examples and metrics. → [guide](dx_modelzoo/README.md) |
 | **DX Compiler** | Compile ONNX → `.dxnn`: config wizard, quantization tuning + diagnosis, re-quantization. → [guide](dx_compiler/README.md) |
 | **DX EdgeGuide** | Recommend the best NPU board + host for your workload from real benchmarks. → [guide](dx_planner/README.md) |
 | **DX Benchmark** | Browse and compare NPU throughput / latency / multi-stream results. → [guide](dx_benchmark/README.md) |
@@ -135,8 +135,8 @@ Every tool stays browsable when no NPU or SDK is present and says what is missin
 shows *NPU telemetry unavailable* rather than made-up values.
 
 The catalog reference is dx_app dev `2e20108a5` and Studio's internal snapshot dated
-2026-10-13 (348 → 497 entries, +149); variants are not distinct architectures.
-Graph Composer can run **492** of those variants (excluding four anomaly models and
+2026-10-13; variants are not distinct architectures.
+Graph Composer can run most of those variants (excluding the anomaly models and
 the LiDAR model). The loaded catalog / connected dx_app determine actual availability.
 Use existing model images; a missing display image is not a reason to regenerate the
 whole catalog.

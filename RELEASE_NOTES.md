@@ -18,7 +18,7 @@ Here are the **DX-AllSuite v2.5.0** Release Notes.
 
 ### What's New?
 
-This release changes both **how you install and deploy** the DEEPX SDK and **what you can build with it**. Prebuilt container images are now published to the GitHub Container Registry, DX-Compiler and DX-Runtime can be installed with a single `curl | sh` command or from the DEEPX apt repository, and DEEPX DX-M1 NPUs can now be scheduled on Kubernetes. On the module side, DX-COM post-processing runs up to **1.9× faster** on ARM hosts and covers more model families, DX-ModelZoo reaches **v1.0.0** with **497 models**, DX-APP adds **multi-model graphs**, and DX AI Studio gets a **renewed UI**.
+This release changes both **how you install and deploy** the DEEPX SDK and **what you can build with it**. Prebuilt container images are now published to the GitHub Container Registry, DX-Compiler and DX-Runtime can be installed with a single `curl | sh` command or from the DEEPX apt repository, and DEEPX DX-M1 NPUs can now be scheduled on Kubernetes. On the module side, DX-COM post-processing runs up to **1.9× faster** on ARM hosts and covers more model families, DX-ModelZoo reaches **v1.0.0** with **expanded model coverage**, DX-APP adds **multi-model graphs**, and DX AI Studio gets a **renewed UI**.
 
 It also retires **Ubuntu 18.04** and **DX-TRON** — please read the notice below before upgrading.
 
@@ -112,7 +112,7 @@ sudo apt install libdxrt-bin
 
 #### New: DX-ModelZoo v1.0.0
 
-**DX-ModelZoo reaches v1.0.0 with 497 models**, adding new model families and stronger validation for evaluation and compilation.
+**DX-ModelZoo reaches v1.0.0**, adding new model families and stronger validation for evaluation and compilation.
 
 **Highlights**
 - **Expanded model coverage** — YOLO26 depth, pose, classification, and segmentation; PaddlePaddle models; CLIP image and text encoders; anomaly detection and person re-identification.
@@ -136,7 +136,7 @@ DX AI Studio renews the home screen and adds a graph composer inside DX App.
 **Highlights**
 - **New home** — the orbital launcher is now a prompt (*Describe anything. Run it on DX-M1.*), with light, dark, and system themes.
 - **Graph Composer** — several models and logic blocks in one graph, checked while you edit, run once or live, and exported as a standalone C++ project. Nine scenario templates are included.
-- **Larger catalog** — 497 variants across 29 tasks (348 → 497). 492 of them run in Graph Composer. Run Demo covers 26 demos with live FPS.
+- **Larger catalog** — the Model Zoo catalog now covers more variants and tasks, and most of them run in Graph Composer. Run Demo covers 26 demos with live FPS.
 - **DX Cloud** — ninth module, for AWS Compiler and AWS Greengrass.
 
 ---
@@ -173,7 +173,7 @@ DX AI Studio renews the home screen and adds a graph composer inside DX App.
 - **DX-APP**: 147 DX-ModelZoo models and examples, including RT-DETR, YOLOv12, YOLOv13, pre-optimized YOLO, anomaly detection, image matting, CLIP retrieval, person re-identification, and visual place recognition.
 - **DX-APP**: Eight new `dx_postprocess` classes (RT-DETR, anomaly detection, PP-Matting, CLIP text, and more), so these models can use the C++ post-processor from Python.
 - **DX AI Studio**: Prompt home, light/dark/system themes, and a single icon set. The orbital launcher and emoji in the UI are gone.
-- **DX AI Studio**: DX App Graph Composer, Run Demo (26 demos, live FPS), Model Zoo catalog of 497 variants / 29 tasks (492 runnable in Graph Composer), and DX Cloud (AWS Compiler, AWS Greengrass).
+- **DX AI Studio**: DX App Graph Composer, Run Demo (26 demos, live FPS), an expanded Model Zoo catalog (most variants runnable in Graph Composer), and DX Cloud (AWS Compiler, AWS Greengrass).
 
 **Stability & Fixes**
 

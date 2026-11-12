@@ -415,7 +415,7 @@ Run the batch sanity script to verify that all modules are located in their desi
 ```
 
 !!! note "Tip"  
-    If any item returns a **FAIL** or **Not Found**, please revisit the **DX-Runtime Installation** section (Building and Installing Modules) to ensure all components were compiled correctly.    
+    If any item returns a **FAIL** or **Not Found**, please revisit the [**DX-Runtime Installation**](#dx-runtime-installation-rt-driver-fw-app-stream) section (Building and Installing Modules) to ensure all components were compiled correctly.    
 
 ---
 
@@ -458,7 +458,7 @@ Run the container after the image build is complete.
 ```
 
 !!! warning "Note on GUI Environments"  
-    If you encounter X11 warnings or mount errors (e.g., cannot open display), it is likely due to the host OS using a **Wayland** session. Refer to **Q2. X11 Session Warnings & Mount Errors (Wayland Issues)** in [**FAQ Troubleshooting Guide**](05_FAQ_Troubleshooting_Guide.md).  
+    If you encounter X11 warnings or mount errors (e.g., cannot open display), it is likely due to the host OS using a **Wayland** session. Refer to **Q2. X11 Session Warnings & Mount Errors (Wayland Issues)** in [**FAQ Troubleshooting Guide**](05_FAQ_Troubleshooting_Guide.md#q2-x11-session-warnings-mount-errors-wayland-issues).  
 
 ### GPU Acceleration Options (Optional)
 
@@ -522,7 +522,7 @@ The DX-Compiler environment is used to generate hardware-optimized `.dxnn` binar
 To perform tasks within the container, you **must** first log in to the running container's shell.  
 ```Bash
 # 1. Run in Host Terminal: Enter the container
-docker exec -it dx-compiler-24.04 bash
+docker exec -it dx-compiler-ubuntu-24.04 bash
 
 # 2. Inside Container: Navigate to the work directory
 cd /deepx/dx-compiler/dx_com
@@ -564,7 +564,7 @@ The **DX-Runtime** environment is designed for executing model inference and pro
 Before running any inference, ensure the container can communicate with the NPU hardware.
 ```Bash
 # 1. Run from the host terminal: Enter the container
-docker exec -it dx-runtime-24.04 bash
+docker exec -it dx-runtime-ubuntu-24.04 bash
 
 # 2. Inside Container: Verify NPU hardware recognition
 dxcli -s

@@ -4,11 +4,11 @@ Browse the DEEPX model catalog — search and filter by AI task, open a
 model to see its details (accuracy, input, license/source), and use it in the other
 Studio tools.
 
-The October 2026 reference contains **497 canonical variants / 29 tasks**, aligned with
-dx_app dev `2e20108a5` and the Studio internal snapshot dated **2026-10-13** (348 → 497,
-+149 entries). Sizes, input shapes and training variants are counted separately;
-497 does not mean 497 distinct architectures. Check the explorer's counts and sync
-date for the source loaded by your deployment.
+The catalog reference is aligned with dx_app dev `2e20108a5` and the Studio internal
+snapshot dated **2026-10-13**. Sizes, input shapes and training variants are counted as
+separate canonical variants, so the variant count is not a count of distinct
+architectures. Check the explorer's counts and sync date for the source loaded by your
+deployment.
 
 ## Using it
 
@@ -31,12 +31,12 @@ results. Catalog FPS / accuracy are published measurements, not guaranteed local
 
 ## Key features
 
-- **497 canonical variants across 29 tasks** in the reference, with filtering, search,
-  sort and card / list views.
+- **Canonical variants across a wide range of AI tasks** in the reference, with filtering,
+  search, sort and card / list views.
 - **Rich detail view** per model — including license/source/copyright, kept up to date
   from the public DEEPX model catalog.
-- **Graph support is narrower than the catalog** — 492 variants are graph-runnable in
-  the reference dx_app; four anomaly models and the LiDAR model are excluded. See the
+- **Graph support is narrower than the catalog** — most variants are graph-runnable in
+  the reference dx_app; the anomaly models and the LiDAR model are excluded. See the
   [DX App manual](../docs/source/05_DX_App.md#graph-composer).
 - **6-language UI** (English / 한국어 / 日本語 / 简体中文 / 繁體中文 / Español).
 

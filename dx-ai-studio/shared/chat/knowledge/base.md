@@ -13,7 +13,7 @@
 [AI Model Compile Environment - Host PC (x86_64)]
   ├── DX-COM (Compiler): ONNX → .dxnn 변환, INT8 Intelligent Quantization
   ├── Compilation Summary Report: dxcom --export_html, NPU/CPU 파티션 그래프 HTML 리포트
-  └── DX-ModelZoo: 약 500개 사전 컴파일 모델 (.onnx + .json + .dxnn)
+  └── DX-ModelZoo: 사전 컴파일 모델 (.onnx + .json + .dxnn)
 
 [AI Model Runtime Environment - Target Device (x86_64/aarch64)]
   ├── DX-RT (Runtime): C/C++/Python API, 모델 로딩/추론/모니터링
@@ -35,7 +35,7 @@ Studio 는 `./launcher.sh` 가 출력하는 주소 한 곳에서 연다 (기본 
 |----|------|------|
 | **DX App** | `/app/` | NPU 추론 실행, C++/Python 템플릿, 프로파일러 |
 | **DX Stream** | `/stream/` | GStreamer 비디오 파이프라인, WebRTC, 13개 커스텀 엘리먼트 |
-| **DX Model Zoo** | `/zoo/` | 약 500개 모델 카탈로그, 인퍼런스 데모, YAML 오케스트레이션 |
+| **DX Model Zoo** | `/zoo/` | NPU 최적화 모델 카탈로그, 인퍼런스 데모, YAML 오케스트레이션 |
 | **DX Compiler** | `/compiler/` | ONNX → .dxnn 컴파일 GUI, 그래프 뷰어 |
 | **DX Planner (EdgeGuide)** | `/planner/` | 실측 YOLO26 벤치마크 기반 NPU 제품(DX-M1/H1 등) 추천 |
 | **DX Benchmark** | `/benchmark/` | YOLO26 하드웨어 벤치마크 결과 뷰어 (읽기 전용, 실행은 CLI) |
@@ -146,7 +146,7 @@ lsmod | grep dxrt           # dxrt_driver, dx_dma 모듈 로드 확인
 | Person Attribute | DeepMAR (ResNet18/50) |
 
 ### ModelZoo에서 바로 쓰기
-약 500개 모델이 이미 컴파일되어 있으므로, 직접 컴파일 없이 즉시 사용 가능:
+다양한 모델이 이미 컴파일되어 있으므로, 직접 컴파일 없이 즉시 사용 가능:
 - CLI: `./setup.sh --models YoloV7 SCRFD500M ResNet50`
 - 웹: https://developer.deepx.ai/modelzoo/
 

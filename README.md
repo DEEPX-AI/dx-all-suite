@@ -14,7 +14,7 @@
 
 - **High Efficiency**: Equipped with the proprietary **DX-COM** compiler that extracts 100% of NPU performance. It utilizes advanced quantization (Intelligent Quantization with INT8) to minimize accuracy loss while maximizing inference speed.  
 - **Seamless Integration**: Build intelligent video analytics pipelines that bridge the entire pre-processing, inference, and post-processing workflow. Using **DX-STREAM** (GStreamer-based custom plugins), you can deploy complex vision tasks without extensive code modifications.  
-- **Flexible Ecosystem**: Fully supports **Python and C++ APIs** and offers a **ModelZoo** with 300+ optimized models. As a leader in the Open-Source Physical AI Alliance, we provide seamless workflows for popular frameworks.  
+- **Flexible Ecosystem**: Fully supports **Python and C++ APIs** and offers a **ModelZoo** of ready-to-use, NPU-optimized models. As a leader in the Open-Source Physical AI Alliance, we provide seamless workflows for popular frameworks.  
 
 <div align="center">
   <picture>
@@ -266,7 +266,7 @@ same way it asks for CPU or memory.
 
 **DX AI Studio is here — currently in Beta.** An all-in-one desktop web workspace for building on the DEEPX NPU: **nine specialized tools** in one browser, launched with a single command — **DX Model Zoo** (model catalog), **DX Compiler** (ONNX → `.dxnn`), **DX App** (inference, **Run Demo** and **Graph Composer**), **DX Stream** (GStreamer pipelines), **DX Benchmark**, **DX Monitor** (NPU telemetry), **DX EdgeGuide** (hardware recommendations from benchmark data), **DX Agent Dev** (the agent-driven builder above), and **DX Cloud** (AWS compile and Greengrass device workflows). Local compilation needs the compiler SDK; real NPU inference needs the runtime, driver and NPU. Cloud actions use your AWS environment and can incur charges.
 
-The October 2026 catalog reference contains **497 canonical model variants across 29 tasks**, not 497 distinct architectures; **492** are runnable in DX App's Graph Composer. The Hub's **Build it** presents tool routes or an agent plan before you choose to proceed. Use the left module rail, bottom **Hub** button and top page tabs to navigate.
+The **DX Model Zoo** view lets you browse the full model catalog, and most catalog models can be run directly in DX App's **Graph Composer**. The Hub's **Build it** presents tool routes or an agent plan before you choose to proceed. Use the left module rail, bottom **Hub** button and top page tabs to navigate.
 
 **Explore the studio →** [`dx-ai-studio/README.md`](./dx-ai-studio/README.md)  ·  **Install & launch →** [Installation and Launch](./dx-ai-studio/docs/source/01_Installation_and_Launch.md)
 
@@ -314,7 +314,7 @@ DX-AllSuite supports a vast array of industry-standard AI architectures, optimiz
 - **Advanced Vision Tasks**: Face analysis (Detection, Recognition, Landmarks, Attributes), Human/Hand Pose Estimation, Low-Light Enhancement, Image Denoising, Super Resolution, Depth Estimation, Oriented Object Detection (OBB), Zero-Shot Instance Segmentation, and Person Attributes.  
 
 > **Note: Pro Tip**  
-> Instead of compiling models yourself, you can download ready-to-use binaries from the [**DEEPX ModelZoo**](https://developer.deepx.ai/modelzoo/), which features **300+ optimized models**.  
+> Instead of compiling models yourself, you can download ready-to-use, NPU-optimized binaries from the [**DEEPX ModelZoo**](https://developer.deepx.ai/modelzoo/).  
 
 
 ## Support

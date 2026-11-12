@@ -14,7 +14,7 @@
 
 - **High Efficiency**: NPU 성능을 100% 끌어내는 자체 **DX-COM** compiler를 탑재했습니다. 고급 quantization(INT8 기반 Intelligent Quantization)을 활용해 정확도 손실을 최소화하면서 inference 속도를 극대화합니다.
 - **Seamless Integration**: pre-processing, inference, post-processing 워크플로 전체를 잇는 지능형 video analytics pipeline을 구축합니다. **DX-STREAM**(GStreamer 기반 custom plugin)을 사용하면 대규모 코드 수정 없이 복잡한 vision task를 배포할 수 있습니다.
-- **Flexible Ecosystem**: **Python 및 C++ API**를 완전히 지원하며, 300개 이상의 최적화된 모델을 갖춘 **ModelZoo**를 제공합니다. Open-Source Physical AI Alliance의 리더로서, 널리 쓰이는 framework들에 대한 매끄러운 워크플로를 제공합니다.
+- **Flexible Ecosystem**: **Python 및 C++ API**를 완전히 지원하며, 바로 사용 가능한 NPU 최적화 모델을 갖춘 **ModelZoo**를 제공합니다. Open-Source Physical AI Alliance의 리더로서, 널리 쓰이는 framework들에 대한 매끄러운 워크플로를 제공합니다.
 
 <div align="center">
   <picture>
@@ -265,7 +265,7 @@ Kubernetes 클러스터 전체에서 DEEPX NPU를 스케줄링하는 환경입�
 
 **DX AI Studio 출시 — 현재 Beta 버전입니다.** DEEPX NPU 위에서 개발하기 위한 올인원 desktop web workspace로, **9개의 전문 도구**를 브라우저 하나에서 단일 명령으로 실행합니다 — **DX Model Zoo**(모델 카탈로그), **DX Compiler**(ONNX → `.dxnn`), **DX App**(추론, **Run Demo**, **Graph Composer**), **DX Stream**(GStreamer pipeline), **DX Benchmark**, **DX Monitor**(NPU telemetry), **DX EdgeGuide**(benchmark 데이터 기반 hardware 추천), **DX Agent Dev**(위의 agent-driven builder), **DX Cloud**(AWS compile 및 Greengrass device workflow). 로컬 컴파일에는 Compiler SDK가, 실제 NPU 추론에는 runtime·driver·NPU가 필요합니다. Cloud 작업은 사용자의 AWS 환경을 이용하고 과금될 수 있습니다.
 
-2026년 10월 기준 카탈로그는 **29개 task의 canonical model variant 497개**이며, 서로 다른 architecture가 497개라는 뜻은 아닙니다. 이 중 **492개**가 DX App의 Graph Composer에서 실행 가능합니다. Hub의 **Build it**은 추천 도구나 agent 계획을 먼저 보여 주고, 사용자가 선택한 뒤 진행합니다. 왼쪽 module rail, 하단 **Hub** 버튼, 상단 page tab으로 이동합니다.
+**DX Model Zoo** 화면에서 전체 모델 카탈로그를 둘러볼 수 있으며, 대부분의 모델을 DX App의 **Graph Composer**에서 바로 실행할 수 있습니다. Hub의 **Build it**은 추천 도구나 agent 계획을 먼저 보여 주고, 사용자가 선택한 뒤 진행합니다. 왼쪽 module rail, 하단 **Hub** 버튼, 상단 page tab으로 이동합니다.
 
 **스튜디오 살펴보기 →** [`dx-ai-studio/README.md`](./dx-ai-studio/README.md)  ·  **설치 및 실행 →** [Installation and Launch](./dx-ai-studio/docs/source/01_Installation_and_Launch.md)
 
@@ -311,7 +311,7 @@ DX-AllSuite는 우리 NPU에서 최고 성능을 내도록 최적화된, 업계 
 - **Advanced Vision Tasks**: Face analysis (Detection, Recognition, Landmarks, Attributes), Human/Hand Pose Estimation, Low-Light Enhancement, Image Denoising, Super Resolution, Depth Estimation, Oriented Object Detection (OBB), Zero-Shot Instance Segmentation, Person Attributes.
 
 > **참고: Pro Tip**
-> 모델을 직접 컴파일하는 대신, [**DEEPX ModelZoo**](https://developer.deepx.ai/modelzoo/)에서 **300개 이상의 최적화된 모델** 중 바로 사용 가능한 binary를 다운로드할 수 있습니다.
+> 모델을 직접 컴파일하는 대신, [**DEEPX ModelZoo**](https://developer.deepx.ai/modelzoo/)에서 바로 사용 가능한 NPU 최적화 binary를 다운로드할 수 있습니다.
 
 ## 지원
 
