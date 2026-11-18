@@ -17,7 +17,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from dx_app.core import config
 from dx_app.core.config import (DX_APP_ROOT, CPP_DIR, PY_DIR, BUILD_DIR, ASSETS_DIR,
                     SAMPLE_DIR, OUTPUTS_DIR, SCRIPTS_DIR, CAT_IMAGE, CAT_VIDEO,
-                    _RUNTIME_PYTHON, _RUNTIME_PYTHONPATH, resolve_model_path)
+                    resolve_model_path)
 from shared.runtime import ld_library_path
 from shared import dxrt
 from shared import debug_log
@@ -198,8 +198,9 @@ def run_inference(model_name, category, model_file, lang="cpp", variant="sync",
     if res_img:
         env["DXAPP_SAVE_IMAGE"] = res_img
     # dx_engine lives on PYTHONPATH (not pip-installed); the python_example subprocess needs it.
-    if _RUNTIME_PYTHONPATH:
-        env["PYTHONPATH"] = _RUNTIME_PYTHONPATH + (os.pathsep + env["PYTHONPATH"] if env.get("PYTHONPATH") else "")
+    _rpp = config.runtime_pythonpath()
+    if _rpp:
+        env["PYTHONPATH"] = _rpp + (os.pathsep + env["PYTHONPATH"] if env.get("PYTHONPATH") else "")
     if _is_live:
         # Camera/RTSP needs DISPLAY for GStreamer → V4L2 pipeline
         env.setdefault("DISPLAY", ":0")
@@ -269,6 +270,16 @@ def run_inference(model_name, category, model_file, lang="cpp", variant="sync",
             if tmp_config: extra += ["--config", tmp_config]
             cmd = [str(bp), "-m", str(mp), inf, _inp_str, "--no-display", "-l", str(_loop)] + extra
     else:
+        # No interpreter with numpy+cv2+dx_engine: say what fixes it. cmd[0]=None used to surface as
+        # "expected str, bytes or os.PathLike object, not NoneType".
+        _py = config.runtime_python()
+        if not _py:
+            if _b64_tmp:
+                try: os.unlink(_b64_tmp)
+                except OSError: pass
+            return _err("python_runtime_missing",
+                        "No Python with numpy + OpenCV + dx_engine for the Python examples. "
+                        "Run Demo Quick Start (or Set up the rest) in Setup again — no restart needed.")
         pf = _python_script_path(category, model_name, variant, py_dir=PY_DIR)
         if not pf:
             if _b64_tmp:
@@ -294,7 +305,7 @@ def run_inference(model_name, category, model_file, lang="cpp", variant="sync",
             py_input = ["--camera", str(_cam_idx)]
         else:
             py_input = [f"--{'image' if input_type=='image' else 'video'}", _inp_str]
-        cmd = [_RUNTIME_PYTHON, str(pf), "--model", str(mp)] + py_input + ["--no-display"] + py_extra
+        cmd = [_py, str(pf), "--model", str(mp)] + py_input + ["--no-display"] + py_extra
     hw0 = get_hw(); t0 = time.time()
     _stdout_file = tempfile.mktemp(suffix=".log", dir=_TMP)
     proc = None

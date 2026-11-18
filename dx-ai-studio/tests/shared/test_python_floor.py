@@ -8,7 +8,8 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-SKIP = {".venv", "var", "tests", "scripts", "tools", "node_modules"}
+# + the inference venv Studio's own Setup creates in the tree (third-party packages, not Studio code)
+SKIP = {".venv", "var", "tests", "scripts", "tools", "node_modules", "venv-dx-studio-infer"}
 
 
 def test_runtime_code_runs_on_the_declared_python_floor():
@@ -21,3 +22,8 @@ def test_runtime_code_runs_on_the_declared_python_floor():
             if re.search(r"\.remove(suffix|prefix)\(", line):
                 offenders.append(f"{p.relative_to(ROOT)}:{i}")
     assert offenders == [], "Python 3.9+ API: " + ", ".join(offenders)
+
+
+def test_skip_names_the_venv_studio_creates():
+    from shared.runtime import STUDIO_INFER_VENV
+    assert STUDIO_INFER_VENV.parent == ROOT and STUDIO_INFER_VENV.name in SKIP

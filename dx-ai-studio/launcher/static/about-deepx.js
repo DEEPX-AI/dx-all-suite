@@ -244,7 +244,7 @@
       ${data.contact ? `
       <div class="about-contact-block about-fade-in">
         <h3 class="about-tech-title">${L(data.contact.label)}</h3>
-        <a class="about-contact-email" href="mailto:${data.contact.email}">${data.contact.email}</a>
+        <p class="about-contact-email">For technical questions, please ask in the DEEPX Developer Community: <a href="${data.contact.communityUrl}" target="_blank" rel="noopener noreferrer">${data.contact.communityUrl}</a></p>
         <a class="about-contact-portal" href="${data.contact.portalUrl}" target="_blank" rel="noopener noreferrer">${T({en:'Developer Portal →', ko:'Developer Portal →', ja:'Developer Portal →', 'zh-CN':'开发者门户 →', 'zh-TW':'開發者入口 →', es:'Portal de desarrolladores →'})}</a>
       </div>` : ''}
     `;

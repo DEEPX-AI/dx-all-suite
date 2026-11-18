@@ -682,6 +682,36 @@
 
   // Resolve a doc-relative path ("img/a.png", "../x.png") against the doc's
   // directory into a suite-root-relative path for /api/sdk-doc-image.
+  // Heading id the way the docs' own section links are written (GitHub / MkDocs): lower case, markup and
+  // punctuation dropped, spaces to hyphens. Letters of any script are kept (Korean headings).
+  function _docSlug(html) {
+    const d = document.createElement('div');
+    d.innerHTML = html;
+    return (d.textContent || '').trim().toLowerCase()
+      .replace(/[^\p{L}\p{N}\s_-]/gu, '').replace(/\s/g, '-');
+  }
+
+  // A section of the open doc: the id the link names, else the same words slugged our way (docs written for
+  // another slugger, e.g. "#1-install" vs "#1.-install").
+  function _findSection(body, anchor) {
+    if (!body || !anchor) return null;
+    let id = anchor.replace(/^#/, '');
+    try { id = decodeURIComponent(id); } catch (e) { /* keep as written */ }
+    const all = body.querySelectorAll('[id]');
+    for (const el of all) if (el.id === id) return el;
+    const loose = (s) => s.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+    const want = loose(id);
+    for (const el of all) if (want && loose(el.id) === want) return el;
+    return null;
+  }
+
+  function _scrollToSection(body, anchor) {
+    const el = _findSection(body, anchor);
+    if (!el) return false;
+    body.scrollTop += el.getBoundingClientRect().top - body.getBoundingClientRect().top - 8;
+    return true;
+  }
+
   function _resolveDocRel(docPath, src) {
     const dir = (docPath && docPath.indexOf('/') >= 0)
       ? docPath.slice(0, docPath.lastIndexOf('/')) : '';
@@ -785,13 +815,23 @@
       x = x.trim();
       // absolute/data/root-anchored/already-rewritten sources pass through
       const abs = /^(https?:|data:|\/|\x00)/i.test(x);
-      return (abs || !docPath)
-        ? x
-        : '/api/sdk-doc-image?path=' + encodeURIComponent(_resolveDocRel(docPath, x));
+      if (abs || !docPath) return x;
+      // `#only-light` / `#only-dark` (MkDocs Material) is not part of the file: keep it as the URL fragment,
+      // which the browser does not send, and which the stylesheet uses to show one image per theme.
+      const hash = x.indexOf('#');
+      const file = hash >= 0 ? x.slice(0, hash) : x;
+      const frag = hash >= 0 ? x.slice(hash) : '';
+      return '/api/sdk-doc-image?path=' + encodeURIComponent(_resolveDocRel(docPath, file)) + frag;
     };
     const inline = (text) => {
       let t = text;
-      t = t.replace(/`([^`]+)`/g, '<code>$1</code>');
+      // Inline code is text, not markup: `<variant>_sync.cpp` and `#include <dxrt/dxrt_api.h>` lost their
+      // <…> as HTML tags. Set the spans aside (escaped) so the bold / link / image rules below leave them alone.
+      const codeSpans = [];
+      t = t.replace(/`([^`]+)`/g, (m, c) => {
+        codeSpans.push('<code>' + escHtmlSafe(c) + '</code>');
+        return '\x00IC' + (codeSpans.length - 1) + '\x00';
+      });
       t = t.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
       t = t.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
       t = t.replace(/\*(.+?)\*/g, '<em>$1</em>');
@@ -815,7 +855,7 @@
         const url = refs[(label || txt).toLowerCase()];
         return url ? mkLink(txt, url) : m;
       });
-      return t;
+      return t.replace(/\x00IC(\d+)\x00/g, (m, n) => codeSpans[+n]);
     };
 
     const isBlank = (l) => /^\s*$/.test(l) || l.trim() === '\x00REF\x00';
@@ -885,7 +925,20 @@
           out.push(`<div class="sdk-tab"><div class="sdk-tab-label">${inline(m[1])}</div><div class="sdk-tab-body">${renderBlocks(inner)}</div></div>`);
           continue;
         }
-        if ((m = line.match(headRe))) { out.push(`<h${m[1].length}>${inline(m[2].trim())}</h${m[1].length}>`); i++; continue; }
+        if ((m = line.match(headRe))) {
+          // `## Title {#id .class}` (MkDocs attr_list): the id is the anchor, the braces are not part of the title.
+          let text = m[2].trim();
+          let id = '';
+          const attr = text.match(/\s*\{([^}]*)\}\s*$/);
+          if (attr && /(^|\s)#[\w-]+/.test(attr[1])) {
+            id = attr[1].match(/(?:^|\s)#([\w-]+)/)[1];
+            text = text.slice(0, attr.index).trim();
+          }
+          const inner = inline(text);
+          out.push(`<h${m[1].length} id="${escHtml(id || _docSlug(inner))}">${inner}</h${m[1].length}>`);
+          i++;
+          continue;
+        }
         if (hrRe.test(line)) { out.push('<hr>'); i++; continue; }
         if (cbRe.test(line)) { out.push(line.trim()); i++; continue; }
         // Table: header row (pipe, outer pipes optional) followed by a dash separator row.
@@ -1150,11 +1203,60 @@
     if (!body || body.dataset.doclinkBound === '1') return;
     body.dataset.doclinkBound = '1';
     body.addEventListener('click', function (e) {
-      const a = e.target.closest && e.target.closest('a.sdk-doclink');
+      const a = e.target.closest && e.target.closest('a.sdk-doclink, a.sdk-anchorlink');
       if (!a) return;
       e.preventDefault();
+      if (a.classList.contains('sdk-anchorlink')) {
+        _scrollToSection(body, a.getAttribute('data-anchor'));
+        return;
+      }
       const book = findBookByPath(a.getAttribute('data-doc'));
-      if (book) openBookViewer(book, null, { updateUrl: true });
+      if (book) openBookViewer(book, null, { updateUrl: true, anchor: a.getAttribute('data-anchor') || '' });
+    });
+  }
+
+  // After a doc is drawn, every link either leads somewhere in the viewer or reads as text:
+  // - `#section` scrolls this doc (it used to open the Studio again in a new tab);
+  // - a relative link written as HTML (`<a href="./x/README.md">`) goes through the viewer like a Markdown one;
+  // - a doc the library does not list (it shows only what users need) and a file that is not a doc
+  //   (.py, .sh, LICENSE, a folder) are plain text: the viewer cannot open them and the browser would 404.
+  function settleDocLinks(body, docPath) {
+    if (!body) return;
+    const asText = (a, why) => {
+      const span = document.createElement('span');
+      span.className = 'sdk-deadlink';
+      span.title = why;
+      while (a.firstChild) span.appendChild(a.firstChild);
+      a.replaceWith(span);
+    };
+    body.querySelectorAll('a').forEach((a) => {
+      if (a.classList.contains('sdk-doclink')) {
+        if (!findBookByPath(a.getAttribute('data-doc'))) asText(a, a.getAttribute('data-doc'));
+        return;
+      }
+      const href = (a.getAttribute('href') || '').trim();
+      if (!href) return;
+      if (href.charAt(0) === '#') {
+        if (href.length < 2) return;
+        a.classList.add('sdk-anchorlink');
+        a.setAttribute('data-anchor', href);
+        a.setAttribute('href', '#');
+        a.removeAttribute('target');
+        return;
+      }
+      if (/^([a-z][a-z0-9+.-]*:|\/\/|\/)/i.test(href) || !docPath) return;   // web, mail, root-anchored
+      const base = href.split('#')[0].split('?')[0];
+      const anchor = href.indexOf('#') >= 0 ? href.slice(href.indexOf('#')) : '';
+      const doc = _resolveDocRel(docPath, base);
+      if (/\.md$/i.test(base) && findBookByPath(doc)) {
+        a.classList.add('sdk-doclink');
+        a.setAttribute('data-doc', doc);
+        a.setAttribute('data-anchor', anchor);
+        a.setAttribute('href', '#');
+        a.removeAttribute('target');
+        return;
+      }
+      asText(a, doc);
     });
   }
 
@@ -1228,7 +1330,9 @@
         body.innerHTML = html;
         body.scrollTop = 0;
         renderMermaidBlocks(body);
+        settleDocLinks(body, book.path);
         bindDocLinks(body);
+        if (opts.anchor) _scrollToSection(body, opts.anchor);
       }
     } catch (e) {
       if (body) {

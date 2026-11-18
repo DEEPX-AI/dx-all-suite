@@ -10,7 +10,8 @@ dx_app.core.{camera,live,inference} imports here — this keeps the DAG acyclic.
 from shared.tasks import TaskSet, TaskTable
 import os, re, time, subprocess, shutil, tempfile
 from pathlib import Path
-from dx_app.core.config import PY_DIR, BUILD_DIR, _RUNTIME_PYTHON
+from dx_app.core.config import PY_DIR, BUILD_DIR
+from dx_app.core import config as _config
 
 # Honor $TMPDIR (fall back to the system temp dir) instead of a hardcoded "/tmp",
 # so the app works where /tmp is unwritable/isolated.
@@ -66,9 +67,12 @@ def _python_script_path(category, model_name, variant, py_dir=None):
 
 
 def _python_runtime_ready():
+    py = _config.runtime_python()
+    if not py:
+        return False
     try:
         return subprocess.run(
-            [_RUNTIME_PYTHON, "-c", "import numpy,cv2"],
+            [py, "-c", "import numpy,cv2"],
             capture_output=True, timeout=15,
         ).returncode == 0
     except Exception:

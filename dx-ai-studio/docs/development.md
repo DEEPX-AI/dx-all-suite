@@ -174,3 +174,49 @@ via Playwright (`bash scripts/run_ci.sh --browser`).
   `tests/shared/test_python_floor.py` guards the string ones. The studio supports Python 3.8, so
   use `path.resolve().relative_to(root.resolve())` and catch `ValueError` instead
   (see `dx_modelzoo/server.py`).
+
+## Managed runtime profiles
+
+DX AI Studio treats the DEEPX runtime as an external, versioned host dependency. It
+does not modify `dx-runtime` sources. The Studio-owned compatibility matrix in
+`config/runtime_profiles.json` declares the supported runtime/driver package pairs,
+immutable GitHub revision URLs, and SHA-256 digests. Package discovery uses installed
+Debian package metadata, not the version of a source checkout.
+
+- **Supported migration:** Studio can reconcile the declared `2.3.0`, `2.4.1` and `2.4.2`
+  profiles to the target `2.5.0` profile (DX-RT 3.5.0, NPU driver 2.7.0 — the runtime the
+  suite release pins; FW 2.7.6) on `x86_64` and `aarch64` hosts. The older profiles are kept
+  deliberately as verified rollback profiles: they are only reconciliation sources and rollback
+  targets, never installation targets, and each digest was checked against the published
+  packages. A runtime it does not declare (for example a newer pre-release) is never replaced:
+  reconciliation stops as blocked ("No verified rollback profile").
+- **Pending release tag:** the `2.5.0` profile pins the dx-runtime commit `4f0a363` and the
+  dx-all-suite release-candidate commit `a7a9199`; refresh `suite_revision` /
+  `runtime_revision` with `scripts.runtime_profile_update --tag v2.5.0` once that tag is published.
+- **New dx-runtime release:** `python -m scripts.runtime_profile_update --write` reads the
+  latest `DEEPX-AI/dx-runtime` release (or `--tag vX.Y.Z`) and adds its profile — revisions,
+  DX-RT / driver versions from `RELEASE_NOTES.md`, `.deb` URLs and SHA-256 digests computed
+  from the downloaded packages — and moves the target to it (`--keep-target` to only add).
+- **Trust boundary:** packages are staged under Studio's `var/runtime/artifacts/`
+  cache only after their declared SHA-256 digest matches. A digest mismatch never
+  reaches a privileged package command.
+- **Explicit authorization:** installing packages requires an explicit authorized
+  Runtime Setup action. Studio invokes a non-interactive privileged `dpkg` command
+  only after that authorization; browsing diagnostics and Setup remains available
+  without it.
+- **Launch gate:** App and Stream inference launches require a journaled `ACTIVE`
+  profile that passed full validation, or — when Studio has not run the transaction —
+  that module's own launch contracts validating live on this board. A failure returns a stable contract check ID
+  and remediation rather than starting a child process with inherited shell paths.
+- **Environment isolation:** inference children receive the Studio-selected Python,
+  virtual environment, native library paths, GStreamer plugin directory, and
+  postprocess path. `PYTHONPATH`, `VIRTUAL_ENV`, `LD_LIBRARY_PATH`, and
+  `GST_PLUGIN_PATH` from the parent shell are not inherited.
+- **Recovery:** a failed candidate validation triggers a verified reinstall and
+  validation of the prior declared runtime profile. Studio outputs and its artifact
+  cache are not runtime-install targets and are preserved during rollback.
+
+Installing or changing a DKMS driver can require a reboot before NPU device nodes are
+available. After a reboot, run the **DX-Runtime Dependencies** / **NPU Linux Driver** steps
+in DX Stream **Setup** again to validate and activate the installed profile before starting
+inference.

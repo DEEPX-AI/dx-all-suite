@@ -235,3 +235,71 @@ def test_telemetry_worker_env_skips_pythonpath_fallback_for_working_dx_engine(mo
 
     assert worker_env["PYTHONPATH"] == "/parent/python"
     assert os.environ["PYTHONPATH"] == "/parent/python"
+
+
+# ── dx_postprocess into the isolated inference venv ─────────────────────────────────────────────
+# dx_app build.sh pip-installs dx_postprocess into whatever python3 it runs with (from Studio's Setup:
+# the system python's ~/.local), which the isolated venv-dx-studio-infer cannot see — so every
+# *_cpp_postprocess execution path failed with "No module named 'dx_postprocess'".
+import subprocess as _sp
+import sys as _sys
+import sysconfig as _sysconfig
+
+
+def _bare_venv(path):
+    _sp.run([_sys.executable, "-m", "venv", "--without-pip", str(path)], check=True)
+    py = path / "bin" / "python3"
+    site = _sp.run([str(py), "-c", "import sysconfig;print(sysconfig.get_paths()['purelib'])"],
+                   capture_output=True, text=True, check=True).stdout.strip()
+    return str(py), Path(site)
+
+
+def _imports(py, mod):
+    return _sp.run([py, "-c", f"import {mod}"], capture_output=True).returncode == 0
+
+
+def test_sync_copies_a_working_dx_postprocess_into_the_inference_venv(tmp_path):
+    from shared import runtime
+    src_py, src_site = _bare_venv(tmp_path / "src")
+    (src_site / "dx_postprocess.py").write_text("ClassificationPostProcess = object\n")
+    dst_py, _ = _bare_venv(tmp_path / "dst")
+    assert not _imports(dst_py, "dx_postprocess")
+    assert runtime.sync_dx_postprocess(dst_py, candidates=[src_py]) is True
+    assert _imports(dst_py, "dx_postprocess")
+
+
+def test_sync_copies_a_package_dir_too(tmp_path):
+    from shared import runtime
+    src_py, src_site = _bare_venv(tmp_path / "src")
+    (src_site / "dx_postprocess").mkdir()
+    (src_site / "dx_postprocess" / "__init__.py").write_text("X = 1\n")
+    dst_py, _ = _bare_venv(tmp_path / "dst")
+    assert runtime.sync_dx_postprocess(dst_py, candidates=[src_py]) is True
+    assert _imports(dst_py, "dx_postprocess")
+
+
+def test_sync_is_a_quiet_no_op_when_nothing_has_dx_postprocess(tmp_path):
+    from shared import runtime
+    src_py, _ = _bare_venv(tmp_path / "src")
+    dst_py, dst_site = _bare_venv(tmp_path / "dst")
+    assert runtime.sync_dx_postprocess(dst_py, candidates=[src_py]) is False
+    assert not list(dst_site.glob("dx_postprocess*"))
+
+
+def test_sync_removes_a_copy_the_target_cannot_import(tmp_path):
+    from shared import runtime
+    src_py, src_site = _bare_venv(tmp_path / "src")
+    (src_site / "dx_postprocess.py").write_text("import _studio_missing_native_dep\n")
+    # importable only where the dependency exists
+    (src_site / "_studio_missing_native_dep.py").write_text("")
+    dst_py, dst_site = _bare_venv(tmp_path / "dst")
+    assert runtime.sync_dx_postprocess(dst_py, candidates=[src_py]) is False
+    assert not (dst_site / "dx_postprocess.py").exists()
+
+
+def test_inference_venv_paths_sync_dx_postprocess():
+    import inspect
+    from shared import runtime
+    from dx_app.core import setup_steps
+    assert inspect.getsource(runtime.ensure_inference_venv).count("sync_dx_postprocess(") >= 2
+    assert "sync_dx_postprocess(" in inspect.getsource(setup_steps._setup_start)

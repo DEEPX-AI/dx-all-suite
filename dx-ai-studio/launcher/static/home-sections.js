@@ -120,7 +120,7 @@
     return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   }
   /* One line in the right-hand widget. Speed is shown by Benchmark and Model Zoo; this
-     line only says how many models were measured on this device. */
+     line only says how many models DEEPX measured on DX-M1 (Model Zoo catalog). */
   function _paintMeasuredCount(models) {
     var note = $('measuredCount');
     if (!note) return;

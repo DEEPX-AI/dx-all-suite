@@ -255,6 +255,7 @@ body{overflow-x:auto;overflow-y:auto}
   border-bottom:1px solid var(--border-subtle);font-size:var(--fs-md);
   word-break:break-word;overflow-wrap:anywhere}
 .mz-spec-table th{color:var(--text-muted);font-weight:500;width:180px}
+.mz-hw-note{margin-top:4px;font-size:13px;color:var(--text-muted)}
 
 /* ═══ Download Badge ═══ */
 .mz-download-badge{display:inline-flex;align-items:center;gap:4px;padding:4px 12px;
@@ -457,3 +458,12 @@ body.lang-zh-TW .zh-CN { display: none !important; }
   .mz-artifact-table { display: block; overflow-x: auto; }
   .mz-artifact-table th, .mz-artifact-table td { min-width: 120px; }
 }
+
+/* Build C++ runner (inference panel) */
+.mz-cpp-build{display:flex;flex-wrap:wrap;align-items:center;gap:var(--sp-2) var(--sp-3);margin-top:var(--sp-3);padding:var(--sp-3);border:1px dashed var(--border-subtle);border-radius:8px}
+.mz-cpp-build-msg{flex:1;min-width:220px;font-size:13px;color:var(--text-muted)}
+.mz-cpp-build-progress{flex-basis:100%;min-width:0;font-size:13px}
+.mz-cpp-build-run{display:flex;align-items:center;gap:var(--sp-2);flex-wrap:wrap}
+.mz-cpp-build-last{font-family:var(--mono);font-size:12px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mz-cpp-build-log{max-height:240px;overflow:auto;font-size:11px}
+.mz-cpp-build-ok{font-size:13px;color:var(--status-ok)}

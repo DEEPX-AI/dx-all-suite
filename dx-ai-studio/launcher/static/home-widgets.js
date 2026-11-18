@@ -100,7 +100,7 @@
     }
   }
 
-  /* ── Evidence: measured on this device ─────────────────────── */
+  /* ── Evidence: DEEPX measurements on DX-M1 (Model Zoo catalog performance.fps) ── */
 
   /* One model per task, at the size people actually run (nano). Picking the fastest would mix tasks
      into numbers that cannot be compared — classification's 3,695 next to detection's 1,847 says

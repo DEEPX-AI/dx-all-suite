@@ -115,9 +115,14 @@ class FakeApi:
 @pytest.fixture(scope="module")
 def server(tmp_path_factory):
     srv, port = start_module_server("dx_app")
+    import sys
     from dx_app.core import config
+    out = tmp_path_factory.mktemp("outputs")
     mp = pytest.MonkeyPatch()
-    mp.setattr(config, "OUTPUTS_DIR", tmp_path_factory.mktemp("outputs"))
+    mp.setattr(config, "OUTPUTS_DIR", out)
+    # dx_app.server imported OUTPUTS_DIR by value and serves /outputs/ from it — patch it there too, or the
+    # test writes to tmp while the server reads the real outputs/ (download 404 → "Download.path: canceled").
+    mp.setattr(sys.modules["dx_app.server"], "OUTPUTS_DIR", out)
     yield port
     mp.undo()
     srv.shutdown()

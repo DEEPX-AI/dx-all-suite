@@ -83,7 +83,7 @@ check_xdg_sesstion_type()
 
     elif [ "$XDG_SESSION_TYPE" != "x11" ]; then
         print_colored_v2 "WARNING" "it is recommended to use an **X11 session (with .Xauthority support)** when working with the 'dx-all-suite' container."
-        print_colored_v2 "WARNING" "For more details, please refer to the [FAQ section of the dx-all-suite documentation](https://github.com/DEEPX-AI/dx-all-suite/blob/main/docs/source/05_FAQ_Troubleshooting_Guide.md)."
+        print_colored_v2 "WARNING" "For more details, please refer to the [FAQ section of the dx-all-suite documentation](https://developer.deepx.ai/tech-docs/DX-AllSuite/FAQ_Troubleshooting_Guide/)."
 
         echo -e "${COLOR_BRIGHT_GREEN_ON_BLACK}if the user's host environment is not based on **X11 (with .Xauthority)** but instead uses **Xwayland** or similar, the 'xauth' data may be lost after a system reboot or session logout. As a result, the authentication file mount between the host and the container may fail, making it impossible to restart or reuse the container.${COLOR_RESET}"
         echo -e -n "${COLOR_RED_ON_BLACK}This may cause issues. Do you still want to continue? (y/n): ${COLOR_RESET}"
@@ -417,7 +417,7 @@ docker_run_dx-runtime()
                 print_colored_v2 "HINT" "1) If you want to run the dxrtd service in a different container or host"
                 
                 echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]   ** please uncomment the 'entrypoint' and 'command' lines in the docker-compose.yml file."
-                echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]   ** For more details, please refer to the (https://github.com/DEEPX-AI/dx-all-suite/blob/main/docs/source/05_FAQ_Troubleshooting_Guide.md) **"
+                echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]   ** For more details, please refer to the (https://developer.deepx.ai/tech-docs/DX-AllSuite/FAQ_Troubleshooting_Guide/) **"
                 
                 print_colored_v2 "HINT" "2) or stop the dxrtd service on the ${which_dxrtd} before running the dx-runtime container."
                 print_colored_v2 "HINT" "   You can stop the dxrtd service on the ${which_dxrtd} by running the following command:"
@@ -436,7 +436,7 @@ docker_run_dx-runtime()
                 print_colored_v2 "HINT" "1) If you want to run the dxrtd service in a different container or host"
                 
                 echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]   ** please uncomment the 'entrypoint' and 'command' lines in the docker-compose.yml file."
-                echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]   ** For more details, please refer to the (https://github.com/DEEPX-AI/dx-all-suite/blob/main/docs/source/05_FAQ_Troubleshooting_Guide.md) **"
+                echo -e "${COLOR_BOLD}${COLOR_CYAN}[HINT]   ** For more details, please refer to the (https://developer.deepx.ai/tech-docs/DX-AllSuite/FAQ_Troubleshooting_Guide/) **"
                 
                 print_colored_v2 "HINT" "2) or stop the dxrtd service on the container '${which_dxrtd}' before running the dx-runtime container."
                 print_colored_v2 "HINT" "   You can stop the dxrtd service on the container '${which_dxrtd}' by running the following command:"

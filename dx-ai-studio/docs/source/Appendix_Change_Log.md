@@ -2,6 +2,48 @@
 
 Notable changes to the DX-AI-Studio User Manual.
 
+## v0.1.1 hotfix / 2026-11
+
+**Setup, Model Zoo, EdgeGuide and Hub**
+
+- A fresh board (incl. Raspberry Pi / aarch64) is ready after one Demo Quick Start: it also prepares the Python
+  inference interpreter, keeps the runtime venv through the driver step, never stops on a package dialog, and
+  builds for the board's own CPU architecture. No restart is needed after Setup steps.
+- Setup → **Maintenance**: Clean build, Reset and reinstall. Deep Diagnostics: **NPU sanity check**.
+- Model Zoo: **Build C++ runner** for a downloaded model; new C++ runners show up without a restart.
+- The NPU Linux Driver step counts as done only when the driver is installed for the next boot, not merely loaded,
+  so Demo Quick Start after a reset reinstalls it instead of leaving the board without a driver after reboot.
+- Setup jobs no longer overlap: a second job (e.g. a Model Zoo build during a Setup step) is refused.
+- Model Zoo: *Supported hardware* in each model's Specification — DX-M1 and DX-H1 Quattro; DX-M1M per model once
+  DX Model Zoo records it (until then: not confirmed yet).
+- EdgeGuide: NPU memory as `dxrt-cli -s` measures it — DX-M1 3.9 GB LPDDR5 5600 Mbps, DX-M1M 1.9 GB LPDDR4 4200 Mbps,
+  DX-H1 Quattro 15.7 GB LPDDR5x 6000 Mbps (4 chips). It read 1 GB for both M1 and M1M.
+- **NPU Driver** in Setup's Version Info (DX App and DX Stream) shows the driver's own version (e.g. v2.7.0), not the
+  DX-RT version that `dxrt-cli --version` prints.
+- Hub: the *Measured on DX-M1* tour step says these are DEEPX's DX Model Zoo figures on DX-M1, not a run on this
+  computer. DX App's engine-error hint points to Setup → Deep Diagnostics instead of a Mock mode DX App does not have.
+- Hub: the link bar under the stage keeps room to spare, so it stays on one row (en at 1440 px, es at
+  1280 px) in browsers that draw text slightly wider; before, Spanish at 1280 × 800 no longer fit one screen.
+- Deep Diagnostics (DX App, DX Stream) asks DKMS for the DX-RT driver module only: 1–2 s instead of 6.5 s on a
+  board with other DKMS modules and several kernels.
+- DX Stream Demo Launcher follows the installed dx_stream: Secondary Inference finds the SDK's
+  efficientnet-lite0_224x224 model, and the Face / Pose PPU demos the SDK no longer ships are not listed (they
+  stayed "Needs setup" with nothing to install).
+- Agent Dev shows a build started on Home (or Agent Dev work from Auto Compile) also when Agent Dev was opened
+  earlier in the session; before, it showed it only on its first visit.
+- SDK Library document viewer:
+  - The DX All Suite architecture figure shows again. Images marked `#only-light` / `#only-dark` were broken;
+    the viewer now shows the one for the current theme.
+  - Section links (`#…`, also `## Title {#id}` headings) scroll the document; they opened the Studio again
+    in a new tab. A link to a section of another document opens it at that section.
+  - Links written as HTML open the document in the viewer instead of a 404 tab, also on a page that includes
+    another file (the Agent-Driven Development showcase catalog).
+  - Inline code shows exactly what the document wrote: `<variant>_sync.cpp` and `<dxrt/dxrt_api.h>` lost the
+    part in angle brackets.
+  - Links to a file the Library does not show (it lists the documents users need) or that is not a
+    document (.py, .sh, a folder) read as plain text instead of a link that does nothing.
+- Sample videos no longer keep their 1.2 GB archive after extraction; Setup warns below 5 GB free disk.
+
 ## v0.1.1 / 2026-10
 
 Changes since the v0.1.0 beta manual.

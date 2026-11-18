@@ -69,6 +69,22 @@ completed Studio archive inventory remain unverified even if individual files ha
 completion records. An installed file or a ready demo set is not proof of a complete,
 verified archive or a successful inference.
 
+### Maintenance and the NPU sanity check
+
+**Setup → Maintenance** (below Deep Diagnostics, collapsed) holds two longer jobs. Both ask for the sudo password.
+
+- **Clean build** deletes the C++ build folders (`build_*`, `bin/`) — including one left over for another CPU
+  architecture — and rebuilds the demo runners for this machine.
+- **Reset and reinstall** removes the DX-RT package, the NPU driver, `venv-dx-runtime`, the Studio inference venv
+  and the C++ builds, then runs **Demo Quick Start**. Type `RESET` to confirm. Downloaded models and videos are
+  kept, so nothing is downloaded again. It takes about 20–30 minutes; the NPU is unavailable until it finishes.
+
+**Deep Diagnostics** includes the **NPU sanity check** (`dx-runtime/scripts/sanity_check.sh --dx_rt`). It needs
+administrator rights: without a cached sudo session its row shows **Run check**, which asks for the password.
+A failure caused by device initialization needs a cold boot (power off, wait 10–30 s, power on).
+
+![Setup — Deep Diagnostics with the NPU sanity check and the Maintenance card.](resources/app-setup-maintenance.png)
+
 !!! note "Live runs"
     Continuous, Run Demo video and Graph Live draw the example's window on a virtual
     display and stream it to the browser. Their optional display requirements are listed

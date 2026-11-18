@@ -525,7 +525,7 @@ async function doRun(){
     var errMsg=translatedError(res);
     var rawErr=res.error||'';
     var hint='';
-    if(rawErr.indexOf('dx_engine')!==-1||rawErr.indexOf('engine')!==-1)hint='<br><span class="txt-dim">'+T('Check that dx_engine is running. Real inference is not available in Mock mode.')+'</span>';
+    if(rawErr.indexOf('dx_engine')!==-1||rawErr.indexOf('engine')!==-1)hint='<br><span class="txt-dim">'+T('Check that the NPU runtime (dx_engine) is ready: Setup → Deep Diagnostics.')+'</span>';
     else if(rawErr.indexOf('not found')!==-1||rawErr.indexOf('No such')!==-1)hint='<br><span class="txt-dim">'+T('Check the model file or executable path.')+'</span>';
     else if(rawErr.indexOf('timeout')!==-1||rawErr.indexOf('Timeout')!==-1)hint='<br><span class="txt-dim">'+T('Inference timed out. Try again with a smaller input.')+'</span>';
     window.renderInferenceError($('r-result'),errMsg,hint);

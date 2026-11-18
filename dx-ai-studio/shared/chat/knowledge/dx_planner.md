@@ -49,11 +49,11 @@ DX EdgeGuide (모듈 이름 dx_planner, Studio 안 경로 `/planner/`)는 컴퓨
 
 현재 벤치마크 데이터의 NPU (호스트: deepx, deepx-B650MT, orangepi5plus, raspberrypi, rock-5b-plus):
 
-| NPU | TOPS | TDP | 폼팩터 |
-|-----|------|-----|--------|
-| DX-H1 | 100 TOPS | 20 W | PCIe Card |
-| DX-M1 | 25 TOPS | 5 W | M.2 |
-| DX-M1M | 25 TOPS | 3 W | M.2 |
+| NPU | TOPS | TDP | 폼팩터 | NPU memory (`dxrt-cli -s`) |
+|-----|------|-----|--------|------|
+| DX-H1 Quattro | 100 TOPS | 20 W | PCIe Card | M1 chip 4개, chip당 3.92 GiB LPDDR5x 6000 Mbps |
+| DX-M1 | 25 TOPS | 5 W | M.2 | 3.92 GiB LPDDR5 5600 Mbps |
+| DX-M1M | 25 TOPS | 3 W | M.2 | 1.92 GiB LPDDR4 4200 Mbps |
 
 ## [section:link,연동,dx_benchmark,공유] 다른 모듈과의 연동 · 공유
 

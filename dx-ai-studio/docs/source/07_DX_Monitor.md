@@ -26,7 +26,7 @@ NPU utilization / temperature before and during the run. Confirm that telemetry 
 | State | Meaning | What to do |
 |-------|---------|------------|
 | Real / current | The telemetry worker is supplying current NPU samples. | Read per-device values together with the selected time window. |
-| **NPU telemetry unavailable** | No usable NPU samples are available; host stats can still work. | Check the shown diagnostic, DX-RT / `dx_engine`, driver and `dxrt-cli --status`; repair the environment and re-check. |
+| **NPU telemetry unavailable** | No usable NPU samples are available; host stats can still work. | Check the shown diagnostic, DX-RT / `dx_engine`, driver and `dxcli --status`; repair the environment and re-check. |
 | **NPU telemetry is not current** (stale) | The source is not providing current samples. | Do not treat retained values as live; check the diagnostic and source recovery. |
 | **Mock** | Explicit UI demonstration data, enabled by `DX_MONITOR_EXPLICIT_MOCK=1`. | Do not use it as measured hardware or performance evidence. |
 
@@ -55,4 +55,4 @@ mock setting above enables synthetic NPU values.
 
 !!! note  
     The same version and device information is available on the command line via
-    `dxrt-cli --status`.
+    `dxcli --status`.

@@ -95,7 +95,7 @@ def dx_app_server():
         server.shutdown()
 
 
-@pytest.fixture(scope="session", params=selected_engines())
+@pytest.fixture(scope="package", params=selected_engines())   # stop Playwright when tests/e2e ends
 def browser(request):
     """One session browser per selected engine.
 

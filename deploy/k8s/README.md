@@ -30,7 +30,7 @@ Pod requests deepx.ai/dx-m1: 1 → containerd injects /dev/dxrtN + libs
    nothing to do). containerd 1.7 needs it enabled; on k3s, copy the generated
    `config.toml` to `config.toml.tmpl` and append the CDI block — a template holding only
    the CDI lines replaces k3s's whole containerd config. Exact steps:
-   [Quickstart, step 2](../../docs/source/06_Kubernetes_Quickstart.md#prerequisites).
+   [Quickstart, step 2](https://developer.deepx.ai/tech-docs/DX-AllSuite/Kubernetes_Quickstart/#prerequisites).
 3. **NFD** — node-feature-discovery in the cluster (set `nfd.enabled=true` to let this
    chart pull it in, or install separately). Required for the NodeFeatureRule.
 

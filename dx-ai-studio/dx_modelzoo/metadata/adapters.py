@@ -183,8 +183,6 @@ def local_runtime_adapter(suite_root) -> AdapterResult:
             if py_ex:
                 entry["demo.python_example"] = py_ex
 
-        entry["processor.supported_devices"] = ["dx_m1"]
-
         result["models"][cid] = entry
 
     return result
@@ -557,8 +555,6 @@ def local_studio_catalog_adapter(suite_root) -> AdapterResult:
             entry["legal.license"] = legal["license"]
         if legal.get("source_url"):
             entry["legal.source_url"] = legal["source_url"]
-        # dx_app registry models target DX-M1 NPU; studio baseline uses the same default.
-        entry["processor.supported_devices"] = ["dx_m1"]
         result["models"][model_id] = entry
 
     if not result["models"]:

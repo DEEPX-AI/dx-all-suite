@@ -3,9 +3,18 @@ import importlib
 import json
 from pathlib import Path
 
+import pytest
+
 
 ROOT = Path(__file__).resolve().parents[2]
 PROFILE_MANIFEST = ROOT / "config" / "runtime_profiles.json"
+
+
+@pytest.fixture(autouse=True)
+def _x86_64_host(monkeypatch):
+    """_manifest() declares x86_64 only, and discovery reads the host's platform.machine(); without this the
+    discovery tests failed on every aarch64 host (Raspberry Pi) while passing on x86 CI."""
+    monkeypatch.setattr(importlib.import_module("shared.runtime_profile").platform, "machine", lambda: "x86_64")
 
 
 def _api():

@@ -12,23 +12,25 @@ from dx_stream.core.config import DX_STREAM_SRC, MODELS_DIR, CONFIGS_DIR, PIPELI
 from dx_stream.core.pipeline import payloader_with_payload_type
 import os
 
-# model_list.json v2_4_0 renamed sample models to <name>_640x640.dxnn (efficientnet is
-# 256x256); PPU models keep their names. Map the logical names used in DEMOS/pipelines to
-# the actual on-disk files so the Demo Launcher resolves models after a fresh sample setup.
+# model_list.json renamed sample models to <name>_<size>.dxnn; PPU models keep their names. Map the logical
+# names used in DEMOS/pipelines to the on-disk files so the Demo Launcher resolves models after a fresh sample
+# setup. A name with several candidates lists the current SDK file first (dx_stream 2.5.0 ships
+# efficientnet-lite0_224x224, as its own secondary_mode pipeline uses) and older downloads after it.
 _MODEL_ALIAS = {
-    "yolo26n.dxnn": "yolo26-n_640x640.dxnn",
-    "YOLOv5s_Face.dxnn": "yolov5-s-face_640x640.dxnn",
-    "yolo26n-pose.dxnn": "yolo26-n-pose_640x640.dxnn",
-    "yolo26n-seg.dxnn": "yolo26-n-seg_640x640.dxnn",
-    "YoloV5S_PPU.dxnn": "yolov5-s_640x640_ppu.dxnn",
-    "EfficientNet_Lite0.dxnn": "efficientnet-lite0_256x256.dxnn",
-    "SCRFD500M.dxnn": "scrfd-500m_640x640.dxnn",
+    "yolo26n.dxnn": ("yolo26-n_640x640.dxnn",),
+    "YOLOv5s_Face.dxnn": ("yolov5-s-face_640x640.dxnn",),
+    "yolo26n-pose.dxnn": ("yolo26-n-pose_640x640.dxnn",),
+    "yolo26n-seg.dxnn": ("yolo26-n-seg_640x640.dxnn",),
+    "YoloV5S_PPU.dxnn": ("yolov5-s_640x640_ppu.dxnn",),
+    "EfficientNet_Lite0.dxnn": ("efficientnet-lite0_224x224.dxnn", "efficientnet-lite0_256x256.dxnn"),
+    "SCRFD500M.dxnn": ("scrfd-500m_640x640.dxnn",),
 }
 
 
 def _model_file(name: str) -> str:
-    """Resolve a logical model name to its actual on-disk file (alias-aware)."""
-    return _MODEL_ALIAS.get(name, name)
+    """Resolve a logical model name to its on-disk file: the first candidate that exists, else the current one."""
+    candidates = _MODEL_ALIAS.get(name, (name,))
+    return next((c for c in candidates if (MODELS_DIR / c).exists()), candidates[0])
 
 
 _VIDEO_EXTS = {".mp4", ".mov", ".avi", ".mkv"}
@@ -713,10 +715,20 @@ def check_demo_available(demo_id: int) -> dict:
     }
 
 
+def _shipped_by_sdk(demo: dict) -> bool:
+    """False for a demo whose pipeline script the installed dx_stream no longer has (it dropped the Face and Pose
+    PPU demos and their models): no Setup step can install it, so the card would stay "Needs setup" forever.
+    Before dx_stream is installed (no pipelines directory) every demo is listed, and Setup installs them."""
+    script = demo.get("runtime_script")
+    return not script or not PIPELINES_DIR.is_dir() or (PIPELINES_DIR / script).exists()
+
+
 def list_demo_entries(availability_check: Callable[[dict], dict] | None = None) -> list[dict]:
     """Return demo metadata, optionally using the server's launch admission facts."""
     demo_list = []
     for demo in DEMOS:
+        if not _shipped_by_sdk(demo):
+            continue
         entry = dict(demo)
         entry["default_video"] = demo_video_uri(demo)
         entry["availability"] = (availability_check(demo) if availability_check

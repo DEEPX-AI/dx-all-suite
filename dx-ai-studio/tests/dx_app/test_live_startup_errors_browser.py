@@ -179,6 +179,8 @@ def test_quick_start_runs_the_demo_form_of_the_build_and_asset_steps(page):
         runs.append(route.request.post_data_json)
         route.fulfill(json={"ok": True, "started": True})
 
+    # Plenty of disk, so the low-disk confirmation (setup.js _setupDiskOk) does not depend on this machine.
+    page.route("**/api/setup/status", lambda route: route.fulfill(json={"disk": {"free_gb": 50.0, "min_gb": 5.0}}))
     page.route("**/api/setup/quick-start-plan", lambda route: route.fulfill(json={"plan": ["dx-app-setup"]}))
     page.route("**/api/setup/run", run)
     page.route("**/api/setup/log", lambda route: route.fulfill(json={"log": "", "done": True, "exit_code": 0}))

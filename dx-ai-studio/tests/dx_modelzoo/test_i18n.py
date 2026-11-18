@@ -66,7 +66,7 @@ def _extract_dict_entry_from_source(source: str, key: str) -> str:
     match = re.search(pattern, source)
     if not match:
         return ""
-    brace = source.index("{", match.start())
+    brace = match.end() - 1    # the entry's own brace, not one inside a "{t}"-style key
     depth = 0
     for i in range(brace, len(source)):
         if source[i] == "{":

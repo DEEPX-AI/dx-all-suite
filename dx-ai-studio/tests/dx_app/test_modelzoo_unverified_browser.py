@@ -38,8 +38,12 @@ def page():
 def test_unverified_download_is_marked_and_can_be_verified_but_verified_is_plain(page):
     models = [{"name": state, "task": "Object Detection", "qlite": _tier(state)}
               for state in ("verified", "unverified", "missing")]
-    page.evaluate("""(models) => { nav('modelzoo'); MZ.loading = false; MZ.models = models;
-                    MZ.cart = {}; mzRenderTable(); }""", models)
+    # nav('modelzoo') loads the list itself; serve these models and wait for that load, or its late answer
+    # (the real catalog) re-renders the table after the assertions start — a race that lost under load.
+    page.route("**/api/modelzoo/list*", lambda r, *_: r.fulfill(json={"ok": True, "models": models}))
+    page.evaluate("nav('modelzoo')")
+    page.wait_for_function("() => !MZ.loading && MZ.models.length === 3")
+    page.evaluate("() => { MZ.cart = {}; mzRenderTable(); }")
     rows = {state: page.locator("#mz-tbody tr").nth(i) for i, state in enumerate(("verified", "unverified", "missing"))}
     assert rows["verified"].locator(".mz-col-ql .badge.b-ok").count() == 1
     assert rows["verified"].locator(".mz-col-ql .mz-chk-wrap").count() == 0

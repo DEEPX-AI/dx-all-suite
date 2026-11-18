@@ -176,3 +176,28 @@ class TestSetupDriverEntrypoint(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class TestSudoShimNonInteractive(unittest.TestCase):
+    def test_shim_preserves_debian_frontend_through_sudo(self):
+        """sudo strips the runtime script's `export DEBIAN_FRONTEND`, so `apt-get upgrade` stopped on a debconf
+        dialog the GUI cannot answer (dpkg runs in apt's own pty)."""
+        import os, subprocess, tempfile
+        from unittest.mock import patch
+        from dx_app.core import setup_steps
+        with tempfile.TemporaryDirectory() as d:
+            fake = os.path.join(d, "sudo")
+            with open(fake, "w") as f:
+                f.write('#!/bin/sh\necho "ARGS=$*"\necho "DF=$DEBIAN_FRONTEND"\n')
+            os.chmod(fake, 0o755)
+            env = {"PATH": d + os.pathsep + "/usr/bin:/bin"}
+            with patch.dict(os.environ, {"PATH": env["PATH"]}):
+                cleanup = setup_steps._configure_sudo_env(env, "pw")
+            try:
+                self.assertEqual(env["DEBIAN_FRONTEND"], "noninteractive")
+                out = subprocess.run(["sudo", "apt-get", "-y", "upgrade"], env=env,
+                                     capture_output=True, text=True).stdout
+                self.assertIn("--preserve-env=DEBIAN_FRONTEND", out)
+                self.assertIn("DF=noninteractive", out)
+            finally:
+                cleanup()

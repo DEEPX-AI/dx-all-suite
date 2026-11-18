@@ -341,7 +341,13 @@ class ModelZooHandler(DXBaseHandler):
             except json.JSONDecodeError as e:
                 return self.send_json({"ok": False, "error": f"Invalid JSON: {e}", "code": "PARSE_ERROR"}, 400)
 
-        if "/proxy/inference" in path:
+        if "/proxy/model-build" in path:
+            # Build C++ runner: the ONLY Setup job Model Zoo may start/read/stop (dx_app checks the step too).
+            tail = path.split("/proxy/model-build", 1)[1]
+            if tail not in ("", "/log", "/stop"):
+                return self.send_json({"ok": False, "error": "Unknown proxy target", "code": "INVALID_PARAM"}, 400)
+            target = "/api/setup/model-build" + tail
+        elif "/proxy/inference" in path:
             target = "/api/run"
         elif "/proxy/modelzoo/" in path:
             target = "/api/modelzoo/" + path.split("/proxy/modelzoo/")[1]

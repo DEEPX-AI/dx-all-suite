@@ -146,7 +146,7 @@ lspci | grep -i deepx
 
 ### 5.4 DX-M1 드라이버 및 런타임 설치
 
-DX-AllSuite [환경 설정](../../../docs/source/02_Setting_Up_Environment_kor.md) 가이드와 [DEEPX 기술 문서](https://developer.deepx.ai/tech-docs)를 따라 DEEPX NPU 드라이버(DKMS)와 DX-RT 런타임을 설치합니다. 설치 후 다음을 확인합니다.
+DX-AllSuite [환경 설정](https://developer.deepx.ai/tech-docs/ko/DX-AllSuite/Setting_Up_Environment/) 가이드와 [DEEPX 기술 문서](https://developer.deepx.ai/tech-docs)를 따라 DEEPX NPU 드라이버(DKMS)와 DX-RT 런타임을 설치합니다. 설치 후 다음을 확인합니다.
 
 ```bash
 lsmod | grep -E 'dxrt|dx_'        # expect dxrt_driver and dx_dma loaded
@@ -282,7 +282,7 @@ sudo tail -f /greengrass/v2/logs/com.example.HelloWorld.log
 
 자세한 내용은 온라인 문서 [AWS IoT Greengrass V2 문제 해결](https://docs.aws.amazon.com/greengrass/v2/developerguide/troubleshooting.html)을 참고합니다.
 
-디바이스 관련 지원이 필요하면 DEEPX에 tech_support@deepx.ai로 문의하거나 https://deepx.ai/contact-us/technical-support/ 를 방문합니다.
+For technical questions, please ask in the DEEPX Developer Community: https://community.deepx.ai/c/support/5
 
 ## 다음 단계 — DX-Edge로 DEEPX 런타임 배포하기
 

@@ -133,6 +133,7 @@ BROWSER_TESTS=(
   tests/shared/test_chat_settings_browser.py
   tests/dx_app/test_setup_steps_browser.py
   tests/dx_app/test_live_startup_errors_browser.py
+  tests/dx_app/test_setup_maintenance_browser.py
   tests/dx_stream/test_setup_steps_browser.py
   tests/dx_compiler/test_setup_steps_browser.py
   tests/dx_compiler/test_config_wizard_server_error_ko_browser.py
@@ -155,6 +156,7 @@ BROWSER_TESTS=(
   tests/dx_stream/test_demo_errors_browser.py
   tests/shared/test_icon_label_browser.py
   tests/launcher/test_sdk_library_module_nav_browser.py
+  tests/launcher/test_sdk_doc_links_browser.py
   tests/launcher/test_connected_browsers_browser.py
   tests/shared/test_i18n_placeholder_merge_browser.py
   tests/launcher/test_escape_layers_browser.py
@@ -182,6 +184,8 @@ BROWSER_TESTS=(
   tests/dx_planner/test_recommend_explain_browser.py
   tests/dx_modelzoo/test_model_card_export_browser.py
   tests/dx_modelzoo/test_model_card_layout_browser.py
+  tests/dx_modelzoo/test_cpp_build_browser.py
+  tests/dx_modelzoo/test_supported_hardware_browser.py
   tests/test_catalog_virtual_scroll_browser.py
   tests/test_iframe_lang_sync_browser.py
   tests/test_toolbar_reachable_when_narrow.py

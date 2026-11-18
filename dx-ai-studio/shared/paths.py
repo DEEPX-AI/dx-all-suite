@@ -2,6 +2,7 @@
 Env vars are honored; fallbacks derive from this file's location."""
 from __future__ import annotations  # PEP 563: keeps `X | None` hints valid on Python 3.8+
 import os
+import platform
 from pathlib import Path
 
 STUDIO_ROOT = Path(__file__).resolve().parent.parent          # dx-ai-studio/
@@ -42,3 +43,27 @@ def is_safe_path(target, roots) -> bool:
         except ValueError:
             continue
     return False
+
+
+_ARCH_ALIASES = {"arm64": "aarch64", "amd64": "x86_64"}
+_KNOWN_ARCHES = ("x86_64", "aarch64")
+
+
+def host_arch() -> str:
+    """This machine's CPU arch in dx_app build.sh terms (x86_64 | aarch64)."""
+    m = platform.machine().lower()
+    return _ARCH_ALIASES.get(m, m)
+
+
+def build_dir_candidates(dx_app_root) -> list:
+    """C++ runner dirs, host arch first: a leftover build of the other arch must not shadow ours."""
+    root = Path(dx_app_root)
+    host = host_arch()
+    arches = [host] + [a for a in _KNOWN_ARCHES if a != host]
+    return [root / f"build_{a}" / "src" / "cpp_example" for a in arches] + [root / "bin"]
+
+
+def pick_build_dir(dx_app_root) -> Path:
+    """First candidate that exists, else the host-arch source-build path (where build.sh will put it)."""
+    cands = build_dir_candidates(dx_app_root)
+    return next((d for d in cands if d.is_dir()), cands[0])

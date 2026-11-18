@@ -4,7 +4,7 @@ Prebuilt DEEPX All Suite images, published to GitHub Container Registry by
 [`.github/workflows/ghcr-release.yml`](../.github/workflows/ghcr-release.yml).
 Pull one instead of building the suite yourself.
 
-All images are based on **Ubuntu 24.04**.
+Published images are based on **Ubuntu 24.04**. To build locally, `--ubuntu_version` accepts 20.04, 22.04, 24.04 and 26.04 (see [Build locally instead](#build-locally-instead)).
 
 > Commands below target the upstream **DEEPX-AI** organization. The registry path is
 > written `deepx-ai` in lowercase because GHCR rejects uppercase repository names
@@ -113,7 +113,7 @@ docker run --rm \
 Expected output starts with `DXRT v…` and lists `Device 0: M1`, its RT/PCIe driver and FW
 versions, and per-NPU clock/temperature. If instead no device is listed, the host NPU driver
 is not loaded — see
-[FAQ / Troubleshooting](../docs/source/05_FAQ_Troubleshooting_Guide.md).
+[FAQ / Troubleshooting](https://developer.deepx.ai/tech-docs/DX-AllSuite/FAQ_Troubleshooting_Guide/).
 
 ### The default entrypoint is `dxrtd`
 
@@ -195,7 +195,7 @@ Inside the container, `dx_app` lives at `/deepx/dx-runtime/dx_app` (prebuilt bin
 > ```
 
 To fetch assets and run a first example, follow
-[Running Your First NPU Model](../docs/source/03_Running_Your_First_NPU_Model.md).
+[Running Your First NPU Model](https://developer.deepx.ai/tech-docs/DX-AllSuite/Running_Your_First_NPU_Model/).
 
 ## Run `dx-compiler`
 
@@ -249,7 +249,7 @@ in the compose file).
 > ownership. Building locally (see below) avoids the mismatch entirely.
 
 For compiler usage itself, see
-[Setting Up Environment](../docs/source/02_Setting_Up_Environment.md).
+[Setting Up Environment](https://developer.deepx.ai/tech-docs/DX-AllSuite/Setting_Up_Environment/).
 
 ## Run `dx-modelzoo`
 
@@ -321,7 +321,7 @@ Exit codes: `0` all checks passed, `1` a check failed or the image is not presen
 
 ## Related documentation
 
-- [Setting Up Environment](../docs/source/02_Setting_Up_Environment.md) — local and Docker installation
-- [Running Your First NPU Model](../docs/source/03_Running_Your_First_NPU_Model.md)
-- [Version Compatibility](../docs/source/04_Version_Compatibility.md) — SDK / driver / firmware matrix
-- [FAQ & Troubleshooting](../docs/source/05_FAQ_Troubleshooting_Guide.md) — X11 and environment conflicts
+- [Setting Up Environment](https://developer.deepx.ai/tech-docs/DX-AllSuite/Setting_Up_Environment/) — local and Docker installation
+- [Running Your First NPU Model](https://developer.deepx.ai/tech-docs/DX-AllSuite/Running_Your_First_NPU_Model/)
+- [Version Compatibility](https://developer.deepx.ai/tech-docs/DX-AllSuite/Version_Compatibility/) — SDK / driver / firmware matrix
+- [FAQ & Troubleshooting](https://developer.deepx.ai/tech-docs/DX-AllSuite/FAQ_Troubleshooting_Guide/) — X11 and environment conflicts

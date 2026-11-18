@@ -167,6 +167,25 @@
     box.scrollIntoView({ block: 'center' });
   }
 
+  // Execution path + Build C++ runner exist only for some models → inject a preview into the real panel.
+  function _mockExecPath() {
+    var panel = document.querySelector('#inferencePanel');
+    if (panel) { var det = panel.closest('details'); if (det) det.open = true; }
+    if (!panel) return;
+    var old = document.getElementById('dxt-mock-exec');
+    if (old) old.remove();
+    var box = document.createElement('div');
+    box.id = 'dxt-mock-exec';
+    box.innerHTML = '<div class="mz-exec-path-row"><label class="mz-exec-path-label">' + _mzIco('gear') + ' ' + T('Execution path') +
+      '</label><select class="mz-exec-select" disabled><option>C++ · Sync</option><option>Python · Sync</option></select></div>' +
+      '<div class="mz-cpp-build"><span class="mz-cpp-build-msg">' + _mzIco('info') + ' ' +
+      T('C++ runner not built for this model. C++ is usually faster than Python.') + '</span>' +
+      '<button class="mz-btn mz-btn-outline" disabled>' + _mzIco('wrench') + ' ' + T('Build C++ runner') + '</button></div>';
+    var first = panel.firstElementChild;
+    if (first && first.nextSibling) panel.insertBefore(box, first.nextSibling); else panel.appendChild(box);
+    box.scrollIntoView({ block: 'center' });
+  }
+
   var sections = [
 
     { id: 'topbar', icon: 'menu',
@@ -387,6 +406,16 @@
             if (d) { var det = d.closest('details'); if (det) det.open = true; }
             pollFor('#inferenceUploadTrigger', 30);
           } },
+        { target: '#dxt-mock-exec', position: 'bottom',
+          title: { ko: '실행 경로와 C++ runner 빌드', en: 'Execution path & Build C++ runner', ja: '実行パスと C++ runner のビルド', 'zh-CN': '执行路径与构建 C++ runner', 'zh-TW': '執行路徑與建置 C++ runner', es: 'Ruta de ejecución y compilar runner C++' },
+          content: {
+            ko: '<strong>{{i:gear}} Execution path</strong>에서 C++ / Python × Sync / Async 중 이 모델에 실제로 있는 경로를 고릅니다. C++ 예제는 있지만 아직 빌드되지 않은 모델에는 <strong>{{i:wrench}} Build C++ runner</strong>가 보입니다 — 이 모델만 빌드하고, 끝나면 C++ · Sync가 자동으로 선택됩니다.',
+            en: 'Pick, under <strong>{{i:gear}} Execution path</strong>, one of the C++ / Python × Sync / Async paths this model really has. A model with a C++ example that is not built yet shows <strong>{{i:wrench}} Build C++ runner</strong> — it builds just this model and selects C++ · Sync when done.',
+            ja: '<strong>{{i:gear}} Execution path</strong> で、このモデルに実際にある C++ / Python × Sync / Async のパスを選びます。C++ の例はあるがまだビルドされていないモデルには <strong>{{i:wrench}} Build C++ runner</strong> が表示され、このモデルだけをビルドし、完了すると C++ · Sync が自動で選択されます。',
+            'zh-CN': '在 <strong>{{i:gear}} Execution path</strong> 中选择此模型实际具备的 C++ / Python × Sync / Async 路径。有 C++ 示例但尚未构建的模型会显示 <strong>{{i:wrench}} Build C++ runner</strong>——仅构建此模型，完成后自动选择 C++ · Sync。',
+            'zh-TW': '在 <strong>{{i:gear}} Execution path</strong> 中選擇此模型實際具備的 C++ / Python × Sync / Async 路徑。有 C++ 範例但尚未建置的模型會顯示 <strong>{{i:wrench}} Build C++ runner</strong>——僅建置此模型，完成後自動選擇 C++ · Sync。',
+            es: 'En <strong>{{i:gear}} Execution path</strong> elija una de las rutas C++ / Python × Sync / Async que este modelo tiene de verdad. Un modelo con ejemplo C++ aún sin compilar muestra <strong>{{i:wrench}} Build C++ runner</strong>: compila solo este modelo y, al terminar, selecciona C++ · Sync.' },
+          beforeStep: function () { _mockExecPath(); } },
         { target: '#btnRunDefault', position: 'bottom',
           title: { ko: '기본 이미지 실행', en: 'Use Default Image', ja: 'デフォルト画像使用', 'zh-CN': '使用默认图像', 'zh-TW': '使用預設影像', es: 'Usar imagen predeterminada' },
           content: { ko: '<strong>{{i:play}} Use Default</strong> 버튼을 클릭하면 모델에 포함된 <strong>기본 샘플 이미지</strong>로 즉시 추론을 실행합니다.', en: 'Click <strong>{{i:play}} Use Default</strong> to instantly run inference with the model\'s <strong>built-in sample image</strong>.', ja: '<strong>{{i:play}} Use Default</strong>ボタンをクリックすると、モデルに含まれる<strong>デフォルトサンプル画像</strong>で即座に推論を実行します。', 'zh-CN': '点击<strong>{{i:play}} Use Default</strong>使用模型的<strong>内置样本图像</strong>立即运行推理。', 'zh-TW': '點擊<strong>{{i:play}} Use Default</strong>使用模型的<strong>內建範例影像</strong>立即執行推論。', es: 'Haga clic en <strong>{{i:play}} Use Default</strong> para ejecutar inferencia al instante con la <strong>imagen de muestra integrada</strong> del modelo.' },
@@ -418,6 +447,13 @@
       });
     });
   })();
+
+  // The Execution-path preview is built with T(); rebuild it in the new language if it is on screen.
+  if (typeof registerModelZooLangRefresher === 'function') {
+    registerModelZooLangRefresher(function () {
+      if (document.getElementById('dxt-mock-exec')) _mockExecPath();
+    });
+  }
 
   window.DXTutorial.create({
     appId: 'modelzoo',

@@ -449,6 +449,9 @@ class Handler(DXBaseHandler):
             if path=="/api/setup/quick-start-plan":return self.send_json({"plan":quick_start_plan()})
             if path=="/api/setup/log":return self.send_json(setup_log())
             if path=="/api/setup/diagnostics":return self.send_json(deep_diagnostics())
+            if path=="/api/setup/model-build/log":
+                from dx_app.core.setup_steps import model_build_log
+                return self.send_json(model_build_log())
             if path=="/api/modelzoo/list":return self.send_json(_modelzoo_gw.list_models(self.read_query_param("source","public")))
             if path=="/api/modelzoo/status":return self.send_json(_modelzoo_gw.status())
             if path=="/api/fs/list":
@@ -786,6 +789,18 @@ class Handler(DXBaseHandler):
             if path=="/api/setup/run":
                 debug_log.log_action("dx_app", "setup_run", data)
                 return self.send_json(setup_run(data.get("step",""),data))
+
+            if path=="/api/setup/model-build":
+                # Model Zoo's Build C++ runner: only these three fields reach the step (targets are whitelisted there).
+                from dx_app.core.setup_steps import setup_run as _setup_run_model
+                return self.send_json(_setup_run_model("model-build",
+                    {k:data.get(k,"") for k in ("model_name","category","model_file")}))
+            if path=="/api/setup/sanity":
+                from dx_app.core.setup_steps import npu_sanity
+                return self.send_json(npu_sanity(data.get("password") or None))
+            if path=="/api/setup/model-build/stop":
+                from dx_app.core.setup_steps import model_build_stop
+                return self.send_json(model_build_stop())
 
             if path=="/api/setup/input":
                 return self.send_json(setup_input(data.get("text","")))

@@ -80,13 +80,14 @@ def test_studio_enrichment_adapter_fills_curated_gaps():
     assert deit["artifacts.onnx.remote_url"].endswith("deit-b_384x384_distilled.onnx")
 
 
-def test_local_studio_catalog_sets_processor_from_dx_app_baseline():
+def test_local_studio_catalog_leaves_supported_devices_to_the_rule():
+    """Supported products come from dx-modelzoo YAML via metadata/devices.py, never an adapter default."""
     from dx_modelzoo.metadata.adapters import local_studio_catalog_adapter
 
     result = local_studio_catalog_adapter(SUITE_ROOT)
     assert result["ok"] is True
     sample = next(iter(result["models"].values()))
-    assert sample["processor.supported_devices"] == ["dx_m1"]
+    assert "processor.supported_devices" not in sample
 
 
 def test_internal_gap_fill_does_not_clobber_existing_public_qpro():
