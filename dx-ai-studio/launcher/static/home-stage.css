@@ -550,7 +550,9 @@
   grid-row: 2;
   display: inline-flex;
   align-items: center;
-  gap: var(--sp-2);
+  /* 4px icon gap, and 4px side padding on the borderless links (below), leave spare room on the links row (en 1440,
+     es 1280). At 8px / 8px it had ~11px, and a browser drawing text a few % wider wrapped it (test_home_bar_browser). */
+  gap: var(--sp-1);
   padding: var(--sp-1) var(--sp-3);
   border: 1px solid transparent;
   border-radius: var(--radius-pill);
@@ -558,8 +560,8 @@
   transition: color var(--dur) var(--ap-ease), box-shadow var(--dur) var(--ap-ease),
               border-color var(--dur) var(--ap-ease);
 }
-/* The five borderless links only need side padding as hit area, so keep it narrow — en fits on one line. */
-#homeBar .deepx-link:not(.is-primary) .bar-line { padding-inline: var(--sp-2); }
+/* The five borderless links only need side padding as hit area, so keep it narrow (4px) — en fits on one line. */
+#homeBar .deepx-link:not(.is-primary) .bar-line { padding-inline: var(--sp-1); }
 #homeBar .deepx-link.is-primary .bar-line {
   color: var(--text-primary);
   border-color: color-mix(in srgb, var(--text-primary) 18%, transparent);

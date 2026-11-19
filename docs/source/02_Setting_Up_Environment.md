@@ -458,8 +458,8 @@ Run the container after the image build is complete.
 ```
 
 !!! warning "Note on GUI Environments"  
-    If you encounter X11 warnings or mount errors (e.g., cannot open display), it is likely due to the host OS using a **Wayland** session. Refer to **Q2. X11 Session Warnings & Mount Errors (Wayland Issues)** in [**FAQ Troubleshooting Guide**](05_FAQ_Troubleshooting_Guide.md#q2-x11-session-warnings-mount-errors-wayland-issues).  
-
+    If you encounter X11 warnings or mount errors (e.g., cannot open display), it is likely due to the host OS using a **Wayland** session. Refer to **Q2. X11 Session Warnings & Mount Errors (Wayland Issues)** in [**FAQ Troubleshooting Guide**](05_FAQ_Troubleshooting_Guide.md#q2-x11-session-warnings--mount-errors-wayland-issues).  
+    
 ### GPU Acceleration Options (Optional)
 
 Docker images can optionally be built with GPU acceleration. The two options serve **different purposes and different containers**, and are mutually exclusive (Ubuntu only):

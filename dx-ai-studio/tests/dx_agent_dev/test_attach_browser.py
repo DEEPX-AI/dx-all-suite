@@ -67,3 +67,32 @@ def test_the_module_draws_a_run_it_did_not_start(agent, browser):
         assert page.locator("#console-output .chat-turn").count() == 1
     finally:
         ctx.close()
+
+
+def test_an_open_console_picks_up_a_run_when_it_is_shown_again(agent, browser):
+    """The launcher keeps module iframes alive, so Agent Dev opened earlier is not loaded again.
+
+    Opened before a run started on home (or in Auto Compile), it read the status once, found nothing, and
+    showed nothing when the user came back to it. Being shown again (`dx-module-shown` from the launcher)
+    must attach to the run that is going.
+    """
+    ctx = browser.new_context(viewport={"width": 1440, "height": 900})
+    ctx.add_init_script("try{localStorage.setItem('dx-tutorial-mode','off')}catch(e){}")
+    page = ctx.new_page()
+    try:
+        page.goto(f"http://127.0.0.1:{agent}/", wait_until="domcontentloaded")
+        page.wait_for_function("document.querySelector('#console-badge, .status-badge') !== null", timeout=10000)
+        page.wait_for_timeout(1500)
+        assert page.locator("#console-output .chat-turn").count() == 0
+
+        _start_run_elsewhere(agent, "make a squat game")
+        page.evaluate("window.postMessage({type: 'dx-module-shown'}, '*')")
+        page.wait_for_selector("#console-output .chat-turn", timeout=10000)
+        assert page.inner_text("#console-output .chat-turn .user-line") == "make a squat game"
+
+        # Shown again while it is already drawing that run: no second copy.
+        page.evaluate("window.postMessage({type: 'dx-module-shown'}, '*')")
+        page.wait_for_timeout(1500)
+        assert page.locator("#console-output .chat-turn").count() == 1
+    finally:
+        ctx.close()

@@ -936,6 +936,20 @@
     }
   }
 
+  /* The launcher keeps this page alive between visits, so it is not loaded again when the user comes back.
+     A run started meanwhile on home or in Auto Compile would never be seen: look again each time it is shown. */
+  async function attachOnShow() {
+    if (_running) return;
+    let st;
+    try { st = await api('/api/agent/status'); } catch (e) { return; }
+    if (st && st.available && st.run_id && !st.run_done) attachIfRunning(st);
+  }
+
+  window.addEventListener('message', function (e) {
+    if (e.source !== window.parent && e.source !== window) return;
+    if (e.data && e.data.type === 'dx-module-shown') attachOnShow();
+  });
+
   function relocalizeOpenTurns() {
     const root = out();
     if (!root) return;

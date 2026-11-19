@@ -49,7 +49,8 @@ Studio 는 `./launcher.sh` 가 출력하는 주소 한 곳에서 연다 (기본 
 - **Vision**: Ultralytics (YOLO Series), CVEDIA
 - **VMS & Security**: Network Optix (Nx), VCA
 - **Embedded OS**: Wind River (VxWorks)
-- **기술 지원**: tech-support@deepx.ai / https://developer.deepx.ai
+- For technical questions, please ask in the DEEPX Developer Community: https://community.deepx.ai/c/support/5
+- DEEPX Developer Portal: https://developer.deepx.ai
 
 ## [section:install,setup,driver,환경] 설치 및 환경 설정
 
@@ -155,8 +156,12 @@ lsmod | grep dxrt           # dxrt_driver, dx_dma 모듈 로드 확인
 ### 지원 디바이스
 | NPU | 타입 | 인터페이스 | INT8 성능 | 특징 |
 |-----|------|-----------|-----------|------|
-| DX-M1 | AI Accelerator | M.2 (PCIe Gen3 x4) | 25 TOPS | 단일칩, 저전력(약 5W TDP), 엣지 디바이스용 |
-| DX-H1 Quattro | AI Accelerator | PCIe Gen3 x16 (4×4 bifurcation) | 100 TOPS | 4-NPU 멀티칩, 고성능 서버/엣지 |
+| DX-M1 | AI Accelerator | M.2 (PCIe Gen3 x4) | 25 TOPS | 단일칩, 저전력(약 5W TDP), 엣지 디바이스용. NPU memory 3.92 GiB (LPDDR5) |
+| DX-M1M | AI Accelerator | M.2 2242 (PCIe Gen3 x4) | 25 TOPS | M1과 같은 NPU core, 약 3W. NPU memory 1.92 GiB (LPDDR4) — 큰 model은 안 들어갈 수 있음 |
+| DX-H1 Quattro | AI Accelerator | PCIe Gen3 x16 (4×4 bifurcation) | 100 TOPS | M1 chip 4개(chip당 3.92 GiB LPDDR5x), 고성능 서버/엣지. M1에서 도는 model은 그대로 돈다 |
+
+- Model Zoo 상세 → Specification → **Supported hardware**: DX-M1 · DX-H1 Quattro. DX-M1M 지원 여부는 model별로
+  DX Model Zoo가 기록하면 표시된다 (그 전에는 "아직 확인되지 않음").
 
 ### NPU 모니터링 (`dxrt-cli`)
 - `dxrt-cli -s`: NPU 상태 요약 (온도, 전압, 클럭, DRAM 사용량)

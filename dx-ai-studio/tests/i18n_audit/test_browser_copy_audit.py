@@ -44,7 +44,7 @@ def artifact_root() -> Path:
     return p
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")   # a session-scoped Playwright stays started and breaks every later file
 def browser(artifact_root):
     from playwright.sync_api import sync_playwright
 

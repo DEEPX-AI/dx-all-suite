@@ -2059,12 +2059,13 @@ window._DX_I18N_DICT = {
     'zh-CN': '缺少实时运行所需的软件包', 'zh-TW': '缺少即時執行所需的套件',
     es: 'Faltan paquetes necesarios para la ejecución en vivo',
   },
+  // Python Inference Deps is not a visible Setup card; Demo Quick Start / Set up the rest re-run it.
   'media_runtime_unavailable': {
-    ko: 'OpenCV 환경을 사용할 수 없습니다. Setup에서 Python Inference Deps를 확인하세요',
-    ja: 'OpenCV 環境を利用できません。Setup で Python Inference Deps を確認してください',
-    'zh-CN': 'OpenCV 环境不可用。请在 Setup 中检查 Python Inference Deps',
-    'zh-TW': 'OpenCV 環境無法使用。請在 Setup 中檢查 Python Inference Deps',
-    es: 'El entorno OpenCV no está disponible. Revise Python Inference Deps en Setup',
+    ko: 'OpenCV 환경을 사용할 수 없습니다. Setup에서 Demo Quick Start(또는 Set up the rest)를 다시 실행하세요',
+    ja: 'OpenCV 環境を利用できません。Setup で Demo Quick Start（または Set up the rest）をもう一度実行してください',
+    'zh-CN': 'OpenCV 环境不可用。请在 Setup 中再次运行 Demo Quick Start（或 Set up the rest）',
+    'zh-TW': 'OpenCV 環境無法使用。請在 Setup 中再次執行 Demo Quick Start（或 Set up the rest）',
+    es: 'El entorno OpenCV no está disponible. Vuelva a ejecutar Demo Quick Start (o Set up the rest) en Setup',
   },
   'live_runner_failed': {
     ko: '예제가 스스로 끝났습니다', ja: 'サンプルが自ら終了しました',
@@ -2508,6 +2509,25 @@ window._DX_I18N_DICT = {
     es: 'Conversor ONNX→.dxnn. Requiere cuenta de DEEPX Developers Portal →',
   },
   'Deep Diagnostics': { ko: '심층 진단', ja: '詳細診断', 'zh-CN': '深度诊断', 'zh-TW': '深度診斷',es:'Diagnóstico profundo'},
+  // Setup → Maintenance card
+  'End-to-end FPS including the host CPU tail (ONNX Runtime ON)': { ko: '호스트 CPU 후처리까지 포함한 end-to-end FPS (ONNX Runtime ON)', ja: 'ホスト CPU の後段処理を含む end-to-end FPS（ONNX Runtime ON）', 'zh-CN': '包含主机 CPU 尾部处理的端到端 FPS（ONNX Runtime ON）', 'zh-TW': '包含主機 CPU 尾端處理的端對端 FPS（ONNX Runtime ON）', es: 'FPS de extremo a extremo con el tramo final en la CPU del host (ONNX Runtime ON)' },
+  'End-to-end FPS per watt including the host CPU tail (ONNX Runtime ON)': { ko: '호스트 CPU 후처리까지 포함한 와트당 end-to-end FPS (ONNX Runtime ON)', ja: 'ホスト CPU の後段処理を含むワットあたり end-to-end FPS（ONNX Runtime ON）', 'zh-CN': '包含主机 CPU 尾部处理的每瓦端到端 FPS（ONNX Runtime ON）', 'zh-TW': '包含主機 CPU 尾端處理的每瓦端對端 FPS（ONNX Runtime ON）', es: 'FPS por vatio de extremo a extremo con el tramo final en la CPU del host (ONNX Runtime ON)' },
+  'Clean C++ build': { ko: 'C++ 빌드 초기화', ja: 'C++ ビルドのクリーン', 'zh-CN': '清理 C++ 构建', 'zh-TW': '清理 C++ 建置', es: 'Compilación C++ limpia' },
+  'Clean build': { ko: '빌드 초기화', ja: 'クリーンビルド', 'zh-CN': '清理构建', 'zh-TW': '清理建置', es: 'Compilar desde cero' },
+  'Reset runtime and reinstall': { ko: '런타임 초기화 후 재설치', ja: 'ランタイムをリセットして再インストール', 'zh-CN': '重置运行时并重新安装', 'zh-TW': '重設執行階段並重新安裝', es: 'Restablecer el runtime y reinstalar' },
+  'Reset and reinstall': { ko: '초기화 후 재설치', ja: 'リセットして再インストール', 'zh-CN': '重置并重新安装', 'zh-TW': '重設並重新安裝', es: 'Restablecer y reinstalar' },
+  'Deletes the C++ build folders (build_*, bin/) and rebuilds the demo runners for this machine.': {
+    ko: 'C++ 빌드 폴더(build_*, bin/)를 지우고 이 기기용 데모 runner를 다시 빌드합니다.',
+    ja: 'C++ ビルドフォルダ（build_*、bin/）を削除し、このマシン用のデモ runner を再ビルドします。',
+    'zh-CN': '删除 C++ 构建目录（build_*、bin/），并为本机重新构建演示 runner。',
+    'zh-TW': '刪除 C++ 建置資料夾（build_*、bin/），並為本機重新建置示範 runner。',
+    es: 'Elimina las carpetas de compilación C++ (build_*, bin/) y vuelve a compilar los runners de demostración para este equipo.' },
+  'Removes DX-RT, the NPU driver, the Python venvs and the C++ builds, then runs Demo Quick Start. Downloaded models and videos are kept.': {
+    ko: 'DX-RT, NPU driver, Python venv, C++ 빌드를 지운 뒤 Demo Quick Start를 실행합니다. 다운로드한 모델과 영상은 유지됩니다.',
+    ja: 'DX-RT、NPU ドライバ、Python venv、C++ ビルドを削除してから Demo Quick Start を実行します。ダウンロード済みのモデルと動画は残ります。',
+    'zh-CN': '删除 DX-RT、NPU 驱动、Python venv 和 C++ 构建后运行 Demo Quick Start。已下载的模型和视频会保留。',
+    'zh-TW': '刪除 DX-RT、NPU 驅動、Python venv 與 C++ 建置後執行 Demo Quick Start。已下載的模型與影片會保留。',
+    es: 'Elimina DX-RT, el controlador de la NPU, los venv de Python y las compilaciones C++, y luego ejecuta Demo Quick Start. Se conservan los modelos y vídeos descargados.' },
   'Run Diagnostics': { ko: '진단 실행', ja: '診断実行', 'zh-CN': '运行诊断', 'zh-TW': '執行診斷',es:'Ejecutar diagnóstico'},
   'Comprehensive system health check: PCIe link, kernel modules, DKMS, services, CLI tools, Python venv, disk, memory, model integrity.': {
     ko: '시스템 종합 진단: PCIe 링크, 커널 모듈, DKMS, 서비스, CLI 도구, Python 가상환경, 디스크, 메모리, 모델 무결성.',
@@ -7221,12 +7241,12 @@ window._DX_I18N_PLACEHOLDERS = {
   'Open in new tab': {ko:'새 탭에서 열기',ja:'新しいタブで開く',es:'Abrir en nueva pestaña','zh-CN':'在新标签页中打开','zh-TW':'在新分頁中開啟'},
   'View pipeline reference table': {ko:'파이프라인 레퍼런스 테이블 보기',ja:'パイプライン参照テーブルを表示',es:'Ver tabla de referencia del pipeline','zh-CN':'查看流水线参考表','zh-TW':'檢視管線參考表'},
   'File browser': {ko:'파일 탐색기',ja:'ファイルブラウザ',es:'Explorador de archivos','zh-CN':'文件浏览器','zh-TW':'檔案瀏覽器'},
-  'Check that dx_engine is running. Real inference is not available in Mock mode.': {
-    ko: 'dx_engine이 실행 중인지 확인해주세요. (Mock 모드에서는 실제 추론이 불가능합니다)',
-    ja: 'dx_engineが実行中か確認してください。(Mockモードでは実際の推論はできません)',
-    'zh-CN': '请确认dx_engine正在运行。(Mock模式下无法进行实际推理)',
-    'zh-TW': '請確認dx_engine正在執行。(Mock模式下無法進行實際推論)',
-    es: 'Verifique que dx_engine esté en ejecución. La inferencia real no está disponible en modo Mock.',
+  'Check that the NPU runtime (dx_engine) is ready: Setup → Deep Diagnostics.': {
+    ko: 'NPU 런타임(dx_engine)이 준비되었는지 확인해주세요: 설치 → 심층 진단.',
+    ja: 'NPU ランタイム(dx_engine)の準備ができているか確認してください: セットアップ → 詳細診断。',
+    'zh-CN': '请确认 NPU 运行时（dx_engine）已就绪：安装 → 深度诊断。',
+    'zh-TW': '請確認 NPU 執行階段（dx_engine）已就緒：安裝 → 深度診斷。',
+    es: 'Verifique que el runtime de la NPU (dx_engine) esté listo: Instalación → Diagnóstico profundo.',
   },
   'Check the model file or executable path.': {
     ko: '모델 파일 또는 실행파일 경로를 확인해주세요.',

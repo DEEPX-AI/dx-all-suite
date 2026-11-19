@@ -1054,3 +1054,12 @@ html[lang="zh-TW"] .zh-CN{display:none!important}
 #page-setup .comp-section .flex.between{flex-wrap:wrap;gap:var(--sp-2)}
 .dev-tabs{overflow-x:auto}
 .dev-tab{flex-shrink:0}
+
+/* Setup → Maintenance (collapsed card) and the pending NPU sanity row */
+.setup-maint>summary{cursor:pointer;list-style:none;display:flex;align-items:center}
+.setup-maint>summary::-webkit-details-marker{display:none}
+.setup-maint>summary h2{margin:0}
+.setup-maint-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--border-subtle);flex-wrap:wrap}
+.setup-maint-row:first-of-type{margin-top:12px}
+.setup-maint-row p{margin:4px 0 0}
+.diag-card-pending{border-style:dashed}

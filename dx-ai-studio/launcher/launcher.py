@@ -1224,7 +1224,11 @@ class LauncherHandler(DXBaseHandler):
             def _rewrite(txt, from_dir, to_dir):
                 txt = _re.sub(r'!\[([^\]]*)\]\(([^)]+)\)',
                               lambda m: '![%s](%s)' % (m.group(1), _fix_url(m.group(2), from_dir, to_dir)), txt)
-                txt = _re.sub(r'(<img\b[^>]*?\bsrc\s*=\s*["\'])([^"\']+)(["\'])',
+                # HTML sources and links both move with the included file (the showcase catalog's cards are
+                # `<a href="./x/README.md"><img src="…"></a>`; only the image used to be rebased).
+                txt = _re.sub(r'(<(?:img|source|video)\b[^>]*?\bsrc\s*=\s*["\'])([^"\']+)(["\'])',
+                              lambda m: m.group(1) + _fix_url(m.group(2), from_dir, to_dir) + m.group(3), txt, flags=_re.I)
+                txt = _re.sub(r'(<a\b[^>]*?\bhref\s*=\s*["\'])([^"\']+)(["\'])',
                               lambda m: m.group(1) + _fix_url(m.group(2), from_dir, to_dir) + m.group(3), txt, flags=_re.I)
                 txt = _re.sub(r'(?<!\!)\[([^\]]+)\]\(([^)]+)\)',
                               lambda m: '[%s](%s)' % (m.group(1), _fix_url(m.group(2), from_dir, to_dir)), txt)

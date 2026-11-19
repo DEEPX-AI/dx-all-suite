@@ -182,6 +182,7 @@ def ensure_inference_venv(log=None) -> str | None:
 
     venv_py = STUDIO_INFER_VENV / "bin" / "python3"
     if venv_py.is_file() and _has_numpy_cv2_dxengine(str(venv_py)):
+        sync_dx_postprocess(str(venv_py), _say)   # a build after the venv was made (optional module)
         return str(venv_py)
 
     # Pick a seed interpreter for the isolated venv. Two ways to get a known-good dx_engine into
@@ -243,6 +244,7 @@ def ensure_inference_venv(log=None) -> str | None:
         return None
 
     if _has_numpy_cv2_dxengine(str(venv_py)):
+        sync_dx_postprocess(str(venv_py), _say)   # optional: the *_cpp_postprocess paths need it
         _say("Inference venv ready: " + str(venv_py))
         return str(venv_py)
     _say("Inference venv still missing numpy/cv2/dx_engine after install.")
@@ -329,6 +331,68 @@ def _install_working_dx_engine(target_py: str, seed_py: str, say) -> bool:
     if _copy_dx_engine_from(seed_py, target_py, say):
         return True
     say("Could not install a working dx_engine into the inference venv.")
+    return False
+
+
+def _imports(python: str, module: str) -> bool:
+    try:
+        return subprocess.run([python, "-c", f"import {module}"], capture_output=True, timeout=30).returncode == 0
+    except (OSError, subprocess.SubprocessError):
+        return False
+
+
+def sync_dx_postprocess(target_py: str, say=None, candidates=None) -> bool:
+    """Make dx_postprocess (dx_app's C++ postprocess binding) importable in the isolated inference venv.
+
+    dx_app's build.sh pip-installs it into whatever python3 it runs with — from Studio's Setup that is
+    the system python (~/.local) — which venv-dx-studio-infer cannot see, so every *_cpp_postprocess
+    execution path failed with "No module named 'dx_postprocess'". Copy an install that imports in an
+    ABI-matching interpreter (same idea as _copy_dx_engine_from) and keep it only if the venv can
+    import it. The module is optional: no build anywhere → False, quietly. Never touches dx-runtime."""
+    say = say or (lambda _m: None)
+    if _imports(target_py, "dx_postprocess"):
+        return True
+    if candidates is None:
+        candidates = [root / "bin" / "python3" for root in runtime_venv_roots()] + [shutil.which("python3")]
+    tag = _abi_tag(target_py)
+    try:
+        dest = Path(subprocess.run(
+            [target_py, "-c", "import sysconfig; print(sysconfig.get_paths()['purelib'])"],
+            capture_output=True, text=True, timeout=15).stdout.strip())
+    except (OSError, subprocess.SubprocessError):
+        return False
+    if not dest.is_dir():
+        return False
+    for py in dict.fromkeys(str(c) for c in candidates if c):
+        if py == target_py or not Path(py).is_file() or _abi_tag(py) != tag:
+            continue
+        try:
+            out = subprocess.run(
+                [py, "-c", "import dx_postprocess, os; print(os.path.abspath(dx_postprocess.__file__))"],
+                capture_output=True, text=True, timeout=30)
+        except (OSError, subprocess.SubprocessError):
+            continue
+        src = Path(out.stdout.strip()) if out.returncode == 0 else None
+        if not src or not src.is_file():
+            continue
+        package = src.name == "__init__.py"
+        copied = dest / ("dx_postprocess" if package else src.name)
+        try:
+            if package:
+                shutil.copytree(src.parent, copied, dirs_exist_ok=True)
+            else:
+                shutil.copy2(src, copied)
+        except OSError as exc:
+            say(f"dx_postprocess copy failed: {exc}")
+            continue
+        if _imports(target_py, "dx_postprocess"):
+            say(f"dx_postprocess installed into the inference venv (from {src})")
+            return True
+        if package:
+            shutil.rmtree(copied, ignore_errors=True)
+        else:
+            copied.unlink(missing_ok=True)
+        say(f"dx_postprocess from {src} does not import in the inference venv — skipped")
     return False
 
 

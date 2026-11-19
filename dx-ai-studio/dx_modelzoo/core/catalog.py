@@ -12,6 +12,7 @@ from dx_modelzoo.core.config import (CATALOG_FILE, CONFIG_FILE, CATEGORIES, EXAM
                          DX_APP_ROOT, MODELS_DIR, CPP_DIR, PY_DIR, BUILD_DIR, DATA_DIR,
                          SAMPLE_IMAGES, MODEL_IMAGE_OVERRIDE, SAMPLE_IMG_DIR)
 from dx_modelzoo.core.postprocessor_paths import resolve_postprocessor_path
+from dx_modelzoo.metadata.devices import upgrade_processor
 from shared.catalog_sources import parse_test_models_conf as _shared_parse_test_models_conf
 
 
@@ -323,6 +324,7 @@ def merge_conf_and_catalog(conf_models, catalog_data):
             "demo": _build_demo_info(cm["id"], cm["category"], cm.get("model_file", ""),
                                      _representative_input(cm["id"], cm["category"])),
             "variants": _detect_inference_variants(cm["id"], cm["category"], cm.get("model_file", "")),
+            "cpp_buildable": _cpp_buildable(cm["id"], cm["category"], cm.get("model_file", "")),
             "legal": {},
             "thumbnail": f"thumbnails/{cm['id']}.jpg",
             "example_images": {
@@ -553,6 +555,17 @@ _PY_VARIANTS = ("sync", "async", "sync_cpp_postprocess", "async_cpp_postprocess"
 _CPP_VARIANTS = ("sync", "async")
 
 
+def _cpp_buildable(model_id, category, model_file=""):
+    """The example has a C++ source but no runner in BUILD_DIR → Model Zoo can build just this model
+    (Setup step model-build, build.sh --target). Demo Quick Start builds only the demo runners."""
+    if not DX_APP_ROOT.exists():
+        return False
+    from shared import dx_app_layout as _layout
+    name = _layout.example_name(DX_APP_ROOT, category, model_id, model_file or "")
+    return (_layout.cpp_source(DX_APP_ROOT, category, name, "sync").is_file()
+            and not _layout.cpp_binary(BUILD_DIR, name, "sync").exists())
+
+
 def _detect_inference_variants(model_id, category, model_file=""):
     """Detect which (lang, variant) execution paths actually exist for a model.
 
@@ -766,17 +779,42 @@ def _refresh_download_flags(catalog):
         m["downloaded_qpro"] = _model_on_disk(m.get("model_file_qpro"))
 
 
+_variants_sig = None
+
+
+def _build_signature():
+    """Which C++ runners exist changes only when the build dir does (build.sh adds files to it)."""
+    try:
+        return (str(BUILD_DIR), BUILD_DIR.stat().st_mtime_ns)
+    except OSError:
+        return (str(BUILD_DIR), None)
+
+
+def _refresh_variants(catalog):
+    """`variants` were detected once at load, so runners built later (Setup → DX-APP Build) stayed hidden and
+    Use Default took the Python path until dx_modelzoo restarted."""
+    for m in (catalog or {}).get("models", []):
+        if "variants" in m:
+            m["variants"] = _detect_inference_variants(m.get("id"), m.get("category"), m.get("model_file", ""))
+            m["cpp_buildable"] = _cpp_buildable(m.get("id"), m.get("category"), m.get("model_file", ""))
+
+
 def get_catalog():
     """Return the cached catalog, loading it if needed. The RLock prevents concurrent reloads; download flags are
-    re-checked every 2 seconds."""
-    global _catalog_cache, _flags_checked_at
+    re-checked every 2 seconds, and the execution paths (`variants`) whenever the C++ build dir changed."""
+    global _catalog_cache, _flags_checked_at, _variants_sig
     with _catalog_lock:
         if _catalog_cache is None:
             reload_catalog()  # the RLock is re-entrant — safe from the same thread
+            _variants_sig = _build_signature()
         now = time.time()
         if now - _flags_checked_at >= _FLAGS_TTL_S:
             _flags_checked_at = now
             _refresh_download_flags(_catalog_cache)
+            sig = _build_signature()
+            if sig != _variants_sig:
+                _variants_sig = sig
+                _refresh_variants(_catalog_cache)
         return _catalog_cache
 
 
@@ -842,15 +880,10 @@ def reload_catalog():
         # Models that exist only on the publish page (new models from the dx_app per-model layout) are listed too,
         # not just used for enrichment — but only for known tasks.
         merged.extend(_generated_only_models(generated, used, metadata_source))
-        # Ensure default processor/specification (for models absent from the generated catalog)
-        for model in merged:
-            model.setdefault("processor", {"supported_devices": [], "status": "metadata_pending"})
-            model.setdefault("specification", {})
-    else:
-        # Ensure default processor/specification even without a generated catalog
-        for model in merged:
-            model.setdefault("processor", {"supported_devices": [], "status": "metadata_pending"})
-            model.setdefault("specification", {})
+    for model in merged:
+        # Supported products by one rule (devices.py) — also upgrades older generated catalogs' ["dx_m1"].
+        model["processor"] = upgrade_processor(model.get("processor"))
+        model.setdefault("specification", {})
 
     for model in merged:
         _enrich_legal(model)

@@ -2,6 +2,7 @@
 
 from datetime import datetime, timezone
 
+from dx_modelzoo.metadata.devices import processor_info
 from dx_modelzoo.metadata.normalization import normalize_source_value
 from shared.tasks import runtime_key
 from dx_modelzoo.metadata.schema import SCHEMA_VERSION, ARTIFACT_IDS
@@ -171,16 +172,8 @@ def _build_structured_model(mid, flat, prov):
     if artifacts:
         model["artifacts"] = artifacts
 
-    processor_devices = []
-    for k, v in flat.items():
-        if k.startswith("processor."):
-            field = k.split(".", 1)[1]
-            if field == "supported_devices" and isinstance(v, list):
-                processor_devices = v
-    model["processor"] = {
-        "supported_devices": processor_devices,
-        "status": "metadata_pending" if not processor_devices else "provided",
-    }
+    # Supported products come from the model's dx-modelzoo YAML `target_hardware` (devices.py holds the rule).
+    model["processor"] = processor_info(flat.get("processor.target_hardware"))
 
     missing = []
     # Required performance fields (normalized with the performance. prefix)

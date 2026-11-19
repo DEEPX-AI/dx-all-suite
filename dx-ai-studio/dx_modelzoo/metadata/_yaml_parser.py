@@ -64,6 +64,53 @@ def yaml_first_shape(text):
     return []
 
 
+def _typed_scalar(value):
+    """yaml_scalar plus the bool/int forms target_hardware uses (buffer_count: 1, supported: false)."""
+    raw = value.strip()
+    v = yaml_scalar(raw)
+    if v is None or raw[:1] in "'\"":
+        return v
+    if v in ("true", "True", "false", "False"):
+        return v in ("true", "True")
+    return int(v) if re.fullmatch(r"-?\d+", v) else v
+
+
+def _flow_map(value):
+    """`{buffer_count: 1, supported: false}` → dict (flat flow mappings only)."""
+    inner = value.strip()[1:-1].strip()
+    out = {}
+    for part in filter(None, (p.strip() for p in inner.split(","))):
+        k, _, v = part.partition(":")
+        out[k.strip()] = _typed_scalar(v)
+    return out
+
+
+def yaml_target_hardware(text):
+    """Top-level `target_hardware:` (DXM1-1775) → {"m1": {...}, "m1m": {...}}; None when the YAML has none.
+
+    Two levels: device keys, then scalar fields (block or `{...}` flow form). Comments are ignored."""
+    lines = text.splitlines()
+    start = next((i for i, l in enumerate(lines) if re.match(r"^target_hardware\s*:\s*(#.*)?$", l)), None)
+    if start is None:
+        return None
+    result, device, dev_indent = {}, None, None
+    for line in lines[start + 1:]:
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        indent = len(line) - len(line.lstrip())
+        if indent == 0:
+            break
+        body = line.split(" #", 1)[0].strip()
+        key, _, value = body.partition(":")
+        key, value = key.strip(), value.strip()
+        if dev_indent is None or indent <= dev_indent:
+            dev_indent, device = indent, key
+            result[device] = _flow_map(value) if value.startswith("{") else ({} if not value else _typed_scalar(value))
+        elif isinstance(result.get(device), dict):
+            result[device][key] = _typed_scalar(value)
+    return result or None
+
+
 def parse_modelzoo_yaml_file(file_path):
     """Extract basic metadata from a current dx-modelzoo YAML model definition."""
     file_path = Path(file_path)
@@ -108,5 +155,9 @@ def parse_modelzoo_yaml_file(file_path):
         fields["technical.input_shape"] = shape
         if len(shape) >= 4:
             fields["specification.input_resolution"] = f"{shape[-2]}x{shape[-1]}"
+
+    target_hardware = yaml_target_hardware(text)
+    if target_hardware:
+        fields["processor.target_hardware"] = target_hardware
 
     return {cid: fields}

@@ -14,6 +14,7 @@ from pathlib import Path, PurePosixPath
 from urllib.parse import unquote, urlparse
 
 from shared import dxrt
+from shared.atomic_download import _receipt_path
 from shared.atomic_download import (
     DownloadCancelled, asset_file_status, download_file, prepare_directory,
     publish_stream, write_metadata,
@@ -239,6 +240,26 @@ def _extract_videos(archive, target, cancel):
         })
 
 
+def _videos_installed(videos, filename):
+    """Every video the inventory of this archive lists is present with a Studio receipt (local check only)."""
+    inventory = videos / ".studio-assets" / "sample-videos.json"
+    try:
+        files = _inventory_files(videos, inventory, filename)
+    except (OSError, ValueError):
+        return False
+    return all(asset_file_status(path)["ok"] for path in files)
+
+
+def _remove_archive(archive):
+    """Drop the downloaded archive and its transfer receipt (+ lock)."""
+    receipt = _receipt_path(archive)
+    for path in (archive, receipt, receipt.with_suffix(".lock")):
+        try:
+            path.unlink()
+        except FileNotFoundError:
+            pass
+
+
 def _open_url(url):
     ca = next((os.environ[key] for key in ("REQUESTS_CA_BUNDLE", "CURL_CA_BUNDLE", "SSL_CERT_FILE")
                if os.environ.get(key)), None)
@@ -430,9 +451,16 @@ def install_assets(component, model=None, *, demo=False, sdk_root=None, resource
         log("{} {} ({} bytes, {})".format(result.status, name, result.size, result.verification), flush=True)
     _link(model_output, models)
     if model is None:
-        log(_redact_urls("Downloading video archive {}".format(video_url)), flush=True)
-        download_file(video_url, archive, open_url=open_url or _open_url, cancel=cancel, validate=_validate_archive)
-        _extract_videos(archive, videos, cancel)
+        if _videos_installed(videos, video_filename):
+            log("Sample videos already installed and verified", flush=True)
+        else:
+            log(_redact_urls("Downloading video archive {}".format(video_url)), flush=True)
+            download_file(video_url, archive, open_url=open_url or _open_url, cancel=cancel,
+                          validate=_validate_archive)
+            _extract_videos(archive, videos, cancel)
+        # The extracted videos carry their own inventory + receipts; keeping the archive doubled the space
+        # (1.2 GB on a 29 GB Raspberry Pi card). An archive left by an older Studio is reclaimed here too.
+        _remove_archive(archive)
         _link(output / "videos", videos)
     log("[OK] Sample assets verified and installed", flush=True)
 

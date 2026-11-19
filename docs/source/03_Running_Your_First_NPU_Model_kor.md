@@ -55,8 +55,9 @@ getting-started/
 
 ### A. Execution Order
 
-스크립트는 **반드시** getting-started 디렉토리 내에서 다음 순서대로 실행되어야 합니다.  
+스크립트는 `getting-started` 폴더에 있습니다. **dx-all-suite 최상위 디렉토리에서** 다음 순서대로 실행하십시오.  
 ```Bash
+cd dx-all-suite
 ./getting-started/compiler-0_install_dx-compiler.sh         # Environment Setup
 ./getting-started/compiler-1_download_onnx.sh               # Model Acquisition
 ./getting-started/compiler-2_setup_calibration_dataset.sh   # Data Preparation
@@ -117,8 +118,9 @@ getting-started/
 
 ### A. Full Execution Order
 
-안정적인 작동을 위해 `getting-started/` 디렉토리 내에서 다음 스크립트들을 순차적으로 실행하십시오.  
+안정적인 작동을 위해 **dx-all-suite 최상위 디렉토리에서** 다음 스크립트들을 순서대로 실행하십시오.  
 ```Bash
+cd dx-all-suite
 ./getting-started/runtime-0_install_dx-runtime.sh # Set up environment
 ./getting-started/runtime-1_setup_input_path.sh # Connect model
 ./getting-started/runtime-2_setup_assets.sh # Prepare resources

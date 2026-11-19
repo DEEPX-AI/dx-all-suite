@@ -21,8 +21,8 @@ need (and all you can reach from another computer — module ports listen on the
   place.
 - **DX-M1 widget** (left) — the NPU in this computer: cores, temperature, clock and power.
   Click it to open DX Monitor.
-- **Measured on DX-M1** (right) — a model's FPS measured on this device, and how many models
-  and tasks were measured. Click it to open DX Benchmark.
+- **Measured on DX-M1** (right) — YOLO26n's FPS per task as DEEPX measured it on DX-M1 (DX Model Zoo figures,
+  not a run on this computer), and how many models and tasks were measured. Click it to open DX Benchmark.
 - **Go deeper at DEEPX Developers** — the bar at the bottom links to Get Started, S/W
   Download, Tech Docs, Documents, Model Zoo, GitHub and deepx.ai.
 - **Explore DX AI Studio** and **Physical AI ecosystem** — the two chips under the heading

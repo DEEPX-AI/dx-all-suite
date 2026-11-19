@@ -6,6 +6,7 @@ import pytest
 
 from dx_app.core import config, graph_cli, graph_validate, setup_steps
 from shared import dx_app_layout
+from shared.paths import host_arch
 
 
 @pytest.fixture
@@ -50,10 +51,18 @@ def _graphs(build):
         _executable(build / name)
 
 
-def test_studio_build_requests_full_sdk_build_without_changing_arch():
+def test_studio_build_requests_full_sdk_build_for_the_host_arch():
+    """A fixed "x86_64" made a Raspberry Pi build a cross build: dx_postprocess skipped, nothing in bin/."""
     step = setup_steps.SETUP_STEPS["dx-app-build"]
     assert "--all" in step["args"]
-    assert step["args"][step["args"].index("--arch") + 1] == "x86_64"
+    assert step["args"][step["args"].index("--arch") + 1] == host_arch()
+
+
+def test_driver_step_keeps_the_runtime_venv():
+    """--venv-force-remove (runtime default) deleted the dx_engine DX-Runtime Build had just installed."""
+    args = setup_steps.SETUP_STEPS["dx-driver"]["args"]
+    assert "--target=dx_rt_npu_linux_driver" in args
+    assert "--venv-reuse" in args and "--skip-uninstall" in args
 
 
 def test_assets_use_studio_entrypoint_not_sdk_bulk_setup():
@@ -208,7 +217,7 @@ def test_quick_start_runs_the_minimal_build_and_the_demo_download():
     assert argv == [sys.executable, "-m", "shared.asset_setup", "app"]
     argv, _ = setup_steps.step_argv("dx-app-build", {"demo_only": True})
     assert "--minimal" in argv and "--all" not in argv
-    assert argv[argv.index("--arch") + 1] == "x86_64"
+    assert argv[argv.index("--arch") + 1] == host_arch()
     argv, _ = setup_steps.step_argv("dx-app-build", {})
     assert "--all" in argv and "--minimal" not in argv
 

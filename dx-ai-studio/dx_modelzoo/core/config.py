@@ -18,7 +18,11 @@ ASSETS_DIR = DX_APP_ROOT / "assets"
 MODELS_DIR = ASSETS_DIR / "models"
 CPP_DIR = DX_APP_ROOT / "src" / "cpp_example"
 PY_DIR = DX_APP_ROOT / "src" / "python_example"
-BUILD_DIR = DX_APP_ROOT / "build_x86_64" / "src" / "cpp_example"
+# C++ runners: build_<arch>/src/cpp_example from a source build, or the runtime's prebuilt bin/.
+# Host arch first (build_aarch64 on a Pi), then the other arch, then bin/ — same rule as dx_app.
+from shared.paths import build_dir_candidates as _build_dir_candidates, pick_build_dir as _pick_build_dir
+_BUILD_DIR_CANDIDATES = _build_dir_candidates(DX_APP_ROOT)
+BUILD_DIR = _pick_build_dir(DX_APP_ROOT)
 SAMPLE_DIR = DX_APP_ROOT / "sample"
 SAMPLE_IMG_DIR = SAMPLE_DIR / "img"
 

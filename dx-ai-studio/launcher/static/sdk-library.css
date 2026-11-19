@@ -838,6 +838,16 @@ mark.sdk-search-hit.current {
 .sdk-viewer-body img {
   max-width: 100%; border-radius: var(--radius-sm); margin: 10px 0;
 }
+/* MkDocs Material theme images (`x.png#only-light` / `#only-dark`): one per theme, as on the docs site.
+   No data-theme = system, which is dark unless the OS asks for light. */
+:root[data-theme="light"] .sdk-viewer-body img[src$="#only-dark"],
+:root[data-theme="dark"] .sdk-viewer-body img[src$="#only-light"] { display: none; }
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) .sdk-viewer-body img[src$="#only-dark"] { display: none; }
+}
+@media not (prefers-color-scheme: light) {
+  :root:not([data-theme]) .sdk-viewer-body img[src$="#only-light"] { display: none; }
+}
 .sdk-viewer-body a { color: var(--viewer-accent, var(--status-info)); text-decoration: none; }
 .sdk-viewer-body a:hover { text-decoration: underline; }
 .sdk-viewer-body hr {

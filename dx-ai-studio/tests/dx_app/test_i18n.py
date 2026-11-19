@@ -338,7 +338,7 @@ def test_app_i18n_js_no_missing_commas_any_lang():
 def test_app_inference_hint_i18n_keys_cover_all_six_languages():
     """New inference error hint T() keys must have ko, ja, zh-CN, zh-TW, es."""
     hint_keys = [
-        'Check that dx_engine is running. Real inference is not available in Mock mode.',
+        'Check that the NPU runtime (dx_engine) is ready: Setup → Deep Diagnostics.',
         'Check the model file or executable path.',
         'Inference timed out. Try again with a smaller input.',
     ]
@@ -393,3 +393,9 @@ def test_sync_mode_reads_as_synchronous_in_spanish():
     src = (Path(__file__).resolve().parents[2] / "dx_app/static/js/i18n.js").read_text(encoding="utf-8")
     entry = re.search(r"\n  'Sync': \{([^}]*)\}", src).group(1)
     assert "es: 'Síncrono'" in entry, entry
+
+
+def test_inference_hints_do_not_mention_a_mock_mode():
+    """DX App has no Mock mode (only DX Monitor's explicit demo telemetry does); a hint must not send users to one."""
+    src = (ROOT / "dx_app/static/js/inference.js").read_text(encoding="utf-8")
+    assert "Mock mode" not in src

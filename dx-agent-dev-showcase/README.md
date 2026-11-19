@@ -1,20 +1,45 @@
-# dx-agent-dev Showcases
+<div align="center">
 
-> Real apps built on the **DEEPX NPU SDK** by an AI coding agent from a **single
-> natural-language prompt** — each checked in with the prompt, measured results, a
-> one-command reproduce, and the full recorded build-session transcript.
+# DX-Agent-Driven Development Showcases (Beta)
 
-These demonstrate **dx-agent-dev (Beta)**: you describe the app/task in plain language
-and the agent drives the DEEPX knowledge base end to end (brainstorm → plan → TDD →
-verify). What the feature is and how it works → [Agent-Driven Development docs](../docs/source/00_Agent_Driven_Development.md).
-Each card below links to that showcase's own README (full detail + transcript).
+**Describe an NPU app in plain language. An AI coding agent builds, tests and runs it on a DEEPX NPU.**
 
-> **Note on build time & cost** — The build time, output-token count, and cost shown for
-> each showcase are **actual measurements** taken from that showcase's recorded
-> build-session transcript (`*-session.md`), priced with the coding agent's published
-> billing policy — not estimates, and not cherry-picked best runs. Because AI coding
-> agents are non-deterministic, the same prompt does not always consume the same output
-> tokens, so your own build time and cost may differ depending on environment and model version.
+[![Docs](https://img.shields.io/badge/docs-Agent--Driven%20Development-blue)](https://developer.deepx.ai/tech-docs/DX-AllSuite/Agent_Driven_Development/)
+![Status](https://img.shields.io/badge/status-Beta-orange)
+
+</div>
+
+Every app below was built by an AI coding agent from a **single prompt** with **DX-Agent-Driven Development - dx-agent-dev (Beta)**.
+Each one is checked in with the prompt, measured results, a one-command reproduce and the full
+build-session transcript, so you can see exactly how it was made.
+
+## What You Need
+
+| | |
+|---|---|
+| **NPU** | A DEEPX NPU with DX-RT installed ([Quick Start](../README.md#quick-start)) |
+| **DX-COM** | Only if your prompt compiles a model |
+| **AI coding agent** | Claude Code, GitHub Copilot (VS Code), Cursor, OpenCode or Codex CLI |
+
+## Quick Start
+
+No extra setup — the agent loads the DEEPX knowledge base from the repository automatically.
+
+```bash
+git clone --recurse-submodules https://github.com/DEEPX-AI/dx-all-suite.git
+cd dx-all-suite
+claude            # or: opencode · cursor-agent · ~/bin/codex · code .  (GitHub Copilot)
+```
+
+Then describe what you want:
+
+```text
+Compile yolo26n.onnx to DXNN and build a person detection Python app with it
+```
+
+In GitHub Copilot Chat or OpenCode, start the prompt with `@dx-suite-builder`. The agent works through
+brainstorm → plan → TDD → verify and writes its output to a new session directory — it does not modify existing source.
+Per-tool usage and more example prompts → [DX-Agent-Driven Development Docs](https://developer.deepx.ai/tech-docs/DX-AllSuite/Agent_Driven_Development/)
 
 <!-- catalog -->
 <!-- dx-showcase:docs:catalog:start -->
@@ -146,15 +171,23 @@ Converts a PDF (digital or scanned) to structured Markdown + JSON — layout ana
 <br clear="right">
 <!-- dx-showcase:docs:catalog:end -->
 
-## Reproduce any showcase
+## Reproduce a Showcase
 
 ```bash
 cd dx-agent-dev-showcase/<showcase>
-bash setup.sh && bash run.sh        # retrain/export showcases
-# games: ./setup.sh then ./run.sh (or ./run.sh --camera 0)
+./setup.sh && ./run.sh        # games: ./run.sh --camera 0 for a live camera
 ```
 
-Requires x86-64 Linux + the DeepX runtime (`dx_engine`). Per-showcase prerequisites and
-the exact prompt are in each showcase's README.
+Requires x86_64 Linux and the DEEPX runtime (`dx_engine`). Each showcase README lists its own
+prerequisites and the exact prompt used.
 
-> Korean: [`README-ko.md`](./README-ko.md).
+> **Build time and cost** are measured from each showcase's recorded build session (`*-session.md`) and
+> priced with the coding agent's published billing — not estimates or best-of runs. AI agents are
+> non-deterministic, so your time and cost will vary with the model version and environment.
+
+## Documentation & Support
+
+- Build your own app: [DX-Agent-Driven Development Docs](https://developer.deepx.ai/tech-docs/DX-AllSuite/Agent_Driven_Development/) · [DX-AllSuite](../README.md)
+- For technical questions, please ask in the DEEPX Developer Community: https://community.deepx.ai/c/support/5
+
+Copyright © DEEPX Co., Ltd.

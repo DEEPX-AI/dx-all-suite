@@ -76,7 +76,7 @@ def test_listing_reuses_one_context_and_the_exact_selected_demo_contract(monkeyp
     entries = _list_demos(server)
 
     assert context_calls == [True]
-    assert len(selected_calls) == len(server.demos.DEMOS)
+    assert len(selected_calls) == len([d for d in server.demos.DEMOS if server.demos._shipped_by_sdk(d)])
     assert selected_calls[0]["model_file"] == server.demos._model_file(selected_calls[0]["model"])
     assert not entries[0]["available"]
     assert "gst.postprocess_library" in entries[0]["availability"]["reason"]

@@ -230,7 +230,7 @@ sudo tail -f /greengrass/v2/logs/com.example.HelloWorld.log
 
 자세한 내용은 온라인 문서 [AWS IoT Greengrass V2 문제 해결](https://docs.aws.amazon.com/greengrass/v2/developerguide/troubleshooting.html)을 참고합니다.
 
-디바이스 관련 지원이 필요하면 DEEPX에 tech_support@deepx.ai로 문의하거나 https://deepx.ai/contact-us/technical-support/ 를 방문합니다.
+For technical questions, please ask in the DEEPX Developer Community: https://community.deepx.ai/c/support/5
 
 ## 다음 단계 — DX-Edge로 DEEPX 런타임 배포하기
 

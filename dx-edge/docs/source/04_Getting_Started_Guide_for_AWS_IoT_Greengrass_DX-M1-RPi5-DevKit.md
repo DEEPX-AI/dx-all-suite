@@ -146,7 +146,7 @@ lspci | grep -i deepx
 
 ### 5.4 Install the DX-M1 driver and runtime
 
-Install the DEEPX NPU driver (DKMS) and the DX-RT runtime following the DX-AllSuite [Setting Up Environment](../../../docs/source/02_Setting_Up_Environment.md) guide and the [DEEPX Technical Documentation](https://developer.deepx.ai/tech-docs). After installation, verify:
+Install the DEEPX NPU driver (DKMS) and the DX-RT runtime following the DX-AllSuite [Setting Up Environment](https://developer.deepx.ai/tech-docs/DX-AllSuite/Setting_Up_Environment/) guide and the [DEEPX Technical Documentation](https://developer.deepx.ai/tech-docs). After installation, verify:
 
 ```bash
 lsmod | grep -E 'dxrt|dx_'        # expect dxrt_driver and dx_dma loaded
@@ -282,7 +282,7 @@ Follow the instructions online at [Deploy your component](https://docs.aws.amazo
 
 For more information, refer to the online documentation [Troubleshooting AWS IoT Greengrass V2](https://docs.aws.amazon.com/greengrass/v2/developerguide/troubleshooting.html).
 
-For device-specific support, contact DEEPX at tech_support@deepx.ai or visit https://deepx.ai/contact-us/technical-support/
+For technical questions, please ask in the DEEPX Developer Community: https://community.deepx.ai/c/support/5
 
 ## Next steps — deploying the DEEPX runtime with DX-Edge
 

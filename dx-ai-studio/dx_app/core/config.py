@@ -62,12 +62,10 @@ CONFIG_FILE = DX_APP_ROOT/"config"/"test_models.conf"
 # under build_<arch>/src/cpp_example, while the dx-runtime tree ships prebuilt
 # binaries in bin/. Pick the first that exists so both work; fall back to the
 # source-build path (used in the "run build.sh" hint) when none are present yet.
-_BUILD_DIR_CANDIDATES = [
-    DX_APP_ROOT/"build_x86_64"/"src"/"cpp_example",
-    DX_APP_ROOT/"build_aarch64"/"src"/"cpp_example",
-    DX_APP_ROOT/"bin",
-]
-BUILD_DIR   = next((d for d in _BUILD_DIR_CANDIDATES if d.is_dir()), _BUILD_DIR_CANDIDATES[0])
+# Host arch first (build_aarch64 on a Pi) so a leftover other-arch build never shadows ours.
+from shared.paths import build_dir_candidates as _build_dir_candidates, pick_build_dir as _pick_build_dir
+_BUILD_DIR_CANDIDATES = _build_dir_candidates(DX_APP_ROOT)
+BUILD_DIR   = _pick_build_dir(DX_APP_ROOT)
 SCRIPTS_DIR = DX_APP_ROOT/"scripts"
 SERVER_NAME = "DX App"
 STATIC_DIR  = SCRIPT_DIR/"static"
@@ -207,6 +205,7 @@ for _name, _path in [("DX_APP_ROOT", DX_APP_ROOT), ("DX_COMPILER_ROOT", DX_COMPI
         print(f"[WARNING] Set {_name} environment variable to override")
 # Generic background setup-step subprocess state (used by setup_steps.py — NOT compiler).
 _comp_proc=None; _comp_lock=threading.Lock()
+_comp_step=""   # id of the running / last Setup step (model-build endpoints check it)
 _comp_log=""; _comp_log_lock=threading.Lock()
 _comp_done=False; _comp_exit_code=-1
 _comp_dxnn_path=""; _comp_output_dir=""
@@ -216,20 +215,43 @@ _comp_stdin_proc=None  # process whose stdin we can write to
 # venv (dx_engine is injected via PYTHONPATH, not pip-installed), so shared.runtime probes
 # each candidate and skips any interpreter missing numpy/cv2 — otherwise every python-variant
 # demo dies with ModuleNotFoundError. Falls back to the gui server's own python.
-_RUNTIME_PYTHON=_runtime.runtime_python()
-print(f"[INFO] runtime python: {_RUNTIME_PYTHON}")
-
 # Native package paths belong only to inference children, never Studio's sys.path.
 _DX_POSTPROCESS_DIRS=[
     DX_APP_ROOT/"build"/"dx_postprocess",
-    DX_APP_ROOT/"build_x86_64"/"dx_postprocess",
+    *(DX_APP_ROOT/f"build_{a}"/"dx_postprocess" for a in ("x86_64","aarch64")),
 ]
-# Only fall back to the dx_rt source tree when the runtime python can't provide dx_engine
-# itself (the `_pydxrt` shadow fix — see shared/runtime.py:dx_engine_pythonpath_dirs).
-# dx_postprocess dirs are always safe to add (independent pybind extension).
-_DX_ENGINE_SRC_DIRS=_runtime.dx_engine_pythonpath_dirs(_RUNTIME_PYTHON)
-_RUNTIME_PYTHONPATH=os.pathsep.join(
-    str(p) for p in [
-        *_DX_ENGINE_SRC_DIRS,
-        *_DX_POSTPROCESS_DIRS,
-    ] if p.is_dir())
+# Resolved at use time, not once at import: Setup → Python Inference Deps (or a runtime step) can make an
+# interpreter available while this server runs, and a value frozen at import kept every Python-path run on
+# None until a restart. A missing interpreter is re-probed at most every _RUNTIME_RETRY_S (the probe spawns
+# subprocesses); every Setup step completion refreshes it unconditionally (setup_steps.setup_run).
+_RUNTIME_LOCK=threading.Lock()
+_RUNTIME_RETRY_S=30.0
+_RUNTIME_PROBED_AT=0.0
+_RUNTIME_PYTHON=None; _DX_ENGINE_SRC_DIRS=[]; _RUNTIME_PYTHONPATH=""
+
+def refresh_runtime_python():
+    """Re-resolve the python-variant interpreter (numpy+cv2+dx_engine) and its child PYTHONPATH."""
+    global _RUNTIME_PYTHON,_DX_ENGINE_SRC_DIRS,_RUNTIME_PYTHONPATH,_RUNTIME_PROBED_AT
+    with _RUNTIME_LOCK:
+        py=_runtime.runtime_python()
+        # Only fall back to the dx_rt source tree when the runtime python can't provide dx_engine itself
+        # (the `_pydxrt` shadow fix — see shared/runtime.py:dx_engine_pythonpath_dirs).
+        # dx_postprocess dirs are always safe to add (independent pybind extension).
+        dirs=_runtime.dx_engine_pythonpath_dirs(py)
+        _RUNTIME_PYTHON,_DX_ENGINE_SRC_DIRS=py,dirs
+        _RUNTIME_PYTHONPATH=os.pathsep.join(str(p) for p in [*dirs,*_DX_POSTPROCESS_DIRS] if p.is_dir())
+        _RUNTIME_PROBED_AT=time.time()
+    return py
+
+def runtime_python():
+    """The interpreter for the python examples, or None (re-probed at most every _RUNTIME_RETRY_S)."""
+    if _RUNTIME_PYTHON is None and time.time()-_RUNTIME_PROBED_AT>=_RUNTIME_RETRY_S:
+        refresh_runtime_python()
+    return _RUNTIME_PYTHON
+
+def runtime_pythonpath():
+    runtime_python()
+    return _RUNTIME_PYTHONPATH
+
+refresh_runtime_python()
+print(f"[INFO] runtime python: {_RUNTIME_PYTHON}")
