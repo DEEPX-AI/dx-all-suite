@@ -121,6 +121,16 @@ function renderInferencePanel(model) {
        </div>`
     : '';
 
+  // C++ example exists but no runner (Demo Quick Start builds only the demo runners) → build just this model.
+  const buildRowHtml = (model.cpp_buildable && isDownloaded) ? `
+    <div class="mz-cpp-build" id="mzCppBuild">
+      <span class="mz-cpp-build-msg">${_mzIco('info')} ${T('C++ runner not built for this model. C++ is usually faster than Python.')}</span>
+      <button class="mz-btn mz-btn-outline" id="btnBuildCpp" ${disabledAttr}
+        data-model-id="${eId}" data-category="${eCat}" data-model-file="${eFile}"
+        onclick="buildCppRunnerFromButton(this)">${_mzIco('wrench')} ${T('Build C++ runner')}</button>
+      <div class="mz-cpp-build-progress" id="mzCppBuildProgress" hidden></div>
+    </div>` : '';
+
   container.innerHTML = `
     <div class="mz-inference-panel">
       <h3>${_mzIco('lab')} ${T('Run Inference')}</h3>
@@ -142,6 +152,7 @@ function renderInferencePanel(model) {
       </div>
       ${sampleUnavailableMsg}
       ${execPathSelectHtml}
+      ${buildRowHtml}
 
       <!-- Upload 탭 패널 -->
       <div id="tabPanelUpload" class="mz-tab-panel" style="margin-top:12px">
@@ -477,6 +488,72 @@ function _renderPerfBlock(data) {
   return summary + `<details class="mz-perf-details" open>
     <summary>${T('Performance pipeline')}</summary>${table}</details>`;
 }
+/* -----------------------------------------------------------------------
+ * Build C++ runner — Setup step model-build through the Model Zoo proxy (the only Setup job Model Zoo can
+ * reach). Progress inline; on success the panel re-renders with the C++ paths and C++ · Sync selected.
+ * ---------------------------------------------------------------------- */
+function buildCppRunnerFromButton(btn) {
+  const d = btn.dataset;
+  buildCppRunner(d.modelId, d.category, d.modelFile);
+}
+
+const _MZ_SMALL_BTN = 'font-size:12px;padding:2px 8px';
+
+async function buildCppRunner(modelId, category, modelFile) {
+  const box = document.getElementById('mzCppBuildProgress');
+  const btn = document.getElementById('btnBuildCpp');
+  if (!box || !btn) return;
+  const r = await fetch(modelzooApiUrl('/api/proxy/model-build'), {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model_name: modelId, category, model_file: modelFile }),
+  }).then(x => x.json()).catch(e => ({ ok: false, error: e.message }));
+  if (!r.started) {
+    box.hidden = false;
+    box.innerHTML = `<span style="color:var(--status-error)">${_mzIco('alert')} ${
+      /already running/i.test(r.error || '') ? T('Setup is running — try again when it finishes.') : escapeHtml(r.error || '')}</span>`;
+    return;
+  }
+  btn.disabled = true;
+  const t0 = Date.now();
+  const fmt = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  box.hidden = false;
+  box.innerHTML = `<div class="mz-cpp-build-run">${_mzIco('spinner')} <span>${T('Building C++ runner…')}</span>
+      <span class="mz-cpp-build-time">0:00</span>
+      <button class="mz-btn mz-btn-outline" style="${_MZ_SMALL_BTN}" id="btnCancelCpp">${_mzIco('x')} ${T('Cancel build')}</button></div>
+    <div class="mz-cpp-build-last"></div>
+    <details><summary>${T('Show log')}</summary><pre class="mz-cpp-build-log"></pre></details>`;
+  box.querySelector('#btnCancelCpp').onclick = () =>
+    fetch(modelzooApiUrl('/api/proxy/model-build/stop'), { method: 'POST' });
+  for (;;) {
+    await new Promise(res => setTimeout(res, 1500));
+    const s = await fetch(modelzooApiUrl('/api/proxy/model-build/log')).then(x => x.json()).catch(() => null);
+    if (!s) continue;
+    const secs = Math.round((Date.now() - t0) / 1000);
+    const lines = String(s.log || '').split('\n').filter(l => l.trim());
+    const tEl = box.querySelector('.mz-cpp-build-time'); if (tEl) tEl.textContent = fmt(secs);
+    const last = box.querySelector('.mz-cpp-build-last'); if (last) last.textContent = lines.slice(-1)[0] || '';
+    const pre = box.querySelector('.mz-cpp-build-log'); if (pre) pre.textContent = lines.slice(-200).join('\n');
+    if (!s.done) continue;
+    if (s.exit_code === 0) {
+      // The catalog re-detects runners when the build dir changes (≤2 s cadence, catalog.get_catalog).
+      await new Promise(res => setTimeout(res, 2500));
+      await refreshInferencePanelAfterDownload(modelId);
+      const sel = document.getElementById('infExecPath');
+      if (sel && [...sel.options].some(o => o.value === 'cpp|sync')) sel.value = 'cpp|sync';
+      const row = document.querySelector('.mz-exec-path-row');
+      if (row) row.insertAdjacentHTML('afterend',
+        `<p class="mz-cpp-build-ok">${_mzIco('check')} ${T('C++ runner built ({t}). C++ · Sync selected.').replace('{t}', fmt(secs))}</p>`);
+    } else {
+      btn.disabled = false;
+      const run = box.querySelector('.mz-cpp-build-run');
+      if (run) run.innerHTML = `<span style="color:var(--status-error)">${_mzIco('alert')} ${T('C++ runner build failed')}</span>
+        <button class="mz-btn mz-btn-outline" style="${_MZ_SMALL_BTN}" onclick="buildCppRunnerFromButton(document.getElementById('btnBuildCpp'))">${_mzIco('refresh')} ${T('Retry')}</button>`;
+      const det = box.querySelector('details'); if (det) det.open = true;
+    }
+    return;
+  }
+}
+
 if (typeof registerModelZooLangRefresher === 'function') {
   registerModelZooLangRefresher(function() {
     if (typeof filterAndRender === 'function') filterAndRender();

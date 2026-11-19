@@ -1,6 +1,6 @@
 {
   "meta": {
-    "generated": "2026-10-30T05:22:24.820374+00:00",
+    "generated": "2026-11-13T01:03:16.115204+00:00",
     "benchmark_dates": {
       "biostar-h1-quattro": "2026-10-22",
       "dx-aiplayer-n97-m1": "2026-10-22",
@@ -24,7 +24,7 @@
         "price_usd": 699,
         "system_price_usd": 699.0,
         "form_factor": "PCIe Card",
-        "dram": "16GB LPDDR5"
+        "dram": "15.7GB LPDDR5x 6000 Mbps"
       },
       "host": {
         "name": "deepx-B650MT",
@@ -1857,7 +1857,7 @@
         "price_usd": 99,
         "system_price_usd": 99.0,
         "form_factor": "M.2",
-        "dram": "1GB LPDDR4/5 (External Controller)"
+        "dram": "3.9GB LPDDR5 5600 Mbps"
       },
       "host": {
         "name": "deepx",
@@ -3536,7 +3536,7 @@
         "price_usd": 99,
         "system_price_usd": 99.0,
         "form_factor": "M.2",
-        "dram": "1GB LPDDR4/5 (External Controller)"
+        "dram": "3.9GB LPDDR5 5600 Mbps"
       },
       "host": {
         "name": "orangepi5plus",
@@ -5131,7 +5131,7 @@
         "price_usd": 99,
         "system_price_usd": 99.0,
         "form_factor": "M.2",
-        "dram": "1GB LPDDR4/5 (External Controller)"
+        "dram": "3.9GB LPDDR5 5600 Mbps"
       },
       "host": {
         "name": "rock-5b-plus",
@@ -6740,7 +6740,7 @@
         "price_usd": 99,
         "system_price_usd": 99.0,
         "form_factor": "M.2",
-        "dram": "1GB LPDDR4/5 (External Controller)"
+        "dram": "3.9GB LPDDR5 5600 Mbps"
       },
       "host": {
         "name": "raspberrypi",
@@ -8363,7 +8363,7 @@
         "price_usd": 99,
         "system_price_usd": 99.0,
         "form_factor": "M.2",
-        "dram": "1GB LPDDR4X"
+        "dram": "1.9GB LPDDR4 4200 Mbps"
       },
       "host": {
         "name": "deepx",

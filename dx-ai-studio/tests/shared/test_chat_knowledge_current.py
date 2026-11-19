@@ -91,7 +91,7 @@ STALE = {
 }
 
 CURRENT = {
-    "base.md": ["25 TOPS", "release.ver", "약 500개"],
+    "base.md": ["25 TOPS", "release.ver", "사전 컴파일 모델"],
     "dx_app.md": ["Run Inference", "Continuous", "DX-Runtime Build", "Sample Assets Setup",
                   "./run_demo.sh --help", "DX Compiler"],
     "dx_stream.md": ["12종 프리셋 데모", "Instance Segmentation", "`model-path`",

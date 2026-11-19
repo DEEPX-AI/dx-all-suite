@@ -55,8 +55,9 @@ This section details the process of converting standard AI models into NPU-propr
 
 ### A. Execution Order
 
-The scripts **must** be executed in the following order within the getting-started directory.  
+The scripts are in the `getting-started` folder. Run them in the following order **from the dx-all-suite root directory**:  
 ```Bash
+cd dx-all-suite
 ./getting-started/compiler-0_install_dx-compiler.sh         # Environment Setup
 ./getting-started/compiler-1_download_onnx.sh               # Model Acquisition
 ./getting-started/compiler-2_setup_calibration_dataset.sh   # Data Preparation
@@ -117,8 +118,9 @@ This chapter focuses on Step 0 (Environment Setup) and Step 5 (Inference), where
 
 ### A. Full Execution Order
 
-To ensure stable operation, execute these scripts sequentially from within the `getting-started/` directory.  
+To ensure stable operation, run these scripts in order **from the dx-all-suite root directory**:  
 ```Bash
+cd dx-all-suite
 ./getting-started/runtime-0_install_dx-runtime.sh # Set up environment
 ./getting-started/runtime-1_setup_input_path.sh # Connect model
 ./getting-started/runtime-2_setup_assets.sh # Prepare resources

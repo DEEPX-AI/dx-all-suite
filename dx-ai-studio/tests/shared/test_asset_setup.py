@@ -500,3 +500,46 @@ def test_app_cli_matches_actual_sdk_checkout_and_media_consumers(tmp_path, monke
     base = re.search(r'^BASE_URL="([^"]+)"', video_setup, re.M).group(1)
     assert calls[-1] == base + source.replace("${VIDEO_VERSION}", version)
     assert len(calls) == 2  # One actual manifest entry and one tiny mocked archive.
+
+
+def _video_archive_path(resources):
+    return resources / "videos" / "download" / "sample_videos_v3.2.2.tar.gz"
+
+
+def test_video_archive_is_removed_after_extraction(tmp_path, monkeypatch):
+    """The 1.2 GB archive stayed next to the extracted videos — twice the space on a 29 GB card."""
+    module = assets()
+    monkeypatch.delenv("DX_APP_MODELS_DIR", raising=False)
+    root, resources = sdk(tmp_path, "app"), tmp_path / "res"
+    module.install_assets("app", sdk_root=root, resource_root=resources, open_url=opener([], archive()))
+    assert (root / "assets" / "videos" / "dance.mov").read_bytes() == b"video"
+    assert not _video_archive_path(resources).exists()
+    assert not list((resources / "videos" / "download").glob(".studio-assets/*.json"))
+
+
+def test_complete_videos_are_not_downloaded_again_and_a_stale_archive_is_dropped(tmp_path, monkeypatch):
+    """With the archive gone, a re-run must not fetch it again when every extracted video is verified —
+    and an archive left by an older Studio is reclaimed."""
+    module = assets()
+    monkeypatch.delenv("DX_APP_MODELS_DIR", raising=False)
+    root, resources = sdk(tmp_path, "app"), tmp_path / "res"
+    module.install_assets("app", sdk_root=root, resource_root=resources, open_url=opener([], archive()))
+    stale = _video_archive_path(resources)
+    stale.write_bytes(b"old archive")
+    calls = []
+    module.install_assets("app", sdk_root=root, resource_root=resources, open_url=opener(calls, archive()))
+    assert not any(url.endswith(".tar.gz") for url in calls), calls
+    assert not stale.exists()
+
+
+def test_a_missing_video_downloads_the_archive_again(tmp_path, monkeypatch):
+    module = assets()
+    monkeypatch.delenv("DX_APP_MODELS_DIR", raising=False)
+    root, resources = sdk(tmp_path, "app"), tmp_path / "res"
+    module.install_assets("app", sdk_root=root, resource_root=resources, open_url=opener([], archive()))
+    (root / "assets" / "videos" / "dance.mov").unlink()
+    calls = []
+    module.install_assets("app", sdk_root=root, resource_root=resources, open_url=opener(calls, archive()))
+    assert any(url.endswith(".tar.gz") for url in calls)
+    assert (root / "assets" / "videos" / "dance.mov").read_bytes() == b"video"
+    assert not _video_archive_path(resources).exists()

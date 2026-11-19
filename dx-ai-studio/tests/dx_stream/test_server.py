@@ -82,10 +82,11 @@ def test_api_status_returns_json(server):
 
 
 def test_api_demos_returns_list(server):
-    """GET /api/demos returns the 12 dev-backed demos."""
+    """GET /api/demos returns the dev-backed demos the installed dx_stream ships (all 12 before it is installed)."""
+    from dx_stream.core import demos
     data = _get_json("/api/demos")
     assert isinstance(data, list)
-    assert len(data) == 12
+    assert len(data) == len([d for d in demos.DEMOS if demos._shipped_by_sdk(d)])
 
 
 def test_api_models_returns_catalog_object(server):

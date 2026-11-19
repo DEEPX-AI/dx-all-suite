@@ -90,6 +90,31 @@ def test_the_links_are_one_line_and_the_legal_keeps_the_right_edge(browser, serv
         ctx.close()
 
 
+# Free room on the links row, measured as if every item that must share it already does: the bar's inner right
+# edge, minus the last link, minus the legal notice (+ the column gap) when it has to be on that row too.
+# Links already on two rows count as no room. With ~0 left, a browser that draws text a few % wider (Chromium
+# 158's headless shell does) wrapped the links and pushed the es home past one screen.
+_SPARE = """(legalOnRow) => {
+  const bar = document.getElementById('homeBar'), cs = getComputedStyle(bar), r = bar.getBoundingClientRect();
+  const links = [...bar.querySelectorAll('.bar-title, .deepx-link')].map(e => e.getBoundingClientRect());
+  if (Math.max(...links.map(l => l.top)) - Math.min(...links.map(l => l.top)) > 12) return -1;
+  const legal = bar.querySelector('.stage-legal').getBoundingClientRect();
+  const end = r.right - parseFloat(cs.borderRightWidth) - parseFloat(cs.paddingRight)
+              - (legalOnRow ? legal.width + parseFloat(cs.columnGap) : 0);
+  return Math.round(end - links[links.length - 1].right);
+}"""
+
+
+@pytest.mark.parametrize("size,lang,legal_on_row", [((1440, 900), "en", True), ((1280, 800), "es", False)])
+def test_the_links_row_keeps_room_to_spare(browser, server, size, lang, legal_on_row):
+    ctx, page, _ = _open(browser, server, width=size[0], height=size[1], lang=lang)
+    try:
+        spare = page.evaluate(_SPARE, legal_on_row)
+        assert spare >= 16, f"{lang} {size}: {spare}px left on the links row"
+    finally:
+        ctx.close()
+
+
 @pytest.mark.parametrize("width", [1280, 1100])
 def test_the_chat_button_does_not_cover_the_bar(browser, server, width):
     ctx, page, _ = _open(browser, server, width=width, height=800)

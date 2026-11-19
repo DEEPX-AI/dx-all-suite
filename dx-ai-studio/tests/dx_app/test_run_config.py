@@ -175,5 +175,9 @@ def _prepare_dx_app_runtime(tmp_path, monkeypatch):
     monkeypatch.setattr(inference, "PY_DIR", py_dir)
     monkeypatch.setattr(inference, "get_hw", lambda: {})
     monkeypatch.setattr(inference, "_parse_perf", lambda stdout: {"overall_fps": "30"})
+    # The python examples need an interpreter with dx_engine; without one run_inference stops
+    # early (python_runtime_missing). Fix it here so the test does not depend on this board.
+    monkeypatch.setattr(inference.config, "runtime_python", lambda: sys.executable)
+    monkeypatch.setattr(inference.config, "runtime_pythonpath", lambda: "")
 
     return inference, app_root

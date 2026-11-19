@@ -3,7 +3,7 @@
 > Master index for the DEEPX Agent-Driven Development (`dx-agent-dev`) canonical
 > source at the dx-all-suite top level.
 >
-> For end-user usage, see [`docs/source/00_Agent_Driven_Development.md`](../docs/source/00_Agent_Driven_Development.md).
+> For end-user usage, see [Agent-Driven Development](https://developer.deepx.ai/tech-docs/DX-AllSuite/Agent_Driven_Development/).
 > For a comprehensive walk-through of every `.deepx/` directory across all 5
 > repos, see [`docs/dx-agent-dev-overview.md`](docs/dx-agent-dev-overview.md).
 
@@ -17,9 +17,9 @@ that powers DEEPX Agent-Driven Development:
 - Agent definitions (router agents, builder agents, validators)
 - Skill workflows (build, validate, brainstorm, TDD, etc.)
 - Instruction templates (`CLAUDE.md`, `AGENTS.md`, `copilot-instructions.md`)
-- Shared fragments injected into every platform output (4 tools × 5 repos)
+- Shared fragments injected into every platform output
 - Memory (pitfalls, knowledge base entries)
-- Tests (~600 conformance + ~586 E2E)
+- Tests (conformance + E2E)
 - The `dx-agent-gen` generator that fans out `.deepx/` content to all platforms
 
 > **Never edit generator output directly.** Files like `CLAUDE.md`, `AGENTS.md`,
@@ -43,7 +43,7 @@ dx-all-suite contains five repos, each with its own `.deepx/`:
 
 Each sub-project `.deepx/` is self-contained. This top-level `.deepx/` adds:
 - Suite-wide router agents (`dx-suite-builder`, `dx-suite-validator`)
-- 22 shared fragments injected into all 5 repos (rename gates, session sentinels,
+- Shared fragments injected into all 5 repos (rename gates, session sentinels,
   process gates, autopilot guard, etc.)
 - The `dx-agent-gen` generator (single tool that processes all 5 repos)
 - All agent-driven test infrastructure (`tests/` conformance + `e2e/`)
@@ -57,15 +57,15 @@ Each sub-project `.deepx/` is self-contained. This top-level `.deepx/` adds:
 ├── README.md                    ← This file (top-level master index)
 ├── README-KO.md                 ← Korean translation
 │
-├── agents/                      ← Suite-level routing agents (2)
+├── agents/                      ← Suite-level routing agents
 │   ├── dx-suite-builder.md      ← Top-level task classifier → sub-projects
 │   └── dx-suite-validator.md    ← Cross-level framework validator
 │
-├── skills/                      ← Reusable skill workflows (14)
+├── skills/                      ← Reusable skill workflows
 │   ├── dx-skill-router/         ← Meta — universal pre-flight
-│   ├── dx-swe-*/                ← General SWE process (10: brainstorm/tdd/verify/…)
-│   ├── dx-agent-*/            ← DEEPX-specific (3: brainstorm/tdd/verify)
-│   └── dx-harness-*/            ← Internal harness dev (2: validate/writing-skills)
+│   ├── dx-swe-*/                ← General SWE process (brainstorm/tdd/verify/…)
+│   ├── dx-agent-*/            ← DEEPX-specific (brainstorm/tdd/verify/…)
+│   └── dx-harness-*/            ← Internal harness dev (validate/writing-skills)
 │
 ├── templates/                   ← Generator templates
 │   ├── en/                      ← English instruction templates
@@ -76,7 +76,7 @@ Each sub-project `.deepx/` is self-contained. This top-level `.deepx/` adds:
 │   │   ├── CLAUDE-KO.md.tmpl
 │   │   ├── AGENTS-KO.md.tmpl
 │   │   └── copilot-instructions-KO.md.tmpl
-│   └── fragments/               ← 44 shared fragments (22 EN + 22 KO)
+│   └── fragments/               ← Shared fragments (EN + KO)
 │       ├── en/
 │       └── ko/
 │
@@ -90,11 +90,11 @@ Each sub-project `.deepx/` is self-contained. This top-level `.deepx/` adds:
 │
 ├── tests/                       ← Suite conformance tests
 │   ├── README.md                ← Test categories and how to run them
-│   └── conformance/             ← ~600 static KB/generated-output policy checks (no CLI/NPU)
+│   └── conformance/             ← Static KB/generated-output policy checks (no CLI/NPU)
 │
 ├── e2e/                         ← End-to-end harness (separated)
 │   ├── e2e_runner.py · e2e_monitor.py · test.sh   ← round orchestration + runner
-│   ├── test_agent_e2e_scenarios/  ← ~586 E2E tests (5 CLIs × scenarios)
+│   ├── test_agent_e2e_scenarios/  ← E2E tests (per CLI × scenario)
 │   └── agent_analyzer/        ← E2E result analyzer (reports, insights)
 │
 └── tools/                       ← Tooling packages + orchestration scripts
@@ -175,7 +175,7 @@ bash .deepx/tools/scripts/run_all.sh prune
 bash .deepx/tools/scripts/install-hooks.sh
 
 # 5. Tests (no CLI/NPU needed; no PYTHONPATH needed; --rootdir=. keeps node IDs suite-relative)
-python3 -m pytest --rootdir=. .deepx/tests/conformance .deepx/tools/tests .deepx/e2e/tests -q   # ~1000 checks, ~3s
+python3 -m pytest --rootdir=. .deepx/tests/conformance .deepx/tools/tests .deepx/e2e/tests -q
 (cd .deepx/e2e && ./test.sh agent-driven-e2e-claude-code-autopilot)                   # Claude Code E2E (CLI + NPU)
 (cd .deepx/e2e && ./test.sh agent-driven-e2e-copilot-cli-autopilot)                   # Copilot CLI E2E
 
@@ -280,7 +280,7 @@ how to add or modify a fragment.
 
 | Topic | Document |
 |-------|----------|
-| End-user usage (one-liner prompts, scenarios) | [`docs/source/00_Agent_Driven_Development.md`](../docs/source/00_Agent_Driven_Development.md) |
+| End-user usage (one-liner prompts, scenarios) | [Agent-Driven Development](https://developer.deepx.ai/tech-docs/DX-AllSuite/Agent_Driven_Development/) |
 | Comprehensive `.deepx/` walk-through (all 5 repos) | [`docs/dx-agent-dev-overview.md`](docs/dx-agent-dev-overview.md) |
 | 3-tier skill architecture and naming | [`docs/skill-architecture.md`](docs/skill-architecture.md) |
 | How to author a new fragment | [`docs/fragment-authoring-guide.md`](docs/fragment-authoring-guide.md) |

@@ -5,7 +5,22 @@
 ## [section:config,schema,json] JSON Config Schema Reference  (dx-compiler/.deepx/toolsets/config-schema.md)
 # JSON Config Schema Reference
 
-> Complete config.json schema for DX-COM v2.2.1 compilation.
+> Complete config.json schema for DX-COM v2.5.0 compilation.
+
+<!-- VERIFIED against source/docs/02_05_JSON_File_Configuration.md, 02_06_Execution_of_DX-COM.md and 02_09_Pre_Optimize_API.md (v2.5.0) -->
+
+## Parameter Quick Reference
+
+| Key | Required | Description |
+|---|---|---|
+| `inputs` | Yes | Model input name and shape: `{"name": [1, C, H, W]}` |
+| `calibration_method` | No (default `"ema"`) | `"ema"`, `"minmax"`, or `"iqr"` — set it explicitly |
+| `calibration_num` | No (default `100`) | Number of calibration samples — set it explicitly |
+| `default_loader` | Yes | Dataset location, file types, and preprocessing chain |
+| `enhanced_scheme` | No | Manual Q-PRO (DXQ-P0~P5) — opt-in |
+| `qmaster` | No | QAT (Q-Master) hyperparameters — its presence enables QAT; opt-in, mutually exclusive with `enhanced_scheme`/`use_q_pro` |
+| `ppu` | No | YOLO detection post-processing — opt-in. Mutually exclusive with `pre_optimize` |
+| `pre_optimize` | No | ONNX-level post-processing optimization for YOLO/RTMDet — opt-in. Mutually exclusive with `ppu` |
 
 ## Minimal Config
 
@@ -19,13 +34,21 @@
     "file_extensions": ["jpeg", "png", "jpg"],
     "preprocessings": [
       {"resize": {"width": 640, "height": 640}},
-      {"normalize": {"mean": [0.0, 0.0, 0.0], "std": [1.0, 1.0, 1.0]}}
+      {"div": {"x": 255}},
+      {"convertColor": {"form": "BGR2RGB"}},
+      {"transpose": {"axis": [2, 0, 1]}},
+      {"expandDim": {"axis": 0}}
     ]
   }
 }
 ```
 
-## Full Config (All Fields)
+This is an Ultralytics YOLO-style NCHW input (`[1, 3, H, W]`): the chain scales the
+BGR/HWC/uint8 image to `[0, 1]`, converts it to RGB, and transposes it to CHW. Adapt the
+color and scale steps to the model (see preprocessings below); for an NHWC input, drop
+`transpose` but keep `expandDim` (see the R24 note).
+
+## Full Config (Reference)
 
 ```json
 {
@@ -37,10 +60,12 @@
     "file_extensions": ["jpeg", "png", "jpg"],
     "preprocessings": [
       {"resize": {"width": 640, "height": 640}},
-      {"normalize": {"mean": [0.0, 0.0, 0.0], "std": [1.0, 1.0, 1.0]}}
+      {"div": {"x": 255}},
+      {"convertColor": {"form": "BGR2RGB"}},
+      {"transpose": {"axis": [2, 0, 1]}},
+      {"expandDim": {"axis": 0}}
     ]
   },
-  "quantization_device": "cuda:0",
   "enhanced_scheme": {"DXQ-P3": {"num_samples": 1024}},
   "ppu": {
     "type": 1,
@@ -52,6 +77,11 @@
   }
 }
 ```
+
+Reference only: `enhanced_scheme` and `ppu` are opt-in — omit them
+unless the user asks. Not shown: `qmaster` (opt-in QAT; mutually exclusive with
+`enhanced_scheme`/`use_q_pro`) and `pre_optimize` (mutually exclusive with `ppu`) — see
+their sections below.
 
 ## Field Reference
 
@@ -67,6 +97,7 @@
 | Shape | Must **exactly** match ONNX model input shape |
 | Batch | Must be `1` — no other value supported |
 | Dimensions | All must be positive integers (no -1, no 0) |
+| Count | JSON config / `dxcom` CLI: single input only — multi-input models need the Python API `dataloader` |
 
 **How to find the correct input name**:
 ```python
@@ -78,121 +109,111 @@ for inp in model.graph.input:
     print(f'"{name}": {shape}')
 ```
 
-### calibration_method (required)
+### calibration_method (optional, default `ema`)
+
+Lowercase only (`"EMA"` is rejected).
 
 | Value | Description |
 |---|---|
 | `"ema"` | Exponential Moving Average — default, recommended for most models |
 | `"minmax"` | Min/Max range — use when EMA produces poor accuracy |
+| `"iqr"` | Interquartile Range (25th–75th percentile) — more robust to outliers than `minmax`; useful when calibration data contains extreme values |
 
-### calibration_num (required)
+### calibration_num (optional, default `100`)
 
-Number of calibration samples. Default: `100`.
-- Minimum recommended: 50
-- Optimal range: 100-500
-- Diminishing returns after ~500
+Number of calibration samples (the manual also calls them calibration steps). Default: `100`.
+A positive integer; if the dataset has fewer images, all of them are used without a warning.
+A higher number may estimate activation ranges better but increases compile time.
+The user manual recommends trying several values (e.g., 1, 5, 10, 100, 1000) and keeping
+the one that yields the best accuracy for the model.
 
 ### default_loader (required unless using Python API dataloader)
 
-> ⚠️ **WARNING — NCHW Models (R24)**: `default_loader` produces **HWC (height, width,
-> channels)** tensors. All NCHW models (e.g., **all YOLO variants** — yolo26n, yolov8,
-> yolov9, yolov10, yolov11, yolov12, yolov3, yolov5, yolov7, YOLOX) will **always**
-> fail calibration with a shape mismatch error when using `default_loader`.
+> ⚠️ **NCHW models — `transpose` before the final `expandDim` (R24)**: `default_loader`
+> reads images as **HWC** (`cv2.imread`: BGR, uint8) and never transposes them. End
+> `preprocessings` with:
 >
-> **NEVER use `default_loader` for NCHW models.** Use a PyTorch DataLoader with
-> `transforms.ToTensor()` (produces NCHW float32) instead. See the "Custom DataLoader"
-> example in `dxcom-api.md`.
+> | Model input (`inputs`) | Last steps of `preprocessings` |
+> |---|---|
+> | NCHW `[1, C, H, W]` — e.g. all PyTorch / Ultralytics YOLO exports | `{"transpose": {"axis": [2, 0, 1]}}`, then `{"expandDim": {"axis": 0}}` |
+> | NHWC `[1, H, W, C]` | `{"expandDim": {"axis": 0}}` |
 >
-> Symptom: `DataLoaderError: shape mismatch` or `expected [1,3,H,W] got [1,H,W,3]`
-> Fix: Replace `default_loader` in config.json with a Python DataLoader using
-> `transforms.ToTensor()`. Remove the `default_loader` key entirely from config.json
-> when calling `dx_com.compile(..., dataloader=custom_loader)`.
+> Always keep the final `expandDim`, as the manual's examples do: an NHWC model whose
+> graph starts with `Transpose(perm=[0,3,1,2])` (e.g. tf2onnx exports) fails without it
+> with `Unknown error occurred during compilation. Please contact DEEPX.` (`--verbose`
+> shows `ValueError: axes don't match array`). Without the transpose, calibration of an
+> NCHW model fails before compilation:
 >
-> `default_loader` is only appropriate for models expecting HWC input (rare).
-
-#### dataset_path
-Absolute or relative path to directory containing calibration images.
-
-> **⚠️ Path resolution**: `dataset_path` is resolved relative to the **working
-> directory where `dx_com.compile()` is called** (typically the repository root
-> or the session directory), NOT relative to the config file's location.
-> In autopilot sessions where `dx_com.compile()` may be called from the repo root,
-> always prefer **absolute paths** to avoid `DataNotFoundError`:
-> ```python
-> import os, json
-> config["default_loader"]["dataset_path"] = os.path.abspath("dx_com/calibration_dataset")
 > ```
-> If using a relative path, ensure it is relative to the directory from which
-> `dx_com.compile()` will be invoked (e.g., `./calibration_dataset` when running
-> from `${WORK_DIR}/`).
-
-#### file_extensions
-Array of file extensions to include (without dot):
-```json
-["jpeg", "png", "jpg", "bmp"]
-```
-
-#### preprocessings
-Array of preprocessing operations applied in order:
-
-**resize**:
-```json
-{"resize": {"width": 640, "height": 640}}
-```
-Width and height should match the spatial dimensions of `inputs` shape.
-
-**normalize**:
-```json
-{"normalize": {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]}}
-```
-
-Common normalization values:
-
-| Model Family | Mean | Std |
-|---|---|---|
-| YOLO (all versions) | `[0.0, 0.0, 0.0]` | `[1.0, 1.0, 1.0]` |
-| ImageNet (ResNet, etc.) | `[0.485, 0.456, 0.406]` | `[0.229, 0.224, 0.225]` |
-| Raw (0-255 → 0-1) | `[0.0, 0.0, 0.0]` | `[255.0, 255.0, 255.0]` |
-
-### quantization_device (optional — wheel package only)
-
-Device for quantization computation. Auto-detects GPU by default:
-- Not specified or `null` — Auto-detect (GPU if available, otherwise CPU)
-- `"cpu"` — Force CPU quantization
-- `"cuda"` — Use default CUDA GPU
-- `"cuda:0"` — Use first GPU
-- `"cuda:1"` — Use second GPU
+> DataLoaderError: Invalid JSON Configuration for input 'images': The config specifies
+> (1, 640, 640, 3), but model requires (1, 3, 640, 640). Please check the preprocessing configuration.
+> ```
+>
+> With `default_loader`, check `compiler.log` before writing host-side preprocessing: the
+> `Added nodes` line (manual `02_05`, "Automatic Preprocessing Optimization") and the
+> INPUT PREPROCESSING GUIDANCE block list the steps to skip at inference (e.g.
+> `Fused ops: Transpose(HWC→CHW) → Div(x=255)`) and the `NPU input` format.
+>
+> Use a Python `dataloader=` instead only when the JSON ops cannot express the input:
+> multi-input models, non-image data, or custom preprocessing (see "Custom DataLoader" in
+> `dxcom-api.md`). Then pass no `config=` at all — `config` and `dataloader` are mutually
+> exclusive. If the Dataset keeps torchvision transforms in a `transform` attribute (as the
+> `dxcom-api.md` example does), DX-COM may extract and fuse them (e.g.
+> `Fused ops: Transpose(HWC→CHW) → Div(x=255)`); preprocessing done by hand in
+> `__getitem__` gives `Fused ops: (none)`. Either way, follow the INPUT PREPROCESSING
+> GUIDANCE block for the inference input.
 
 …(truncated; see source)
 
 ## [section:dxcom,com,python] DX-COM Python API Reference  (dx-compiler/.deepx/toolsets/dxcom-api.md)
 # DX-COM Python API Reference
 
-> Complete reference for the `dx_com.compile()` Python API (DX-COM v2.2.1).
+> Complete reference for the `dx_com.compile()` Python API (DX-COM v2.5.0).
+
+<!-- VERIFIED against source/docs/02_02_Installation_of_DX-COM.md, 02_06_Execution_of_DX-COM.md, 02_07_Quantization_Tuning_Workflow.md and 02_09_Pre_Optimize_API.md (v2.5.0) -->
 
 ## Installation
 
-dx-com is a **private package** — it is NOT available on public PyPI.
+dx-com is published on **PyPI** (since v2.4.0). Requirements: Python 3.8–3.14 on
+x86_64 Linux with glibc ≥ 2.31 (wheels are tagged `manylinux_2_31_x86_64`).
 
-Installation methods (in order of preference):
+System libraries (DX-COM raises `RequiredLibraryError` without them):
 ```bash
-# 1. Activate the pre-installed compiler venv (RECOMMENDED):
-source dx-compiler/venv-dx-compiler-local/bin/activate
-
-# 2. Run the compiler installer (creates/updates the venv):
-bash dx-compiler/install.sh
-
-# 3. Install from local wheel (if available in the venv):
-pip install dx-compiler/dist/dx_com-*.whl
+sudo apt-get install -y --no-install-recommends libgl1-mesa-glx libglib2.0-0 make  # Debian / Ubuntu
+sudo dnf install -y mesa-libGL glib2 make  # Fedora; on RHEL / CentOS 9–10 enable the CRB repository first
 ```
 
-> **NEVER use `pip install dx-com`** — this will fail with "No matching distribution found"
-> because dx-com is not published to PyPI. Always use one of the methods above.
+Installation methods:
+```bash
+# 1. Already installed by the dx-compiler installer? Activate its venv:
+source dx-compiler/venv-dx-compiler-local/bin/activate   # host mode (container mode: venv-dx-compiler)
+
+# 2. Install from PyPI into an active venv:
+pip install dx-com          # or: uv pip install dx-com
+
+# 3. Run the compiler installer (creates/updates the venv; uses uv when available):
+bash dx-compiler/install.sh --target=dx_com
+
+# 4. Install a downloaded wheel matching your Python version:
+pip install dx_com-<VERSION>-<PYTAG>-<ABITAG>-manylinux_2_31_x86_64.whl
+```
+
+Verify the installation:
+```bash
+dxcom --version
+python3 -c "import dx_com; print(dx_com.__version__)"
+```
+
+> **Ultralytics `format=deepx` path**: Ultralytics installs `dx_com` itself (version
+> pinned by the installed `ultralytics` release) — do not install it manually for that
+> path. See `ultralytics-deepx-export.md`.
 
 ## Import
 
 ```python
 import dx_com
+from dx_com import PPUConfig, PPUTypes  # optional PPU config objects
+from dx_com import QMasterConfig         # only for QAT (Q-Master); see qat.md
 ```
 
 > **Note**: There is NO `dx_com.DataLoader` class. For custom dataloaders, use
@@ -211,33 +232,64 @@ def compile(
     dataloader: Optional[DataLoader] = None,  # torch.utils.data.DataLoader; mutually exclusive with config
     calibration_method: str = "ema",
     calibration_num: int = 100,
-    quantization_device: Optional[str] = None,
+    use_gpu: bool = True,                     # v2.5.0
     opt_level: int = 1,
     aggressive_partitioning: bool = False,
     input_nodes: Optional[List[str]] = None,
     output_nodes: Optional[List[str]] = None,
+    use_q_pro: bool = False,
     enhanced_scheme: Optional[Dict] = None,
+    ppu_config: Optional[PPUConfig] = None,
+    qmaster: Optional[QMasterConfig] = None,  # opt-in QAT (Q-Master), v2.5.0
     gen_log: bool = False,
+    float64_calibration: bool = False,
+    export_html: bool = False,
+    verbose: bool = False,                    # v2.5.0
+    **kwargs,
 ) -> None
 ```
+
+> **Changed in v2.5.0**: Call `dx_com.compile()` with **keyword arguments**.
 
 ### Parameters
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `model` | `str` or `ModelProto` | required | Path to ONNX file or loaded ONNX model |
+| `model` | `str` or `ModelProto` | required | Path to ONNX file or loaded ONNX model (not required with `checkpoint`) |
 | `output_dir` | `str` | required | Directory for output .dxnn and logs |
 | `config` | `str` | `None` | Path to config.json (mutually exclusive with `dataloader`) |
-| `dataloader` | `DataLoader` | `None` | PyTorch `torch.utils.data.DataLoader` (mutually exclusive with `config`). `batch_size` must be 1. |
-| `calibration_method` | `str` | `"ema"` | `"ema"` or `"minmax"` |
+| `dataloader` | `DataLoader` | `None` | PyTorch `torch.utils.data.DataLoader` (mutually exclusive with `config`). `batch_size` must be 1. Required for multi-input models |
+| `calibration_method` | `str` | `"ema"` | `"ema"`, `"minmax"`, or `"iqr"` |
 | `calibration_num` | `int` | `100` | Number of calibration samples |
-| `quantization_device` | `str` | `None` | Device for quantization. `None`=auto-detect (GPU if available), `"cpu"`, `"cuda"`, `"cuda:0"` |
+| `quantization_device` | — | — | **Deprecated in v2.5.0 — ignored** with a `UserWarning`. Do not pass it; use `use_gpu` and `CUDA_VISIBLE_DEVICES` |
+| `use_gpu` | `bool` | `True` | **(v2.5.0)** `True`=GPU when available (otherwise CPU), `False`=force CPU. Select a specific GPU with `CUDA_VISIBLE_DEVICES`. Pass only `True`/`False` — `None` or a string makes `compile()` fall back to its legacy path, which skips a JSON `pre_optimize` block and ignores `verbose` |
 | `opt_level` | `int` | `1` | Optimization level: 0 (minimal) or 1 (full) |
-| `aggressive_partitioning` | `bool` | `False` | Maximize NPU operations |
-| `input_nodes` | `List[str]` | `None` | Partial compilation: input node names |
-| `output_nodes` | `List[str]` | `None` | Partial compilation: output node names |
-| `enhanced_scheme` | `Dict` | `None` | Enhanced quantization config |
+| `aggressive_partitioning` | `bool` | `False` | **(Experimental)** Maximize NPU operations |
+| `input_nodes` | `List[str]` | `None` | Partial compilation: input node names (ONNX operator node names) |
+| `output_nodes` | `List[str]` | `None` | Partial compilation: output node names (ONNX operator node names) |
+| `use_q_pro` | `bool` | `False` | Automatic Q-PRO pipeline (ONNX compile path; also allowed with `checkpoint`). Mutually exclusive with `enhanced_scheme` |
+| `enhanced_scheme` | `Dict` | `None` | Manual Q-PRO scheme (`"DXQ-P0"`–`"DXQ-P5"`). Not supported for multi-input models. Also usable with `checkpoint` (the CLI flag `--enhanced_scheme` is resume-only; normal CLI compiles set it in the JSON) |
+| `ppu_config` | `PPUConfig` | `None` | PPU configuration object — Python equivalent of the JSON `ppu` section. `None` = PPU disabled |
+| `qmaster` | `QMasterConfig` | `None` | Opt-in Quantization-Aware Training (Q-Master, v2.5.0). Use ONLY when the user explicitly requests QAT. Mutually exclusive with `use_q_pro`/`enhanced_scheme`. See `qat.md` |
 | `gen_log` | `bool` | `False` | Generate compiler.log |
+| `float64_calibration` | `bool` | `False` | float64 calibration for cross-CPU determinism |
+| `export_html` | `bool` | `False` | Generate the Compilation Summary Report `<model_name>_summary.html` in `output_dir` |
+| `verbose` | `bool` | `False` | **(v2.5.0)** Expand masked error messages |
+
+**Advanced parameters** — documented outside the signature above; confirm with
+`help(dx_com.compile)`:
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `quant_diagnosis` | `bool` | `False` | Write `quant_diagnosis/diagnosis_report.html` and a resume checkpoint `quant_diagnosis/<model>.qxnn` under `output_dir` |
+| `checkpoint` | `str` | `None` | `.qxnn` path — QXNN resume mode (re-quantize without recompiling). `model`/`config` are not required — the manual's resume example passes neither, and on the CLI `--checkpoint` and `-m` are mutually exclusive. Any other extension raises `ValueError` |
+| `recalibration_method` | `str` | — | **(Resume-only)** Observer override: `"minmax"`, `"ema"`, or `"iqr"` |
+| `dataset_path` | `str` | — | **(Resume-only)** Override the calibration dataset path embedded in the checkpoint |
+
+Resume-only parameters raise an error without `checkpoint`. On resume the calibration
+DataLoader is rebuilt from the config embedded in the `.qxnn` (default loader only) —
+resuming a compile that used `dataloader=` is not documented. The result is written as
+`{checkpoint_stem}.dxnn` (override with `output_name`).
 
 ### Mutual Exclusivity
 
@@ -247,6 +299,18 @@ def compile(
 
 If both are provided, DX-COM raises `ValueError`.
 If neither is provided, DX-COM raises `ValueError`.
+
+When compiling with a `dataloader`, no config file is passed, so pass everything else as
+keyword arguments — e.g. PPU settings via `ppu_config=PPUConfig(...)`.
+
+Other pairs that must not be combined:
+
+| Pair | Rule |
+|---|---|
+| `use_q_pro` ↔ `enhanced_scheme` | Automatic vs manual Q-PRO — set only one |
+| `qmaster` ↔ `use_q_pro`/`enhanced_scheme` | QAT and Q-PRO re-quantization are mutually exclusive (`EnhancementSchemeError`) |
+| `checkpoint` ↔ `model` | Resume mode re-quantizes an existing `.qxnn` |
+| JSON `ppu` ↔ JSON `pre_optimize` | Both rewrite detection post-processing — see `config-schema.md` |
 
 ## Code Examples
 
@@ -262,93 +326,40 @@ dx_com.compile(
 )
 ```
 
-### Basic Compilation with All Options
-
-```python
-import dx_com
-
-dx_com.compile(
-    model="yolov8n.onnx",
-    output_dir="output/",
-    config="config.json",
-    calibration_method="ema",
-    calibration_num=200,
-    quantization_device="cuda:0",
-    opt_level=1,
-    gen_log=True,
-)
-```
-
-### Custom DataLoader
-
-<!-- VERIFIED: Uses torch.utils.data.Dataset + DataLoader, NOT dx_com.DataLoader -->
-
-```python
-import dx_com
-import torch
-from torch.utils.data import Dataset, DataLoader
-from torchvision import transforms
-from PIL import Image
-import os
-
-class MyDataset(Dataset):
-    def __init__(self, image_dir, input_shape):
-        self.image_dir = image_dir
-        self.image_files = sorted([
-            f for f in os.listdir(image_dir)
-            if f.endswith(('.jpg', '.jpeg', '.png'))
-        ])
-        self.transform = transforms.Compose([
-            transforms.Resize((input_shape[2], input_shape[3])),
-            transforms.ToTensor(),  # HWC uint8 -> CHW float [0,1]
-        ])
-
-    def __len__(self):
-        return len(self.image_files)
-
-    def __getitem__(self, idx):
-        img = Image.open(
-            os.path.join(self.image_dir, self.image_files[idx])
-        ).convert("RGB")
-        return self.transform(img)
-
-dataset = MyDataset("/data/coco/val2017", (1, 3, 640, 640))
-dataloader = DataLoader(dataset, batch_size=1, shuffle=True)
-
-dx_com.compile(
-    model="yolov8n.onnx",
-    output_dir="output/",
-    dataloader=dataloader,
-    calibration_method="ema",
-    calibration_num=100,
-)
-```
-
-### Partial Compilation
-
 …(truncated; see source)
 
 ## [section:dxcom,cli,com] DX-COM CLI Reference  (dx-compiler/.deepx/toolsets/dxcom-cli.md)
 # DX-COM CLI Reference
 
-> Command-line reference for `dxcom` (DX-COM v2.2.1).
+> Command-line reference for `dxcom` (DX-COM v2.5.0).
+
+<!-- VERIFIED against source/docs/02_02_Installation_of_DX-COM.md, 02_06_Execution_of_DX-COM.md and 02_07_Quantization_Tuning_Workflow.md (v2.5.0) -->
 
 ## Installation
 
 ```bash
-pip install dx-com
+pip install dx-com            # into an active venv; PyPI (recommended) — or: uv pip install dx-com
+# or, from the dx-compiler repo root (uses uv when available, otherwise pip):
+./install.sh --target=dx_com
 # Verify installation
-dxcom --help
+dxcom --version
 ```
+
+Wheels are tagged `manylinux_2_31_x86_64` (glibc ≥ 2.31) and support Python 3.8–3.14.
+See `dxcom-api.md` → Installation for all options and the required system libraries.
 
 ## Synopsis
 
 ```
 dxcom -m MODEL_PATH -c CONFIG_PATH -o OUTPUT_DIR [OPTIONS]
+dxcom --checkpoint CHECKPOINT.qxnn -o OUTPUT_DIR [RESUME OPTIONS]   # QXNN resume mode
 ```
 
-> **Note**: The binary installation uses `./dx_com/dx_com` instead of `dxcom`.
-> The wheel package installs the `dxcom` command. Both have the same CLI interface.
+> **Note**: The standalone executable distribution (`./dx_com/dx_com`) is deprecated.
+> Use the `dxcom` command installed by the wheel package.
+
+> **Note**: The CLI supports **single-input models only**. For multi-input models, use
+> the Python API (`dx_com.compile()` with a torch DataLoader) — see `dxcom-api.md`.
 
 ## Required Options
 
@@ -358,15 +369,44 @@ dxcom -m MODEL_PATH -c CONFIG_PATH -o OUTPUT_DIR [OPTIONS]
 | `-c` | `--config_path` | Path to JSON config file (.json) |
 | `-o` | `--output_dir` | Output directory for .dxnn and logs |
 
+In QXNN resume mode (`--checkpoint`), `-m` and `-c` are not required — only `-o` is.
+
 ## Optional Flags
+
+### Performance and Resource Control
 
 | Option | Long Form | Default | Description |
 |---|---|---|---|
-| | `--opt_level` | `1` | Optimization level: 0 (minimal) or 1 (full) |
-| | `--aggressive_partitioning` | off | Maximize NPU operations |
+| | `--opt_level` | `1` | Optimization level: 0 (fast compile, higher NPU latency) or 1 (full optimization, lowest NPU latency) |
+| | `--aggressive_partitioning` | off | **(Experimental)** Maximize NPU operations; may increase compile time and memory usage |
+| | `--use_gpu` | `True` | **(v2.5.0)** `True` = quantize on GPU when available, otherwise CPU (same as the Python default `use_gpu=True`); `False` = force CPU. Select the GPU with `CUDA_VISIBLE_DEVICES` |
+| | `--float64_calibration` | off | Use float64 precision in calibration and offset calculations for cross-CPU determinism |
+
+### Quantization Quality and Tuning (v2.4.0+)
+
+| Option | Long Form | Default | Description |
+|---|---|---|---|
+| | `--use_q_pro` | off | Automatic Q-PRO pipeline (ONNX compile path; also allowed in QXNN resume mode). Mutually exclusive with a manual `enhanced_scheme` |
+| | `--quant_diagnosis` | off | Write a per-region report `quant_diagnosis/diagnosis_report.html` and a resume checkpoint `quant_diagnosis/<model>.qxnn` |
+| | `--checkpoint` | none | `<path>.qxnn` — QXNN resume mode (re-quantize without recompiling). The extension must be `.qxnn`. Mutually exclusive with `-m/--model_path` |
+| | `--recalibration_method` | none | **(Resume-only)** Observer override: `minmax`, `ema`, or `iqr` |
+| | `--enhanced_scheme` | none | **(Resume-only)** Manual Q-PRO scheme, e.g. `P3:num_samples=1024`. For a normal compile, set `enhanced_scheme` in the JSON config instead. Mutually exclusive with `--use_q_pro` |
+| | `--dataset_path` | none | **(Resume-only)** Override the calibration dataset path embedded in the checkpoint |
+
+> **QXNN resume constraints**: resume-only flags raise an error without `--checkpoint`.
+> On resume the calibration DataLoader is rebuilt from the config embedded in the `.qxnn`
+> (default loader only) — resuming a compile that used a Python `dataloader=` is not
+> documented. The result is written as `{checkpoint_stem}.dxnn` in `-o`.
+
+### Debugging, Logging, and Partial Compilation
+
+| Option | Long Form | Default | Description |
+|---|---|---|---|
 | | `--gen_log` | off | Generate compiler.log in output directory |
-| | `--compile_input_nodes` | none | Input node names for partial compilation |
-| | `--compile_output_nodes` | none | Output node names for partial compilation |
+| | `--export_html` | off | Generate the Compilation Summary Report `<model_name>_summary.html` in output directory |
+| | `--verbose` | off | **(v2.5.0)** Expand masked error messages (origin type, original message, one direct cause) |
+| | `--compile_input_nodes` | none | Comma-separated input node names for partial compilation |
+| | `--compile_output_nodes` | none | Comma-separated output node names for partial compilation |
 | `-v` | `--version` | | Print compiler version and exit |
 
 ## Common Invocation Patterns
@@ -377,7 +417,9 @@ dxcom -m MODEL_PATH -c CONFIG_PATH -o OUTPUT_DIR [OPTIONS]
 dxcom -m yolov8n.onnx -c config.json -o output/
 ```
 
-### With Full Optimization and Logging
+### With Full Optimization, Logging, and HTML Summary Report
+
+Use this form for every compilation — review `<model_name>_summary.html` afterwards:
 
 ```bash
 dxcom \
@@ -385,7 +427,8 @@ dxcom \
   -c config.json \
   -o output/ \
   --opt_level 1 \
-  --gen_log
+  --gen_log \
+  --export_html
 ```
 
 ### Aggressive Partitioning
@@ -425,65 +468,29 @@ dxcom \
   --compile_output_nodes fc_out
 ```
 
-## Output
+### GPU / CPU Selection
 
-Successful compilation produces:
-```
-output/
-├── model.dxnn          # Compiled model for DEEPX NPU
-└── compiler.log        # Compilation log (if --gen_log)
-```
-
-## Exit Codes
-
-| Code | Meaning |
-|---|---|
-| 0 | Success |
-| non-zero | Error (invalid arguments, missing files, compilation failure, etc.) |
-
-<!-- NOTE: The official docs do not define specific non-zero exit codes (e.g., 1 vs 2).
-     Only 0 = success is verified. Do not fabricate distinct error codes. -->
-
-## Environment Variables
-
-| Variable | Description |
-|---|---|
-| `CUDA_VISIBLE_DEVICES` | Control GPU used for calibration |
-
-<!-- NOTE: DXCOM_LOG_LEVEL is NOT a verified environment variable. Use --gen_log flag instead. -->
-
-## Tips
-
-- Always use `--gen_log` during development for debugging
-- Use `--opt_level 0` for quick iteration, then `--opt_level 1` for final build
-- Combine `--aggressive_partitioning` with `--gen_log` to see what was moved to NPU
-- Paths can be relative or absolute
-- Output directory is created automatically if it does not exist
-
-## ⚠️ WARNING — default_loader and NCHW Models (R24)
-
-When using the CLI (`-c config.json`), if `config.json` contains `default_loader`,
-**all NCHW models will fail** with a calibration shape mismatch:
-
-```
-DataLoaderError: shape mismatch — expected [1,3,H,W] got [1,H,W,3]
+```bash
+# Force CPU quantization
+dxcom -m model.onnx -c config.json -o output/ --use_gpu False
+# Pin a specific GPU
+CUDA_VISIBLE_DEVICES=1 dxcom -m model.onnx -c config.json -o output/
 ```
 
-`default_loader` produces **HWC** tensors. All YOLO variants (yolo26n, yolov8,
-yolov9, v10, v11, v12, v3, v5, v7, YOLOX) expect **NCHW** input.
+### Automatic Q-PRO
 
-**Fix**: Do NOT use the CLI `dxcom` command for NCHW models with a file-based
-`default_loader` config. Use the Python API instead with a custom DataLoader:
+Opt-in only — use when the user asks for higher-accuracy quantization:
 
-```python
-import dx_com
-from torch.utils.data import DataLoader
-# custom_loader produces NCHW tensors via transforms.ToTensor()
-dx_com.compile(model="model.onnx", output_dir="./", config="config.json",
-               dataloader=custom_loader, opt_level=1, gen_log=True)
+```bash
+dxcom -m model.onnx -c config.json -o output/ --use_q_pro
 ```
 
-Remove `default_loader` from `config.json` when passing a Python `dataloader=` argument.
+### Quantization Diagnosis → QXNN Resume
+
+```bash
+# 1. Compile once with diagnosis (writes quant_diagnosis/diagnosis_report.html + <model>.qxnn)
+
+…(truncated; see source)
 
 ## [section:paddlepaddle,ecosystem,npu] PaddlePaddle Ecosystem → DeepX NPU Reference  (dx-compiler/.deepx/toolsets/paddlepaddle-deepx.md)
 # PaddlePaddle Ecosystem → DeepX NPU Reference
@@ -607,6 +614,170 @@ in English." (trimmed from the showcase README).
   Run `./setup.sh` in the **foreground** (it is the single blocking provisioning step).
 - Running inference without sourcing the DX-RT env (`deepx_scripts/set_env.sh`) → device errors.
 - Claiming NPU results without the runtime actually initialized (run the suite sanity check first).
+
+## [section:qat,q,master] Q-Master (QAT) Reference  (dx-compiler/.deepx/toolsets/qat.md)
+# Q-Master (QAT) Reference
+
+> Agent reference for Quantization-Aware Training in DX-COM (v2.5.0).
+> User-facing manual: `source/docs/02_08_Quantization_Aware_Training.md`.
+> **Q-Master** is DEEPX's product name for its QAT feature. Both terms refer to the same feature.
+
+## When to Use — and When NOT to
+
+**MUST** keep the default PTQ (EMA) flow unless the user **explicitly** asks for QAT / Q-Master.
+**NEVER** add a `qmaster` block on your own initiative.
+
+Suggest QAT (as an option, never silently) only when **all** of these hold:
+
+1. The model already compiles with PTQ using the same JSON config.
+2. The calibration method was tuned (`ema` → `minmax` → `iqr`) and accuracy is still below the user's target.
+3. Q-PRO (`use_q_pro`) was tried or ruled out — see [Constraints](#constraints-and-conflicts).
+4. A CUDA GPU and representative training images (hundreds to thousands) are available.
+
+<!-- NOTE: no numeric accuracy-drop threshold for choosing QAT is defined in the manual or the v2.5.0 code. Ask the user for their accuracy target; do not invent one. -->
+
+| | PTQ (default) | Q-Master (QAT) |
+|---|---|---|
+| Data | ~100 calibration images | hundreds–thousands of training images, **labels optional** |
+| GPU | not required | **required** (CUDA, default `cuda:0`) |
+| Time | minutes | minutes to hours |
+| Weights | unchanged | fine-tuned |
+| Command | `dxcom -m ... -c ... -o ...` | **same command**, JSON gains a `qmaster` block |
+
+## How It Works
+
+- The presence of a `qmaster` block in the JSON (or `qmaster=QMasterConfig(...)` in Python) switches the compile from PTQ to Q-Master. **No CLI flag exists or is needed.**
+- `default_loader.preprocessings` is the **single** source for both calibration and training data. **NEVER** redefine preprocessing inside `qmaster`.
+- Pipeline: calibration → Stage 1 training (at `batch_size`) → Stage 2 compile to `.dxnn` (always batch 1).
+- Default loss is Knowledge Distillation from the FP32 model (`use_kd=true`, `kd_loss=mse`, `kd_alpha=1.0`), so **no labels are needed**.
+
+## Minimal Config (JSON)
+
+Append a `qmaster` block to the working PTQ JSON:
+
+```json
+{
+  "inputs": { "input": [1, 3, 224, 224] },
+  "calibration_num": 100,
+  "calibration_method": "ema",
+  "default_loader": {
+    "dataset_path": "/path/to/train_images",
+    "file_extensions": ["jpeg", "jpg", "png", "JPEG"],
+    "preprocessings": [
+      { "resize": { "mode": "default", "size": 256 } },
+      { "centercrop": { "width": 224, "height": 224 } },
+      { "convertColor": { "form": "BGR2RGB" } },
+      { "div": { "x": 255 } },
+      { "normalize": { "mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225] } },
+      { "transpose": { "axis": [2, 0, 1] } },
+      { "expandDim": { "axis": 0 } }
+    ]
+  },
+  "qmaster": { "batch_size": 16, "train_limit": 2000, "val_limit": 200, "epochs": 10 }
+}
+```
+
+> **Inference**: `convertColor` is not integrated into the NPU graph (listed under
+> `Skipped nodes` in `compiler.log`). The inference code must apply the same `BGR2RGB`
+> conversion, or inference sees a different channel order from calibration/training and
+> accuracy drops silently.
+
+```bash
+dxcom -m model.onnx -c config_with_qmaster.json -o output/
+```
+
+<!-- NOTE: the commands above were NOT executed in this session (no GPU run of v2.5.0). The JSON structure and key names follow the user manual (`02_08` Quick Start and Parameter Reference), not a live compile. -->
+
+## Python API
+
+```python
+import dx_com
+from dx_com import QMasterConfig
+
+# JSON-driven (qmaster block in config.json)
+dx_com.compile(model="model.onnx", config="config_with_qmaster.json", output_dir="output/")
+
+# Hyperparameters in code (JSON needs no qmaster block)
+dx_com.compile(
+    model="model.onnx",
+    config="config.json",
+    output_dir="output/",
+    qmaster=QMasterConfig(config={"epochs": 10, "batch_size": 16, "train_limit": 2000}),
+)
+
+# Compile only from a trained checkpoint
+dx_com.compile(
+    model="model.onnx",
+    config="config.json",
+    output_dir="output/",
+    qmaster=QMasterConfig(
+        skip_training=True,
+        resume_from_checkpoint="output/qat_checkpoint/qat_checkpoint.qxnn",
+    ),
+)
+```
+
+| `QMasterConfig` field | Type | Default | Description |
+|---|---|---|---|
+| `config` | `Optional[dict]` | `None` | Same keys as the JSON `qmaster` block |
+| `skip_training` | `bool` | `False` | Skip training; compile from a checkpoint |
+| `resume_from_checkpoint` | `Optional[str]` | `None` | Path to `qat_checkpoint.qxnn` |
+
+- `fast_run` and `stage1_mode` are **JSON/config keys** inside `qmaster`, **not** `compile()` arguments.
+- In Python use `skip_training` / `resume_from_checkpoint`; `stage1_mode` is read only from the JSON `qmaster` block.
+
+### Removed in v2.5.0 (migration only)
+
+`quantization_mode`, `qat_config`, `qat_skip_training`, `qat_resume_from_checkpoint` were replaced by `qmaster=`.
+
+- **VERIFIED** (v2.5.0 wheel, live run): `quantization_mode` and `qat_skip_training` **raise `InvalidValueError`** ("are no longer accepted by compile(); pass QAT settings via qmaster=").
+- **VERIFIED** (v2.5.0 wheel, live run): `qat_config` and `qat_resume_from_checkpoint` do **not** raise. They are silently ignored and the compile continues. Unknown keyword arguments (e.g. `no_such_option=1`) are ignored the same way. Their settings are NOT applied.
+
+**NEVER** use these names in new code, examples, or generated configs.
+
+## Hyperparameters
+
+All keys optional. Defaults match the user manual (`02_08` Parameter Reference).
+
+### Data and device
+
+| Key | Type | Default | Recommended |
+|---|---|---|---|
+| `batch_size` | int | `1` | `16` (lower on OOM) |
+| `num_workers` | int | `4` | keep |
+| `train_limit` | int | `500` | `2000`+ for real runs (default is smoke-test scale) |
+| `val_limit` | int | `50` | `200`+; taken **before** training images from the same pool |
+| `train_drop_last` / `val_drop_last` | bool | `true` / `false` | keep |
+| `device` | str | `"cuda:0"` | keep; pick GPU with `CUDA_VISIBLE_DEVICES` |
+| `train_cpu_fp` | bool | `false` | `false` — `true` also trains CPU (non-NPU) subgraph weights |
+
+### Training loop
+
+| Key | Type | Default | Recommended |
+|---|---|---|---|
+| `epochs` | int | `30` | `10` for first run |
+| `lr` | float | `1e-5` | `5e-6` if accuracy worsens from epoch 1 |
+| `optimizer` | str | `"adamw"` | `"adamw"` or `"sgd"` |
+| `weight_decay` | float | `1e-4` | keep |
+| `scheduler` | str\|null | `null` | `null`, `"cosine"`, `"step"` |
+| `scheduler_step_size` | int | `max(1,(epochs-warmup_epochs)//3)` | `"step"` only |
+| `warmup_epochs` | int | `0` | keep |
+| `max_grad_norm` | float | `1.0` | keep |
+| `use_amp` | bool | `true` | keep |
+| `gradient_accumulation_steps` | int | `1` | effective batch = `batch_size × this` |
+| `early_stopping_patience` | int\|null | `5` | needs validation data; `null` disables |
+| `early_stopping_delta` | float | `1e-3` | keep |
+| `save_best_model` | bool | `true` | keep |
+| `freeze_bn_after` | int\|null | `null` | **NEVER** `0` (can produce `nan`); leave `null` |
+
+### Loss and KD
+
+Loss = `kd_alpha × KD + (1 − kd_alpha) × task`.
+
+| Key | Type | Default | Notes |
+|---|---|---|---|
+
+…(truncated; see source)
 
 ## [section:ultralytics,export] Ultralytics → DeepX Export Reference  (dx-compiler/.deepx/toolsets/ultralytics-deepx-export.md)
 # Ultralytics → DeepX Export Reference
@@ -1987,7 +2158,7 @@ the NPU schedules inference requests internally:
 
 > **SDK Source of Truth**: `docs/source/docs/Elements/`, `gst-inspect-1.0 dx*`
 
-> Primary API reference for all 13 dx_stream GStreamer elements.
+> Primary API reference for the currently supported dx_stream GStreamer elements.
 > Use this as the definitive source for element properties, pads, and usage patterns.
 
 ---
@@ -2051,6 +2222,7 @@ model file. Attaches DXTensorMeta to the output buffer.
 | `model-path` | string | "" | Absolute path to .dxnn model file |
 | `batch-size` | int | 1 | Batch size for inference |
 | `secondary-mode` | bool | false | Run inference on per-object ROIs |
+| `backend` | string | "auto" | Inference backend: `auto`, `dxrt`, or `dxvnpu` when built with V-NPU support |
 | `config-file-path` | string | "" | Path to JSON configuration file |
 
 **Pad Templates:**
@@ -2068,6 +2240,9 @@ dxinfer config-file-path=/path/to/inference_config.json
 # Secondary mode
 dxinfer preprocess-id=2 inference-id=2 secondary-mode=true \
     model-path=/abs/path/to/efficientnet-lite0_256x256.dxnn
+
+# Select the DX-H1 V-NPU inference backend explicitly
+dxinfer preprocess-id=1 inference-id=1 backend=dxvnpu model-path=/abs/path/to/model.dxnn
 ```
 
 **Common Pitfalls:**
@@ -2138,10 +2313,6 @@ dxtracker config-file-path=/path/to/tracker_config.json
 - MUST follow DxPostprocess (needs DXObjectMeta)
 - Placing before DxPostprocess has no objects to track
 - Missing config file causes default parameters (may not suit all scenarios)
-
----
-
-## 5. DxOsd
 
 …(truncated; see source)
 

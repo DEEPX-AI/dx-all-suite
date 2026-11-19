@@ -549,4 +549,20 @@ window._DX_MODELZOO_I18N_REGISTER({
     'zh-TW': '此模型沒有明確的商業使用授權 — 商業部署前請查看原始授權。',
     es: 'Este modelo no tiene una licencia clara para uso comercial — revise la licencia original antes de un despliegue comercial.',
   },
+  'Supported hardware': {
+    en: 'Supported hardware', ko: '지원 하드웨어', ja: '対応ハードウェア',
+    'zh-CN': '支持的硬件', 'zh-TW': '支援的硬體', es: 'Hardware compatible',
+  },
+  'DX-M1M: support for this model is not confirmed yet.': {
+    en: 'DX-M1M: support for this model is not confirmed yet.',
+    ko: 'DX-M1M: 이 모델의 지원 여부는 아직 확인되지 않았습니다.',
+    ja: 'DX-M1M: このモデルの対応可否はまだ確認されていません。',
+    'zh-CN': 'DX-M1M：此模型的支持情况尚未确认。',
+    'zh-TW': 'DX-M1M：此模型的支援情況尚未確認。',
+    es: 'DX-M1M: la compatibilidad de este modelo aún no está confirmada.',
+  },
+  'Not supported on DX-M1M': {
+    en: 'Not supported on DX-M1M', ko: 'DX-M1M에서는 지원되지 않음', ja: 'DX-M1M では非対応',
+    'zh-CN': 'DX-M1M 不支持', 'zh-TW': 'DX-M1M 不支援', es: 'No compatible con DX-M1M',
+  },
 });

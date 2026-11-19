@@ -792,6 +792,9 @@
 
         if (!needsLoad) {
           finishModuleEntry(appKey, iframe);
+          /* The page was kept, not loaded: tell it it is on screen again (Agent Dev picks up a run started
+             elsewhere while it was hidden). */
+          try { iframe.contentWindow.postMessage({ type: 'dx-module-shown' }, '*'); } catch (e) {}
           return;
         }
 

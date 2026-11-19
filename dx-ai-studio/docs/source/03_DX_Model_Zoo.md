@@ -25,6 +25,9 @@ Step 2. **Open a model** to see its detail view: task, input shape, accuracy met
    Key Facts, Example, artifacts / actions and metrics in a 2×2 layout. A before/after
    slider is available for suitable examples, including super-resolution: open a
    Real-ESRGAN variant and compare its existing input / result images.
+   *Specification → Supported hardware* lists the products the model runs on: **DX-M1** and **DX-H1 Quattro**
+   (four M1 chips, so it runs whatever M1 runs). Whether a model fits **DX-M1M** (1.92 GiB NPU memory) is recorded
+   per model by DX Model Zoo; until a model has that record, the row says it is not confirmed yet. A model that does not fit shows *Not supported on DX-M1M* with the reason.
 
 Step 3. **Download** an available artifact — a Q-Lite / Q-Pro `.dxnn` (with progress /
    cancel), ONNX or JSON. Not every model provides every artifact or quantization tier.
@@ -38,6 +41,13 @@ Step 4. **Try it in-browser** — run inference right from the detail view (uplo
    per-stage latency table, and switch the execution path (C++/Python × Sync/Async).
    DX App must be reachable, the selected model downloaded, its example prepared / built,
    and the NPU runtime ready. Non-image tasks do not necessarily support this image demo.
+   If the model has a C++ example that is not built yet (Demo Quick Start builds only the demo models),
+   the inference panel shows **Build C++ runner** under *Execution path*. It builds just this model's
+   runners (`build.sh --target`, no password), shows the elapsed time and the last build line, can be
+   cancelled, and selects **C++ · Sync** when done — no restart. While another Setup job runs, it asks you to
+   try again when that job finishes.
+
+   ![Model Zoo inference panel — Build C++ runner for AlexNet, building with the elapsed time, the last build line and Cancel build.](resources/modelzoo-cpp-build.png)
    
 Step 5. Or pull the model into **[DX App](05_DX_App.md)** or **[DX Compiler](04_DX_Compiler.md)**
    (the detail view also links straight to "View Model Graph" and a compile guide).  

@@ -89,7 +89,7 @@ sudo apt install libdxrt-bin
     -n dx-system --create-namespace --set nfd.enabled=true
   ```
 
-**Learn more** — see the [Kubernetes Quickstart](docs/source/06_Kubernetes_Quickstart.md), [Kubernetes Beginner Guide](docs/source/07_Kubernetes_Beginner_Guide.md), and [`deploy/k8s/README.md`](deploy/k8s/README.md).
+**Learn more** — see the [Kubernetes Quickstart](https://developer.deepx.ai/tech-docs/DX-AllSuite/Kubernetes_Quickstart/), [Kubernetes Beginner Guide](https://developer.deepx.ai/tech-docs/DX-AllSuite/Kubernetes_Beginner_Guide/), and [`deploy/k8s/README.md`](deploy/k8s/README.md).
 
 #### New: Faster post-processing and broader model coverage in DX-COM
 
@@ -145,7 +145,7 @@ DX AI Studio renews the home screen and adds a graph composer inside DX App.
 
 **Performance & Efficiency**
 
-- **GPU preprocessing on ARM**: New OpenGL ES transform backend with DMA-BUF zero-copy offloads crop, resize, letterbox, and color conversion to the GPU. On Raspberry Pi 5 with a 1080p30 camera (NV12 1920x1080 → RGB 640x640), CPU usage drops from **95.2% to 4.8%** (DX-STREAM).
+- **GPU preprocessing on ARM**: New OpenGL ES transform backend with DMA-BUF zero-copy offloads crop, resize, letterbox, and color conversion to the GPU. On Raspberry Pi 5 with a 1080p30 camera (RGB 1920x1080 → RGB 640x640), CPU usage drops from **95.2% to 4.8%** (DX-STREAM).
 - **Throughput auto-tuning**: `dxrun --max-throughput` automatically finds the I/O buffer count that maximizes throughput on your system, replacing manual trial and error (DX-RT).
 - **Faster input path**: float32 → int8 input quantization now runs on NEON/SSE4.1 SIMD kernels, reducing the DMA write time of each inference (DX-RT).
 - **Clearer latency metrics**: New E2E Response Time and Core Latency APIs (C/C++/Python) separate on-NPU time from buffer-pool and queue wait time, making bottlenecks easier to locate (DX-RT).
@@ -381,7 +381,7 @@ This release adds **DX-Benchmark (Beta)**, polishes the **DX AI Studio (Beta)** 
 - **Comparable by construction** — automatic ONNX-Runtime ON/OFF comparison, thermal steady-state normalization with throttle detection, and a full environment fingerprint recorded per run.
 - **Published dataset** — 6 hardware environments (H1-Quattro, Intel N97, OrangePi 5+, ROCK 5B+, and Raspberry Pi 5 with M1 / M1M) measured on v2.3.3 and v2.4.0.
 - **Interactive dashboard** — self-contained HTML (no CDN) for cross-environment and cross-version comparison; the same dataset backs DX AI Studio's Benchmark view.
-- **Performance analysis** — EN/KOR documents covering NPU-bound vs host-bound behaviour, ORT-mode selection, and per-environment deployment guidance.
+- **Performance analysis** — EN/KOR documents covering NPU-bound vs host-bound behavior, ORT-mode selection, and per-environment deployment guidance.
 
 > **Beta notice:** DX-Benchmark is a Beta release (tool v0.1.0, measurement protocol v1). The CLI and output schema may change.
 
@@ -450,7 +450,7 @@ Describe an app or model task in plain language, and an AI coding agent drives t
 
 > **Beta notice:** `dx-agent-dev` is currently in Beta. Behavior and APIs may change as the feature matures.
 
-**Learn more** — see [Agent-Driven Development docs](docs/source/00_Agent_Driven_Development.md) and the [showcase gallery](dx-agent-dev-showcase/README.md).
+**Learn more** — see [Agent-Driven Development docs](https://developer.deepx.ai/tech-docs/DX-AllSuite/Agent_Driven_Development/) and the [showcase gallery](dx-agent-dev-showcase/README.md).
 
 #### New: DX AI Studio — one browser workspace for the DEEPX NPU (Beta)
 
@@ -779,7 +779,7 @@ This release enhances the development experience with GPU-accelerated quantizati
 **Performance & Efficiency**
 
 - GPU Quantization: Added `quantization_device` support in JSON configuration for CLI-based GPU quantization. Automatic GPU detection falls back to CPU when CUDA is unavailable.
-- Windows Build: Automated DLL copying (dxrt, vkpkg) to dx-app/bin directory and added vcpkg installation script for streamlined Windows builds.
+- Windows Build: Automated DLL copying (dxrt, vcpkg) to dx-app/bin directory and added vcpkg installation script for streamlined Windows builds.
 
 **Stability & Fixes**
 

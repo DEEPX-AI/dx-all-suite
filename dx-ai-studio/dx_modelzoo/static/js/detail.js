@@ -519,6 +519,24 @@ function renderExampleImages(model) {
   }
 }
 
+/* Products a model runs on (catalog `processor`, rule in dx_modelzoo/metadata/devices.py). DX-H1 Quattro is 4 × M1.
+   DX-M1M is per model, from dx-modelzoo YAML `target_hardware` — until the model has it, say it is not confirmed. */
+const _HW_NAMES = { dx_m1: 'DX-M1', dx_m1m: 'DX-M1M', dx_h1_quattro: 'DX-H1 Quattro' };
+function _supportedHardwareHtml(processor) {
+  const p = processor || {};
+  const devices = Array.isArray(p.supported_devices) && p.supported_devices.length ? p.supported_devices : ['dx_m1', 'dx_h1_quattro'];
+  const m1m = p.m1m || { status: 'pending' };
+  const names = escapeHtml(devices.map(d => _HW_NAMES[d] || d).join(' · '));
+  let note = '';
+  if (m1m.status === 'pending') {
+    note = T('DX-M1M: support for this model is not confirmed yet.');
+  } else if (m1m.status === 'unsupported') {
+    note = T('Not supported on DX-M1M') + (m1m.reason ? ` (${m1m.reason})` : '');
+  }
+  return `<span class="mz-hw-list">${names}</span>`
+    + (note ? `<div class="mz-hw-note" data-m1m="${escapeHtml(m1m.status)}">${escapeHtml(note)}</div>` : '');
+}
+
 function renderSpecification(model) {
   const spec = model.specification || {};
   const technical = model.technical || {};
@@ -534,11 +552,12 @@ function renderSpecification(model) {
     ['Quantization', Array.isArray(spec.quantization) ? spec.quantization.join(', ') : spec.quantization],
     ['Postprocessor', technical.postprocessor],
     ['Input Shape', technical.input_shape],
+    ['Supported hardware', { __html: _supportedHardwareHtml(model.processor) }],
   ];
   const leftRows = rows.slice(0, 5);
   const rightRows = rows.slice(5);
   const renderRows = (entries) => `<table class="mz-spec-table"><tbody>
-    ${entries.map(([k, v]) => `<tr><th>${T(k)}</th><td>${_detailValue(v, 'Not provided by source')}</td></tr>`).join('')}
+    ${entries.map(([k, v]) => `<tr><th>${T(k)}</th><td>${v && v.__html !== undefined ? v.__html : _detailValue(v, 'Not provided by source')}</td></tr>`).join('')}
   </tbody></table>`;
 
   return `<div class="mz-spec-columns">
@@ -893,6 +912,21 @@ function initDownloadButtons(container) {
   });
 }
 
+// Re-fetch this model's catalog entry and re-render the bits that depend on
+// download state (Run Inference panel + download badges), without reloading
+// the whole detail page (which would lose scroll position / open sections).
+async function refreshInferencePanelAfterDownload(modelId) {
+  try {
+    const resp = await fetch(modelzooApiUrl(`/api/catalog/${encodeURIComponent(modelId)}`));
+    if (!resp.ok) return;
+    const data = await resp.json();
+    if (!data.ok || !data.model) return;
+    _currentDetailModel = data.model;
+    if (typeof renderInferencePanel === 'function') renderInferencePanel(data.model);
+    refreshDetailActionBarsForHealth();
+  } catch (_) { /* best-effort — a stale panel is a UX annoyance, not worth surfacing an error for */ }
+}
+
 async function downloadModel(event, modelId, quantType) {
   const btn = event.target.closest('button');
   const btnArea = btn?.parentElement;
@@ -982,6 +1016,11 @@ async function downloadModel(event, modelId, quantType) {
         } else {
           setModelZooStatusHtml(statusEl, `<span style="color:var(--status-ok)">${_mzIco('check')} ${T('Download complete')}</span>`);
           btn.style.display = '';
+          // The inference panel's Run/Use-Default gating was rendered from the
+          // pre-download snapshot (isDownloaded: false) and is never touched again
+          // otherwise — without this, the buttons stay disabled until a full page
+          // reload even though the file is now on disk (dx-swe-debugging: U-RPI-1).
+          refreshInferencePanelAfterDownload(modelId);
         }
       } catch (_) { /* polling error, continue */ }
     }, 2000);

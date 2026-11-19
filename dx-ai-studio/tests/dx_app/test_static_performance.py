@@ -157,7 +157,7 @@ def test_inference_error_hints_use_i18n_not_korean_literals():
         assert frag not in source, (
             f"inference.js still contains Korean literal: {frag!r}"
         )
-    assert "T('Check that dx_engine is running" in source
+    assert "T('Check that the NPU runtime (dx_engine) is ready" in source
     assert "T('Check the model file or executable path" in source
     assert "T('Inference timed out" in source
 

@@ -106,6 +106,8 @@ def _prepare_dx_app_runtime(tmp_path, monkeypatch):
     monkeypatch.setattr(inference, "PY_DIR", py_dir)
     monkeypatch.setattr(inference, "get_hw", lambda: {})
     monkeypatch.setattr(inference, "_parse_perf", lambda stdout: {"overall_fps": "30"})
+    # Python-path tests must not depend on whether this box has a numpy+cv2+dx_engine interpreter.
+    monkeypatch.setattr(inference.config, "runtime_python", lambda: "/usr/bin/python3")
     # The fake inference process replaces subprocess.Popen globally; media has its own tests.
     monkeypatch.setattr(inference, "run_media", lambda operation, **params: {"count": 0})
 

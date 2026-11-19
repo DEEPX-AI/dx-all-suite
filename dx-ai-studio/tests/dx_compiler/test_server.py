@@ -51,6 +51,25 @@ BASE_URL = f"http://127.0.0.1:{TEST_PORT}"
 _STALE_MODULE_PREFIXES = ("core", "shared", "server", "dx_compiler_server_for_tests", "dx_compiler")
 
 
+def _is_stale(name):
+    return any(name == prefix or name.startswith(prefix + ".") for prefix in _STALE_MODULE_PREFIXES)
+
+
+@pytest.fixture(scope="module", autouse=True)
+def _restore_cleared_modules():
+    """Put the shared/core modules back after this file.
+
+    Later suites patch module objects they imported at collection time (e.g. shared.dxrt);
+    leaving fresh copies in sys.modules makes those patches miss the code under test.
+    Module-scoped autouse, so it snapshots before the module-scoped server fixture clears.
+    """
+    saved = {name: mod for name, mod in sys.modules.items() if _is_stale(name)}
+    yield
+    for name in [n for n in sys.modules if _is_stale(n)]:
+        del sys.modules[name]
+    sys.modules.update(saved)
+
+
 def _clear_stale_modules():
     """Remove core/shared/server modules left in sys.modules by other apps."""
     for name in list(sys.modules):

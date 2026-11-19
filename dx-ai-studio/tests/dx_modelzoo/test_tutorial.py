@@ -22,6 +22,7 @@ RUNTIME_SELECTOR_ALLOWLIST = {
     "#dxToolbar",
     "#dxt-mock-dl",
     "#dxt-mock-example",
+    "#dxt-mock-exec",
     "#dxt-mock-inf",
     "#inferencePanel",
     "#inferenceResultUpload",

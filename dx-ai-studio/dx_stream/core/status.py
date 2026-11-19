@@ -123,13 +123,9 @@ def _get_gst_version():
 
 
 def _get_npu_driver_version():
-    try:
-        r = subprocess.run(['dxrt-cli', '--version'], capture_output=True, text=True, timeout=5)
-        if r.returncode == 0:
-            return r.stdout.strip().split('\n')[0]
-    except Exception:
-        pass
-    return '--'
+    """dxrt_driver module version, not the DX-RT runtime that `dxrt-cli --version` prints."""
+    from shared.dxrt import npu_driver_version
+    return npu_driver_version() or '--'
 
 
 def check_system(pipeline_mgr=None) -> dict:

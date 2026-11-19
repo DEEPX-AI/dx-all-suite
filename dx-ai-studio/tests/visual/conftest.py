@@ -59,7 +59,7 @@ STABILISE_INIT = """
 """
 
 
-@pytest.fixture(scope="session", params=selected_engines())
+@pytest.fixture(scope="package", params=selected_engines())   # stop Playwright when tests/visual ends
 def visual_browser(request):
     sync_api = pytest.importorskip("playwright.sync_api")
 

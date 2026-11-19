@@ -144,7 +144,8 @@ def _check_kmod():
 
 
 def _check_dkms():
-    rc, out, _ = _run(["dkms", "status"])
+    from shared import dxrt
+    rc, out = dxrt.dkms_dxrt_status()
     ok = rc == 0 and "dxrt" in out.lower()
     return {
         "id": "dkms",

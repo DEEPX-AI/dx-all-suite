@@ -12,11 +12,57 @@ Contract: tests/dx_app/test_dxrt_container.py (shared by the studio's dx_app and
 from __future__ import annotations
 
 import re
+import subprocess
 from pathlib import Path
 from typing import Optional
 
 from shared.paths import DX_RUNTIME_ROOT
 from shared.dx_app_layout import container_version
+
+# The dxrt_driver kernel module's version (what Setup shows as "NPU Driver"). `dxrt-cli --version` is the
+# DX-RT runtime ("DXRT v3.5.0"), not the driver (v2.7.0) — never use it for this.
+_SYS_DRIVER_VERSION = Path("/sys/module/dxrt_driver/version")
+
+
+def npu_driver_version() -> Optional[str]:
+    """'v2.7.0' from the loaded module, else from the installed one (modinfo), else None."""
+    try:
+        value = _SYS_DRIVER_VERSION.read_text(encoding="utf-8").strip()
+    except OSError:
+        value = ""
+    if not value:
+        try:
+            r = subprocess.run(["modinfo", "-F", "version", "dxrt_driver"], capture_output=True, text=True, timeout=5)
+            value = r.stdout.strip() if r.returncode == 0 else ""
+        except (OSError, subprocess.SubprocessError):
+            value = ""
+    value = value.lstrip("v")
+    return f"v{value}" if value else None
+
+
+# The DX-RT driver's DKMS module (dx_rt_npu_linux_driver/debian/rules: DKMS_MODULE_NAME).
+DKMS_MODULE = "dxrt-driver-dkms"
+
+
+def dkms_dxrt_status() -> tuple:
+    """(returncode, output) of `dkms status` for the DX-RT driver: -1 when dkms is missing, -2 on timeout.
+
+    Asks for the driver module only — a bare `dkms status` walks every module on every kernel (6.5 s on a Pi with
+    v4l2loopback and seven kernels, 0.8 s for this module). Falls back to the full listing when the module query
+    finds nothing, since older packages named the module differently (callers look for "dxrt" / "deepx")."""
+    def run(argv):
+        r = subprocess.run(argv, capture_output=True, text=True, timeout=15)
+        return r.returncode, (r.stdout or "").strip()
+    try:
+        rc, out = run(["dkms", "status", "-m", DKMS_MODULE])
+        if rc == 0 and out:
+            return rc, out
+        return run(["dkms", "status"])
+    except FileNotFoundError:
+        return -1, ""
+    except subprocess.TimeoutExpired:
+        return -2, ""
+
 
 NEEDS_FOR_V9 = "3.5.0"
 _V9_FROM = (3, 5, 0)

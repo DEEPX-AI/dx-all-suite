@@ -3,7 +3,7 @@
 > dx-all-suite 최상위 레벨의 DEEPX Agent-Driven Development (`dx-agent-dev`)
 > canonical source에 대한 마스터 인덱스.
 >
-> 최종 사용자 사용법은 [`docs/source/00_Agent_Driven_Development.md`](../docs/source/00_Agent_Driven_Development.md)를 참조.
+> 최종 사용자 사용법은 [Agent-Driven Development](https://developer.deepx.ai/tech-docs/DX-AllSuite/Agent_Driven_Development/)를 참조.
 > 5개 repo 전반의 모든 `.deepx/` 디렉토리에 대한 포괄적인 워크스루는
 > [`docs/dx-agent-dev-overview.md`](docs/dx-agent-dev-overview.md)를 참조.
 
@@ -17,9 +17,9 @@
 - 에이전트 정의 (router agents, builder agents, validators)
 - Skill 워크플로우 (build, validate, brainstorm, TDD 등)
 - 명령어 템플릿 (`CLAUDE.md`, `AGENTS.md`, `copilot-instructions.md`)
-- 모든 플랫폼 출력에 주입되는 공유 fragment (4개 tool × 5개 repo)
+- 모든 플랫폼 출력에 주입되는 공유 fragment
 - Memory (pitfalls, knowledge base 항목)
-- Tests (~600개 conformance + ~586개 E2E)
+- Tests (conformance + E2E)
 - `.deepx/` 콘텐츠를 모든 플랫폼으로 fan-out하는 `dx-agent-gen` generator
 
 > **Generator 출력을 직접 수정하지 마세요.** `CLAUDE.md`, `AGENTS.md`,
@@ -43,7 +43,7 @@ dx-all-suite는 5개의 repo를 포함하며, 각각 자체 `.deepx/`를 가집�
 
 각 sub-project `.deepx/`는 자체 완결적입니다. 이 최상위 레벨 `.deepx/`는 다음을 추가합니다:
 - Suite 전역 router agents (`dx-suite-builder`, `dx-suite-validator`)
-- 5개의 모든 repo에 주입되는 22개의 공유 fragment (rename gates, session sentinels,
+- 5개의 모든 repo에 주입되는 공유 fragment (rename gates, session sentinels,
   process gates, autopilot guard 등)
 - `dx-agent-gen` generator (5개의 모든 repo를 처리하는 단일 도구)
 - 모든 agent-driven 테스트 인프라 (`tests/` conformance + `e2e/`)
@@ -57,15 +57,15 @@ dx-all-suite는 5개의 repo를 포함하며, 각각 자체 `.deepx/`를 가집�
 ├── README.md                    ← This file (top-level master index)
 ├── README-KO.md                 ← Korean translation
 │
-├── agents/                      ← Suite-level routing agents (2)
+├── agents/                      ← Suite-level routing agents
 │   ├── dx-suite-builder.md      ← Top-level task classifier → sub-projects
 │   └── dx-suite-validator.md    ← Cross-level framework validator
 │
-├── skills/                      ← Reusable skill workflows (14)
+├── skills/                      ← Reusable skill workflows
 │   ├── dx-skill-router/         ← Meta — universal pre-flight
-│   ├── dx-swe-*/                ← General SWE process (10: brainstorm/tdd/verify/…)
-│   ├── dx-agent-*/            ← DEEPX-specific (3: brainstorm/tdd/verify)
-│   └── dx-harness-*/            ← Internal harness dev (2: validate/writing-skills)
+│   ├── dx-swe-*/                ← General SWE process (brainstorm/tdd/verify/…)
+│   ├── dx-agent-*/            ← DEEPX-specific (brainstorm/tdd/verify/…)
+│   └── dx-harness-*/            ← Internal harness dev (validate/writing-skills)
 │
 ├── templates/                   ← Generator templates
 │   ├── en/                      ← English instruction templates
@@ -76,7 +76,7 @@ dx-all-suite는 5개의 repo를 포함하며, 각각 자체 `.deepx/`를 가집�
 │   │   ├── CLAUDE-KO.md.tmpl
 │   │   ├── AGENTS-KO.md.tmpl
 │   │   └── copilot-instructions-KO.md.tmpl
-│   └── fragments/               ← 44 shared fragments (22 EN + 22 KO)
+│   └── fragments/               ← Shared fragments (EN + KO)
 │       ├── en/
 │       └── ko/
 │
@@ -90,11 +90,11 @@ dx-all-suite는 5개의 repo를 포함하며, 각각 자체 `.deepx/`를 가집�
 │
 ├── tests/                       ← suite conformance 테스트
 │   ├── README.md                ← 테스트 범주 및 실행법
-│   └── conformance/             ← ~600 정적 KB/생성물 정책 검사 (CLI/NPU 불필요)
+│   └── conformance/             ← 정적 KB/생성물 정책 검사 (CLI/NPU 불필요)
 │
 ├── e2e/                         ← End-to-end 하니스 (분리됨)
 │   ├── e2e_runner.py · e2e_monitor.py · test.sh   ← 라운드 오케스트레이션 + 러너
-│   ├── test_agent_e2e_scenarios/  ← ~586 E2E 테스트 (5 CLI × 시나리오)
+│   ├── test_agent_e2e_scenarios/  ← E2E 테스트 (CLI × 시나리오)
 │   └── agent_analyzer/        ← E2E 결과 분석기 (리포트, 인사이트)
 │
 └── tools/                       ← 툴링 패키지 + 오케스트레이션 스크립트
@@ -175,7 +175,7 @@ bash .deepx/tools/scripts/run_all.sh prune
 bash .deepx/tools/scripts/install-hooks.sh
 
 # 5. Tests (CLI/NPU 불필요; PYTHONPATH 불필요; --rootdir=.는 node ID를 suite-relative로 유지)
-python3 -m pytest --rootdir=. .deepx/tests/conformance .deepx/tools/tests .deepx/e2e/tests -q   # ~1000 checks, ~3s
+python3 -m pytest --rootdir=. .deepx/tests/conformance .deepx/tools/tests .deepx/e2e/tests -q
 (cd .deepx/e2e && ./test.sh agent-driven-e2e-claude-code-autopilot)                   # Claude Code E2E (CLI + NPU)
 (cd .deepx/e2e && ./test.sh agent-driven-e2e-copilot-cli-autopilot)                   # Copilot CLI E2E
 
@@ -281,7 +281,7 @@ Fragment를 추가하거나 수정하는 방법은
 
 | Topic | Document |
 |-------|----------|
-| 최종 사용자 사용법 (one-liner prompts, scenarios) | [`docs/source/00_Agent_Driven_Development.md`](../docs/source/00_Agent_Driven_Development.md) |
+| 최종 사용자 사용법 (one-liner prompts, scenarios) | [Agent-Driven Development](https://developer.deepx.ai/tech-docs/DX-AllSuite/Agent_Driven_Development/) |
 | 포괄적인 `.deepx/` 워크스루 (5개의 모든 repo) | [`docs/dx-agent-dev-overview.md`](docs/dx-agent-dev-overview.md) |
 | 3-tier skill 아키텍처 및 네이밍 | [`docs/skill-architecture.md`](docs/skill-architecture.md) |
 | 새로운 fragment 작성 방법 | [`docs/fragment-authoring-guide.md`](docs/fragment-authoring-guide.md) |

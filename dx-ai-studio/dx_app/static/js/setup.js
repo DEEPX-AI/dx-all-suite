@@ -1,6 +1,6 @@
 
 var SETUP={running:false,pollTimer:null,activeStep:null,_stdinManual:false,completedSteps:{}};
-var SETUP_SUDO_STEPS={'dx-app-deps':true,'dx-app-build':true,'dx-rt-deps':true,'dx-rt-build':true,'dx-driver':true};
+var SETUP_SUDO_STEPS={'dx-app-deps':true,'dx-app-build':true,'dx-rt-deps':true,'dx-rt-build':true,'dx-driver':true,'clean-build':true,'runtime-reset':true};
 
 // Live-log renderers (formerly in compiler.js; the Setup page reuses them for step logs).
 function compColorLog(text){
@@ -73,7 +73,11 @@ var _SETUP_FACTS=[
   [/^(\S+) not available$/,{ko:'$1 사용 불가',ja:'$1 は利用できません','zh-CN':'$1 不可用','zh-TW':'$1 無法使用',es:'$1 no disponible'}],
   [/^(\S+) failed$/,{ko:'$1 실패',ja:'$1 に失敗','zh-CN':'$1 失败','zh-TW':'$1 失敗',es:'$1 falló'}],
   [/^(\S+) not found$/,{ko:'$1 없음',ja:'$1 なし','zh-CN':'未找到 $1','zh-TW':'未找到 $1',es:'$1 no encontrado'}],
-  [/^(\S+) found$/,{ko:'$1 있음',ja:'$1 あり','zh-CN':'已找到 $1','zh-TW':'已找到 $1',es:'$1 encontrado'}]
+  [/^(\S+) found$/,{ko:'$1 있음',ja:'$1 あり','zh-CN':'已找到 $1','zh-TW':'已找到 $1',es:'$1 encontrado'}],
+  [/^Loaded, but not installed for the next boot$/,{ko:'로드됨 — 다음 부팅용으로는 설치 안 됨',ja:'ロード済み — 次回起動用には未インストール','zh-CN':'已加载 — 但未为下次启动安装','zh-TW':'已載入 — 但未為下次開機安裝',es:'Cargado, pero no instalado para el próximo arranque'}],
+  [/^Needs administrator password$/,{ko:'관리자 비밀번호 필요',ja:'管理者パスワードが必要','zh-CN':'需要管理员密码','zh-TW':'需要管理員密碼',es:'Se necesita la contraseña de administrador'}],
+  [/^Sanity check PASSED$/,{ko:'Sanity check 통과',ja:'Sanity check 合格','zh-CN':'Sanity check 通过','zh-TW':'Sanity check 通過',es:'Sanity check superada'}],
+  [/^Sanity check FAILED$/,{ko:'Sanity check 실패',ja:'Sanity check 失敗','zh-CN':'Sanity check 失败','zh-TW':'Sanity check 失敗',es:'Sanity check fallida'}],
 ];
 function _setupFactText(text){
   text=String(text==null?'':text);
@@ -96,7 +100,11 @@ function _setupRunStatus(el,state,text){
 async function setupCheckAll(){
   try{
     var r=await api('/api/setup/status');
+    SETUP.status=r;
     ['dx-app-deps','dx-rt-deps','dx-rt-build','dx-driver','dx-app-build','dx-app-setup'].forEach(function(id){
+      /* The command line each card shows comes from the backend (setup_steps.step_argv) — e.g. the real --arch. */
+      var cmdEl=document.querySelector('#setup-steps [data-step="'+id+'"] .dx-step-cmd code');
+      if(cmdEl&&r.commands&&r.commands[id])cmdEl.textContent=r.commands[id];
       var s=r[id];if(!s)return;
       var locallyDone=SETUP.completedSteps&&SETUP.completedSteps[id];
       var det=$('setup-detail-'+id);
@@ -129,6 +137,7 @@ function setupMarkStepDone(stepId){
   if(det)det.textContent=_T5('방금 완료됨','Completed just now','完了したばかり','刚刚完成','剛剛完成','Completado ahora mismo');
 }
 async function setupRun(stepId){
+  if(!(await _setupDiskOk([stepId])))return;
   var params={};
   if(SETUP_SUDO_STEPS[stepId]){
     var authFailed=false;
@@ -297,16 +306,17 @@ function _setupRenderDiag(r){
   var allOk=r.all_ok;
   sum.innerHTML='<div class="diag-summary-bar '+(allOk?'diag-pass':'diag-fail')+'">'+_setupIco(allOk?'check':'alert')+' <strong>'+r.passed+'/'+r.total+'</strong> '+_T5('검사 통과','checks passed','検査合格','检查通过','檢查通過','comprobaciones superadas')+'</div>';
   $('diag-results').innerHTML=(r.checks||[]).map(function(c){
-    var cls=c.ok?'diag-card-ok':'diag-card-fail';
-    var icon=_setupIco(c.ok?'check':'x');
+    var cls=c.pending?'diag-card-pending':(c.ok?'diag-card-ok':'diag-card-fail');
+    var icon=_setupIco(c.pending?'cpu':(c.ok?'check':'x'));
     var lang=(window.DXI18n&&window.DXI18n.lang)||localStorage.getItem('dx-lang')||'en';
     var langKey=lang.replace('-','');
-    var label=typeof c.label==='object'?(c.label[langKey]||c.label.en):c.label;
+    var label=typeof c.label==='object'?(c.label[lang]||c.label[langKey]||c.label.en):c.label;  // 'zh-CN' or legacy 'zhCN'
     var html='<div class="diag-card '+cls+'">';
     html+='<div class="diag-card-title">'+icon+' '+esc(label)+'</div>';
     html+='<div class="diag-card-detail">'+esc(_setupFactText(c.detail||''))+'</div>';
-    if(!c.ok&&c.fix){
-      var fixText=typeof c.fix==='object'?(c.fix[langKey]||c.fix.en):c.fix;
+    if(c.pending)html+='<div class="diag-card-fix"><button class="btn btn-ghost btn-sm" onclick="setupRunSanity()">'+_setupIco('play')+' '+_T6('점검 실행','Run check','チェックを実行','运行检查','執行檢查','Ejecutar comprobación')+'</button></div>';
+    if(!c.ok&&!c.pending&&c.fix){
+      var fixText=typeof c.fix==='object'?(c.fix[lang]||c.fix[langKey]||c.fix.en):c.fix;
       html+='<div class="diag-card-fix">'+_setupIco('info')+' '+esc(fixText)+'</div>';
     }
     html+='</div>';
@@ -346,6 +356,7 @@ async function runDiagnostics(){
  */
 async function _setupRunSequence(steps, opts) {
   opts=opts||{};
+  if(!(await _setupDiskOk(steps)))return{cancelled:true};
   var progressEl=opts.progressEl;
   var extraParamsFor=opts.extraParamsFor||function(){return{};};
   var sudoPassword=null;
@@ -423,6 +434,21 @@ async function setupRunAll() {
  */
 /* Demo form of the build and asset steps (setup_steps.step_argv): build.sh --minimal and the run_demo models only. */
 function _setupDemoParams(id){return (id==='dx-app-setup'||id==='dx-app-build')?{demo_only:true}:{};}
+/* The runtime's dependency step upgrades the whole OS (apt-get upgrade), then the build and the
+   sample download follow: confirm before starting with less than setup_status().disk.min_gb free. */
+var _SETUP_DISK_STEPS={'dx-app-deps':1,'dx-app-build':1,'dx-app-setup':1,'clean-build':1};
+async function _setupDiskOk(steps){
+  if(!steps.some(function(id){return _SETUP_DISK_STEPS[id];}))return true;
+  var d=null;try{d=(await api('/api/setup/status')).disk;}catch(_){return true;}
+  if(!d||d.free_gb>=d.min_gb)return true;
+  return confirm(_T6(
+    '디스크 여유 공간이 '+d.free_gb+'GB입니다 (권장 '+d.min_gb+'GB 이상). 이 설치는 시스템 패키지 업그레이드와 빌드·샘플 다운로드를 포함합니다. 계속할까요?',
+    'Only '+d.free_gb+' GB free (recommended '+d.min_gb+' GB+). This setup upgrades system packages, builds and downloads samples. Continue?',
+    '空き容量は '+d.free_gb+' GB です（推奨 '+d.min_gb+' GB 以上）。システムパッケージの更新・ビルド・サンプルのダウンロードを行います。続行しますか？',
+    '可用磁盘空间仅 '+d.free_gb+' GB（建议 '+d.min_gb+' GB 以上）。此安装会升级系统软件包、编译并下载示例。是否继续？',
+    '可用磁碟空間僅 '+d.free_gb+' GB（建議 '+d.min_gb+' GB 以上）。此安裝會升級系統套件、編譯並下載範例。是否繼續？',
+    'Solo hay '+d.free_gb+' GB libres (se recomiendan '+d.min_gb+' GB+). Esta instalación actualiza paquetes del sistema, compila y descarga ejemplos. ¿Continuar?'));
+}
 async function setupDemoQuickStart() {
   if(SETUP.running){toast(_T6('다른 작업이 이미 실행 중입니다','Another task is already running','別のタスクが実行中です','另一个任务正在运行','另一個任務正在執行','Otra tarea ya está en ejecución'),'err');return;}
   var btn=$('setup-quickstart-btn');
@@ -460,6 +486,58 @@ function _setupQuickstartRevealTryDemo(){
 }
 
 /* ── Stop ── */
+/* ── Maintenance (Setup → Maintenance card) ── */
+/* Clean C++ build: sudo prompt + low-disk check come from setupRun. */
+async function setupCleanBuild(){
+  if(!confirm(_T6('C++ 빌드 폴더를 지우고 데모 runner를 다시 빌드합니다. 몇 분 걸립니다. 계속할까요?',
+    'This deletes the C++ build folders and rebuilds the demo runners. It takes a few minutes. Continue?',
+    'C++ ビルドフォルダを削除してデモ runner を再ビルドします。数分かかります。続行しますか？',
+    '将删除 C++ 构建目录并重新构建演示 runner，需要几分钟。是否继续？',
+    '將刪除 C++ 建置資料夾並重新建置示範 runner，需要幾分鐘。是否繼續？',
+    'Se eliminarán las carpetas de compilación C++ y se volverán a compilar los runners de demostración. Tardará unos minutos. ¿Continuar?')))return;
+  setupRun('clean-build');
+}
+/* Reset & reinstall: the typed word (checked again server-side, setup_steps.RESET_CONFIRM), then Demo Quick Start. */
+function setupResetRuntime(){
+  var word=((SETUP.status||{})['runtime-reset']||{}).confirm||'RESET';
+  var old=document.getElementById('setup-reset-modal');if(old)old.remove();
+  var ov=document.createElement('div');ov.id='setup-reset-modal';
+  ov.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:20px';
+  var box=document.createElement('div');
+  box.style.cssText='width:min(460px,100%);background:var(--surface-panel,var(--control-bg));border:1px solid var(--border-subtle);border-radius:12px;padding:18px';
+  box.innerHTML='<h3 style="margin:0 0 8px">'+_setupIco('alert')+' '+_T6('런타임 초기화','Reset runtime','ランタイムのリセット','重置运行时','重設執行階段','Restablecer el runtime')+'</h3>'
+    +'<p class="txt-sm" style="margin:0 0 6px">'+_T6('지우는 것: libdxrt 패키지, NPU driver, venv-dx-runtime, venv-dx-studio-infer, C++ 빌드','Removes: the libdxrt package, the NPU driver, venv-dx-runtime, venv-dx-studio-infer, the C++ builds','削除: libdxrt パッケージ、NPU ドライバ、venv-dx-runtime、venv-dx-studio-infer、C++ ビルド','删除：libdxrt 软件包、NPU 驱动、venv-dx-runtime、venv-dx-studio-infer、C++ 构建','刪除：libdxrt 套件、NPU 驅動、venv-dx-runtime、venv-dx-studio-infer、C++ 建置','Elimina: el paquete libdxrt, el controlador de la NPU, venv-dx-runtime, venv-dx-studio-infer y las compilaciones C++')+'</p>'
+    +'<p class="txt-sm txt-dim" style="margin:0 0 12px">'+_T6('유지: 다운로드한 모델과 영상. 끝나면 Demo Quick Start가 자동으로 실행됩니다(약 20–30분).','Kept: downloaded models and videos. Demo Quick Start runs automatically afterwards (about 20–30 min).','保持: ダウンロード済みのモデルと動画。完了後に Demo Quick Start が自動で実行されます（約 20〜30 分）。','保留：已下载的模型和视频。完成后会自动运行 Demo Quick Start（约 20–30 分钟）。','保留：已下載的模型與影片。完成後會自動執行 Demo Quick Start（約 20–30 分鐘）。','Se conservan: los modelos y vídeos descargados. Después se ejecuta Demo Quick Start automáticamente (unos 20–30 min).')+'</p>'
+    +'<label class="txt-sm" for="setup-reset-word">'+_T6('계속하려면 '+word+' 입력','Type '+word+' to continue',word+' と入力して続行','输入 '+word+' 以继续','輸入 '+word+' 以繼續','Escriba '+word+' para continuar')+'</label>'
+    +'<input id="setup-reset-word" autocomplete="off" style="width:100%;box-sizing:border-box;margin-top:6px;padding:9px 11px;border-radius:8px;border:1px solid var(--border-subtle);background:var(--surface-page);color:var(--text-primary)" placeholder="'+word+'">'
+    +'<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px"><button class="btn btn-ghost btn-sm" id="setup-reset-cancel">'+_T6('취소','Cancel','キャンセル','取消','取消','Cancelar')+'</button>'
+    +'<button class="btn btn-danger btn-sm" id="setup-reset-ok" disabled>'+_setupIco('undo')+' '+_T6('초기화 후 재설치','Reset and reinstall','リセットして再インストール','重置并重新安装','重設並重新安裝','Restablecer y reinstalar')+'</button></div>';
+  ov.appendChild(box);document.body.appendChild(ov);
+  var input=$('setup-reset-word'),ok=$('setup-reset-ok');
+  input.oninput=function(){ok.disabled=input.value!==word;};
+  input.onkeydown=function(e){if(e.key==='Escape')ov.remove();};
+  $('setup-reset-cancel').onclick=function(){ov.remove();};
+  ok.onclick=async function(){
+    ov.remove();
+    var res=await _setupRunSequence(['runtime-reset'],{extraParamsFor:function(){return{confirm:word};}});
+    if(res&&res.completed)setupDemoQuickStart();
+  };
+  setTimeout(function(){input.focus();},0);
+}
+/* NPU sanity row (Deep Diagnostics): pending without sudo → ask once, show the result in the row, its output in the log. */
+async function setupRunSanity(authFailed){
+  var pw=await setupPromptSudoPassword(authFailed);if(pw===null)return;
+  var r=await postJ('/api/setup/sanity',{password:pw});
+  if(r&&r.state==='auth_failed')return setupRunSanity(true);
+  var d=SETUP._diag;if(!d||!r)return;
+  d.checks.forEach(function(c){if(c.id!=='npu_sanity')return;
+    c.pending=false;c.ok=r.state==='passed';c.detail=c.ok?'Sanity check PASSED':(r.detail||'Sanity check FAILED');if(!c.ok)c.fix=r.fix;});
+  var counted=d.checks.filter(function(c){return !c.pending;});
+  d.total=counted.length;d.passed=counted.filter(function(c){return c.ok;}).length;d.all_ok=d.passed===d.total;
+  _setupRenderDiag(d);
+  var logEl=$('setup-log');if(logEl&&r.log)logEl.textContent=r.log;
+}
+
 async function setupStop() {
   try{
     var r=await fetch('/api/setup/stop',{method:'POST'}).then(function(x){return x.json()});

@@ -12,8 +12,9 @@ _ALLOWED_SOURCE_SYSPATH_INSERT = {
     "dx_monitor/core/hardware_init.py", # dx-runtime venv / dx_rt python package
     "dx_compiler/core/compile_worker.py",  # runs under the separate dx-compiler venv (no studio .pth)
 }
-# outputs/ and var/ hold run artifacts (shared/paths.py), not Studio source.
-_SKIP_DIRS = (".venv", "docs/.venv-docs", ".git", "outputs", "var/")
+# outputs/ and var/ hold run artifacts (shared/paths.py), not Studio source; venv-dx-studio-infer is the
+# inference venv Setup creates in the tree (shared.runtime.STUDIO_INFER_VENV).
+_SKIP_DIRS = (".venv", "docs/.venv-docs", ".git", "outputs", "var/", "venv-dx-studio-infer/")
 
 def test_no_unexpected_source_syspath_insert():
     offenders = set()
@@ -41,3 +42,8 @@ def test_core_subpackages_import_qualified():
 
 def test_shared_importable():
     import shared  # noqa
+
+
+def test_skip_names_the_venv_studio_creates():
+    from shared.runtime import STUDIO_INFER_VENV
+    assert STUDIO_INFER_VENV.parent == REPO and f"{STUDIO_INFER_VENV.name}/" in _SKIP_DIRS

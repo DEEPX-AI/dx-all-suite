@@ -90,7 +90,7 @@ JOURNEY_MODULES = [
 ]
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")   # a session-scoped Playwright stays started and breaks every later file
 def browser():
     from playwright.sync_api import sync_playwright
 

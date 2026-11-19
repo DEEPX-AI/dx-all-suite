@@ -115,7 +115,7 @@
         <div class="dx-step-row"><h3 class="dx-step-title"><span data-i18n="DX-APP Build">DX-APP Build</span></h3><span class="dx-step-facts"></span><span class="dx-step-state" id="setup-badge-dx-app-build"></span></div>
         <div class="dx-step-more">
           <p class="dx-step-desc"><span data-i18n="Compile C++ demo binaries (cmake)">Compile C++ demo binaries (cmake)</span></p>
-          <div class="dx-step-cmd"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#dev"></use></svg><code>build.sh --all --type Release --arch x86_64</code></div>
+          <div class="dx-step-cmd"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#dev"></use></svg><code>build.sh --all --type Release</code></div>
           <div class="dx-step-detail" id="setup-detail-dx-app-build"></div>
           <div class="dx-step-actions"><button class="btn btn-primary btn-sm" onclick="setupRun('dx-app-build')"><span data-i18n="Build">Build</span></button></div>
         </div>
@@ -159,6 +159,20 @@
     <div id="diag-summary" class="mb8" style="display:none"></div>
     <div id="diag-results" class="diag-grid"></div>
   </div>
+  <!-- Maintenance: long / destructive Setup jobs, collapsed (setup.js setupCleanBuild / setupResetRuntime). -->
+  <details class="card mt16 setup-maint" id="setup-maint">
+    <summary class="setup-maint-head"><h2><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#wrench"></use></svg> <span data-i18n="Maintenance">Maintenance</span></h2></summary>
+    <div class="setup-maint-row">
+      <div><b data-i18n="Clean C++ build">Clean C++ build</b>
+        <p class="txt-dim txt-sm" data-i18n="Deletes the C++ build folders (build_*, bin/) and rebuilds the demo runners for this machine.">Deletes the C++ build folders (build_*, bin/) and rebuilds the demo runners for this machine.</p></div>
+      <button class="btn btn-ghost btn-sm" id="setup-clean-btn" onclick="setupCleanBuild()"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#trash"></use></svg> <span data-i18n="Clean build">Clean build</span></button>
+    </div>
+    <div class="setup-maint-row">
+      <div><b data-i18n="Reset runtime and reinstall">Reset runtime and reinstall</b>
+        <p class="txt-dim txt-sm" data-i18n="Removes DX-RT, the NPU driver, the Python venvs and the C++ builds, then runs Demo Quick Start. Downloaded models and videos are kept.">Removes DX-RT, the NPU driver, the Python venvs and the C++ builds, then runs Demo Quick Start. Downloaded models and videos are kept.</p></div>
+      <button class="btn btn-danger btn-sm" id="setup-reset-btn" onclick="setupResetRuntime()"><svg class="dx-ico" aria-hidden="true"><use href="/static/shared/dx-icons.svg#undo"></use></svg> <span data-i18n="Reset and reinstall">Reset and reinstall</span></button>
+    </div>
+  </details>
   <!-- Shared log panel -->
   <div class="card">
     <div class="comp-section">
@@ -549,8 +563,8 @@
             <th class="mz-sub-qm">DL</th>
             <th>FPS</th>
             <th>FPS/W</th>
-            <th title="End-to-end FPS including the host CPU tail (ONNX Runtime ON)">USE_ORT FPS</th>
-            <th title="End-to-end FPS per watt including the host CPU tail (ONNX Runtime ON)">USE_ORT FPS/W</th>
+            <th title="End-to-end FPS including the host CPU tail (ONNX Runtime ON)" data-i18n-title="End-to-end FPS including the host CPU tail (ONNX Runtime ON)">USE_ORT FPS</th>
+            <th title="End-to-end FPS per watt including the host CPU tail (ONNX Runtime ON)" data-i18n-title="End-to-end FPS per watt including the host CPU tail (ONNX Runtime ON)">USE_ORT FPS/W</th>
           </tr>
         </thead>
         <tbody id="mz-tbody"></tbody>
