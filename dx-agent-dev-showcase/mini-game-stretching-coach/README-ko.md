@@ -10,8 +10,8 @@
 > pose 사이를 부드럽게 반복해 플레이어가 따라 할 수 있게 합니다.
 
 <div align="center"><table><tr>
-<td align="center"><img src="../../docs/source/img/dx-agent-dev-stretch-gameplay.gif" width="460"><br><sub><b>게임플레이 — 채워진 휴머노이드 코치(좌상단) + 실시간 NPU pose 추적</b></sub></td>
-<td align="center"><img src="../../docs/source/img/dx-agent-dev-stretch-build.gif" width="320"><br><sub><b>dx-agent-dev가 빌드하는 과정 (타임랩스)</b></sub></td>
+<td align="center"><img src="../../img/dx-agent-dev-stretch-gameplay.gif" width="460"><br><sub><b>게임플레이 — 채워진 휴머노이드 코치(좌상단) + 실시간 NPU pose 추적</b></sub></td>
+<td align="center"><img src="../../img/dx-agent-dev-stretch-build.gif" width="320"><br><sub><b>dx-agent-dev가 빌드하는 과정 (타임랩스)</b></sub></td>
 </tr></table></div>
 
 > **에이전트가 어떻게 만들었는지 보기:** [`claude-code-session.md`](./claude-code-session.md).

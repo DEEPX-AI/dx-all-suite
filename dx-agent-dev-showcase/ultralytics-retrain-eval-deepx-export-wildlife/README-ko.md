@@ -3,7 +3,7 @@
 > **스토리.** `yolo26n`은 **COCO 사전학습** 모델이라 "코끼리/얼룩말" 일반 개념은 있어도 현장에서 아프리카 종을 안정적으로 구분하지 못합니다. 이 showcase는 **사파리/보전 카메라 edge 디바이스**용으로 적응시킵니다: `african-wildlife`(buffalo, elephant, rhino, zebra)로 fine-tune하고 stock·재학습을 DeepX **DX-M1 NPU**(`format=deepx`, INT8)로 export해 네 형태 전부 정확도(mAP)+속도(FPS)를 측정.
 
 <div align="center"><table><tr>
-<td align="center"><img src="../../docs/source/img/dx-agent-dev-ultralytics-wildlife-build.gif" width="470"><br><sub><b>dx-agent-dev가 이 showcase를 만드는 과정 (timelapse)</b></sub></td>
+<td align="center"><img src="../../img/dx-agent-dev-ultralytics-wildlife-build.gif" width="470"><br><sub><b>dx-agent-dev가 이 showcase를 만드는 과정 (timelapse)</b></sub></td>
 <td align="center"><img src="./sample_detect.jpg" width="300"><br><sub><b>재학습 모델의 야생동물 검출 (DX-M1 NPU)</b></sub></td>
 </tr></table></div>
 

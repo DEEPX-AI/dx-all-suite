@@ -29,7 +29,7 @@ def test_an_edge_error_pins_the_edge():
 def test_a_node_error_pins_the_node():
     (e,) = _text("check_err_unknown_model.txt", _graph("cam", "od"))["errors"]
     assert (e["code"], e["node"], e["edge"]) == ("MODEL_UNKNOWN", "od", None)
-    assert e["how"] == "run --list-models, or see docs/graph_models.md"
+    assert e["how"] == "run --list-models, or see GRAPH_MODELS.md"
     (e,) = _text("check_err_orphan.txt", _graph("cam", "od", "lost"))["errors"]
     assert (e["code"], e["node"]) == ("GRAPH_ORPHAN", "lost")
 

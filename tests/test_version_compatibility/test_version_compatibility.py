@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 import shutil
 import subprocess
@@ -18,7 +19,11 @@ from .version_compatibility import (
 pytestmark = pytest.mark.version_compatibility
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-COMPAT_MATRIX = PROJECT_ROOT / "docs/source/04_Version_Compatibility.md"
+COMPAT_MATRIX = PROJECT_ROOT / "version_compat.json"
+# The published guide carries the same table; it is absent from a release tree.
+COMPAT_GUIDES = [
+    PROJECT_ROOT / "docs/source/04_Version_Compatibility.md",
+]
 SUITE_VERSION_FILE = PROJECT_ROOT / "release.ver"
 COMPONENT_RELEASE_FILES = {
     "dx-compiler": PROJECT_ROOT / "dx-compiler/release.ver",
@@ -39,6 +44,58 @@ def expected_versions():
     RUN_CONTEXT["suite_version"] = suite_version
     RUN_CONTEXT["matrix_source"] = source
     return expected
+
+
+def _manifest(tmp_path, *releases):
+    path = tmp_path / "version_compat.json"
+    path.write_text(json.dumps({"schema": 1, "releases": list(releases)}), encoding="utf-8")
+    return path
+
+
+_RELEASE = {
+    "suite": "v2.5.0", "date": "2026-10-23", "dx-compiler": "v2.5.0", "dx-runtime": "v2.5.0",
+    "dx-modelzoo": "v1.0.0", "dxcom": "2.5.0", "dx-fw": "v2.7.6", "npu-driver": "v2.7.0",
+    "dx-rt": "v3.5.0", "dx-stream": "v3.2.0", "dx-app": "v3.3.0",
+}
+
+
+def test_load_expected_versions_reads_the_release_entry(tmp_path):
+    older = dict(_RELEASE, suite="v2.4.3", **{"dx-app": "v3.2.0"})
+    expected, source = load_expected_versions("v2.5.0", _manifest(tmp_path, older, _RELEASE))
+
+    assert expected["dx-app"] == "v3.3.0" and expected["dxcom"] == "v2.5.0"
+    assert "suite" not in expected and "date" not in expected
+    assert "version_compat.json" in source
+
+
+def test_load_expected_versions_rejects_an_unlisted_suite_version(tmp_path):
+    with pytest.raises(ValueError, match="v9.9.9 not found"):
+        load_expected_versions("v9.9.9", _manifest(tmp_path, _RELEASE))
+
+
+def test_load_expected_versions_rejects_a_missing_required_component(tmp_path):
+    broken = {key: value for key, value in _RELEASE.items() if key != "dx-rt"}
+    with pytest.raises(ValueError, match="lacks dx-rt"):
+        load_expected_versions("v2.5.0", _manifest(tmp_path, broken))
+
+
+def test_load_expected_versions_allows_absent_optional_components(tmp_path):
+    lean = {key: value for key, value in _RELEASE.items() if key != "dx-modelzoo"}
+    expected, _ = load_expected_versions("v2.5.0", _manifest(tmp_path, lean))
+
+    assert "dx-modelzoo" not in expected and "dxtron" not in expected
+
+
+@pytest.mark.parametrize("guide", COMPAT_GUIDES, ids=[g.name for g in COMPAT_GUIDES])
+def test_manifest_matches_the_published_guide(guide):
+    """version_compat.json is what the tests read; the guide shows the same table."""
+    if not guide.is_file():
+        pytest.skip(f"{guide.name} is not in this tree")
+    releases = json.loads(COMPAT_MATRIX.read_text(encoding="utf-8"))["releases"]
+    assert releases, "version_compat.json lists no release"
+    for release in releases:
+        expected, _ = load_expected_versions(release["suite"], COMPAT_MATRIX)
+        assert parse_version_matrix(guide, release["suite"]) == expected, release["suite"]
 
 
 def test_parse_version_matrix_extracts_current_suite_row(tmp_path):

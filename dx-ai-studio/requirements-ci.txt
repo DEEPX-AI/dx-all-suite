@@ -6,6 +6,8 @@ numpy>=2; python_version >= "3.13"
 onnx>=1.14
 Pillow>=10
 playwright>=1.40
+# DX Edge's optional AWS integration tests use botocore Stubber.
+boto3
 Jinja2>=3.1
 # The platform PyNaCl package is inherited by the test venv and declares cffi
 # in its Python metadata; install it here so `python -m pip check` is reliable.

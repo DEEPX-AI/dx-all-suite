@@ -96,7 +96,7 @@ def test_registered_sdk_library_markdown_paths_exist_on_disk():
         for section in drawer["sections"]:
             for file_info in section["files"]:
                 path = file_info.get("path", "")
-                if file_info.get("type") == "pdf" or path.startswith("pdfs/"):
+                if file_info.get("type") in ("pdf", "link") or path.startswith("pdfs/"):
                     continue
                 if not (suite_root / path).is_file():
                     missing.append(path)
@@ -120,3 +120,34 @@ def test_registered_sdk_library_markdown_paths_exist_on_disk():
         )
     roots = sorted({str(_deepest_existing(suite_root, rel).relative_to(suite_root)) for rel in unchecked})
     require(not unchecked, f"{len(unchecked)} registered doc(s) are in submodules that are not checked out: {roots}")
+
+
+TECH_DOCS = "https://developer.deepx.ai/tech-docs/"
+MANUAL_DIRS = (
+    "docs/source/", "dx-ai-studio/docs/", "dx-compiler/source/docs/", "dx-modelzoo/docs/", "dx-runtime/docs/",
+    "dx-runtime/dx_rt/docs/", "dx-runtime/dx_app/docs/", "dx-runtime/dx_stream/docs/",
+)
+
+
+def _files(data):
+    return [f for drawer in data["drawers"] for section in drawer["sections"] for f in section["files"]]
+
+
+def test_manual_entries_point_at_the_tech_docs_site():
+    """The manuals are read on developer.deepx.ai: a manual is a "link" entry, never a file in a docs folder."""
+    files = _files(load_data())
+    links = [f for f in files if f.get("type") == "link"]
+    assert links, "no manual entry left in the library"
+    for f in links:
+        assert f["path"].startswith(TECH_DOCS) and f["path"].endswith("/"), f["path"]
+    assert len({f["path"] for f in links}) == len(links), "a manual page is listed twice"
+    local = [f["path"] for f in files if f.get("type") != "link" and f["path"].startswith(MANUAL_DIRS)]
+    assert not local, f"manual files listed as local documents: {local}"
+
+
+def test_link_entries_are_not_served_as_local_files():
+    from launcher import sdk_library
+
+    allowed = sdk_library.allowed_paths(load_data())
+    assert "README.md" in allowed
+    assert not [p for p in allowed if p.startswith("http")]

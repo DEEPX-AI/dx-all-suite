@@ -77,7 +77,7 @@ def test_every_page_names_its_controls(browser, module):
     ctx.add_init_script("try{localStorage.setItem('dx-tutorial-mode','off');localStorage.setItem('dx-lang','en')}catch(e){}")
     page = ctx.new_page()
     try:
-        page.goto(f"http://127.0.0.1:{port}/", wait_until="networkidle", timeout=60000)
+        page.goto(f"http://127.0.0.1:{port}/", wait_until="domcontentloaded", timeout=60000)
         page.wait_for_timeout(600)
         problems = {"(first page)": page.evaluate(_PROBLEMS)}
         tabs = page.evaluate("[...document.querySelectorAll('.dx-shell-tabs .dx-tab')].map(b => b.dataset.page)")

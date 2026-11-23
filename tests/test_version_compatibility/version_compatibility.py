@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from html.parser import HTMLParser
+import json
 from pathlib import Path
 import re
 
@@ -91,14 +92,32 @@ def parse_version_matrix_text(
     raise ValueError(f"Version {suite_version} not found in {source}")
 
 
+REQUIRED_KEYS = ("dx-compiler", "dx-runtime") + tuple(
+    key for key in COMPONENT_KEYS if key not in OPTIONAL_KEYS
+)
+
+
 def load_expected_versions(
-    suite_version: str, local_path: Path
+    suite_version: str, manifest_path: Path
 ) -> tuple[dict[str, str], str]:
-    """Load expected versions from the local compatibility matrix.
+    """Load expected versions from version_compat.json (one entry per suite release).
 
     Returns a tuple of (expected_versions, source_label).
     """
-    return parse_version_matrix(local_path, suite_version), f"local ({local_path})"
+    releases = json.loads(manifest_path.read_text(encoding="utf-8"))["releases"]
+    for release in releases:
+        if release.get("suite") != suite_version:
+            continue
+        expected = {
+            key: normalize_version(value)
+            for key, value in release.items()
+            if key not in ("suite", "date") and value
+        }
+        missing = [key for key in REQUIRED_KEYS if key not in expected]
+        if missing:
+            raise ValueError(f"{manifest_path}: {suite_version} lacks {', '.join(missing)}")
+        return expected, f"local ({manifest_path})"
+    raise ValueError(f"Version {suite_version} not found in {manifest_path}")
 
 
 def _parse_suite_rows(

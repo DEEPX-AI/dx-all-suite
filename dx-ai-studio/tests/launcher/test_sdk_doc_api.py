@@ -230,8 +230,9 @@ def _find_existing_doc_image() -> str:
                     continue
                 text = (suite_root / path).read_text(encoding="utf-8", errors="ignore")
                 doc_dir = path.rsplit("/", 1)[0] if "/" in path else ""
-                for m in re.finditer(r"!\[[^\]]*\]\(([^)]+)\)", text):
-                    src = m.group(1).strip()
+                # Markdown images and HTML <img> (the READMEs use the latter)
+                for m in re.finditer(r"!\[[^\]]*\]\(([^)]+)\)|<img\b[^>]*?\bsrc\s*=\s*[\"']([^\"']+)[\"']", text):
+                    src = (m.group(1) or m.group(2)).strip()
                     if re.match(r"^(https?:|data:|/)", src, re.I):
                         continue
                     parts = doc_dir.split("/") if doc_dir else []
@@ -281,22 +282,3 @@ class TestSdkDocImageApi:
 
     def test_missing_image_returns_404(self, launcher_server):
         assert self._get(launcher_server, "dx-compiler/does-not-exist-xyz.png") == 404
-
-
-SHOWCASES_DOC = "docs/source/00b_Agent_Driven_Development_Showcases.md"
-
-
-@pytest.mark.skipif(not (ROOT.parent / SHOWCASES_DOC).is_file(), reason="suite showcase page not present")
-def test_an_included_page_keeps_its_html_links_pointing_at_real_files(launcher_server):
-    """`{% include-markdown "../../dx-agent-dev-showcase/README.md" %}` — the showcase catalog's cards are HTML
-    (`<a href="./mini-game-squat-fitness/README.md"><img …></a>`). Image sources were rebased onto the including
-    page and the `<a href>` were not, so every card pointed at docs/source/<showcase>/README.md (no such file).
-    """
-    url = f"{launcher_server}/api/sdk-doc?{urlencode({'path': SHOWCASES_DOC})}"
-    text = urlopen(url, timeout=5).read().decode("utf-8")
-    hrefs = re.findall(r'<a\b[^>]*?\bhref\s*=\s*["\']([^"\']+)["\']', text, flags=re.I)
-    relative = [h for h in hrefs if not re.match(r'^(https?:|mailto:|#|/)', h)]
-    assert relative, "the include was not expanded"
-    base = (ROOT.parent / SHOWCASES_DOC).parent
-    missing = [h for h in relative if not (base / h.split("#")[0]).exists()]
-    assert not missing, missing

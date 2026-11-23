@@ -1,12 +1,9 @@
-<div align="center">
-
-<!-- TODO(banner): new banner in progress (same style as dx-tutorials, dark background, ≤300 KB).
-     When the file is added, remove these comment markers:
-<img src="./docs/source/img/dx-all-suite-banner.png" width="100%" alt="DEEPX DXNN® — DX-AllSuite">
--->
-
 
 # DX-AllSuite
+
+<div align="center">
+
+<img src="./docs/source/img/dx-all-suite-banner.png" width="100%" alt="DEEPX DXNN® — DX-AllSuite">
 
 **From AI Models to Edge AI Products.**
 
@@ -18,8 +15,8 @@
 
 <div align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="./docs/source/img/DXNN-SDK-Simple-Architecture-dark.png">
-    <img src="./docs/source/img/DXNN-SDK-Simple-Architecture.png" width="600" alt="DX-AllSuite architecture">
+    <source media="(prefers-color-scheme: dark)" srcset="./img/DXNN-SDK-Simple-Architecture-dark.png">
+    <img src="./img/DXNN-SDK-Simple-Architecture.png" width="600" alt="DX-AllSuite architecture">
   </picture>
 </div>
 
@@ -236,8 +233,8 @@ On Kubernetes, the device plugin exposes DX-M1 NPUs as the resource `deepx.ai/dx
 
 <table>
 <tr>
- <td align="center"><a href="./dx-agent-dev-showcase/mini-game-squat-fitness/README.md"><img src="./docs/source/img/dx-agent-dev-squat-gameplay.gif" height="160" alt="Squat counter game on DEEPX NPU"></a><br><sub>Pose-based squat game: built from one prompt</sub></td>
- <td align="center"><a href="./dx-agent-dev-showcase/paddleocr-video-ocr/README.md"><img src="./docs/source/img/dx-agent-dev-paddleocr-gameplay.gif" height="160" alt="Real-time video OCR on DEEPX NPU"></a><br><sub>Real-time video OCR (PP-OCRv5) on DX-M1</sub></td>
+ <td align="center"><a href="./dx-agent-dev-showcase/mini-game-squat-fitness/README.md"><img src="./img/dx-agent-dev-squat-gameplay.gif" height="160" alt="Squat counter game on DEEPX NPU"></a><br><sub>Pose-based squat game: built from one prompt</sub></td>
+ <td align="center"><a href="./dx-agent-dev-showcase/paddleocr-video-ocr/README.md"><img src="./img/dx-agent-dev-paddleocr-gameplay.gif" height="160" alt="Real-time video OCR on DEEPX NPU"></a><br><sub>Real-time video OCR (PP-OCRv5) on DX-M1</sub></td>
 </tr>
 </table>
 
@@ -246,7 +243,7 @@ More examples → [Showcases](./dx-agent-dev-showcase/README.md)
 | Tool | What it does | |
 |---|---|---|
 | **DX-Agent-Driven Development - dx-agent-dev (Beta)** | Describe an NPU app in plain language; an AI coding agent (Claude Code, Cursor, Copilot, OpenCode, Codex CLI) builds and validates it, using DEEPX-specific rules and skills for DX-RT and DX-STREAM | [Docs](https://developer.deepx.ai/tech-docs/DX-AllSuite/Agent_Driven_Development/) · [Showcases](./dx-agent-dev-showcase/README.md) |
-| **DX-AI-Studio (Beta)** | A visual workspace — DX-ModelZoo, DX-COM, DX-STREAM, DX-APP, Monitor and more — to explore models, compile, run inference and monitor the NPU without the CLI | [Overview](./dx-ai-studio/README.md) · [Install](./dx-ai-studio/docs/source/01_Installation_and_Launch.md) |
+| **DX-AI-Studio (Beta)** | A visual workspace — DX-ModelZoo, DX-COM, DX-STREAM, DX-APP, Monitor and more — to explore models, compile, run inference and monitor the NPU without the CLI | [Overview](./dx-ai-studio/README.md) · [Install](https://developer.deepx.ai/tech-docs/DX-AllSuite/ai-studio/Installation_and_Launch/) |
 | **DX-Benchmark (Beta)** | Reproducible YOLO26 benchmarks, model-level and end-to-end, with an interactive dashboard | [Get Started](./dx-benchmark/README.md) |
 | **DX-Edge** | Compile ONNX to `.dxnn` on AWS, and provision the driver, firmware, DX-RT and DX-STREAM over the air with AWS IoT Greengrass (AWS Marketplace) | [Explore](./dx-edge/README.md) |
 

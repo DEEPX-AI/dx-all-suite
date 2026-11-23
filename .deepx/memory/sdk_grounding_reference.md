@@ -8,7 +8,7 @@
 
 This document lists verified API symbols extracted from:
 - **Official SDK source code** (actual `.py`, `.h`, `.cpp` files)
-- **Official SDK documentation** (`dx-compiler/source/docs/`, `dx-runtime/dx_app/docs/`, `dx-runtime/dx_stream/docs/`)
+- **Official SDK documentation** (https://developer.deepx.ai/tech-docs)
 
 **Anti-hallucination rule**: Any API name, class name, method name, or parameter
 name mentioned in `.deepx/` instructions MUST either:
@@ -76,7 +76,7 @@ be removed from instructions immediately.
 
 ## dx_com.compile() API (dx-compiler)
 
-**Source**: `dx-compiler/source/docs/02_06_Execution_of_DX-COM.md`
+**Source**: [Execution of DX-COM](https://developer.deepx.ai/tech-docs/DXNN-SDK/DX-COM/02_06_Execution_of_DX-COM/)
 
 ### Verified Parameters
 
@@ -179,11 +179,9 @@ When adding a new API name to any `.deepx/` instruction file:
 1. **Check this file first** — Is the symbol listed here?
 2. **Check SDK source** — Grep the actual source files:
    ```bash
-   grep -rn "<symbol>" dx-runtime/dx_app/src/ dx-compiler/source/ dx-runtime/dx_stream/
+   grep -rn "<symbol>" dx-runtime/dx_app/src/ dx-runtime/dx_stream/
    ```
-3. **Check SDK docs** — Search official documentation:
-   ```bash
-   grep -rn "<symbol>" dx-compiler/source/docs/ dx-runtime/dx_app/docs/ dx-runtime/dx_stream/docs/
-   ```
+3. **Check SDK docs** — Search the official documentation at
+   https://developer.deepx.ai/tech-docs (DX-COM, DX-RT, DX-APP and DX-STREAM manuals).
 4. **If not found** → The symbol is a hallucination. Do NOT add it.
 5. **If found** → Add it to this file with source reference, then add to instructions.

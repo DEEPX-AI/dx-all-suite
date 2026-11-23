@@ -33,7 +33,7 @@ Studio sits inside `dx-all-suite`, next to `dx-runtime` and `dx-compiler`, and u
 | **Graph Composer** | dx_app graph runners (`multi_model_graph_sync` / `multi_model_graph_async`); Pillow and `ffmpeg` for frame editing |
 | **DX Cloud on AWS** | The optional `boto3` extra and AWS credentials |
 
-Full details → [Installation and Launch](docs/source/01_Installation_and_Launch.md)
+Full details → [Installation and Launch](https://developer.deepx.ai/tech-docs/DX-AllSuite/ai-studio/Installation_and_Launch/)
 
 ## Quick Start
 
@@ -51,18 +51,18 @@ Then click any tool on the hub. Options such as `--port` and `--no-browser` → 
 
 | Tool | What it does | Guide |
 |---|---|---|
-| **DX App** | NPU inference on images, video, camera or RTSP; Run Demo, live multi-stream, benchmark and compare, and Graph Composer for multi-model workflows | [Guide](docs/source/05_DX_App.md) |
-| **DX Stream** | Real-time GStreamer vision-AI pipelines with live playback (WebRTC, or MJPEG from another computer) | [Guide](docs/source/06_DX_Stream.md) |
-| **DX-ModelZoo** | Browse the DEEPX model catalog by task; inspect artifacts, examples and metrics | [Guide](docs/source/03_DX_Model_Zoo.md) |
-| **DX Compiler** | ONNX → `.dxnn` with a config wizard, quantization tuning and diagnosis | [Guide](docs/source/04_DX_Compiler.md) |
-| **DX EdgeGuide** | Recommends the NPU board and host for your workload from real benchmarks | [Guide](docs/source/09_DX_EdgeGuide.md) |
-| **DX Benchmark** | Browse and compare NPU throughput, latency and multi-stream results | [Guide](docs/source/08_DX_Benchmark.md) |
-| **DX Monitor** | Live NPU and system telemetry: temperature, clock, utilization, versions | [Guide](docs/source/07_DX_Monitor.md) |
-| **DX Agent Dev** | Describe an NPU app in plain language and have a coding agent build it | [Guide](docs/source/10_DX_Agent_Dev.md) |
-| **DX Cloud** | DEEPX on AWS Marketplace and cloud ONNX → `.dxnn` compile | [Guide](docs/source/13_DX_Edge_AWS.md) |
+| **DX App** | NPU inference on images, video, camera or RTSP; Run Demo, live multi-stream, benchmark and compare, and Graph Composer for multi-model workflows | [Guide](https://developer.deepx.ai/tech-docs/DX-AllSuite/ai-studio/DX_App/) |
+| **DX Stream** | Real-time GStreamer vision-AI pipelines with live playback (WebRTC, or MJPEG from another computer) | [Guide](https://developer.deepx.ai/tech-docs/DX-AllSuite/ai-studio/DX_Stream/) |
+| **DX-ModelZoo** | Browse the DEEPX model catalog by task; inspect artifacts, examples and metrics | [Guide](https://developer.deepx.ai/tech-docs/DX-AllSuite/ai-studio/DX_Model_Zoo/) |
+| **DX Compiler** | ONNX → `.dxnn` with a config wizard, quantization tuning and diagnosis | [Guide](https://developer.deepx.ai/tech-docs/DX-AllSuite/ai-studio/DX_Compiler/) |
+| **DX EdgeGuide** | Recommends the NPU board and host for your workload from real benchmarks | [Guide](https://developer.deepx.ai/tech-docs/DX-AllSuite/ai-studio/DX_EdgeGuide/) |
+| **DX Benchmark** | Browse and compare NPU throughput, latency and multi-stream results | [Guide](https://developer.deepx.ai/tech-docs/DX-AllSuite/ai-studio/DX_Benchmark/) |
+| **DX Monitor** | Live NPU and system telemetry: temperature, clock, utilization, versions | [Guide](https://developer.deepx.ai/tech-docs/DX-AllSuite/ai-studio/DX_Monitor/) |
+| **DX Agent Dev** | Describe an NPU app in plain language and have a coding agent build it | [Guide](https://developer.deepx.ai/tech-docs/DX-AllSuite/ai-studio/DX_Agent_Dev/) |
+| **DX Cloud** | DEEPX on AWS Marketplace and cloud ONNX → `.dxnn` compile | [Guide](https://developer.deepx.ai/tech-docs/DX-AllSuite/ai-studio/DX_Edge_AWS/) |
 
 The hub also opens the **SDK Library** (DEEPX docs and brochures in-app), a **chat assistant** for SDK
-questions and a first-visit **Tutorial Mode** → [The Hub](docs/source/02_The_Hub.md)
+questions and a first-visit **Tutorial Mode** → [The Hub](https://developer.deepx.ai/tech-docs/DX-AllSuite/ai-studio/The_Hub/)
 
 ## Runtime Management
 
@@ -78,7 +78,7 @@ How profiles, validation and rollback work → [Development Guide](docs/developm
 
 ## Documentation & Support
 
-- **User Guide** — [Installation and Launch](docs/source/01_Installation_and_Launch.md) · [The Hub](docs/source/02_The_Hub.md) · one chapter per tool (see the Tools table above)
+- **User Guide** — [Installation and Launch](https://developer.deepx.ai/tech-docs/DX-AllSuite/ai-studio/Installation_and_Launch/) · [The Hub](https://developer.deepx.ai/tech-docs/DX-AllSuite/ai-studio/The_Hub/) · one chapter per tool (see the Tools table above)
 - **Developer Guide** — [Architecture](docs/architecture.md) (launcher, module servers, proxy, ports) · [Development](docs/development.md) (venv, env vars, i18n, runtime profiles) · [Testing](docs/testing.md) (test layers and gates)
 - For technical questions, please ask in the DEEPX Developer Community: https://community.deepx.ai/c/support/5
 

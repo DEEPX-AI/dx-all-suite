@@ -43,14 +43,14 @@ def test_card_grid_three_columns_pads_last_row():
 def test_card_grid_links_and_gif_paths_root_surface():
     grid = augment.card_grid(_man(1).showcases, lang="en", surface="root")
     assert 'href="dx-agent-dev-showcase/s0/README.md"' in grid
-    assert 'src="./docs/source/img/s0.gif"' in grid
+    assert 'src="./img/s0.gif"' in grid
 
 
 def test_card_grid_ko_uses_korean_titles_and_ko_readme():
     grid = augment.card_grid(_man(1).showcases, lang="ko", surface="catalog")
     assert "s0 제목" in grid
     assert 'href="./s0/README-ko.md"' in grid
-    assert 'src="../docs/source/img/s0.gif"' in grid   # catalog surface = one dir deep
+    assert 'src="../img/s0.gif"' in grid   # catalog surface = one dir deep
 
 
 # ---- card media: uniform height, sample, video ----------------------------
@@ -64,7 +64,7 @@ def test_card_grid_uses_uniform_height_not_width():
 def test_sample_card_uses_sample_image():
     s = _sc("wild", card_media="sample", sample="wild-sample.jpg", gif="wild-build.gif")
     grid = augment.card_grid([s], lang="en", surface="root", height=150)
-    assert 'src="./docs/source/img/wild-sample.jpg"' in grid   # sample, not the build gif
+    assert 'src="./img/wild-sample.jpg"' in grid   # sample, not the build gif
     assert "wild-build.gif" not in grid
 
 
@@ -75,7 +75,7 @@ def test_video_card_renders_gif_rendition_not_video_tag():
             video="v.mp4", poster="p.jpg")
     grid = augment.card_grid([s], lang="en", surface="root", height=150)
     assert "<video" not in grid and ".mp4" not in grid
-    assert '<img src="./docs/source/img/v.gif"' in grid
+    assert '<img src="./img/v.gif"' in grid
     # single outer showcase anchor, no nested anchors
     assert grid.count("<a ") == 1
 

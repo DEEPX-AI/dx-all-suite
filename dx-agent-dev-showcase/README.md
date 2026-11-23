@@ -54,7 +54,7 @@ Per-tool usage and more example prompts → [DX-Agent-Driven Development Docs](h
 
 ### Squat-Counting Mini-Game
 
-<a href="./mini-game-squat-fitness/README.md"><img src="../docs/source/img/dx-agent-dev-squat-gameplay.gif" height="170" align="right"></a>
+<a href="./mini-game-squat-fitness/README.md"><img src="../img/dx-agent-dev-squat-gameplay.gif" height="170" align="right"></a>
 
 Counts squat reps from knee/hip angles with an arcade HUD (reps / score / DOWN·UP·GOOD!).
 
@@ -64,7 +64,7 @@ Counts squat reps from knee/hip angles with an arcade HUD (reps / score / DOWN·
 
 ### Stretching Coach Mini-Game
 
-<a href="./mini-game-stretching-coach/README.md"><img src="../docs/source/img/dx-agent-dev-stretch-gameplay.gif" height="170" align="right"></a>
+<a href="./mini-game-stretching-coach/README.md"><img src="../img/dx-agent-dev-stretch-gameplay.gif" height="170" align="right"></a>
 
 Guides 3 stretches with an animated coach avatar that demonstrates each target pose.
 
@@ -86,7 +86,7 @@ Guides 3 stretches with an animated coach avatar that demonstrates each target p
 
 ### Ultralytics YOLO → DeepX Export
 
-<a href="./ultralytics-yolo-deepx-export/README.md"><img src="../docs/source/img/dx-agent-dev-ultralytics-yolo.gif" height="170" align="right"></a>
+<a href="./ultralytics-yolo-deepx-export/README.md"><img src="../img/dx-agent-dev-ultralytics-yolo.gif" height="170" align="right"></a>
 
 Turns an Ultralytics YOLO `.pt` into a deployable DeepX NPU model (`.dxnn`) in a single `yolo export ... format=deepx` command, then runs NPU inference + verify.
 
@@ -96,7 +96,7 @@ Turns an Ultralytics YOLO `.pt` into a deployable DeepX NPU model (`.dxnn`) in a
 
 ### African Wildlife Monitoring
 
-<a href="./ultralytics-retrain-eval-deepx-export-wildlife/README.md"><img src="../docs/source/img/dx-agent-dev-ultralytics-wildlife-sample.jpg" height="170" align="right"></a>
+<a href="./ultralytics-retrain-eval-deepx-export-wildlife/README.md"><img src="../img/dx-agent-dev-ultralytics-wildlife-sample.jpg" height="170" align="right"></a>
 
 Retrains `yolo26n` on `african-wildlife` (buffalo/elephant/rhino/zebra) for a safari/conservation camera; 4-way eval base/retrained × fp32/INT8.
 
@@ -106,7 +106,7 @@ Retrains `yolo26n` on `african-wildlife` (buffalo/elephant/rhino/zebra) for a sa
 
 ### Construction PPE Safety
 
-<a href="./ultralytics-retrain-eval-deepx-export-ppe/README.md"><img src="../docs/source/img/dx-agent-dev-ultralytics-ppe-sample.jpg" height="170" align="right"></a>
+<a href="./ultralytics-retrain-eval-deepx-export-ppe/README.md"><img src="../img/dx-agent-dev-ultralytics-ppe-sample.jpg" height="170" align="right"></a>
 
 Retrains `yolo26n` on `construction-ppe` for a site-safety camera (helmet/vest/...); 4-way eval base/retrained × fp32/INT8.
 
@@ -116,7 +116,7 @@ Retrains `yolo26n` on `construction-ppe` for a site-safety camera (helmet/vest/.
 
 ### Brain-Tumor Screening
 
-<a href="./ultralytics-retrain-eval-deepx-export-braintumor/README.md"><img src="../docs/source/img/dx-agent-dev-ultralytics-braintumor-sample.jpg" height="170" align="right"></a>
+<a href="./ultralytics-retrain-eval-deepx-export-braintumor/README.md"><img src="../img/dx-agent-dev-ultralytics-braintumor-sample.jpg" height="170" align="right"></a>
 
 Retrains `yolo26n` on `brain-tumor` (MRI/CT) for a medical edge device; 4-way eval base/retrained × fp32/INT8.
 
@@ -126,7 +126,7 @@ Retrains `yolo26n` on `brain-tumor` (MRI/CT) for a medical edge device; 4-way ev
 
 ### Pharmaceutical Pill Inspection
 
-<a href="./ultralytics-retrain-eval-deepx-export-pills/README.md"><img src="../docs/source/img/dx-agent-dev-ultralytics-pills-sample.jpg" height="170" align="right"></a>
+<a href="./ultralytics-retrain-eval-deepx-export-pills/README.md"><img src="../img/dx-agent-dev-ultralytics-pills-sample.jpg" height="170" align="right"></a>
 
 Retrains `yolo26n` on `medical-pills` for a pharma counting station; 4-way eval base/retrained × fp32/INT8.
 
@@ -144,7 +144,7 @@ Retrains `yolo26n` on `medical-pills` for a pharma counting station; 4-way eval 
 
 ### Video / Webcam OCR (PP-OCRv5)
 
-<a href="./paddleocr-video-ocr/README.md"><img src="../docs/source/img/dx-agent-dev-paddleocr-gameplay.gif" height="170" align="right"></a>
+<a href="./paddleocr-video-ocr/README.md"><img src="../img/dx-agent-dev-paddleocr-gameplay.gif" height="170" align="right"></a>
 
 Real-time text detection + recognition on the DX-M1 NPU — one code path for a video file and a live webcam, overlaying detected boxes + recognized strings.
 
@@ -162,7 +162,7 @@ Real-time text detection + recognition on the DX-M1 NPU — one code path for a 
 
 ### PDF → Markdown (document conversion app)
 
-<a href="./rapiddoc-pdf2md/README.md"><img src="../docs/source/img/dx-agent-dev-rapiddoc-pdf2md-sample.png" height="170" align="right"></a>
+<a href="./rapiddoc-pdf2md/README.md"><img src="../img/dx-agent-dev-rapiddoc-pdf2md-sample.png" height="170" align="right"></a>
 
 Converts a PDF (digital or scanned) to structured Markdown + JSON — layout analysis, OCR, tables and formulas — on the DEEPX DX-M1 NPU via the RapidDoc fork. Supports `--parse-method auto|txt|ocr`.
 

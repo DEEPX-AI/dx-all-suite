@@ -54,5 +54,5 @@ Options:
   --help                this message
 
 Sample graphs: src/cpp_example/multi_model_graph/
-Model list:    docs/graph_models.md
+Model list:    GRAPH_MODELS.md
 Schema:        src/cpp_example/multi_model_graph/README.md

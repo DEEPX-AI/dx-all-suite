@@ -10,7 +10,7 @@
 > PDF (digital or scanned) into structured **Markdown + JSON** — no runtime clone of the fork.
 
 <div align="center"><table><tr>
-<td align="center"><img src="../../docs/source/img/dx-agent-dev-rapiddoc-pdf2md-build.gif" width="470"><br><sub><b>dx-agent-dev building this showcase (timelapse)</b></sub></td>
+<td align="center"><img src="../../img/dx-agent-dev-rapiddoc-pdf2md-build.gif" width="470"><br><sub><b>dx-agent-dev building this showcase (timelapse)</b></sub></td>
 <td align="center"><img src="./images/sample_before_after.png" width="470"><br><sub><b>PDF page → Markdown, parsed on the DX-M1 NPU</b></sub></td>
 </tr></table></div>
 

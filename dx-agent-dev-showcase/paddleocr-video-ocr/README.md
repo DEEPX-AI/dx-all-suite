@@ -8,8 +8,8 @@
 > and writes an annotated output video.
 
 <div align="center"><table><tr>
-<td align="center"><img src="../../docs/source/img/dx-agent-dev-paddleocr-gameplay.gif" width="460"><br><sub><b>per-frame NPU OCR — boxes + recognized strings + confidence</b></sub></td>
-<td align="center"><img src="../../docs/source/img/dx-agent-dev-paddleocr-build.gif" width="320"><br><sub><b>dx-agent-dev building it (timelapse)</b></sub></td>
+<td align="center"><img src="../../img/dx-agent-dev-paddleocr-gameplay.gif" width="460"><br><sub><b>per-frame NPU OCR — boxes + recognized strings + confidence</b></sub></td>
+<td align="center"><img src="../../img/dx-agent-dev-paddleocr-build.gif" width="320"><br><sub><b>dx-agent-dev building it (timelapse)</b></sub></td>
 </tr></table></div>
 
 <div align="center"><img src="./sample_detect.jpg" width="640"><br><sub><b>annotated sample frame — PP-OCRv5 det+cls+rec on the DX-M1 NPU</b></sub></div>

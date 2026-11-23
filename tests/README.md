@@ -45,7 +45,7 @@ Validates the complete getting-started user workflow from compilation to executi
 **Total tests:** 11 (6 compiler + 5 runtime tests)
 
 ### 4. **test_version_compatibility** — Version Matrix Validation
-Validates component versions against the compatibility matrix in `docs/source/04_Version_Compatibility.md`.
+Validates component versions against the compatibility matrix in `version_compat.json`.
 
 **What it tests:**
 - Parses the DX-AllSuite compatibility matrix

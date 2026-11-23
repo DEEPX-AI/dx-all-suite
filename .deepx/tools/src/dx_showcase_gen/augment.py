@@ -97,7 +97,7 @@ def augment_readme_gif(path: str, *, name: str, anchor: str, gif_rel: str,
 #   docs    — docs/source/00_Agent_Driven_Development.md / _kor.md
 # ---------------------------------------------------------------------------
 
-_IMG_PREFIX = {"root": "./docs/source/img", "catalog": "../docs/source/img", "docs": "./img"}
+_IMG_PREFIX = {"root": "./img", "catalog": "../img", "docs": "./img"}
 
 
 def _media_src(surface: str, basename: str) -> str:
@@ -199,11 +199,11 @@ def cardgrid_region(manifest, *, lang: str, cols: int = 2) -> str:
     if lang == "ko":
         link = ("**전체 showcase 목록 + 요약 →** "
                 "[`dx-agent-dev-showcase/README-ko.md`](./dx-agent-dev-showcase/README-ko.md)  ·  "
-                "**기능 설명 →** [Agent-Driven Development 문서](./docs/source/00_Agent_Driven_Development_kor.md)")
+                "**기능 설명 →** [Agent-Driven Development 문서](https://developer.deepx.ai/tech-docs/DX-AllSuite/Agent_Driven_Development/)")
     else:
         link = ("**All showcases + summaries →** "
                 "[`dx-agent-dev-showcase/README.md`](./dx-agent-dev-showcase/README.md)  ·  "
-                "**About the feature →** [Agent-Driven Development docs](./docs/source/00_Agent_Driven_Development.md)")
+                "**About the feature →** [Agent-Driven Development docs](https://developer.deepx.ai/tech-docs/DX-AllSuite/Agent_Driven_Development/)")
     return f"{intro_region(manifest, lang=lang)}\n\n{body}\n\n{link}"
 
 
