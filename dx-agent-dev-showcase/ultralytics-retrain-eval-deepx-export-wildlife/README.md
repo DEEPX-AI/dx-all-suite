@@ -3,7 +3,7 @@
 > **The story.** `yolo26n` is **COCO-pretrained** — it has a generic "elephant/zebra" notion but does not reliably distinguish African species in the field. This showcase adapts it for a **safari / conservation camera edge device**: fine-tune on the Ultralytics `african-wildlife` dataset (buffalo, elephant, rhino, zebra), export stock + retrained to the DeepX **DX-M1 NPU** (`format=deepx`, INT8), and measure accuracy (mAP) + speed (FPS) across all four model forms.
 
 <div align="center"><table><tr>
-<td align="center"><img src="../../docs/source/img/dx-agent-dev-ultralytics-wildlife-build.gif" width="470"><br><sub><b>dx-agent-dev building this showcase (timelapse)</b></sub></td>
+<td align="center"><img src="../../img/dx-agent-dev-ultralytics-wildlife-build.gif" width="470"><br><sub><b>dx-agent-dev building this showcase (timelapse)</b></sub></td>
 <td align="center"><img src="./sample_detect.jpg" width="300"><br><sub><b>retrained model detecting wildlife (DX-M1 NPU)</b></sub></td>
 </tr></table></div>
 

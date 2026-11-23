@@ -5,7 +5,7 @@ checks, CloudFormation stack create/select/progress/delete, **Cloud Compile**
 (ONNX → `.dxnn`), and Greengrass device/component status and registration scripts.
 Open `/cloud/` in Studio. `dx_edge` is the internal package name, not the suite's
 separate `dx-edge` product or DX EdgeGuide recommendation tool. User manual:
-[docs/source/13_DX_Edge_AWS.md](../docs/source/13_DX_Edge_AWS.md).
+[DX Edge on AWS](https://developer.deepx.ai/tech-docs/DX-AllSuite/ai-studio/DX_Edge_AWS/).
 
 ## Requirements and connection
 

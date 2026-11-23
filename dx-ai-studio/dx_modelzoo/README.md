@@ -37,7 +37,7 @@ results. Catalog FPS / accuracy are published measurements, not guaranteed local
   from the public DEEPX model catalog.
 - **Graph support is narrower than the catalog** — most variants are graph-runnable in
   the reference dx_app; the anomaly models and the LiDAR model are excluded. See the
-  [DX App manual](../docs/source/05_DX_App.md#graph-composer).
+  [DX App manual](https://developer.deepx.ai/tech-docs/DX-AllSuite/ai-studio/DX_App/#graph-composer).
 - **6-language UI** (English / 한국어 / 日本語 / 简体中文 / 繁體中文 / Español).
 
 > The catalog data is synced from https://developer.deepx.ai/modelzoo/ on general networks

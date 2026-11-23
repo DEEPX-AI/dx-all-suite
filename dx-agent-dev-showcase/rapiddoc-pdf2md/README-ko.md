@@ -9,7 +9,7 @@
 > PDF(디지털/스캔)를 구조화된 **Markdown + JSON**으로 변환하며, 런타임에 포크를 clone하지 않습니다.
 
 <div align="center"><table><tr>
-<td align="center"><img src="../../docs/source/img/dx-agent-dev-rapiddoc-pdf2md-build.gif" width="470"><br><sub><b>dx-agent-dev가 이 showcase를 빌드하는 과정 (타임랩스)</b></sub></td>
+<td align="center"><img src="../../img/dx-agent-dev-rapiddoc-pdf2md-build.gif" width="470"><br><sub><b>dx-agent-dev가 이 showcase를 빌드하는 과정 (타임랩스)</b></sub></td>
 <td align="center"><img src="./images/sample_before_after.png" width="470"><br><sub><b>PDF 페이지 → Markdown, DX-M1 NPU에서 파싱</b></sub></td>
 </tr></table></div>
 

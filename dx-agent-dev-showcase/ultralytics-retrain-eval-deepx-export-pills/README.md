@@ -3,7 +3,7 @@
 > **The story.** `yolo26n` is **COCO-pretrained** — it knows "person", "car", "dog", but not pharmaceutical pills. This showcase adapts it for a **pharma inspection / counting edge device**: fine-tune on the Ultralytics `medical-pills` dataset, export stock + retrained to the DeepX **DX-M1 NPU** (`format=deepx`, INT8), and measure accuracy (mAP) + speed (FPS) across all four model forms.
 
 <div align="center"><table><tr>
-<td align="center"><img src="../../docs/source/img/dx-agent-dev-ultralytics-pills-build.gif" width="470"><br><sub><b>dx-agent-dev building this showcase (timelapse)</b></sub></td>
+<td align="center"><img src="../../img/dx-agent-dev-ultralytics-pills-build.gif" width="470"><br><sub><b>dx-agent-dev building this showcase (timelapse)</b></sub></td>
 <td align="center"><img src="./sample_detect.jpg" width="300"><br><sub><b>retrained model detecting pills (DX-M1 NPU)</b></sub></td>
 </tr></table></div>
 

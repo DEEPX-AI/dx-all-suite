@@ -51,23 +51,23 @@ PYEOF
 ! grep -rq 'all\]' "$DF" "$GS"/modelzoo-*.sh || fail "all extra conflicts with gpu"
 grep -q 'onnxruntime-gpu' "$GS/modelzoo-0_install_dx-modelzoo.sh" || fail "cpu/gpu runtime conflict handling"
 grep -q 'LD_LIBRARY_PATH' "$GS/modelzoo-0_install_dx-modelzoo.sh" || fail "gpu LD_LIBRARY_PATH guidance"
-for f in 02_Setting_Up_Environment.md 02_Setting_Up_Environment_kor.md; do
+for f in 02_Setting_Up_Environment.md; do
   grep -q -- '--nvidia_gpu' "$ROOT/docs/source/$f" || fail "$f GPU docker build"
 done
 
-# --- docs placed inside existing structure (EN + KOR) ---
+# --- docs placed inside existing structure ---
 D="$ROOT/docs/source"
-for f in 02_Setting_Up_Environment.md 02_Setting_Up_Environment_kor.md; do
+for f in 02_Setting_Up_Environment.md; do
   grep -q '^#### C. DX-ModelZoo' "$D/$f" || fail "$f Docker C section"
   grep -q '^### DX-ModelZoo Installation' "$D/$f" || fail "$f Local section"
   grep -q 'getting-started/modelzoo-0_install_dx-modelzoo.sh' "$D/$f" || fail "$f script usage"
   grep -q '\.env\.example' "$D/$f" || fail "$f dotenv"
 done
-for f in 03_Running_Your_First_NPU_Model.md 03_Running_Your_First_NPU_Model_kor.md; do
+for f in 03_Running_Your_First_NPU_Model.md; do
   grep -q '^## DX-ModelZoo: Model Evaluation Scripts Guide' "$D/$f" || fail "$f ModelZoo guide"
   grep -q 'modelzoo-2_run_first_npu_model.sh' "$D/$f" || fail "$f runner"
 done
-for f in 05_FAQ_Troubleshooting_Guide.md 05_FAQ_Troubleshooting_Guide_kor.md; do
+for f in 05_FAQ_Troubleshooting_Guide.md; do
   grep -q '^- Q7\.' "$D/$f" || fail "$f TOC Q7"
   grep -q '^## Q8\.' "$D/$f" || fail "$f Q8"
 done
@@ -165,14 +165,14 @@ grep -q "dx_com wheel not found: $T/caller/nope/x.whl" "$T/m2bad.log" || fail "#
 
 # --- review fixes: docs match measured dx-modelzoo behavior ---
 grep -q '^export DATA_ROOT MODEL_ROOT' "$GS/modelzoo-2_run_first_npu_model.sh" || fail "#1 dxmz info must see same roots"
-for f in 05_FAQ_Troubleshooting_Guide.md 05_FAQ_Troubleshooting_Guide_kor.md; do
+for f in 05_FAQ_Troubleshooting_Guide.md; do
   grep -q 'Failed to download model from' "$D/$f" || fail "#3 $f download failure message"
   ! grep -q 'resnet50_224x224.onnx -> ' "$D/$f" || fail "#3 $f log arrow"
   grep -q 'Dataset not found: ILSVRC2012' "$D/$f" || fail "#4 $f dataset message"
   ! grep -q 'Dataset directory structure is invalid' "$D/$f" || fail "#4 $f stale dataset message"
   grep -q 'dx_engine is required for DxRuntimeSession' "$D/$f" || fail "#5 $f dx_engine message"
 done
-for f in 02_Setting_Up_Environment.md 02_Setting_Up_Environment_kor.md; do
+for f in 02_Setting_Up_Environment.md; do
   ! grep -q 'DXMZ_MODEL_URL` | .*(default' "$D/$f" || fail "#6 $f no built-in DXMZ_MODEL_URL default"
 done
 grep -q 'skip-onnx' <(sed -n '/Essential Check/,/^---/p' "$D/03_Running_Your_First_NPU_Model.md") || fail "#7 runtime note"
@@ -209,7 +209,7 @@ for sh in "docker_build.sh --skip-archive" docker_run.sh; do
 done
 
 # modelzoo-2 overrides .env DATA_ROOT, so Q9 must tell script users to link an existing dataset
-for f in 05_FAQ_Troubleshooting_Guide.md 05_FAQ_Troubleshooting_Guide_kor.md; do
+for f in 05_FAQ_Troubleshooting_Guide.md; do
     q9="$(sed -n '/^## Q9\./,/^---/p' "${ROOT}/docs/source/${f}")"
     grep -q 'ln -s ' <<<"${q9}" || fail "#10 ${f} Q9 must show ln -s for an existing dataset"
     grep -q '\[1\]' <<<"${q9}" || fail "#10 ${f} Q9 must point to the runner [1] Model info output"

@@ -10,8 +10,8 @@
 > stretch, looping between a neutral stance and the pose so the player can copy it.
 
 <div align="center"><table><tr>
-<td align="center"><img src="../../docs/source/img/dx-agent-dev-stretch-gameplay.gif" width="460"><br><sub><b>gameplay — filled humanoid coach (top-left) + live NPU pose tracking</b></sub></td>
-<td align="center"><img src="../../docs/source/img/dx-agent-dev-stretch-build.gif" width="320"><br><sub><b>dx-agent-dev building it (timelapse)</b></sub></td>
+<td align="center"><img src="../../img/dx-agent-dev-stretch-gameplay.gif" width="460"><br><sub><b>gameplay — filled humanoid coach (top-left) + live NPU pose tracking</b></sub></td>
+<td align="center"><img src="../../img/dx-agent-dev-stretch-build.gif" width="320"><br><sub><b>dx-agent-dev building it (timelapse)</b></sub></td>
 </tr></table></div>
 
 > **See how the agent built it:** [`claude-code-session.md`](./claude-code-session.md).

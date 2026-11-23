@@ -7,8 +7,8 @@
 > <camera_index>`) 받아 annotated 출력 영상을 저장합니다.
 
 <div align="center"><table><tr>
-<td align="center"><img src="../../docs/source/img/dx-agent-dev-paddleocr-gameplay.gif" width="460"><br><sub><b>프레임별 NPU OCR — 박스 + 인식 문자열 + 신뢰도</b></sub></td>
-<td align="center"><img src="../../docs/source/img/dx-agent-dev-paddleocr-build.gif" width="320"><br><sub><b>dx-agent-dev가 빌드하는 과정 (타임랩스)</b></sub></td>
+<td align="center"><img src="../../img/dx-agent-dev-paddleocr-gameplay.gif" width="460"><br><sub><b>프레임별 NPU OCR — 박스 + 인식 문자열 + 신뢰도</b></sub></td>
+<td align="center"><img src="../../img/dx-agent-dev-paddleocr-build.gif" width="320"><br><sub><b>dx-agent-dev가 빌드하는 과정 (타임랩스)</b></sub></td>
 </tr></table></div>
 
 <div align="center"><img src="./sample_detect.jpg" width="640"><br><sub><b>annotated 샘플 프레임 — PP-OCRv5 det+cls+rec on DX-M1 NPU</b></sub></div>

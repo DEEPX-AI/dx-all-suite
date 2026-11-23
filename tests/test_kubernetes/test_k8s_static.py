@@ -20,7 +20,8 @@ import yaml
 sys.path.insert(0, str(Path(__file__).parent))
 from k8s_helpers import (  # noqa: E402
     CHART_DIR, DASHBOARD, FIXTURES, K8S_DOCS, PLUGIN_METRICS_GO, REPO_ROOT, RESOURCE,
-    SAMPLES_DIR, ensure_chart_deps, helm, jq_exprs, md_links, need, repo_paths, run,
+    SAMPLES_DIR, SiteDoc, _PageText, doc_id, ensure_chart_deps, helm, jq_exprs, md_links, need,
+    repo_paths, require_doc, run,
 )
 
 pytestmark = pytest.mark.kubernetes_static
@@ -133,7 +134,7 @@ def test_s9_dashboard_queries_existing_metrics():
 # --------------------------------------------------------------------------- docs
 
 NODE_LIST = FIXTURES / "node-list.json"
-DOC_IDS = [d.relative_to(REPO_ROOT).as_posix() for d in K8S_DOCS]
+DOC_IDS = [doc_id(d) for d in K8S_DOCS]
 
 
 def _jq_cases():
@@ -141,6 +142,10 @@ def _jq_cases():
 
 
 def test_s10_docs_have_jq_checks():
+    gone = [d.url for d in K8S_DOCS if getattr(d, "gone", 0)]
+    assert not gone, f"published K8s guides are gone from the site: {gone}"
+    if not _jq_cases() and any(getattr(d, "unreachable", False) for d in K8S_DOCS):
+        pytest.skip("the published K8s guides are unreachable")
     assert _jq_cases(), "no `kubectl get node -o json | jq` command found in the K8s docs"
 
 
@@ -158,6 +163,45 @@ def test_s10_doc_jq_works_on_real_node_list(doc, expr):
 
 @pytest.mark.parametrize("doc", K8S_DOCS, ids=DOC_IDS)
 def test_s11_doc_paths_and_links_exist(doc):
+    require_doc(doc)
     missing = [p for p in repo_paths(doc) if not (REPO_ROOT / p).exists()]
     missing += [l for l in md_links(doc) if not (doc.parent / l).exists()]
-    assert not missing, f"{doc.relative_to(REPO_ROOT)} points at missing files: {missing}"
+    assert not missing, f"{doc_id(doc)} points at missing files: {missing}"
+
+
+# --------------------------------------------------------------------------- published guides
+
+def test_page_text_ignores_script_and_style():
+    page = _PageText()
+    page.feed("<h2>Install</h2><script>var x = 'deploy/k8s/evil.yaml';</script>"
+              "<style>.a{content:'## Fake'}</style><p>see <code>deploy/k8s/README.md</code></p>")
+    text = "".join(page.out)
+    assert "## Install" in text and "`deploy/k8s/README.md`" in text
+    assert "evil.yaml" not in text and "Fake" not in text
+
+
+def _site_doc_failing_with(monkeypatch, error):
+    def urlopen(url, timeout=None):
+        raise error
+    monkeypatch.setattr("urllib.request.urlopen", urlopen)
+    return SiteDoc("Kubernetes_Quickstart")
+
+
+def test_a_guide_removed_from_the_site_fails(monkeypatch):
+    """HTTP 404 means the page is gone or renamed: that must not hide behind a skip."""
+    import urllib.error
+    doc = _site_doc_failing_with(
+        monkeypatch, urllib.error.HTTPError("https://x/", 404, "Not Found", None, None))
+    with pytest.raises(pytest.fail.Exception, match="404"):
+        require_doc(doc)
+
+
+def test_an_unreachable_site_skips(monkeypatch):
+    import urllib.error
+    doc = _site_doc_failing_with(monkeypatch, urllib.error.URLError("no route to host"))
+    with pytest.raises(pytest.skip.Exception):
+        require_doc(doc)
+
+
+def test_require_doc_accepts_local_files():
+    require_doc(REPO_ROOT / "README.md")

@@ -8,7 +8,7 @@
 > and measure **accuracy (mAP) + speed (FPS)** across all four model forms.
 
 <div align="center"><table><tr>
-<td align="center"><img src="../../docs/source/img/dx-agent-dev-ultralytics-ppe-build.gif" width="470"><br><sub><b>dx-agent-dev building this showcase (timelapse)</b></sub></td>
+<td align="center"><img src="../../img/dx-agent-dev-ultralytics-ppe-build.gif" width="470"><br><sub><b>dx-agent-dev building this showcase (timelapse)</b></sub></td>
 <td align="center"><img src="./sample_detect.jpg" width="300"><br><sub><b>retrained model detecting PPE (DX-M1 NPU)</b></sub></td>
 </tr></table></div>
 

@@ -257,6 +257,7 @@ function triggerInitialRecommendationFromUrl(hasPrefill) {
 
 async function initConfigurator() {
   // Init i18n (handled by shared/i18n.js on DOMContentLoaded)
+  MethodologyDialog.init();
 
   try {
     await DataLoader.load();
@@ -268,7 +269,6 @@ async function initConfigurator() {
 
   WizardController.init();
   PlannerWorkspace.init();
-  MethodologyDialog.init();
   PlannerWorkspace.renderScopeBannerMeta();
   bindScenarioChips();
 

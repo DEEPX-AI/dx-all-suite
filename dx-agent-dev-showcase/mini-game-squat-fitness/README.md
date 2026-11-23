@@ -8,8 +8,8 @@
 <div align="center">
 <table>
 <tr>
-<td align="center"><img src="../../docs/source/img/dx-agent-dev-squat-build.gif" width="470"><br><sub><b>dx-agent-dev building this app (timelapse)</b></sub></td>
-<td align="center"><img src="../../docs/source/img/dx-agent-dev-squat-gameplay.gif" width="188"><br><sub><b>The generated app running on the DX-M1 NPU</b></sub></td>
+<td align="center"><img src="../../img/dx-agent-dev-squat-build.gif" width="470"><br><sub><b>dx-agent-dev building this app (timelapse)</b></sub></td>
+<td align="center"><img src="../../img/dx-agent-dev-squat-gameplay.gif" width="188"><br><sub><b>The generated app running on the DX-M1 NPU</b></sub></td>
 </tr>
 </table>
 </div>

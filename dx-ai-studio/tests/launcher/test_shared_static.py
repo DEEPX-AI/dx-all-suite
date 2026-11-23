@@ -764,7 +764,7 @@ def test_sdk_doc_returns_404_for_unregistered_path(launcher_server):
 
 
 def test_sdk_doc_serves_allowed_text_file(launcher_server):
-    resp = urlopen(f"{launcher_server}/api/sdk-doc?path=docs/source/05_FAQ_Troubleshooting_Guide.md", timeout=5)
+    resp = urlopen(f"{launcher_server}/api/sdk-doc?path=README.md", timeout=5)
     body = resp.read().decode("utf-8")
     assert resp.status == 200
     assert body.strip()

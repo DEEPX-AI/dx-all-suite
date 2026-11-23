@@ -71,13 +71,14 @@ def test_cjk_faces_cover_400_to_700_so_the_browser_never_synthesises_bold(page, 
     assert lo <= 400 and hi >= 700, weight
 
 
-# Match exactly: a "Pretendard" prefix match would pass even if the ja face "Pretendard JP" were used for ko.
-# Noto's " Thin" is only the name of the variable font's default instance, not the rendered weight.
+# Match exactly apart from Chromium's optional font-backend annotation: a "Pretendard" prefix match would pass
+# even if the ja face "Pretendard JP" were used for ko. Noto's " Thin" is only the variable font's default
+# instance name, not the rendered weight.
 @pytest.mark.parametrize("lang,text,family", [
-    ("ko", "무엇이든", r"Pretendard Variable"),
-    ("ja", "説明", r"Pretendard JP Variable"),
-    ("zh-CN", "描述", r"Noto Sans SC( Thin)?"),
-    ("zh-TW", "描述", r"Noto Sans TC( Thin)?"),
+    ("ko", "무엇이든", r"Pretendard Variable(?: \(Fontations\))?"),
+    ("ja", "説明", r"Pretendard JP Variable(?: \(Fontations\))?"),
+    ("zh-CN", "描述", r"Noto Sans SC( Thin)?(?: \(Fontations\))?"),
+    ("zh-TW", "描述", r"Noto Sans TC( Thin)?(?: \(Fontations\))?"),
 ])
 def test_each_language_renders_with_its_own_cjk_font(page, lang, text, family):
     page.evaluate("""async ([lang, text]) => {

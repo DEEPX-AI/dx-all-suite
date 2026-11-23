@@ -108,6 +108,11 @@ GUIDE_PAIRS: List[GuidePair] = [
     ),
 ]
 
+# A release tree ships without the suite's docs/ (the manual is read on
+# developer.deepx.ai): there is no top-level guide to check there.
+if not (SUITE_ROOT / "docs" / "source").is_dir():
+    GUIDE_PAIRS = [g for g in GUIDE_PAIRS if g.project != "suite"]
+
 
 # ---------------------------------------------------------------------------
 # Infrastructure file locations per project

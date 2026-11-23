@@ -2,6 +2,7 @@
 
 sdk-library-data.json is a hand-picked list (drawer, section, title). That structure stays; when serving it:
 
+- the manuals are "link" entries: their ``path`` is the page on developer.deepx.ai, opened in a new tab
 - md sizes come from disk (hand-written sizes go stale)
 - a file appears only once per section
 - a new md in a ``docs`` folder that already has registered docs joins that section on its own (title from the
@@ -76,8 +77,9 @@ def augment(data: dict, suite_root) -> dict:
 
 
 def allowed_paths(data: dict) -> set:
+    # "link" entries are pages on developer.deepx.ai, not files this server may read.
     return {f["path"] for d in data.get("drawers", []) for s in d.get("sections", [])
-            for f in s.get("files", []) if f.get("path")}
+            for f in s.get("files", []) if f.get("path") and f.get("type") != "link"}
 
 
 def expand_snippets(text: str, doc_rel: str, suite_root, depth: int = 0) -> str:

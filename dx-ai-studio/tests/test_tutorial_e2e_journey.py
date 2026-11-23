@@ -140,7 +140,9 @@ _JOURNEY_AXES = [(m, lang) for m in JOURNEY_MODULES for lang in JOURNEY_LANGS]
     ("mod", "lang"), _JOURNEY_AXES,
     ids=[f"{m['id']}-{lang}" for m, lang in _JOURNEY_AXES],
 )
-def test_tutorial_ui_journey_no_visual_defects(page, mod, lang):
+def test_tutorial_ui_journey_no_visual_defects(page, mod, lang, monkeypatch):
+    if mod["id"] == "dx_agent_dev":
+        monkeypatch.setenv("DX_AGENT_DEV_PIN_AGENTS", "copilot,claude")
     server, port = start_module_server(mod["server"])
     try:
         page.goto(f"http://127.0.0.1:{port}/", wait_until="domcontentloaded", timeout=60000)

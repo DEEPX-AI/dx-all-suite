@@ -3,7 +3,7 @@
 > **스토리.** `yolo26n`은 **COCO 사전학습**이라 의료 클래스가 없어 MRI/CT 종양을 스크리닝 못 합니다. 이 showcase는 **의료 edge 디바이스**용으로 적응시킵니다: `brain-tumor`로 fine-tune하고 stock·재학습을 DeepX **DX-M1 NPU**(`format=deepx`, INT8)로 export해 네 형태 전부 정확도(mAP)+속도(FPS)를 측정.
 
 <div align="center"><table><tr>
-<td align="center"><img src="../../docs/source/img/dx-agent-dev-ultralytics-braintumor-build.gif" width="470"><br><sub><b>dx-agent-dev가 이 showcase를 만드는 과정 (timelapse)</b></sub></td>
+<td align="center"><img src="../../img/dx-agent-dev-ultralytics-braintumor-build.gif" width="470"><br><sub><b>dx-agent-dev가 이 showcase를 만드는 과정 (timelapse)</b></sub></td>
 <td align="center"><img src="./sample_detect.jpg" width="300"><br><sub><b>재학습 모델의 종양 검출 (DX-M1 NPU)</b></sub></td>
 </tr></table></div>
 

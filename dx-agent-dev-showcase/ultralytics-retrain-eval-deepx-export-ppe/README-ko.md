@@ -7,7 +7,7 @@
 > 네 형태 전부 **정확도(mAP)+속도(FPS)**를 측정합니다.
 
 <div align="center"><table><tr>
-<td align="center"><img src="../../docs/source/img/dx-agent-dev-ultralytics-ppe-build.gif" width="470"><br><sub><b>dx-agent-dev가 이 showcase를 만드는 과정 (timelapse)</b></sub></td>
+<td align="center"><img src="../../img/dx-agent-dev-ultralytics-ppe-build.gif" width="470"><br><sub><b>dx-agent-dev가 이 showcase를 만드는 과정 (timelapse)</b></sub></td>
 <td align="center"><img src="./sample_detect.jpg" width="300"><br><sub><b>재학습 모델의 PPE 검출 (DX-M1 NPU)</b></sub></td>
 </tr></table></div>
 

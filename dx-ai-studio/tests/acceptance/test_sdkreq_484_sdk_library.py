@@ -11,18 +11,26 @@ def _open_library(pages, path="/sdk-library"):
     return page
 
 
+# Documents the viewer renders in place. A "link" card is a manual page on developer.deepx.ai
+# and opens in a new tab instead.
+LOCAL_CARD = '.file-card:not([data-type="link"])'
+LOCAL_DOC = "README.md"
+
+
 def _open_first_doc_from_the_list(page):
     """Open the first Markdown document the List view offers (PDFs open in an embedded viewer)."""
     heads = page.locator(".sdk-list-sidebar .sdk-sidebar-group-head")
     for g in range(heads.count()):
         heads.nth(g).click()
-        cards = page.locator("#sdkListContent .file-card")
-        cards.first.wait_for(timeout=30000)
+        page.locator("#sdkListContent .file-card").first.wait_for(timeout=30000)
+        cards = page.locator(f"#sdkListContent {LOCAL_CARD}")
         for i in range(min(cards.count(), 8)):
             cards.nth(i).click()
             page.locator("#sdkBookViewer.open").wait_for(timeout=30000)
             if page.evaluate("() => decodeURIComponent(location.search).endsWith('.md')"):
-                page.locator("#sdkViewerBody h1, #sdkViewerBody h2").first.wait_for(timeout=30000)
+                # rendered, whatever the document opens with (a README may start with a centred HTML block)
+                page.wait_for_function(
+                    "() => document.getElementById('sdkViewerBody').innerText.trim().length > 200", timeout=30000)
                 return
             page.locator("#sdkBookViewer .sdk-viewer-close").click()
             page.wait_for_function("() => !document.querySelector('#sdkBookViewer.open')")
@@ -43,15 +51,39 @@ def test_list_and_cabinet_views_open_a_document_in_the_viewer(pages):
     face = page.locator(".drawer-unit .drawer-face").first
     face.wait_for(timeout=30000)
     face.click()
-    card = page.locator(".drawer-unit .file-card").first
+    card = page.locator(f".drawer-unit {LOCAL_CARD}").first
     card.wait_for(timeout=30000)
     card.click()
     page.locator("#sdkBookViewer.open").wait_for(timeout=30000)
     assert page.locator("#sdkBookViewer .sdk-viewer-title").inner_text().strip()
 
 
+def test_a_manual_entry_opens_the_tech_docs_site_in_a_new_tab(pages):
+    """The manuals are read on developer.deepx.ai: the card opens that page, not the viewer."""
+    page = _open_library(pages)
+    site = "https://developer.deepx.ai/**"   # stubbed: the test must not depend on the network
+    page.context.route(site, lambda route: route.fulfill(status=200, content_type="text/html", body="<h1>stub</h1>"))
+    link = page.locator('#sdkListContent .file-card[data-type="link"]')
+    heads = page.locator(".sdk-list-sidebar .sdk-sidebar-group-head")
+    for g in range(heads.count()):
+        heads.nth(g).click()
+        page.locator("#sdkListContent .file-card").first.wait_for(timeout=30000)
+        if link.count():
+            break
+    assert link.count(), "no manual entry in the List view"
+    with page.context.expect_page() as opened:
+        link.first.click()
+    try:
+        opened.value.wait_for_url("https://developer.deepx.ai/tech-docs/**", timeout=30000)
+        assert page.locator("#sdkBookViewer.open").count() == 0
+        assert "doc=" not in page.evaluate("() => location.search")
+    finally:
+        opened.value.close()
+        page.context.unroute(site)
+
+
 def test_viewer_search_highlights_and_counts_and_close_or_escape_stays_in_the_library(pages):
-    page = _open_library(pages, "/sdk-library?doc=docs/source/index.md")
+    page = _open_library(pages, f"/sdk-library?doc={LOCAL_DOC}")
     page.locator("#sdkBookViewer.open").wait_for(timeout=60000)
     page.locator("#sdkViewerBody h1").wait_for(timeout=30000)
     page.locator("#sdkViewerSearch").fill("DEEPX")
@@ -99,7 +131,7 @@ def test_top_nav_switches_between_about_and_sdk_library(pages):
 def test_a_document_that_fails_to_load_offers_retry_that_works(pages):
     page = pages.new(None)
     page.route("**/api/sdk-doc?*", lambda route: route.abort())
-    page.goto(pages.studio.base + "/sdk-library?doc=docs/source/index.md", wait_until="domcontentloaded")
+    page.goto(pages.studio.base + f"/sdk-library?doc={LOCAL_DOC}", wait_until="domcontentloaded")
     retry = page.locator("#sdkViewerBody .sdk-retry-btn")
     retry.wait_for(timeout=60000)
     page.unroute("**/api/sdk-doc?*")

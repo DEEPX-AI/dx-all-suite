@@ -127,7 +127,9 @@ def test_a_module_that_is_down_is_dimmed_on_home(pages):
     ("/zoo", "DXLauncher.currentApp === 'zoo'"),
     ("/app", "DXLauncher.currentApp === 'app'"),
     ("/about", "document.querySelector('#about-view.visible') !== null"),
-    ("/sdk-library?doc=docs/source/index.md", "document.querySelector('#sdkBookViewer.open') !== null"),
+    # the "not found" view opens the same viewer, so an entry that left the library must not pass
+    ("/sdk-library?doc=README.md",
+     "document.querySelector('#sdkBookViewer.open') !== null && !document.querySelector('.sdk-not-found')"),
 ])
 def test_a_direct_url_and_f5_reopen_the_same_view(pages, path, check):
     page = pages.new(path)

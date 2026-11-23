@@ -121,7 +121,7 @@ SG capture-start --output /tmp/sc.raw.mp4 --pidfile /tmp/sc.ff.pid   # full-scre
 # (interactive real-TUI runs are captured the same way — the human runs claude.)
 SG capture-stop --pidfile /tmp/sc.ff.pid ; SG keepawake stop --pidfile /tmp/sc.ka.pid
 SG crop --input /tmp/sc.raw.mp4 --output /tmp/sc.crop.mp4 --title DEEPXBUILDREC
-SG gif  --input /tmp/sc.crop.mp4 --output docs/source/img/dx-agent-dev-<name>-build.gif \
+SG gif  --input /tmp/sc.crop.mp4 --output img/dx-agent-dev-<name>-build.gif \
         --duration <recorded_secs>
 ```
 
@@ -182,7 +182,7 @@ SG copy-artifacts --session-dir <build_session_dir> --showcase-dir dx-agent-dev-
 ## Phase 6 — Run/result GIF
 
 - Record the generated app running (or the report/eval run) → a second GIF
-  `docs/source/img/dx-agent-dev-<name>-run.gif` via the same capture→crop→gif path.
+  `img/dx-agent-dev-<name>-run.gif` via the same capture→crop→gif path.
   Optional when the showcase has no visual runtime (then the build GIF suffices).
 
 ## Phase 7 — Catalog + docs (manifest-driven, single source)
@@ -201,7 +201,7 @@ one manifest — never hand-edited.
    highlight_en/ko, model, build, turns, tokens, cost`, plus the **card media**:
    `card_media` = `gif` (games → `gif` basename), `sample` (retrain → `sample` basename,
    prefer a **landscape** annotated detection image), or `video` (export → `video` +
-   `poster` basenames, an mp4 clip). All media basenames live under `docs/source/img/`;
+   `poster` basenames, an mp4 clip). All media basenames live under `img/`;
    the card grid renders them at a **uniform height** so mixed aspect ratios still align.
 3. Regenerate all three surfaces (EN+KO), idempotently:
    ```bash
@@ -221,7 +221,7 @@ do NOT hand-edit the marker regions — they are regenerated from the manifest.
 ```bash
 SG verify --showcase-dir dx-agent-dev-showcase/<name> --name <name> \
    --stream-json /tmp/sc.stream.jsonl --model claude-opus-4-8 --tool claude \
-   --gif docs/source/img/dx-agent-dev-<name>-build.gif \
+   --gif img/dx-agent-dev-<name>-build.gif \
    --require-file run.sh --require-file README.md \
    --augment-target README.md --augment-target README-KO.md
 ```

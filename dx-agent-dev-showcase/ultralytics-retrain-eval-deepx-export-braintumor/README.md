@@ -3,7 +3,7 @@
 > **The story.** `yolo26n` is **COCO-pretrained** with no medical classes, so it cannot screen MRI/CT scans for tumors. This showcase adapts it for a **medical edge device**: fine-tune on the Ultralytics `brain-tumor` dataset, export stock + retrained to the DeepX **DX-M1 NPU** (`format=deepx`, INT8), and measure accuracy (mAP) + speed (FPS) across all four model forms.
 
 <div align="center"><table><tr>
-<td align="center"><img src="../../docs/source/img/dx-agent-dev-ultralytics-braintumor-build.gif" width="470"><br><sub><b>dx-agent-dev building this showcase (timelapse)</b></sub></td>
+<td align="center"><img src="../../img/dx-agent-dev-ultralytics-braintumor-build.gif" width="470"><br><sub><b>dx-agent-dev building this showcase (timelapse)</b></sub></td>
 <td align="center"><img src="./sample_detect.jpg" width="300"><br><sub><b>retrained model detecting tumors (DX-M1 NPU)</b></sub></td>
 </tr></table></div>
 

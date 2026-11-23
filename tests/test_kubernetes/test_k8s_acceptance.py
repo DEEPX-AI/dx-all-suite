@@ -23,14 +23,14 @@ import yaml
 
 sys.path.insert(0, str(Path(__file__).parent))
 from k8s_helpers import (  # noqa: E402
-    CHART_DIR, QA, QUICKSTART, REPO_ROOT, RESOURCE, SAMPLES_DIR,
+    BEGINNER_GUIDE, CHART_DIR, QA, QUICKSTART, REPO_ROOT, RESOURCE, SAMPLES_DIR,
     _docker, _sudo_prefix, allocatable, doc_block, ensure_chart_deps, ensure_image, helm_cmd, kubectl,
-    kubectl_json, need, npu_node, run, unschedulable_reason, wait_pod, wait_until,
+    kubectl_json, need, npu_node, require_doc, run, unschedulable_reason, wait_pod, wait_until,
 )
 
 pytestmark = pytest.mark.kubernetes
 
-GUIDE = REPO_ROOT / "docs" / "source" / "07_Kubernetes_Beginner_Guide.md"
+GUIDE = BEGINNER_GUIDE
 NS = "dx-k8s-acceptance"
 RELEASE, RELEASE_NS = "dx-npu", "dx-system"
 OCI_CHART = re.compile(r"oci://\S+/dx-npu")
@@ -322,6 +322,7 @@ def test_a9_plugin_restart_recovers(node):
 
 def guide_promql() -> list:
     """The PromQL column of the Beginner Guide's Prometheus table (example 8)."""
+    require_doc(GUIDE)
     section = GUIDE.read_text().split("### Example 8", 1)[1].split("\n## ", 1)[0]
     return re.findall(r"^\|[^|\n]*\|\s*`([^`]+)`\s*\|$", section, re.M)
 

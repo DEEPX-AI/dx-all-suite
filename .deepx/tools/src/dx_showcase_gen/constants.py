@@ -21,7 +21,7 @@ SCREEN_H = 1080
 
 # Repo-relative locations.
 SHOWCASE_ROOT = "dx-agent-dev-showcase"
-IMG_DIR = "docs/source/img"
+IMG_DIR = "img"
 SUITE_README = "README.md"
 SUITE_README_KO = "README-KO.md"
 DOCS_OVERVIEW = "docs/source/00_Agent_Driven_Development.md"

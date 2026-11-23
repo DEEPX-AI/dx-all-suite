@@ -41,10 +41,10 @@ class Showcase:
     #   sample -> `sample` (retrain: the annotated detection sample image)
     #   video  -> `video` (+ `poster`) (export: an mp4 clip)
     card_media: str = "gif"
-    gif: str = ""      # basename under docs/source/img/
-    sample: str = ""   # basename under docs/source/img/
-    video: str = ""    # basename under docs/source/img/
-    poster: str = ""   # basename under docs/source/img/
+    gif: str = ""      # basename under img/
+    sample: str = ""   # basename under img/
+    video: str = ""    # basename under img/
+    poster: str = ""   # basename under img/
     build_gif: str = ""  # optional build-capture GIF for the feature-first 2nd cell
                          # (when the primary `gif` is a gameplay/demo, not the build)
 

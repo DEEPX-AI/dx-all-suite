@@ -98,11 +98,12 @@ class TestSdkLibraryDataLangMaps:
                         f"drawers[{i}].sections[{j}] missing field '{key}'"
 
     def test_files_have_required_fields(self, data):
-        """Each file must have path, title, size."""
+        """Each file must have path, title, size (a "link" entry is a web page: no size)."""
         for i, drawer in enumerate(data["drawers"]):
             for j, section in enumerate(drawer.get("sections", [])):
                 for k, f in enumerate(section.get("files", [])):
-                    for key in ("path", "title", "size"):
+                    required = ("path", "title") if f.get("type") == "link" else ("path", "title", "size")
+                    for key in required:
                         assert key in f, \
                             f"drawers[{i}].sections[{j}].files[{k}] missing field '{key}'"
 
