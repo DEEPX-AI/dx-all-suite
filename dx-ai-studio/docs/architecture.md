@@ -185,7 +185,7 @@ defaulting to the sibling suite paths). SDK coupling is deliberately **optional*
   credential chain/profile for subscription probes, stacks, compile jobs/logs/results
   and Greengrass queries. A generated registration script runs manually on the
   device; Studio neither SSH-executes it nor automatically deploys compiled models.
-  See the [Cloud manual](source/13_DX_Edge_AWS.md) for storage, cost and cleanup limits.
+  See the [Cloud manual](https://developer.deepx.ai/tech-docs/DX-AllSuite/ai-studio/DX_Edge_AWS/) for storage, cost and cleanup limits.
 
 ## Further reading
 

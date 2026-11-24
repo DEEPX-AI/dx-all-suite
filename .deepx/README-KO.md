@@ -228,7 +228,7 @@ Generator drift(`.deepx/` source를 수정하고 재생성하지 않아 `CLAUDE.
 |-------|------------------|-------|
 | Pre-commit hook | commit이 생성되기 전 drift + EN/KO lint | `.deepx/tools/scripts/pre-commit-hook.sh` (`install-hooks.sh`로 설치) |
 | CI sub-repo gate | 독립 sub-repo checkout에 commit된 drift, commit/PR 시점 | `.github/workflows/dx-agent-dev-subrepo-gate-{ghes,cloud}.yml` (job `subrepo-gate`, sub-repo별 1개) — `subrepo_check.sh` 사용 |
-| CI suite gate | 5개 level 전체 drift + EN/KO parity + conformance test, 통합 시점 | `.github/workflows/dx-agent-dev-gate-{ghes,cloud}.yml` (job `harness-gate`, suite root) — `harness_gate.sh` 사용, [`docs/ci-gates-KO.md`](docs/ci-gates-KO.md) 참고 |
+| CI suite gate | 5개 level 전체 drift + EN/KO parity + conformance test, 통합 시점 | `.github/workflows/dx-agent-dev-gate-{ghes,cloud}.yml` (job `harness-gate`, suite root) — `harness_gate.sh` 사용, `docs/ci-gates-KO.md`(내부 repository 전용) 참고 |
 | Generator hard-fail | 생성 시점의 잘못된 fragment/template | `dx_agent_dev_gen` (잘못된 출력을 내는 대신 예외 발생) |
 | Content guard | 생성된 출력의 구조적 회귀 | `.deepx/tests/conformance` (예: `test_kb_counts`, `test_generated_paths_resolve`) |
 | Agent 지침 | 세션 중 생성된 파일의 직접 hand-edit | 이 파일(§7)에 내장된 Instruction File Verification Loop, 모든 `CLAUDE.md`/`AGENTS.md`에 포함 |
@@ -287,7 +287,7 @@ Fragment를 추가하거나 수정하는 방법은
 | 새로운 fragment 작성 방법 | [`docs/fragment-authoring-guide.md`](docs/fragment-authoring-guide.md) |
 | `dx-agent-gen` generator 패키지 | [`tools/README.md`](tools/README.md) |
 | 운영 스크립트 (`run_all.sh`, hooks, E2E loop) | [`tools/scripts/README.md`](tools/scripts/README.md) |
-| GHES / 미러 / 공개 채널의 CI gate (runner, token, 정확한 명령, 로컬 재현) | [`docs/ci-gates-KO.md`](docs/ci-gates-KO.md) |
+| GHES / 미러 / 공개 채널의 CI gate (runner, token, 정확한 명령, 로컬 재현) | `docs/ci-gates-KO.md`(내부 repository 전용) |
 | E2E 결과 분석기 (리포트, 차트, 대시보드) | [`e2e/agent_analyzer/README-KO.md`](e2e/agent_analyzer/README-KO.md) |
 | Showcase 재현성 검증 (verbatim-prompt 평가) | [`e2e/showcase_repro/README-KO.md`](e2e/showcase_repro/README-KO.md) |
 | 테스트 카테고리 및 실행 방법 | [`tests/README.md`](tests/README.md) |

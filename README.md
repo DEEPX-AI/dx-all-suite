@@ -3,7 +3,7 @@
 
 <div align="center">
 
-<img src="./docs/source/img/dx-all-suite-banner.png" width="100%" alt="DEEPX DXNN® — DX-AllSuite">
+<img src="./img/dx-all-suite-banner.png" width="100%" alt="DEEPX DXNN® — DX-AllSuite">
 
 **From AI Models to Edge AI Products.**
 

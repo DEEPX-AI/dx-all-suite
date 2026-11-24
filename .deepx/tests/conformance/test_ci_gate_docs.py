@@ -7,6 +7,8 @@ from __future__ import annotations
 import pytest
 
 from .conftest import SUITE_ROOT, COMPILER_ROOT, RUNTIME_ROOT, APP_ROOT, STREAM_ROOT
+from .test_suite_gate_workflows import _gate_workflows_deployed as _suite_gates_deployed
+from .test_subrepo_gate_workflows import _gate_workflows_deployed as _subrepo_gates_deployed
 
 SUITE_DOCS = ["ci-gates.md", "ci-gates-KO.md"]
 SUB_DOCS = ["ci-subrepo-gate.md", "ci-subrepo-gate-KO.md"]
@@ -22,6 +24,8 @@ STALE = ("dx-agent-dev-gate.yml", "dx-agent-dev-subrepo-gate.yml", "gh-drift-che
 @pytest.mark.parametrize("name", SUITE_DOCS)
 def test_suite_doc_exists_and_covers_both_variants(name):
     p = SUITE_ROOT / ".deepx" / "docs" / name
+    if not p.is_file() and not _suite_gates_deployed():
+        pytest.skip("gate workflows and their doc not deployed in this checkout (release-excluded)")
     assert p.is_file(), f"missing {p}"
     text = p.read_text(encoding="utf-8")
     for needle in (
@@ -47,6 +51,8 @@ def test_subrepo_doc_exists_and_is_specific(label, root, subrepo_path, name):
     if not (root / ".deepx").is_dir():
         pytest.skip(f"{label}: .deepx absent")
     p = root / ".deepx" / "docs" / name
+    if not p.is_file() and not _subrepo_gates_deployed(root):
+        pytest.skip(f"{label}: gate workflows and their doc not deployed in this checkout (release-excluded)")
     assert p.is_file(), f"{label}: missing {p}"
     text = p.read_text(encoding="utf-8")
     for needle in (

@@ -123,7 +123,7 @@ from a suite checkout on the same branch, with the sub-repo at its canonical
 position, run `bash .deepx/tools/scripts/run_all.sh generate && bash
 .deepx/tools/scripts/run_all.sh check`, then commit the regenerated files in
 the sub-repo. Both gates exist as a GHES and a github.com variant selected by a
-job-level host guard; see [`ci-gates.md`](ci-gates.md).
+job-level host guard; see `ci-gates.md` (internal repository only).
 
 | Layer | Catches | Where |
 |-------|---------|-------|

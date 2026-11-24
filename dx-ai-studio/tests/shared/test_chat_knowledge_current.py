@@ -161,6 +161,8 @@ def test_nothing_points_users_at_workspace_agent_sessions():
     root = Path(__file__).resolve().parents[2]
     for rel in ("dx_agent_dev/templates/index.html", "dx_agent_dev/static/js/i18n.js",
                 "dx_agent_dev/static/js/tutorial.js", "docs/source/10_DX_Agent_Dev.md", "dx_agent_dev/README.md"):
+        if rel.startswith("docs/source/") and not (root / "docs/source").is_dir():
+            continue    # a release tree ships without the manual (read on developer.deepx.ai)
         assert "workspace/agent-sessions" not in (root / rel).read_text(encoding="utf-8"), rel
 
 

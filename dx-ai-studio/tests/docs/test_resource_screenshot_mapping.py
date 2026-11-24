@@ -1,6 +1,8 @@
 import hashlib
 from pathlib import Path
 
+import pytest
+
 
 RESOURCE_DIR = Path(__file__).resolve().parents[2] / "docs" / "source" / "resources"
 
@@ -15,7 +17,15 @@ EXPECTED_SHA256 = {
 }
 
 
+def test_readme_screenshot_is_the_documented_hub_screen():
+    """README.md shows img/hub.png, a copy kept outside docs/source so it ships in a release tree."""
+    readme_copy = RESOURCE_DIR.parents[2] / "img" / "hub.png"
+    assert hashlib.sha256(readme_copy.read_bytes()).hexdigest() == EXPECTED_SHA256["hub.png"]
+
+
 def test_resources_match_documented_screen_mapping():
+    if not RESOURCE_DIR.is_dir():
+        pytest.skip("manual not shipped in this checkout (read on developer.deepx.ai)")
     actual = {
         path.name: hashlib.sha256(path.read_bytes()).hexdigest()
         for path in RESOURCE_DIR.glob("*.png")
