@@ -185,7 +185,7 @@ from any directory.
 | 1 | A stage failed (or `deps` found python < 3.8 / a missing module) |
 | 2 | Usage / setup error (unknown stage, bad `--python`) |
 
-See [`../../docs/ci-gates.md`](../../docs/ci-gates.md) for the CI side (runners,
+See `.deepx/docs/ci-gates.md` (internal repository only) for the CI side (runners,
 tokens, per-environment onboarding).
 
 ---

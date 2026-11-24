@@ -123,7 +123,7 @@ checkout에서, sub-repo를 canonical한 위치에 둔 채로 `bash
 .deepx/tools/scripts/run_all.sh generate && bash
 .deepx/tools/scripts/run_all.sh check`를 실행한 뒤, sub-repo에서 재생성된
 파일을 commit해야 한다. 두 gate 모두 job-level host guard로 선택되는 GHES / github.com
-변형 한 쌍으로 존재한다; [`ci-gates-KO.md`](ci-gates-KO.md) 참고.
+변형 한 쌍으로 존재한다; `ci-gates-KO.md`(내부 repository 전용) 참고.
 
 | 계층 | 잡아내는 것 | 위치 |
 |-------|---------|-------|

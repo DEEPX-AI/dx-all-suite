@@ -9,7 +9,7 @@
 
 </div>
 
-![The DX-AI-Studio hub — the prompt box, the tool cards, the DX-M1 widget and the "Measured on DX-M1" card.](docs/source/resources/hub.png)
+![The DX-AI-Studio hub — the prompt box, the tool cards, the DX-M1 widget and the "Measured on DX-M1" card.](img/hub.png)
 
 DX-AI-Studio puts the DEEPX SDK into one web workspace: browse models, compile, run inference and
 streaming pipelines, benchmark, monitor the NPU and build apps with an AI agent — all launched from a

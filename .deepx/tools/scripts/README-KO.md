@@ -180,7 +180,7 @@ suite root는 스크립트 자신의 위치에서 찾으므로 어느 디렉터�
 | 1 | stage 실패 (또는 `deps`가 누락 모듈을 발견) |
 | 2 | Usage / setup 오류 (알 수 없는 stage, 잘못된 `--python`) |
 
-CI 측(runner, token, 환경별 onboarding)은 [`../../docs/ci-gates-KO.md`](../../docs/ci-gates-KO.md)를 참고.
+CI 측(runner, token, 환경별 onboarding)은 `.deepx/docs/ci-gates-KO.md`(내부 repository 전용)를 참고.
 
 ---
 

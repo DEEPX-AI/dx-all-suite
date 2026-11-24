@@ -227,7 +227,7 @@ several independent layers, from earliest to latest:
 |-------|------------------|-------|
 | Pre-commit hook | Drift + EN/KO lint, before a commit is made | `.deepx/tools/scripts/pre-commit-hook.sh` (installed via `install-hooks.sh`) |
 | CI sub-repo gate | Drift committed to a standalone sub-repo checkout, at commit/PR time | `.github/workflows/dx-agent-dev-subrepo-gate-{ghes,cloud}.yml` (job `subrepo-gate`, one per sub-repo) via `subrepo_check.sh` |
-| CI suite gate | Drift across all 5 levels + EN/KO parity + conformance tests, at integration time | `.github/workflows/dx-agent-dev-gate-{ghes,cloud}.yml` (job `harness-gate`, suite root) via `harness_gate.sh` — see [`docs/ci-gates.md`](docs/ci-gates.md) |
+| CI suite gate | Drift across all 5 levels + EN/KO parity + conformance tests, at integration time | `.github/workflows/dx-agent-dev-gate-{ghes,cloud}.yml` (job `harness-gate`, suite root) via `harness_gate.sh` — see `docs/ci-gates.md` (internal repository only) |
 | Generator hard-fail | Malformed fragments/templates at generation time | `dx_agent_dev_gen` (raises rather than emitting bad output) |
 | Content guards | Structural regressions in generated output | `.deepx/tests/conformance` (e.g. `test_kb_counts`, `test_generated_paths_resolve`) |
 | Agent instructions | Direct hand-edits of generated files during a session | Instruction File Verification Loop (this file, §7) embedded in every `CLAUDE.md`/`AGENTS.md` |
@@ -286,7 +286,7 @@ how to add or modify a fragment.
 | How to author a new fragment | [`docs/fragment-authoring-guide.md`](docs/fragment-authoring-guide.md) |
 | `dx-agent-gen` generator package | [`tools/README.md`](tools/README.md) |
 | Operational scripts (`run_all.sh`, hooks, E2E loop) | [`tools/scripts/README.md`](tools/scripts/README.md) |
-| CI gates across GHES / mirror / public channel (runners, tokens, exact commands, local reproduction) | [`docs/ci-gates.md`](docs/ci-gates.md) |
+| CI gates across GHES / mirror / public channel (runners, tokens, exact commands, local reproduction) | `docs/ci-gates.md` (internal repository only) |
 | E2E result analyzer (reports, charts, dashboard) | [`e2e/agent_analyzer/README.md`](e2e/agent_analyzer/README.md) |
 | Showcase reproducibility verification (verbatim-prompt eval) | [`e2e/showcase_repro/README.md`](e2e/showcase_repro/README.md) |
 | Test categories and how to run them | [`tests/README.md`](tests/README.md) |

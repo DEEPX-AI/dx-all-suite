@@ -108,10 +108,10 @@ GUIDE_PAIRS: List[GuidePair] = [
     ),
 ]
 
-# A release tree ships without the suite's docs/ (the manual is read on
-# developer.deepx.ai): there is no top-level guide to check there.
-if not (SUITE_ROOT / "docs" / "source").is_dir():
-    GUIDE_PAIRS = [g for g in GUIDE_PAIRS if g.project != "suite"]
+# A release tree ships a project without its manual directory (the manual is
+# read on developer.deepx.ai): there is no guide to check for that project.
+# Where the directory is there, a missing guide still fails.
+GUIDE_PAIRS = [g for g in GUIDE_PAIRS if g.en_path.parent.is_dir()]
 
 
 # ---------------------------------------------------------------------------
