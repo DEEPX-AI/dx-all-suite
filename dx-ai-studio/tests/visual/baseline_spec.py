@@ -55,7 +55,7 @@ SPECS: dict[str, dict] = {
         "**/setup/status": {
             "dx_com_installed": False, "dx_com_version": None, "venv_path": None, "venv_python": None,
             "sample_models": {name: {"downloaded": False, "onnx_path": None, "config_path": None}
-                              for name in ("YOLOV5S-1", "YOLOV5S_Face-1", "MobileNetV2-1")},
+                              for name in ("YOLOXS-1", "ulfgfd-RFB-320-1", "MobileNetV2-1")},
             "calibration_data": {"downloaded": False, "path": None},
             "install_requires_sudo": True,
         },

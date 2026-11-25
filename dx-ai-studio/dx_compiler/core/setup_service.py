@@ -22,8 +22,8 @@ from dx_compiler.core.config import (
 
 # Sample models (as in getting-started)
 SAMPLE_MODELS = [
-    {"name": "YOLOV5S-1", "onnx": "YOLOV5S-1.onnx", "config": "YOLOV5S-1.json"},
-    {"name": "YOLOV5S_Face-1", "onnx": "YOLOV5S_Face-1.onnx", "config": "YOLOV5S_Face-1.json"},
+    {"name": "YOLOXS-1", "onnx": "YOLOXS-1.onnx", "config": "YOLOXS-1.json"},
+    {"name": "ulfgfd-RFB-320-1", "onnx": "ulfgfd-RFB-320-1.onnx", "config": "ulfgfd-RFB-320-1.json"},
     {"name": "MobileNetV2-1", "onnx": "MobileNetV2-1.onnx", "config": "MobileNetV2-1.json"},
 ]
 

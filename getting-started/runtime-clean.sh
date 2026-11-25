@@ -14,7 +14,8 @@ OLD_DIR=$(pwd)
 cd "${SCRIPT_DIR}"
 
 runtime_clean() {
-    find "${SCRIPT_DIR}"/* -depth ! -name "runtime-*.sh" -delete
+    # keep the runtime scripts and img/ (the sample image runtime-3 uses, with its credits)
+    find "${SCRIPT_DIR}"/* -depth ! -name "runtime-*.sh" ! -path "${SCRIPT_DIR}/img" ! -path "${SCRIPT_DIR}/img/*" -delete
     if [ $? -ne 0 ]; then
         printf "%b Failed to remove 'getting-started' artifacts\n" "${TAG_ERROR}"
         exit 1

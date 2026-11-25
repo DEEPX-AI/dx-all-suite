@@ -455,8 +455,8 @@ Sequential execution ensures proper workflow:
 5. ✅ `test_runtime_clean` - Cleanup runtime artifacts
 
 **Models tested:**
-- YOLOV5S-1 (Object Detection)
-- YOLOV5S_Face-1 (Face Detection)
+- YOLOXS-1 (Object Detection)
+- ulfgfd-RFB-320-1 (Face Detection)
 - MobileNetV2-1 (Image Classification)
 
 ---

@@ -24,7 +24,7 @@ setup_assets() {
     echo -e "=== Setup ${target_path} assets ${TAG_START} ==="
 
     pushd ${target_path}
-    ./setup.sh --models MobileNetV2 YOLOv5s_Face YOLOV5S
+    ./setup.sh --models MobileNetV2 ulfgfd-RFB-320 YoloXS
     popd
 
     echo -e "=== Setup ${target_path} assets '${COMPILED_MODEL_PATH}' ${TAG_DONE} ==="
