@@ -1,0 +1,37 @@
+Sample images for runtime-3_run_example_using_dxrt.sh
+=====================================================
+
+sample_broccoli.jpg
+(input of the MobileNetV2 example)
+
+  Title   : Beef & broccoli stir fry. One of my all time favourite quick dinners
+            on Sarah Wilson's blog this week!
+  Author  : jules:stonesoup (https://www.flickr.com/photos/stone-soup/)
+  Source  : https://www.flickr.com/photos/stone-soup/8742005207/
+  License : Creative Commons Attribution 2.0 Generic (CC BY 2.0)
+            https://creativecommons.org/licenses/by/2.0/
+  From    : COCO 2017 validation set (https://cocodataset.org),
+            000000132116.jpg, image ID 132116
+  Changes : none. Only the file name was changed.
+
+sample_kitchen.jpg
+(input of the YOLOX-S example)
+
+  Title   : Kitchen (SS Great Britain, Bristol, October 2011)
+  Author  : Maggie Stephens (https://www.flickr.com/photos/maggiew/)
+  Source  : https://www.flickr.com/photos/maggiew/6255196340/
+  License : Creative Commons Attribution 2.0 Generic (CC BY 2.0)
+            https://creativecommons.org/licenses/by/2.0/
+  From    : COCO 2017 validation set (https://cocodataset.org),
+            000000397133.jpg, image ID 397133
+  Changes : none. Only the file name was changed.
+
+sample_face.jpg
+(input of the ULFGFD example)
+
+  AI-generated image, not a photograph. It was created with ChatGPT
+  (OpenAI GPT-4o), as recorded in the C2PA Content Credentials embedded in
+  the file. The file is unmodified and keeps that record.
+
+DEEPX does not claim any rights in the two photographs above. Their authors do
+not endorse DEEPX or its use of the images.

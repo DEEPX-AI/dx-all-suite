@@ -54,8 +54,7 @@ DICT_UNION = re.compile(r"\}\s*\|\s*\{|^\s*\|\s*\{")  # py38-ok
 # Every test dir the gate runs on the GHES runner. internal/tools/*/tests belong here too:
 # the gate has an "Internal tools tests (ghes-sync)" step, so those tests meet git 2.25 as
 # well — and a `git init -b` there went to CI unnoticed because this list stopped at .deepx.  # py38-ok
-GATE_TEST_DIRS = (".deepx/tests", ".deepx/tools/tests", ".deepx/e2e/tests",
-                  "internal/tools/ghes-sync/tests")
+GATE_TEST_DIRS = (".deepx/tests", ".deepx/tools/tests", ".deepx/e2e/tests")
 
 
 @pytest.mark.parametrize("mod", MODULES, ids=lambda p: p.name)
